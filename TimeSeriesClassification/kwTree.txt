@@ -1,0 +1,10 @@
+level:0, numInstances:20
+seriesId, startPos, length, kwstat, splitThresh
+11,14,4,12.0,0.01039770424467424
+-0.986037201168702,-0.29596255553534845,-0.38816850328864594,1.6701682599926964,
+left size under level 0: 6
+level:1, numInstances:6
+class decision here: 0.0
+right size under level 0: 14
+level:1, numInstances:14
+class decision here: 1.0
