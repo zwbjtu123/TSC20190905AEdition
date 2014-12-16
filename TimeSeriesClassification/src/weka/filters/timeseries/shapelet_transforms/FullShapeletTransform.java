@@ -511,6 +511,25 @@ public class FullShapeletTransform extends SimpleBatchFilter
         return kShapelets;
     }
     
+        /**
+     * protected method for extracting k shapelets.
+     *
+     * @param numShapelets
+     * @param data the data that the shapelets will be taken from
+     * @param minShapeletLength
+     * @param maxShapeletLength
+     * @return an ArrayList of FullShapeletTransform objects in order of their
+     * fitness (by infoGain, seperationGap then shortest length)
+     */
+    public ArrayList<Shapelet> findBestKShapeletsCache(int numShapelets, Instances data, int minShapeletLength, int maxShapeletLength)
+    {
+        this.numShapelets = numShapelets;
+        this.minShapeletLength = minShapeletLength;
+        this.maxShapeletLength = maxShapeletLength;
+        return findBestKShapeletsCache(data);
+    }
+    
+    
     protected ArrayList<Shapelet> findShapeletCandidates(Instances data, int i, double[] wholeCandidate, ArrayList<Shapelet> kShapelets)
     {
         //get our time series as a double array.
@@ -548,6 +567,22 @@ public class FullShapeletTransform extends SimpleBatchFilter
             }
         }
         return seriesShapelets;
+    }
+    
+    
+        /**
+     * A method to obtain time taken to find a single best shapelet in the data set
+     * @param data the data set to be processed
+     * @param minShapeletLength minimum shapelet length
+     * @param maxShapeletLength maximum shapelet length
+     * @return time in seconds to find the best shapelet
+     */
+    public double timingForSingleShapelet(Instances data, int minShapeletLength, int maxShapeletLength) {
+        data = roundRobinData(data, null);
+        long startTime = System.nanoTime();
+        findBestKShapeletsCache(1, data, minShapeletLength, maxShapeletLength);
+        long finishTime = System.nanoTime();
+        return (double)(finishTime - startTime) / 1000000000.0;
     }
     
     protected void recordShapelets(ArrayList<Shapelet> kShapelets)
@@ -1276,6 +1311,22 @@ public class FullShapeletTransform extends SimpleBatchFilter
         }
         return str;
     }
+    
+    /**
+     *
+     * @param data
+     * @param minShapeletLength
+     * @param maxShapeletLength
+     * @return
+     * @throws Exception
+     */
+    public long opCountForSingleShapelet(Instances data, int minShapeletLength, int maxShapeletLength) throws Exception {
+        data = roundRobinData(data, null);
+        subseqDistOpCount = 0;
+        findBestKShapeletsCache(1, data, minShapeletLength, maxShapeletLength);
+        return subseqDistOpCount;
+    }
+    
 
     /**
      * An example use of a FullShapeletTransform
