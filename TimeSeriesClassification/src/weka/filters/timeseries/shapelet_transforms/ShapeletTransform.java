@@ -76,107 +76,59 @@ public class ShapeletTransform extends FullShapeletTransform
         super(k, minShapeletLength, maxShapeletLength, qualityChoice);
     }
 
+    
     @Override
-    public Instances process(Instances data) throws Exception
+    protected Instances buildTansformedDataset(Instances data)
     {
-        if (this.numShapelets < 1)
-        {
-            throw new Exception("Number of shapelets initialised incorrectly - please select value of k greater than or equal to 1 (Usage: setNumberOfShapelets");
-        }
-
-        int maxPossibleLength = data.instance(0).numAttributes() - 1;
-        if (data.classIndex() < 0)
-        {
-            throw new Exception("Require that the class be set for the ShapeletTransform");
-        }
-
-        if (this.minShapeletLength < 1 || this.maxShapeletLength < 1 || this.maxShapeletLength < this.minShapeletLength || this.maxShapeletLength > maxPossibleLength)
-        {
-            throw new Exception("Shapelet length parameters initialised incorrectly");
-        }
-
-        //Sort data in round robin order, original order retained in dataSourceIDs
-        if (!this.shapeletsTrained)
-        {
-            // shapelets discovery has not yet been caried out, so this must be training data
-            dataSourceIDs = new int[data.numInstances()];
-            if (roundRobin)
-            {
-                //Reorder the data in round robin order
-                data = roundRobinData(data, dataSourceIDs);
-            }
-            else
-            {
-                for (int i = 0; i < data.numInstances(); i++)
-                {
-                    dataSourceIDs[i] = i;
-                }
-            }
-            this.shapelets = findBestKShapeletsCache(this.numShapelets, data, this.minShapeletLength, this.maxShapeletLength); // get k shapelets ATTENTION
-           
-            this.shapeletsTrained = true;
-            if (!supressOutput)
-            {
-                System.out.println(shapelets.size() + " Shapelets have been generated");
-            }
-            if (roundRobin)
-            {
-                resetDataOrder(data, dataSourceIDs);
-                resetShapeletIndices(shapelets, dataSourceIDs);
-            }
-        }
         //Reorder the training data and reset the shapelet indexes
         Instances output = determineOutputFormat(data);
 
+        Shapelet s;
+        double[][] sortedIndexes;
         // for each data, get distance to each shapelet and create new instance
-        for (int i = 0; i < shapelets.size() + 1; i++)
+        int size = shapelets.size();
+        int dataSize = data.numInstances();
+        
+        //create our data instances
+        for(int j = 0; j < dataSize; j++)
         {
-            Shapelet s = null;
-            double[][] sortedIndexes = null;
+            output.add(new DenseInstance(size + 1));
+        }
+        
+        double dist;
+        for (int i = 0; i < size; i++)
+        {
+            s = shapelets.get(i);
+            sortedIndexes = sortIndexes(s.content);
 
-            if (i < shapelets.size())
+            for (int j = 0; j < dataSize; j++)
             {
-                s = shapelets.get(i);
-                sortedIndexes = sortIndexes(s.content);
+                dist = onlineSubsequenceDistance(s.content, sortedIndexes, data.instance(j));
+                output.instance(j).setValue(i, dist);
             }
-
-            for (int j = 0; j < data.numInstances(); j++)
-            {
-                if (i < shapelets.size())
-                {
-                    double dist = onlineSubsequenceDistance(s.content, sortedIndexes, data.instance(j));
-                    if (i == 0)
-                    {
-                        output.add(new DenseInstance(this.shapelets.size() + 1));
-                        output.instance(j).setValue(i, dist);
-                    }
-                    else
-                    {
-                        output.instance(j).setValue(i, dist);
-                    }
-                }
-                else
-                {
-                    output.instance(j).setValue(i, data.instance(j).classValue());
-                }
-            }
+        }
+        
+        //do the classValues.
+        for(int j=0; j < dataSize; j++)
+        {
+            output.instance(j).setValue(size, data.instance(j).classValue());
         }
 
         return output;
     }
 
     @Override
-    protected Shapelet checkCandidate(double[] candidate, Instances data, int seriesId, int startPos, TreeMap classDistribution, QualityBound.ShapeletQualityBound qualityBound)
+    protected Shapelet checkCandidate(double[] candidate, Instances data, int seriesId, int startPos, QualityBound.ShapeletQualityBound qualityBound)
     {
-
         // create orderline by looping through data set and calculating the subsequence
         // distance from candidate to all data, inserting in order.
-        ArrayList<OrderLineObj> orderline = new ArrayList<OrderLineObj>();
+        ArrayList<OrderLineObj> orderline = new ArrayList<>();
 
         boolean pruned = false;
         double[][] sortedIndexes = sortIndexes(candidate);
 
-        for (int i = 0; i < data.numInstances(); i++)
+        int dataSize = data.numInstances();
+        for (int i = 0; i < dataSize; i++)
         {
             //Check if it is possible to prune the candidate
             if (qualityBound != null)
@@ -210,17 +162,15 @@ public class ShapeletTransform extends FullShapeletTransform
         // in favour of a clear multi-class information gain calculation. Could be added in
         // this method in the future for speed up, but distance early abandon is more important
         //If shapelet is pruned then it should no longer be considered in further processing
-        if (pruned)
-        {
-            return null;
-        }
-        else
+        if (!pruned)
         {
             // create a shapelet object to store all necessary info, i.e.
-            Shapelet shapelet = new Shapelet(candidate, dataSourceIDs[seriesId], startPos, this.qualityMeasure);
-            shapelet.calculateQuality(orderline, classDistribution);
+            Shapelet shapelet = new Shapelet(candidate, dataSourceIDs[seriesId], startPos, qualityMeasure);
+            shapelet.calculateQuality(orderline, classDistributions);
             return shapelet;
         }
+    
+        return null;
     }
 
     @Override
@@ -233,6 +183,7 @@ public class ShapeletTransform extends FullShapeletTransform
      * Calculate the distance between a candidate series and an Instance object
      *
      * @param candidate a double[] representation of a shapelet candidate
+     * @param sortedIndices
      * @param timeSeriesIns an Instance object of a whole time series
      * @return the distance between a candidate and a time series
      */
@@ -264,7 +215,7 @@ public class ShapeletTransform extends FullShapeletTransform
 
         //Generate initial subsequence 
         double[] subseq = new double[candidate.length];
-        subseq = Arrays.copyOfRange(timeSeries, 0, subseq.length);
+        System.arraycopy(timeSeries, 0, subseq, 0, subseq.length);
         subseq = optimizedZNormalise(subseq, false, sumPointer, sum2Pointer);
 
         //Keep count of fundamental ops for experiment
@@ -278,10 +229,12 @@ public class ShapeletTransform extends FullShapeletTransform
         double mean;
         double stdv;
 
+        double temp;
         //Compute initial distance
         for (int i = 0; i < candidate.length; i++)
         {
-            bestDist += ((candidate[i] - subseq[i]) * (candidate[i] - subseq[i]));
+            temp = candidate[i] - subseq[i];
+            bestDist += temp * temp;
         }
         
         //Keep count of fundamental ops for experiment
@@ -299,14 +252,8 @@ public class ShapeletTransform extends FullShapeletTransform
 
             //Get rid of rounding errors
             double stdv2 = (sum2 - (mean * mean * candidate.length)) / candidate.length;
-            if (stdv2 < ROUNDING_ERROR_CORRECTION)
-            {
-                stdv = 0.0;
-            }
-            else
-            {
-                stdv = Math.sqrt(stdv2);
-            }
+            
+            stdv = (stdv2 < ROUNDING_ERROR_CORRECTION) ? 0.0 : Math.sqrt(stdv2);
 
             int j = 0;
             double currentDist = 0.0;
@@ -326,7 +273,6 @@ public class ShapeletTransform extends FullShapeletTransform
             if (currentDist < bestDist)
             {
                 bestDist = currentDist;
-
             }
         }
 
@@ -390,11 +336,8 @@ public class ShapeletTransform extends FullShapeletTransform
         double mean;
         double stdv;
 
-        double classValPenalty = 0;
-        if (classValOn)
-        {
-            classValPenalty = 1;
-        }
+        double classValPenalty = classValOn ? 1:0;
+
         double[] output = new double[input.length];
         double seriesTotal = 0;
         double seriesTotal2 = 0;
@@ -413,28 +356,14 @@ public class ShapeletTransform extends FullShapeletTransform
 
         mean = seriesTotal / (input.length - classValPenalty);
         double num = (seriesTotal2 - (mean * mean * (input.length - classValPenalty))) / (input.length - classValPenalty);
-        if (num <= ROUNDING_ERROR_CORRECTION)
-        {
-            stdv = 0.0;
-        }
-        else
-        {
-            stdv = Math.sqrt(num);
-        }
+        stdv = (num <= ROUNDING_ERROR_CORRECTION) ? 0.0 : Math.sqrt(num);
 
         for (int i = 0; i < input.length - classValPenalty; i++)
         {
-            if (stdv == 0.0)
-            {
-                output[i] = 0.0;
-            }
-            else
-            {
-                output[i] = (input[i] - mean) / stdv;
-            }
+            output[i] = (stdv == 0.0) ? 0.0 : (input[i] - mean) / stdv;
         }
 
-        if (classValOn == true)
+        if (classValOn)
         {
             output[output.length - 1] = input[input.length - 1];
         }
@@ -468,14 +397,6 @@ public class ShapeletTransform extends FullShapeletTransform
         }
     }
 
-    @Override
-    public long opCountForSingleShapelet(Instances data, int minShapeletLength, int maxShapeletLength) throws Exception
-    {
-        data = FullShapeletTransform.roundRobinData(data, null);
-        subseqDistOpCount = 0;
-        findBestKShapeletsCache(1, data, minShapeletLength, maxShapeletLength);
-        return subseqDistOpCount;
-    }
 
     /**
      *

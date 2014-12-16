@@ -10,15 +10,15 @@ import weka.core.shapelet.OrderLineObj;
 import weka.core.shapelet.QualityBound;
 import weka.core.shapelet.QualityMeasures.ShapeletQualityChoice;
 import weka.core.shapelet.Shapelet;
-import static weka.filters.timeseries.shapelet_transforms.FullShapeletTransform2.getClassDistributions;
-import static weka.filters.timeseries.shapelet_transforms.FullShapeletTransform2.removeSelfSimilar;
+import static weka.filters.timeseries.shapelet_transforms.FullShapeletTransform.getClassDistributions;
+import static weka.filters.timeseries.shapelet_transforms.FullShapeletTransform.removeSelfSimilar;
 
 /**
  * An optimised filter to transform a dataset by k shapelets.
  *
  * @author Edgaras Baranauskas
  */
-public class ShapeletTransformDistCaching2 extends FullShapeletTransform2
+public class ShapeletTransformDistCaching2 extends FullShapeletTransform
 {
 
     protected Stats stats;
@@ -170,7 +170,7 @@ public class ShapeletTransformDistCaching2 extends FullShapeletTransform2
         data = new double[dataSize][];
         for (int i = 0; i < dataSize; i++)
         {
-            data[i] = FullShapeletTransform2.zNormalise(getToDoubleArrayOfInstance(dataInst, i), true);
+            data[i] = FullShapeletTransform.zNormalise(getToDoubleArrayOfInstance(dataInst, i), true);
         }
     }
 
@@ -565,7 +565,7 @@ public class ShapeletTransformDistCaching2 extends FullShapeletTransform2
         System.out.println("\n1.2) Normalised example series: ");
         for (int i = 0; i < numOfSeries; i++)
         {
-            data[i] = FullShapeletTransform2.zNormalise(data[i], true);
+            data[i] = FullShapeletTransform.zNormalise(data[i], true);
             ShapeletTransform.printSeries(data[i]);
         }
 
@@ -620,7 +620,7 @@ public class ShapeletTransformDistCaching2 extends FullShapeletTransform2
                         stats.setCurrentY(j);
 
                         double distanceCached = cachedSubsequenceDistance(start, candidate.length, data[j].length, stats);
-                        double distanceOriginal = FullShapeletTransform2.subsequenceDistance(FullShapeletTransform2.zNormalise(candidate, false), data[j]);
+                        double distanceOriginal = FullShapeletTransform.subsequenceDistance(FullShapeletTransform.zNormalise(candidate, false), data[j]);
                         if (Math.abs(distanceCached - distanceOriginal) > 0.0000000000000000001)
                         {
                             System.out.println("Candidate = " + i + ", startPos = " + start + ", series = " + j + ":\t" + distanceCached + " = " + distanceOriginal);

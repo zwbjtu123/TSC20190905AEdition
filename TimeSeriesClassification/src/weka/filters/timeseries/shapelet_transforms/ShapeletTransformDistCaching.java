@@ -79,27 +79,10 @@ public class ShapeletTransformDistCaching extends FullShapeletTransform
     }
 
     @Override
-    public Instances process(Instances dataInst) throws Exception
+    public Instances process(Instances dataInst) throws IllegalArgumentException
     {
-        if (this.numShapelets < 1)
-        {
-            throw new Exception("Number of shapelets initialised incorrectly - please select value of k (Usage: setNumberOfShapelets");
-        }
-
-        int maxPossibleLength;
-        if (dataInst.classIndex() < 0)
-        {
-            maxPossibleLength = dataInst.instance(0).numAttributes();
-        }
-        else
-        {
-            maxPossibleLength = dataInst.instance(0).numAttributes() - 1;
-        }
-
-        if (this.minShapeletLength < 1 || this.maxShapeletLength < 1 || this.maxShapeletLength < this.minShapeletLength || this.maxShapeletLength > maxPossibleLength)
-        {
-            throw new Exception("Shapelet length parameters initialised incorrectly");
-        }
+        //check the input data is correct and assess whether the filter has been setup correctly.
+        inputCheck(dataInst);
 
         if (this.shapeletsTrained == false)
         { // shapelets discovery has not yet been caried out, so do so
@@ -119,7 +102,7 @@ public class ShapeletTransformDistCaching extends FullShapeletTransform
             }
 
             //Instances orderedInst = roundRobinData(dataInst, dataSourceIDs);
-            this.shapelets = findBestKShapeletsCache(this.numShapelets, dataInst, this.minShapeletLength, this.maxShapeletLength); // get k shapelets ATTENTION
+            this.shapelets = findBestKShapeletsCache(dataInst); // get k shapelets ATTENTION
             this.shapeletsTrained = true;
             if (!supressOutput)
             {
@@ -197,9 +180,9 @@ public class ShapeletTransformDistCaching extends FullShapeletTransform
     }
 
     @Override
-    public ArrayList<Shapelet> findBestKShapeletsCache(int numShapelets, Instances dataInst, int minShapeletLength, int maxShapeletLength) throws Exception
+    public ArrayList<Shapelet> findBestKShapeletsCache(Instances dataInst) throws IllegalArgumentException
     {
-        ArrayList<Shapelet> kShapelets = new ArrayList<Shapelet>();                     // store (upto) the best k shapelets overall
+        ArrayList<Shapelet> kShapelets = new ArrayList<>();                     // store (upto) the best k shapelets overall
         ArrayList<Shapelet> seriesShapelets;                                            // temp store of all shapelets for each time series
         TreeMap<Double, Integer> classDistributions = getClassDistributions(dataInst);  // used to calc info gain
 
@@ -283,53 +266,13 @@ public class ShapeletTransformDistCaching extends FullShapeletTransform
         }
 
         //Record shapelets to log if required 
-        if (this.recordShapelets)
-        {
-            //make the directory path.
-            File file = new File(this.ouputFileLocation);
-            file.getParentFile().mkdirs();
-            FileWriter out = new FileWriter(file);
-
-            for (int i = 0; i < kShapelets.size(); i++)
-            {
-                out.append(kShapelets.get(i).getQualityValue() + "," + kShapelets.get(i).getSeriesId() + "," + kShapelets.get(i).getStartPos() + "\n");
-
-                double[] shapeletContent = kShapelets.get(i).getContent();
-                for (int j = 0; j < shapeletContent.length; j++)
-                {
-                    out.append(shapeletContent[j] + ",");
-                }
-                out.append("\n");
-            }
-            out.close();
-        }
-
         //Print processing information to command window if required
-        if (!supressOutput)
-        {
-            System.out.println();
-            System.out.println("Output Shapelets:");
-            System.out.println("-------------------");
-            System.out.println("informationGain,seriesId,startPos");
-            System.out.println("<shapelet>");
-            System.out.println("-------------------");
-            System.out.println();
-            for (int i = 0; i < kShapelets.size(); i++)
-            {
-                System.out.println(kShapelets.get(i).getQualityValue() + "," + kShapelets.get(i).getSeriesId() + "," + kShapelets.get(i).getStartPos());
-                double[] shapeletContent = kShapelets.get(i).getContent();
-                for (int j = 0; j < shapeletContent.length; j++)
-                {
-                    System.out.print(shapeletContent[j] + ",");
-                }
-                System.out.println();
-            }
-        }
+        recordShapelets(kShapelets);
+        printShapelets(kShapelets);
 
         return kShapelets;
     }
 
-    @Override
     protected Shapelet checkCandidate(double[] candidate, Instances data, int seriesId, int startPos, TreeMap classDistribution, QualityBound.ShapeletQualityBound qualityBound)
     {
 

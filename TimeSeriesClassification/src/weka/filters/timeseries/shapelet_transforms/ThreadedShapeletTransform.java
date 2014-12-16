@@ -28,7 +28,7 @@ public class ThreadedShapeletTransform extends ShapeletTransform implements Runn
     @Override
     public void run() {
         
-//Performs find k best shapelets         
+        //Performs find k best shapelets         
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
     
@@ -43,7 +43,6 @@ public class ThreadedShapeletTransform extends ShapeletTransform implements Runn
      * 
      */
     
-    @Override
     public ArrayList<Shapelet> findBestKShapeletsCache(int numShapelets, Instances data, int minShapeletLength, int maxShapeletLength)throws Exception{
 //       
         sharedInstances =data;

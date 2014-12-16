@@ -103,21 +103,12 @@ public class ApproximateShapeletTransform extends ShapeletTransformDistCaching{
     
     
     @Override
-    public Instances process(Instances dataInst) throws Exception{
-        if(this.numShapelets < 1){
-            throw new Exception("Number of shapelets initialised incorrectly - please select value of k (Usage: setNumberOfShapelets");
-        }
+    public Instances process(Instances dataInst) throws IllegalArgumentException
+    {
 
-        int maxPossibleLength;
-        if(dataInst.classIndex() < 0) {
-            maxPossibleLength = dataInst.instance(0).numAttributes();
-        }else{
-            maxPossibleLength = dataInst.instance(0).numAttributes() - 1;
-        }
+        //check the input data is correct and assess whether the filter has been setup correctly.
+        inputCheck(dataInst);   
 
-        if(this.minShapeletLength < 1 || this.maxShapeletLength < 1 || this.maxShapeletLength < this.minShapeletLength || this.maxShapeletLength > maxPossibleLength){
-            throw new Exception("Shapelet length parameters initialised incorrectly");
-        }
 
         //Approximate data
         Instances orderedInst = null;
@@ -141,7 +132,7 @@ public class ApproximateShapeletTransform extends ShapeletTransformDistCaching{
         }
             
         if(this.shapeletsTrained == false){ // shapelets discovery has not yet been caried out, so do so
-            this.shapelets = findBestKShapeletsCache(this.numShapelets, orderedInst, this.minShapeletLength, this.maxShapeletLength); // get k shapelets ATTENTION
+            this.shapelets = findBestKShapeletsCache(orderedInst); // get k shapelets ATTENTION
             this.shapeletsTrained = true;
             if(!supressOutput){
                 System.out.println(shapelets.size()+" Shapelets have been generated");
@@ -365,20 +356,6 @@ public class ApproximateShapeletTransform extends ShapeletTransformDistCaching{
             result.setClassIndex(result.numAttributes() - 1);
         }
         return result;
-    }
-    
-    @Override
-    public double timingForSingleShapelet(Instances data, int minShapeletLength, int maxShapeletLength) throws Exception {
-        Instances output = approximateInstanes(data);
-        minShapeletLength = (output.numAttributes() - 1) * minShapeletLength / (data.numAttributes()-1);
-        maxShapeletLength = (output.numAttributes() - 1) * maxShapeletLength / (data.numAttributes()-1);
-        
-        output = roundRobinData(output, null);
-        
-        long startTime = System.nanoTime();
-        findBestKShapeletsCache(1, output, minShapeletLength, maxShapeletLength);
-        long finishTime = System.nanoTime();
-        return (double)(finishTime - startTime) / 1000000000.0;
     }
     
     //Method used for testing
