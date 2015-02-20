@@ -76,7 +76,6 @@ public class ShapeletTransform extends FullShapeletTransform
         super(k, minShapeletLength, maxShapeletLength, qualityChoice);
     }
 
-    
     @Override
     protected Instances buildTansformedDataset(Instances data)
     {
@@ -88,13 +87,13 @@ public class ShapeletTransform extends FullShapeletTransform
         // for each data, get distance to each shapelet and create new instance
         int size = shapelets.size();
         int dataSize = data.numInstances();
-        
+
         //create our data instances
-        for(int j = 0; j < dataSize; j++)
+        for (int j = 0; j < dataSize; j++)
         {
             output.add(new DenseInstance(size + 1));
         }
-        
+
         double dist;
         for (int i = 0; i < size; i++)
         {
@@ -107,9 +106,9 @@ public class ShapeletTransform extends FullShapeletTransform
                 output.instance(j).setValue(i, dist);
             }
         }
-        
+
         //do the classValues.
-        for(int j=0; j < dataSize; j++)
+        for (int j = 0; j < dataSize; j++)
         {
             output.instance(j).setValue(size, data.instance(j).classValue());
         }
@@ -169,7 +168,7 @@ public class ShapeletTransform extends FullShapeletTransform
             shapelet.calculateQuality(orderline, classDistributions);
             return shapelet;
         }
-    
+
         return null;
     }
 
@@ -236,9 +235,9 @@ public class ShapeletTransform extends FullShapeletTransform
             temp = candidate[i] - subseq[i];
             bestDist += temp * temp;
         }
-        
+
         //Keep count of fundamental ops for experiment
-        subseqDistOpCount+= candidate.length;
+        subseqDistOpCount += candidate.length;
 
         // Scan through all possible subsequences of two
         for (int i = 1; i < timeSeries.length - candidate.length; i++)
@@ -252,7 +251,7 @@ public class ShapeletTransform extends FullShapeletTransform
 
             //Get rid of rounding errors
             double stdv2 = (sum2 - (mean * mean * candidate.length)) / candidate.length;
-            
+
             stdv = (stdv2 < ROUNDING_ERROR_CORRECTION) ? 0.0 : Math.sqrt(stdv2);
 
             int j = 0;
@@ -336,7 +335,7 @@ public class ShapeletTransform extends FullShapeletTransform
         double mean;
         double stdv;
 
-        double classValPenalty = classValOn ? 1:0;
+        double classValPenalty = classValOn ? 1 : 0;
 
         double[] output = new double[input.length];
         double seriesTotal = 0;
@@ -396,7 +395,6 @@ public class ShapeletTransform extends FullShapeletTransform
             return d;
         }
     }
-
 
     /**
      *

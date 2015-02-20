@@ -1,18 +1,1 @@
 level:0, numInstances:20
-seriesId, startPos, length, infoGain, splitThresh
-18,6,9,29.308060883818726,0.3148325654425467
--1.071128901405824,-0.00434849483714469,0.07799113505786007,2.0103529221796195,-0.9476707297708242,-1.1702670057022957,0.6738530861537879,0.9193153758145294,-0.4880973874897097,
-left size under level 0: 5
-level:1, numInstances:5
-class decision here: 0.0
-right size under level 0: 15
-level:1, numInstances:15
-seriesId, startPos, length, infoGain, splitThresh
-10,17,3,68.03967796219352,0.0414441546453173
--0.36210117028378735,1.3649686806448447,-1.002867510361057,
-left size under level 1: 14
-level:2, numInstances:14
-class decision here: 1.0
-right size under level 1: 1
-level:2, numInstances:1
-class decision here: 0.0

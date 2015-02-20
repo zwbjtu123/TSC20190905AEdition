@@ -38,15 +38,16 @@ import weka.filters.SimpleBatchFilter;
  */
 public class FullShapeletTransform extends SimpleBatchFilter
 {
+
     protected boolean cacheDoubleArrays = false;
     protected double[][] cachedDoubleArray;
     //Variables for experiments
     protected static long subseqDistOpCount;
     protected TreeMap<Double, Integer> classDistributions;
-    
-    
+
     @Override
-    public String globalInfo() {
+    public String globalInfo()
+    {
         throw new UnsupportedOperationException("Not supported yet.");
     }
 
@@ -60,26 +61,30 @@ public class FullShapeletTransform extends SimpleBatchFilter
     protected boolean recordShapelets = true; // default action is to write an output file
     protected boolean roundRobin = false;
 
-    public static int DEFAULT_NUMSHAPELETS=100;
-    public static int DEFAULT_MINSHAPELETLENGTH=3;
-    public static int DEFAULT_MAXSHAPELETLENGTH=23;
-  
+    public static int DEFAULT_NUMSHAPELETS = 100;
+    public static int DEFAULT_MINSHAPELETLENGTH = 3;
+    public static int DEFAULT_MAXSHAPELETLENGTH = 23;
+
     protected QualityMeasures.ShapeletQualityMeasure qualityMeasure;
     protected QualityMeasures.ShapeletQualityChoice qualityChoice;
     protected boolean useCandidatePruning;
-    protected boolean useSeparationGap=false;
-    protected boolean useRoundRobin=false;
-    public void setUseSeparationGap(boolean b){useSeparationGap=b;}
-    public void setUseRoundRobin(boolean b){useRoundRobin=b;}
-    
+    protected boolean useSeparationGap = false;
+    protected boolean useRoundRobin = false;
+
+    public void setUseSeparationGap(boolean b)
+    {
+        useSeparationGap = b;
+    }
+
+    public void setUseRoundRobin(boolean b)
+    {
+        useRoundRobin = b;
+    }
+
     protected int candidatePruningStartPercentage;
 
     protected static final double ROUNDING_ERROR_CORRECTION = 0.000000000000001;
     protected int[] dataSourceIDs;
-    
-    
-    
-    
 
     /**
      * Default constructor; Quality measure defaults to information gain.
@@ -149,11 +154,10 @@ public class FullShapeletTransform extends SimpleBatchFilter
 
         setQualityMeasure(qualityChoice);
     }
-    
-    
+
     /**
      * Returns the set of shapelets for this transform as an ArrayList.
-     * 
+     *
      * @return An ArrayList of Shapelets representing the shapelets found for
      * this Shapelet Transform.
      */
@@ -161,113 +165,136 @@ public class FullShapeletTransform extends SimpleBatchFilter
     {
         return this.shapelets;
     }
-    
+
     /**
      * Set the transform to round robin the data or not. This transform defaults
-     * round robin to false to keep the instances in the same order as the 
-     * original data. If round robin is set to true, the transformed data
-     * will be reordered which can make it more difficult to use the ensemble.
-     * 
-     * @param val 
+     * round robin to false to keep the instances in the same order as the
+     * original data. If round robin is set to true, the transformed data will
+     * be reordered which can make it more difficult to use the ensemble.
+     *
+     * @param val
      */
     public void setRoundRobin(boolean val)
     {
         this.roundRobin = val;
     }
-    
+
     /**
-     * Supresses filter output to the console; useful when running timing experiments.
+     * Supresses filter output to the console; useful when running timing
+     * experiments.
      */
-    public void supressOutput(){
-        this.supressOutput=true;
+    public void supressOutput()
+    {
+        this.supressOutput = true;
     }
 
     /**
-     * Use candidate pruning technique when checking candidate quality. This 
-     * speeds up the transform processing time. 
+     * Use candidate pruning technique when checking candidate quality. This
+     * speeds up the transform processing time.
      */
-    public void useCandidatePruning(){
+    public void useCandidatePruning()
+    {
         this.useCandidatePruning = true;
         this.candidatePruningStartPercentage = 10;
     }
 
     /**
-     * Use candidate pruning technique when checking candidate quality. This 
-     * speeds up the transform processing time. 
+     * Use candidate pruning technique when checking candidate quality. This
+     * speeds up the transform processing time.
+     *
      * @param percentage the percentage of data to be precocessed before pruning
-     * is initiated. In most cases the higher the percentage the less effective 
+     * is initiated. In most cases the higher the percentage the less effective
      * pruning becomes
      */
-    public void useCandidatePruning(int percentage){
+    public void useCandidatePruning(int percentage)
+    {
         this.useCandidatePruning = true;
         this.candidatePruningStartPercentage = percentage;
     }
-    
+
     /**
      * Mutator method to set the number of shapelets to be stored by the filter.
      *
      * @param k the number of shapelets to be generated
      */
-    public void setNumberOfShapelets(int k){
+    public void setNumberOfShapelets(int k)
+    {
         this.numShapelets = k;
     }
+
     /**
      *
      * @return
      */
-    public int getNumberOfShapelets(){ 
+    public int getNumberOfShapelets()
+    {
         return numShapelets;
     }
-    
+
     /**
-    * Turns off log saving; useful for timing experiments where speed is essential.
-    */
-    public void turnOffLog(){
+     * Turns off log saving; useful for timing experiments where speed is
+     * essential.
+     */
+    public void turnOffLog()
+    {
         this.recordShapelets = false;
     }
-    
+
     /**
-     * Set file path for the filter log. Filter log includes shapelet quality, seriesId, startPosition, and content for each shapelet.
+     * Set file path for the filter log. Filter log includes shapelet quality,
+     * seriesId, startPosition, and content for each shapelet.
+     *
      * @param fileName the updated file path of the filter log
      */
-    public void setLogOutputFile(String fileName){
+    public void setLogOutputFile(String fileName)
+    {
         this.recordShapelets = true;
         this.ouputFileLocation = fileName;
     }
-    
+
     /**
      *
      * @return
      */
-    public boolean foundShapelets(){ return shapeletsTrained;}
+    public boolean foundShapelets()
+    {
+        return shapeletsTrained;
+    }
 
     /**
-     *  Mutator method to set the minimum and maximum shapelet lengths for the filter.
+     * Mutator method to set the minimum and maximum shapelet lengths for the
+     * filter.
      *
      * @param minShapeletLength minimum length of shapelets
      * @param maxShapeletLength maximum length of shapelets
      */
-    public void setShapeletMinAndMax(int minShapeletLength, int maxShapeletLength){
+    public void setShapeletMinAndMax(int minShapeletLength, int maxShapeletLength)
+    {
         this.minShapeletLength = minShapeletLength;
         this.maxShapeletLength = maxShapeletLength;
     }
 
     /**
-     * Mutator method to set the quality measure used by the filter. As with constructors, default 
-     * selection is information gain unless another valid selection is specified.
+     * Mutator method to set the quality measure used by the filter. As with
+     * constructors, default selection is information gain unless another valid
+     * selection is specified.
      *
-     * @return 
+     * @return
      */
-    public QualityMeasures.ShapeletQualityChoice getQualityMeasure(){
+    public QualityMeasures.ShapeletQualityChoice getQualityMeasure()
+    {
         return qualityChoice;
     }
+
     /**
      *
      * @param qualityChoice
      */
-    public void setQualityMeasure(QualityMeasures.ShapeletQualityChoice qualityChoice){
-        this.qualityChoice=qualityChoice;
-        switch(qualityChoice){
+    public void setQualityMeasure(QualityMeasures.ShapeletQualityChoice qualityChoice)
+    {
+        this.qualityChoice = qualityChoice;
+        switch (qualityChoice)
+        {
             case F_STAT:
                 this.qualityMeasure = new QualityMeasures.FStat();
                 break;
@@ -292,7 +319,6 @@ public class FullShapeletTransform extends SimpleBatchFilter
         this.candidatePruningStartPercentage = f ? 10 : 100;
     }
 
-
     /**
      * Sets the format of the filtered instances that are output. I.e. will
      * include k attributes each shapelet distance and a class value
@@ -300,7 +326,6 @@ public class FullShapeletTransform extends SimpleBatchFilter
      * @param inputFormat the format of the input data
      * @return a new Instances object in the desired output format
      */
-    
     //TODO: Fix depecrated FastVector
     @Override
     protected Instances determineOutputFormat(Instances inputFormat) throws IllegalArgumentException
@@ -323,7 +348,7 @@ public class FullShapeletTransform extends SimpleBatchFilter
         }
 
         if (inputFormat.classIndex() >= 0)
-        {   
+        {
             //Classification set, set class
             //Get the class values as a fast vector
             Attribute target = inputFormat.attribute(inputFormat.classIndex());
@@ -342,7 +367,7 @@ public class FullShapeletTransform extends SimpleBatchFilter
         }
         return result;
     }
-    
+
     protected void inputCheck(Instances dataInst) throws IllegalArgumentException
     {
         if (numShapelets < 1)
@@ -352,7 +377,7 @@ public class FullShapeletTransform extends SimpleBatchFilter
 
         int maxPossibleLength;
         maxPossibleLength = dataInst.instance(0).numAttributes();
-        
+
         if (dataInst.classIndex() >= 0)
         {
             maxPossibleLength -= 1;
@@ -401,18 +426,22 @@ public class FullShapeletTransform extends SimpleBatchFilter
 
         //instantiate the caching array here, so it gets refreshed if we're using a test set.
         int dataSize = data.numInstances();
-        
-        if(cacheDoubleArrays)
+
+        if (cacheDoubleArrays)
+        {
             cachedDoubleArray = new double[dataSize][];
-        
+        }
+
         //checks if the shapelets haven't been found yet, finds them if it needs too.
         if (!shapeletsTrained)
+        {
             trainShapelets(data);
+        }
 
         //build the transformed dataset with the shapelets we've found either on this data, or the previous training data
         return buildTansformedDataset(data);
     }
-    
+
     protected void trainShapelets(Instances data)
     {
 
@@ -432,7 +461,6 @@ public class FullShapeletTransform extends SimpleBatchFilter
             }
         }
 
-        
         shapelets = findBestKShapeletsCache(data); // get k shapelets
         shapeletsTrained = true;
 
@@ -443,10 +471,10 @@ public class FullShapeletTransform extends SimpleBatchFilter
         {
             resetDataOrder(data, dataSourceIDs);
             resetShapeletIndices(shapelets, dataSourceIDs);
-        } 
-        
+        }
+
     }
-    
+
     protected Instances buildTansformedDataset(Instances data)
     {
         Instances output = determineOutputFormat(data);
@@ -467,7 +495,6 @@ public class FullShapeletTransform extends SimpleBatchFilter
         }
         return output;
     }
-
 
     /**
      * protected method for extracting k shapelets.
@@ -490,16 +517,16 @@ public class FullShapeletTransform extends SimpleBatchFilter
         for (int i = 0; i < dataSize; i++)
         {
             outputPrint("data : " + i);
-            
+
             double[] wholeCandidate = getToDoubleArrayOfInstance(data, i);
-            
+
             seriesShapelets = findShapeletCandidates(data, i, wholeCandidate, kShapelets);
-            
-            Comparator comp = useSeparationGap ? new Shapelet.ReverseSeparationGap(): new Shapelet.ReverseOrder();
-            Collections.sort(seriesShapelets,comp);
-            
+
+            Comparator comp = useSeparationGap ? new Shapelet.ReverseSeparationGap() : new Shapelet.ReverseOrder();
+            Collections.sort(seriesShapelets, comp);
+
             seriesShapelets = removeSelfSimilar(seriesShapelets);
-            
+
             kShapelets = combine(numShapelets, kShapelets, seriesShapelets);
         }
 
@@ -510,8 +537,8 @@ public class FullShapeletTransform extends SimpleBatchFilter
 
         return kShapelets;
     }
-    
-        /**
+
+    /**
      * protected method for extracting k shapelets.
      *
      * @param numShapelets
@@ -528,8 +555,7 @@ public class FullShapeletTransform extends SimpleBatchFilter
         this.maxShapeletLength = maxShapeletLength;
         return findBestKShapeletsCache(data);
     }
-    
-    
+
     protected ArrayList<Shapelet> findShapeletCandidates(Instances data, int i, double[] wholeCandidate, ArrayList<Shapelet> kShapelets)
     {
         //get our time series as a double array.
@@ -541,7 +567,7 @@ public class FullShapeletTransform extends SimpleBatchFilter
             double[] candidate = new double[length];
             //for all possible starting positions of that length
             for (int start = 0; start <= wholeCandidate.length - length - 1; start++)
-            { 
+            {
                 //-1 = avoid classVal - handle later for series with no class val
                 // CANDIDATE ESTABLISHED - got original series, length and starting position
                 // extract relevant part into a double[] for processing
@@ -562,33 +588,39 @@ public class FullShapeletTransform extends SimpleBatchFilter
                 //compare the shapelet candidate to the other time series.
                 Shapelet candidateShapelet = checkCandidate(candidate, data, i, start, qualityBound);
 
-                if(candidateShapelet != null)
+                if (candidateShapelet != null)
+                {
                     seriesShapelets.add(candidateShapelet);
+                }
             }
         }
         return seriesShapelets;
     }
-    
-    
-        /**
-     * A method to obtain time taken to find a single best shapelet in the data set
+
+    /**
+     * A method to obtain time taken to find a single best shapelet in the data
+     * set
+     *
      * @param data the data set to be processed
      * @param minShapeletLength minimum shapelet length
      * @param maxShapeletLength maximum shapelet length
      * @return time in seconds to find the best shapelet
      */
-    public double timingForSingleShapelet(Instances data, int minShapeletLength, int maxShapeletLength) {
+    public double timingForSingleShapelet(Instances data, int minShapeletLength, int maxShapeletLength)
+    {
         data = roundRobinData(data, null);
         long startTime = System.nanoTime();
         findBestKShapeletsCache(1, data, minShapeletLength, maxShapeletLength);
         long finishTime = System.nanoTime();
-        return (double)(finishTime - startTime) / 1000000000.0;
+        return (double) (finishTime - startTime) / 1000000000.0;
     }
-    
+
     protected void recordShapelets(ArrayList<Shapelet> kShapelets)
     {
         if (!this.recordShapelets)
+        {
             return;
+        }
 
         try
         {
@@ -609,18 +641,20 @@ public class FullShapeletTransform extends SimpleBatchFilter
             }
             out.close();
         }
-        catch(IOException ex)
+        catch (IOException ex)
         {
             System.out.println("IOException: " + ex);
         }
-        
+
     }
-    
+
     protected void printShapelets(ArrayList<Shapelet> kShapelets)
     {
         if (supressOutput)
+        {
             return;
-        
+        }
+
         System.out.println();
         System.out.println("Output Shapelets:");
         System.out.println("-------------------");
@@ -638,68 +672,86 @@ public class FullShapeletTransform extends SimpleBatchFilter
             }
             System.out.println();
         }
-          
-    }
-    
-       /**
-     * Private method to combine two ArrayList collections of FullShapeletTransform objects.
-     *
-     * @param k the maximum number of shapelets to be returned after combining the two lists
-     * @param kBestSoFar the (up to) k best shapelets that have been observed so far, passed in to combine with shapelets from a new series
-     * @param timeSeriesShapelets the shapelets taken from a new series that are to be merged in descending order of fitness with the kBestSoFar
-     * @return an ordered ArrayList of the best k (or less) FullShapeletTransform objects from the union of the input ArrayLists
-     */
 
+    }
+
+    /**
+     * Private method to combine two ArrayList collections of
+     * FullShapeletTransform objects.
+     *
+     * @param k the maximum number of shapelets to be returned after combining
+     * the two lists
+     * @param kBestSoFar the (up to) k best shapelets that have been observed so
+     * far, passed in to combine with shapelets from a new series
+     * @param timeSeriesShapelets the shapelets taken from a new series that are
+     * to be merged in descending order of fitness with the kBestSoFar
+     * @return an ordered ArrayList of the best k (or less)
+     * FullShapeletTransform objects from the union of the input ArrayLists
+     */
     //NOTE: could be more efficient here
-    protected ArrayList<Shapelet> combine(int k, ArrayList<Shapelet> kBestSoFar, ArrayList<Shapelet> timeSeriesShapelets){
+    protected ArrayList<Shapelet> combine(int k, ArrayList<Shapelet> kBestSoFar, ArrayList<Shapelet> timeSeriesShapelets)
+    {
 
         ArrayList<Shapelet> newBestSoFar = new ArrayList<>();
         kBestSoFar.addAll(timeSeriesShapelets);
-        
-        Comparator comp = useSeparationGap ? new Shapelet.ReverseSeparationGap(): new Shapelet.ReverseOrder();
-        Collections.sort(kBestSoFar,comp);
-        
-        if(kBestSoFar.size()<k) { // no need to return up to k, as there are not k shapelets yet
-            return kBestSoFar;
-        } 
 
-        for(int i = 0; i < k; i++){
+        Comparator comp = useSeparationGap ? new Shapelet.ReverseSeparationGap() : new Shapelet.ReverseOrder();
+        Collections.sort(kBestSoFar, comp);
+
+        if (kBestSoFar.size() < k)
+        { // no need to return up to k, as there are not k shapelets yet
+            return kBestSoFar;
+        }
+
+        for (int i = 0; i < k; i++)
+        {
             newBestSoFar.add(kBestSoFar.get(i));
         }
 
         return newBestSoFar;
     }
-    
-    
-        /**
+
+    /**
      *
      * @param classDist
      * @return
      */
-    protected QualityBound.ShapeletQualityBound initializeQualityBound(TreeMap<Double, Integer> classDist){
-        if(useCandidatePruning){
-            if(qualityMeasure instanceof QualityMeasures.InformationGain){
+    protected QualityBound.ShapeletQualityBound initializeQualityBound(TreeMap<Double, Integer> classDist)
+    {
+        if (useCandidatePruning)
+        {
+            if (qualityMeasure instanceof QualityMeasures.InformationGain)
+            {
                 return new QualityBound.InformationGainBound(classDist, candidatePruningStartPercentage);
-            }else if(qualityMeasure instanceof QualityMeasures.MoodsMedian){
-                return new QualityBound.MoodsMedianBound(classDist, candidatePruningStartPercentage);    
-            }else if(qualityMeasure instanceof QualityMeasures.FStat){
+            }
+            else if (qualityMeasure instanceof QualityMeasures.MoodsMedian)
+            {
+                return new QualityBound.MoodsMedianBound(classDist, candidatePruningStartPercentage);
+            }
+            else if (qualityMeasure instanceof QualityMeasures.FStat)
+            {
                 return new QualityBound.FStatBound(classDist, candidatePruningStartPercentage);
-            }else if(qualityMeasure instanceof QualityMeasures.KruskalWallis){
+            }
+            else if (qualityMeasure instanceof QualityMeasures.KruskalWallis)
+            {
                 return new QualityBound.KruskalWallisBound(classDist, candidatePruningStartPercentage);
             }
         }
         return null;
     }
 
-    
     //this is the caching system. 
     protected double[] getToDoubleArrayOfInstance(Instances data, int pos)
     {
-        if(!cacheDoubleArrays)
+        if (!cacheDoubleArrays)
+        {
             return data.get(pos).toDoubleArray();
-        
-        if(cachedDoubleArray[pos] == null)
+        }
+
+        if (cachedDoubleArray[pos] == null)
+        {
             cachedDoubleArray[pos] = data.get(pos).toDoubleArray();
+        }
 
         return cachedDoubleArray[pos];
     }
@@ -723,15 +775,19 @@ public class FullShapeletTransform extends SimpleBatchFilter
         for (int i = 0; i < size; i++)
         {
             if (selfSimilar[i])
+            {
                 continue;
-            
+            }
+
             outputShapelets.add(shapelets.get(i));
-            
+
             for (int j = i + 1; j < size; j++)
             {
                 // no point recalc'ing if already self similar to something
                 if ((!selfSimilar[j]) && selfSimilarity(shapelets.get(i), shapelets.get(j)))
-                    selfSimilar[j] = true;   
+                {
+                    selfSimilar[j] = true;
+                }
             }
         }
         return outputShapelets;
@@ -749,18 +805,20 @@ public class FullShapeletTransform extends SimpleBatchFilter
     public static TreeMap<Double, Integer> getClassDistributions(Instances data)
     {
         TreeMap<Double, Integer> classDistribution = new TreeMap<>();
-        
+
         ListIterator<Instance> it = data.listIterator();
         double classValue;
         while (it.hasNext())
         {
             classValue = it.next().classValue();
-            
+
             Integer val = classDistribution.get(classValue);
-            
-            val = (val != null) ? val+1 : 1;
+
+            val = (val != null) ? val + 1 : 1;
             classDistribution.put(classValue, val);
         }
+        
+        System.out.println("class dists: " + classDistribution);
         return classDistribution;
     }
 
@@ -786,7 +844,7 @@ public class FullShapeletTransform extends SimpleBatchFilter
 
         boolean pruned = false;
         int dataSize = data.numInstances();
-        
+
         for (int i = 0; i < dataSize; i++)
         {
             //Check if it is possible to prune the candidate
@@ -825,7 +883,7 @@ public class FullShapeletTransform extends SimpleBatchFilter
             shapelet.calculateQuality(orderline, classDistributions);
             return shapelet;
         }
-        
+
         return null;
     }
 
@@ -863,22 +921,23 @@ public class FullShapeletTransform extends SimpleBatchFilter
      * @param candidate a double[] representation of a shapelet candidate
      * @param timeSeriesIns an Instance object of a whole time series
      * @return the distance between a candidate and a time series
-     * */
+     *
+     */
     protected double subseqDistance(double[] candidate, Instance timeSeriesIns)
     {
         return subsequenceDistance(candidate, timeSeriesIns.toDoubleArray());
     }
-    
+
     /**
      *
      * @param candidate
      * @param timeSeriesIns
      * @return
      */
-    public static double subsequenceDistance(double[] candidate, Instance timeSeriesIns){
+    public static double subsequenceDistance(double[] candidate, Instance timeSeriesIns)
+    {
         return subsequenceDistance(candidate, timeSeriesIns.toDoubleArray());
     }
-
 
     /**
      * Calculate the distance between a shapelet candidate and a full time
@@ -896,7 +955,7 @@ public class FullShapeletTransform extends SimpleBatchFilter
         double sum;
         double[] subseq;
         double temp;
-        
+
         // for all possible subsequences of two
         for (int i = 0; i < timeSeries.length - candidate.length; i++)
         {
@@ -904,9 +963,9 @@ public class FullShapeletTransform extends SimpleBatchFilter
             // get subsequence of two that is the same lengh as one
             subseq = new double[candidate.length];
             System.arraycopy(timeSeries, i, subseq, 0, candidate.length);
-            
-            subseqDistOpCount+=candidate.length;
-            
+
+            subseqDistOpCount += candidate.length;
+
             subseq = zNormalise(subseq, false); // Z-NORM HERE
 
             //Keep count of fundamental ops for experiment
@@ -915,11 +974,11 @@ public class FullShapeletTransform extends SimpleBatchFilter
             for (int j = 0; j < candidate.length; j++)
             {
                 temp = (candidate[j] - subseq[j]);
-                sum +=  temp * temp;
+                sum += temp * temp;
             }
-            
-            subseqDistOpCount+=candidate.length;
-            
+
+            subseqDistOpCount += candidate.length;
+
             if (sum < bestSum)
             {
                 bestSum = sum;
@@ -954,7 +1013,7 @@ public class FullShapeletTransform extends SimpleBatchFilter
 
         int classValPenalty = classValOn ? 1 : 0;
         int inputLength = input.length - classValPenalty;
-        
+
         double[] output = new double[input.length];
         double seriesTotal = 0;
 
@@ -968,12 +1027,12 @@ public class FullShapeletTransform extends SimpleBatchFilter
         double temp;
         for (int i = 0; i < inputLength; i++)
         {
-            temp  = (input[i] - mean);
-            stdv +=  temp * temp;
+            temp = (input[i] - mean);
+            stdv += temp * temp;
         }
 
         stdv /= (double) inputLength;
-        
+
         // if the variance is less than the error correction, just set it to 0, else calc stdv.
         stdv = (stdv < ROUNDING_ERROR_CORRECTION) ? 0.0 : Math.sqrt(stdv);
 
@@ -1063,7 +1122,6 @@ public class FullShapeletTransform extends SimpleBatchFilter
      * @return An ArrayList of Integers representing the lengths of the
      * shapelets.
      */
-    
     public ArrayList<Integer> getShapeletLengths()
     {
         ArrayList<Integer> shapeletLengths = new ArrayList<>();
@@ -1162,8 +1220,6 @@ public class FullShapeletTransform extends SimpleBatchFilter
         return sf;
     }
 
-
-
     /**
      * Outputs the log file to the appropriate location.
      *
@@ -1197,7 +1253,6 @@ public class FullShapeletTransform extends SimpleBatchFilter
      * @param sourcePos Pointer to array of ints, where old positions of
      * instances are to be stored.
      */
-    
     public static void resetShapeletIndices(ArrayList<Shapelet> shapelets, int[] sourcePos)
     {
         for (Shapelet s : shapelets)
@@ -1293,14 +1348,15 @@ public class FullShapeletTransform extends SimpleBatchFilter
 
         return roundRobinData;
     }
- 
 
     public void outputPrint(String val)
     {
-        if(!this.supressOutput)
+        if (!this.supressOutput)
+        {
             System.out.println(val);
+        }
     }
-    
+
     @Override
     public String toString()
     {
@@ -1311,7 +1367,7 @@ public class FullShapeletTransform extends SimpleBatchFilter
         }
         return str;
     }
-    
+
     /**
      *
      * @param data
@@ -1320,13 +1376,13 @@ public class FullShapeletTransform extends SimpleBatchFilter
      * @return
      * @throws Exception
      */
-    public long opCountForSingleShapelet(Instances data, int minShapeletLength, int maxShapeletLength) throws Exception {
+    public long opCountForSingleShapelet(Instances data, int minShapeletLength, int maxShapeletLength) throws Exception
+    {
         data = roundRobinData(data, null);
         subseqDistOpCount = 0;
         findBestKShapeletsCache(1, data, minShapeletLength, maxShapeletLength);
         return subseqDistOpCount;
     }
-    
 
     /**
      * An example use of a FullShapeletTransform
@@ -1360,9 +1416,9 @@ public class FullShapeletTransform extends SimpleBatchFilter
             //      Instances transformedTest = sf.process(testData); -> uses shapelets extracted from trainingData to transform testData
             Instances transformed = sf.process(data);
         }
-        catch (Exception e)
+        catch (IllegalArgumentException e)
         {
-            e.printStackTrace();
+            System.out.println("IllegalArgumentException: "+ e);
         }
     }
 

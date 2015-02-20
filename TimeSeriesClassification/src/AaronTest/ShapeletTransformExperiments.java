@@ -32,19 +32,19 @@ public class ShapeletTransformExperiments
     //creates the shapelet transoform datasets.
     static Class[] classList =
     {
-        FullShapeletTransform.class, ShapeletTransform.class, ShapeletTransformDistCaching2.class, ShapeletTransformDistCaching.class
+        FullShapeletTransform.class//ShapeletTransformDistCaching2.class, ShapeletTransformDistCaching.class
     };
 
     static QualityMeasures.ShapeletQualityChoice[] qualityMeasures =
     { 
-       F_STAT, INFORMATION_GAIN, KRUSKALL_WALLIS, MOODS_MEDIAN
+       INFORMATION_GAIN,/*F_STAT, KRUSKALL_WALLIS, MOODS_MEDIAN*/
     };
     
 
     public static void initializeShapelet(FullShapeletTransform s, Instances data, QualityMeasures.ShapeletQualityChoice qm)
     {
         //transform from 3- n, where n is the max length of the series.
-        s.setNumberOfShapelets(data.numAttributes() / 2);
+        s.setNumberOfShapelets(/*data.numAttributes() / 2*/1);
         int minLength = 3;
         int maxLength = data.numAttributes() - 1;
         s.setShapeletMinAndMax(minLength, maxLength);
@@ -82,7 +82,7 @@ public class ShapeletTransformExperiments
             testAndTrain[1] = s.process(test);
             LocalInfo.saveDataset(testAndTrain[1], outLogFileName + "_TEST");
         }
-        catch(Exception e)
+        catch(InstantiationException | IllegalAccessException | IllegalArgumentException e)
         {
             System.out.println("error: " + e);
         }
@@ -199,37 +199,23 @@ public class ShapeletTransformExperiments
             LocalInfo.LoadData(dataName.getName(),dataSets, classList, qualityMeasures);
         }
         
-        trainAndTest(dataName.getName(), dataSets);
+        //trainAndTest(dataName.getName(), dataSets);
     }
 
     public static void main(String[] args)
     {
+                
+        String folder = "75 Data sets for Elastic Ensemble DAMI Paper";
         
-        String dir = "75 Data sets for Elastic Ensemble DAMI Paper";
-        
-        File fDir = new File(dir);
-
-        for (final File ds : fDir.listFiles())
+        /*for (String dataSet : LocalInfo.ucrTiny)
         {
-            //if it's not a directory we're not interested.
-            if(!ds.isDirectory()) continue;
-            
-            new Thread()
-            {
-                @Override
-                public void run()
-                {
-                    testDataSet(ds, true);
-                }
-            }.start();
-        }
-        
-        
-        //for (String dataSet : LocalInfo.ucrTiny/*development.DataSets.ucrSmall*/)
-        //{
-        //    testDataSet(dataSet, true);
-        //}
+            File f = new File(folder+File.separator+dataSet);
+            testDataSet(f, true);
+        }*/
 
+        
+        File f = new File(folder+File.separator+"Adiac");
+            testDataSet(f, true);
         
         /*Instances[] shapelet1, shapelet2;
         String dataSet = LocalInfo.ucrTiny[1];
@@ -253,7 +239,7 @@ public class ShapeletTransformExperiments
     }
 
 
-    public static Instances[] FullTransformTest(String dataName,FullShapeletTransform s1, QualityMeasures.ShapeletQualityChoice qm)
+    public static Instances[] FullTransformTest(String dataName, FullShapeletTransform s1, QualityMeasures.ShapeletQualityChoice qm)
     {
         Instances test;
         Instances train;

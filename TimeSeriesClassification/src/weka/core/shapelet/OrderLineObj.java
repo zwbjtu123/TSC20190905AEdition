@@ -59,6 +59,7 @@ package weka.core.shapelet;
          */
         @Override
         public int compareTo(OrderLineObj o) {
+            // return distance - o.distance. compareTo doesnt care if its -1 or -inf. likewise +1 or +inf.  
             if(o.distance > this.distance){
                 return -1;
             }else if(o.distance==this.distance){

@@ -28,7 +28,7 @@ public class LocalInfo
 
 
     public static final String[] ucrTiny ={"ItalyPowerDemand", "SonyAIBORobotSurface"};
-    public static final String saveLocation = "";//C:/LocalData/Dropbox/PhD/Data/";
+    public static final String saveLocation = "C:/LocalData/Dropbox/PhD/Data/";
 
     /**
      *

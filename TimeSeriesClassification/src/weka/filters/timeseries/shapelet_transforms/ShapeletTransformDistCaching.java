@@ -183,8 +183,8 @@ public class ShapeletTransformDistCaching extends FullShapeletTransform
     public ArrayList<Shapelet> findBestKShapeletsCache(Instances dataInst) throws IllegalArgumentException
     {
         ArrayList<Shapelet> kShapelets = new ArrayList<>();                     // store (upto) the best k shapelets overall
-        ArrayList<Shapelet> seriesShapelets;                                            // temp store of all shapelets for each time series
-        TreeMap<Double, Integer> classDistributions = getClassDistributions(dataInst);  // used to calc info gain
+        ArrayList<Shapelet> seriesShapelets;                                    // temp store of all shapelets for each time series
+        classDistributions = getClassDistributions(dataInst);                   // used to calc info gain
 
         //Initialise stats object
         stats = new Stats();
@@ -216,41 +216,8 @@ public class ShapeletTransformDistCaching extends FullShapeletTransform
             //Compute statistics for the candidate series and every instance
             stats.computeStats(i, data);
 
-            //Every possible lengh
-            for (int length = minShapeletLength; length <= maxShapeletLength; length++)
-            {
-
-                //for all possible starting positions of that length
-                for (int start = 0; start <= data[i].length - length - 1; start++)
-                { //-1 = avoid classVal - handle later for series with no class val
-                    // CANDIDATE ESTABLISHED - got original series, length and starting position
-                    // extract relevant part into a double[] for processing
-                    double[] candidate = new double[length];
-                    for (int m = start; m < start + length; m++)
-                    {
-                        candidate[m - start] = data[i][m];
-                    }
-
-                    candidate = zNorm(candidate, false);
-
-                    //Initialize bounding algorithm for current candidated
-                    QualityBound.ShapeletQualityBound qualityBound = initializeQualityBound(classDistributions);
-
-                    //Set bound of the bounding algorithm
-                    if (qualityBound != null && kShapelets.size() == numShapelets)
-                    {
-                        qualityBound.setBsfQuality(kShapelets.get(numShapelets - 1).qualityValue);
-                    }
-
-                    Shapelet candidateShapelet = checkCandidate(candidate, dataInst, i, start, classDistributions, qualityBound);
-
-                    //If shapelet was pruned then null will be returned so need to check for that
-                    if (candidateShapelet != null)
-                    {
-                        seriesShapelets.add(candidateShapelet);
-                    }
-                }
-            }
+            seriesShapelets = findShapeletCandidates(dataInst, i, data[i], kShapelets);
+            
             // now that we have all shapelets, self similarity can be fairly assessed without fear of removing potentially
             // good shapelets
             if (useSeparationGap)
@@ -273,9 +240,10 @@ public class ShapeletTransformDistCaching extends FullShapeletTransform
         return kShapelets;
     }
 
-    protected Shapelet checkCandidate(double[] candidate, Instances data, int seriesId, int startPos, TreeMap classDistribution, QualityBound.ShapeletQualityBound qualityBound)
+    
+    @Override
+    protected Shapelet checkCandidate(double[] candidate, Instances data, int seriesId, int startPos, QualityBound.ShapeletQualityBound qualityBound)
     {
-
         // create orderline by looping through data set and calculating the subsequence
         // distance from candidate to all data, inserting in order.
         ArrayList<OrderLineObj> orderline = new ArrayList<>();
@@ -285,13 +253,10 @@ public class ShapeletTransformDistCaching extends FullShapeletTransform
         for (int i = 0; i < data.numInstances(); i++)
         {
             //Check if it is possible to prune the candidate
-            if (qualityBound != null)
-            {
-                if (qualityBound.pruneCandidate())
-                {
-                    pruned = true;
-                    break;
-                }
+            if (qualityBound != null && qualityBound.pruneCandidate())
+            {                   
+                pruned = true;
+                break;
             }
 
             double distance = 0.0;
@@ -316,17 +281,15 @@ public class ShapeletTransformDistCaching extends FullShapeletTransform
         // in favour of a clear multi-class information gain calculation. Could be added in
         // this method in the future for speed up, but distance early abandon is more important
         //If shapelet is pruned then it should no longer be considered in further processing
-        if (pruned)
-        {
-            return null;
-        }
-        else
+        if (!pruned)
         {
             // create a shapelet object to store all necessary info, i.e.
             Shapelet shapelet = new Shapelet(candidate, dataSourceIDs[seriesId], startPos, this.qualityMeasure);
-            shapelet.calculateQuality(orderline, classDistribution);
+            shapelet.calculateQuality(orderline, classDistributions);
             return shapelet;
         }
+        
+        return null;
     }
 
     /**

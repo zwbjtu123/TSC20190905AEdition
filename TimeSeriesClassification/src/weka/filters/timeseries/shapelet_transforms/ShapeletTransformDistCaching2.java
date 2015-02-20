@@ -107,9 +107,10 @@ public class ShapeletTransformDistCaching2 extends FullShapeletTransform
     @Override
     protected Instances buildTansformedDataset(Instances dataInst)
     {
+       
         Instances output = determineOutputFormat(dataInst);
 
-        if (data == null)
+        if (data != null)
         {
             initialiseNormalisedData(dataInst);
         }
