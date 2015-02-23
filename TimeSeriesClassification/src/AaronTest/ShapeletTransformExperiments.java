@@ -17,6 +17,7 @@ import weka.classifiers.trees.shapelet_trees.ShapeletTreeClassifier;
 import weka.core.Instances;
 import weka.core.shapelet.QualityMeasures;
 import static weka.core.shapelet.QualityMeasures.ShapeletQualityChoice.*;
+import weka.filters.timeseries.shapelet_transforms.BinarisedShapeletTransform;
 import weka.filters.timeseries.shapelet_transforms.FullShapeletTransform;
 import weka.filters.timeseries.shapelet_transforms.ShapeletTransform;
 import weka.filters.timeseries.shapelet_transforms.ShapeletTransformDistCaching;
@@ -32,7 +33,7 @@ public class ShapeletTransformExperiments
     //creates the shapelet transoform datasets.
     static Class[] classList =
     {
-        FullShapeletTransform.class//ShapeletTransformDistCaching2.class, ShapeletTransformDistCaching.class
+        FullShapeletTransform.class//BinarisedShapeletTransform.class//ShapeletTransformDistCaching2.class, ShapeletTransformDistCaching.class
     };
 
     static QualityMeasures.ShapeletQualityChoice[] qualityMeasures =
@@ -43,8 +44,8 @@ public class ShapeletTransformExperiments
 
     public static void initializeShapelet(FullShapeletTransform s, Instances data, QualityMeasures.ShapeletQualityChoice qm)
     {
-        //transform from 3- n, where n is the max length of the series.
-        s.setNumberOfShapelets(/*data.numAttributes() / 2*/1);
+        //transform from 3 - n, where n is the max length of the series.
+        s.setNumberOfShapelets(data.numAttributes() / 2);
         int minLength = 3;
         int maxLength = data.numAttributes() - 1;
         s.setShapeletMinAndMax(minLength, maxLength);
@@ -207,15 +208,15 @@ public class ShapeletTransformExperiments
                 
         String folder = "75 Data sets for Elastic Ensemble DAMI Paper";
         
-        /*for (String dataSet : LocalInfo.ucrTiny)
+        for (String dataSet : LocalInfo.ucrTiny)
         {
             File f = new File(folder+File.separator+dataSet);
             testDataSet(f, true);
-        }*/
+        }
 
         
-        File f = new File(folder+File.separator+"Adiac");
-            testDataSet(f, true);
+        //File f = new File(folder+File.separator+"Adiac");
+            //testDataSet(f, true);
         
         /*Instances[] shapelet1, shapelet2;
         String dataSet = LocalInfo.ucrTiny[1];

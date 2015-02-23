@@ -842,7 +842,6 @@ public class FullShapeletTransform extends SimpleBatchFilter
         // distance from candidate to all data, inserting in order.
         ArrayList<OrderLineObj> orderline = new ArrayList<>();
 
-        boolean pruned = false;
         int dataSize = data.numInstances();
 
         for (int i = 0; i < dataSize; i++)
@@ -850,8 +849,7 @@ public class FullShapeletTransform extends SimpleBatchFilter
             //Check if it is possible to prune the candidate
             if (qualityBound != null && qualityBound.pruneCandidate())
             {
-                pruned = true;
-                break;
+                return null;
             }
 
             double distance = 0.0;
@@ -875,16 +873,12 @@ public class FullShapeletTransform extends SimpleBatchFilter
         // note: early abandon entropy pruning would appear here, but has been ommitted
         // in favour of a clear multi-class information gain calculation. Could be added in
         // this method in the future for speed up, but distance early abandon is more important
-        // If shapelet is pruned then it should no longer be considered in further processing
-        if (!pruned)
-        {
-            // create a shapelet object to store all necessary info, i.e.
-            Shapelet shapelet = new Shapelet(candidate, dataSourceIDs[seriesId], startPos, this.qualityMeasure);
-            shapelet.calculateQuality(orderline, classDistributions);
-            return shapelet;
-        }
 
-        return null;
+
+        // create a shapelet object to store all necessary info, i.e.
+        Shapelet shapelet = new Shapelet(candidate, dataSourceIDs[seriesId], startPos, this.qualityMeasure);
+        shapelet.calculateQuality(orderline, classDistributions);
+        return shapelet;
     }
 
     public static double[] getInfoGain(Instances trans)

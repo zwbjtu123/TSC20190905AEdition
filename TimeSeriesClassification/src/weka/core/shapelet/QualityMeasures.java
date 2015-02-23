@@ -1,8 +1,9 @@
 package weka.core.shapelet;
 
 import java.util.ArrayList;
-import java.util.TreeMap;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.TreeMap;
 import weka.filters.timeseries.shapelet_transforms.FullShapeletTransform;
 
 
@@ -93,8 +94,6 @@ public class QualityMeasures {
             double thisClassVal;
             int oldCount;
 
-            
-            
             for(OrderLineObj ol : orderline){
                 thisDist = ol.getDistance();
 
@@ -142,7 +141,8 @@ public class QualityMeasures {
             int total = 0;
             //Aaron: should be simpler than iterating using the keySet.
             //Values is backed by the Map so it doesn't need to be constructed.
-            for(Integer d : classDistributions.values()){
+            Collection<Integer> values = classDistributions.values();
+            for(Integer d : values){
                 total += d;
             }
             
@@ -152,7 +152,7 @@ public class QualityMeasures {
             //Aaron:  Instead of using the keyset to loop through, use the underlying Array to iteratre through, ordering of calculations doesnt matter.
             //just that we do them all. so i think previously it was n log n, now should be just n.
             double entropy =0;
-            for(Integer d : classDistributions.values()){
+            for(Integer d : values){
                 thisPart = (double) d / total;
                 toAdd = -thisPart * Math.log10(thisPart) / Math.log10(2);
                 //Aaron: if its not NaN we can add it, if it was NaN we'd just add 0.
