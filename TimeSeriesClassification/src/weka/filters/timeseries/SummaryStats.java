@@ -103,11 +103,12 @@ public Instances process(Instances inst) throws Exception {
 
             moments[1] = totalVar/d.length;
             double standardDeviation = Math.sqrt(moments[1]);
+            moments[1]=standardDeviation;
             double skew = totalSkew/(standardDeviation*standardDeviation*standardDeviation);
             moments[2] = skew/d.length;
             double kur = totalKur/(standardDeviation*standardDeviation*standardDeviation*standardDeviation);
             moments[3] = kur/d.length;
-
+            
           //Extract out the terms and set the attributes
             Instance newInst=null;
             if(inst.classIndex()>=0)

@@ -1,28 +1,22 @@
 package weka.classifiers.lazy;
 
+import development.DataSets;
+import java.text.DecimalFormat;
+import utilities.ClassifierTools;
 import weka.core.*;
 import weka.core.neighboursearch.NearestNeighbourSearch;
 
-/** Nearest neighbour classifier that extends the weka one but can take alternative distance functions.
- * 
- * 
- * 
+/** Nearest neighbour classifier that extends the weka one but can take 
+ * alternative distance functions.
  * @author ajb
  * @version 1.0
  * @since 5/4/09
- * 
- * 
- * TO DO:
- * 	1. Check Euclidean distance works: Check normalised flag works: DONE: 
- * 			Notes: 	Flag for normalise is in EuclideanDistance, NOT in DistributionFunction, which is rubbish. it is default on
- * 					Normalisation is onto fixed interval 0..1 by (x-min)/(max-min)
- Done 7/4/09
- * 
- * NOTES ON DESIGN: The class EuclideanDistance by default normalizes to range [0..1] by dividing by max, 
- * 
- * This class allows for a built in attribute filter 
- * 
- * 
+
+1. Normalisation: set by method normalise(boolean)
+2. Cross Validation: set by method crossValidate(int folds)
+3. Use weighting: set by the method weightVotes()
+
+* 
  * */
 
 public class kNN extends IBk {
@@ -31,17 +25,17 @@ public class kNN extends IBk {
 	boolean storeDistance;
 	public kNN(){
 //Defaults to Euclidean distance		
-		super();
-		dist=new EuclideanDistance();
-		super.setKNN(1);
+            super();
+            super.setKNN(1);
+            setDistanceFunction(new EuclideanDistance());
 	}
 	public kNN(int k){
-		super(k);
-		setDistanceFunction(new EuclideanDistance());
+            super(k);
+            setDistanceFunction(new EuclideanDistance());
 	}
 	public kNN(DistanceFunction df){
-			super();
-			setDistanceFunction(df);
+            super();
+            setDistanceFunction(df);
 	}
 	
 	public final void setDistanceFunction(DistanceFunction df){
@@ -66,35 +60,6 @@ public class kNN extends IBk {
 		else
 			System.out.println(" Not normalisable");
 	}
-	static String path="C:\\Research\\Data\\WekaTest\\";
-
-	
-	public double testKNN(Instances test){
-		
-		
-		return 0;
-	}
-	
-//FILTER CODE 	
-	boolean filterAttributes=false;
-	double propAtts=0.5;
-	int nosAtts=0;
-	AttributeFilterBridge af;
-	public void setFilterAttributes(boolean f){ filterAttributes=f;}
-//	public void setEvaluator(ASEvaluation a){ eval=a;}
-	public void setProportion(double f){propAtts=f;}
-	public void setNumber(int n){nosAtts=n;}
-	
-	private Instances filter(Instances d){
-//Search method: Simple rank, evaluating in isolation
-		af=new AttributeFilterBridge(d);
-		af.setProportionToKeep(propAtts);
-		Instances d2=af.filter();
-//		Instances d2=new Instances(d);
-//Remove all attributes not in the list. Are they sorted??			
-		return d2;
-	}
-
     @Override
 	public void buildClassifier(Instances d){
 		Instances d2=d;
@@ -134,44 +99,103 @@ public class kNN extends IBk {
 		}
 		return pred;
 	}
-	public double measureAccuracy(Instances test){
-		double[] pred=getPredictions(test);
-		double accuracy=0;
-		for(int i=0;i<test.numInstances();i++)
-			if(pred[i]==test.instance(i).classValue())
-				accuracy++;
-		return accuracy/test.numInstances();
-	}
+        public static void test1NNvsIB1(boolean norm){
+            System.out.println("FIRST BASIC SANITY TEST FOR THIS WRAPPER");
+            System.out.print("Compare 1-NN with IB1, normalisation turned");
+            String str=norm?" on":" off";
+            System.out.println(str);
+            System.out.println("Compare on the UCI data sets");
+            System.out.print("If normalisation is off, then there may be differences");
+            kNN knn = new kNN(1);
+            IBk ib1=new IBk(1);
+            knn.normalise(norm);
+            int diff=0;
+            DecimalFormat df = new DecimalFormat("####.###");
+            for(String s:DataSets.uciFileNames){
+                Instances train=ClassifierTools.loadData(DataSets.uciPath+s+"\\"+s+"-train");
+                Instances test=ClassifierTools.loadData(DataSets.uciPath+s+"\\"+s+"-test");
+                try{
+                    knn.buildClassifier(train);
+    //                ib1.buildClassifier(train);
+                    ib1.buildClassifier(train);
+                    double a1=ClassifierTools.accuracy(test, knn);
+                    double a2=ClassifierTools.accuracy(test, ib1);
+                    if(a1!=a2){
+                        diff++;
+                        System.out.println(s+": 1-NN ="+df.format(a1)+" ib1="+df.format(a2));
+                    }
+                }catch(Exception e){
+                    System.out.println(" Exception builing a classifier");
+                    System.exit(0);
+                }
+            }
+             System.out.println("Total problems ="+DataSets.uciFileNames.length+" different on "+diff);
+        }
+        
+        public static void testkNNvsIBk(boolean norm, boolean crossValidate){
+            System.out.println("FIRST BASIC SANITY TEST FOR THIS WRAPPER");
+            System.out.print("Compare 1-NN with IB1, normalisation turned");
+            String str=norm?" on":" off";
+            System.out.println(str);
+            System.out.print("Cross validation turned");
+            str=crossValidate?" on":" off";
+            System.out.println(str);
+            System.out.println("Compare on the UCI data sets");
+            System.out.print("If normalisation is off, then there may be differences");
+            kNN knn = new kNN(100);
+            IBk ibk=new IBk(100);
+            knn.normalise(norm);
+            knn.setCrossValidate(crossValidate);
+            ibk.setCrossValidate(crossValidate);
+            int diff=0;
+            DecimalFormat df = new DecimalFormat("####.###");
+            for(String s:DataSets.uciFileNames){
+                Instances train=ClassifierTools.loadData(DataSets.uciPath+s+"\\"+s+"-train");
+                Instances test=ClassifierTools.loadData(DataSets.uciPath+s+"\\"+s+"-test");
+                try{
+                    knn.buildClassifier(train);
+    //                ib1.buildClassifier(train);
+                    ibk.buildClassifier(train);
+                    double a1=ClassifierTools.accuracy(test, knn);
+                    double a2=ClassifierTools.accuracy(test, ibk);
+                    if(a1!=a2){
+                        diff++;
+                        System.out.println(s+": 1-NN ="+df.format(a1)+" ibk="+df.format(a2));
+                    }
+                }catch(Exception e){
+                    System.out.println(" Exception builing a classifier");
+                    System.exit(0);
+                }
+            }
+             System.out.println("Total problems ="+DataSets.uciFileNames.length+" different on "+diff);
+        }
+        
 	public static void main(String[] args){
-		
-		
-//		Instances data=ClassifierTools.loadData(path+"iris");
-//		kNN c=new kNN(new DTW_DistanceBasic());
-//		kNN c2=new kNN(new DTW_DistanceEfficient());
-
-/*		data.randomize(new Random());
-		Instances train=data.trainCV(3,1);
-		Instances test=data.testCV(3,1);
-		c.buildClassifier(train);
-		c.setKNN(3);
-		c2.setKNN(3);
-		c2.buildClassifier(train);
-		double a1=c.measureAccuracy(test);
-		double a2=c.measureAccuracy(test);
-		System.out.println("Accuracy basic = "+a1+" space efficient = "+a2);
-//		kNN c=new kNN(new EuclideanDistance());
-*/		
-	//Test the filter	
-//		kNN c3=new kNN();
-//		c3.setFilterAttributes(true);
-//		c3.buildClassifier(data);
-		
-		
-		//		c.normalise(false);
-//		Instance first=data.instance(0);
-//		Instance second=data.instance(1);
-//		System.out.println(" Basic Distance between "+first+" and  "+second+" = "+c.distance(first,second));
-//		System.out.println(" Space Efficient Distance between "+first+" and  "+second+" = "+c.distance(first,second));
+            //test1NNvsIB1(true);		
+            //test1NNvsIB1(false);		
+          //  testkNNvsIBk(true,false);		
+            testkNNvsIBk(true,true);		
 
 	}
+        
+//FILTER CODE 	
+	boolean filterAttributes=false;
+	double propAtts=0.5;
+	int nosAtts=0;
+	AttributeFilterBridge af;
+	public void setFilterAttributes(boolean f){ filterAttributes=f;}
+//	public void setEvaluator(ASEvaluation a){ eval=a;}
+	public void setProportion(double f){propAtts=f;}
+	public void setNumber(int n){nosAtts=n;}
+	
+	private Instances filter(Instances d){
+//Search method: Simple rank, evaluating in isolation
+		af=new AttributeFilterBridge(d);
+		af.setProportionToKeep(propAtts);
+		Instances d2=af.filter();
+//		Instances d2=new Instances(d);
+//Remove all attributes not in the list. Are they sorted??			
+		return d2;
+	}
+        
 }

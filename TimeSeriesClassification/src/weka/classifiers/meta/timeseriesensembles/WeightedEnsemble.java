@@ -7,9 +7,16 @@
  */
 package weka.classifiers.meta.timeseriesensembles;
 
+import development.DataSets;
+import fileIO.OutFile;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Random;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import utilities.ClassifierTools;
 import weka.classifiers.*;
+import weka.classifiers.bayes.BayesNet;
 import weka.classifiers.bayes.NaiveBayes;
 import weka.classifiers.functions.SMO;
 import weka.classifiers.functions.supportVector.PolyKernel;
@@ -29,27 +36,29 @@ public class WeightedEnsemble extends AbstractClassifier{
     Instances train;
     Classifier[] c;
     ArrayList<String> classifierNames;
+    double[] cvAccs;
     double[] weights;
     boolean loadCVWeights=false;
-    public static int MAX_NOS_FOLDS=500;
-    enum WeightType{EQUAL,BEST,PROPORTIONAL,SIGNIFICANT_BINOMIAL,SIGNIFICANT_MCNEMAR};
+    public static int MAX_NOS_FOLDS=50;
+    public enum WeightType{EQUAL,BEST,PROPORTIONAL,SIGNIFICANT_BINOMIAL,SIGNIFICANT_MCNEMAR};
     WeightType w;
     public WeightedEnsemble(){
         w=WeightType.PROPORTIONAL;
         classifierNames=new ArrayList<String>();
         c=setDefaultClassifiers(classifierNames);
         weights=new double[c.length];
+        cvAccs=new double[c.length];
     }
     public WeightedEnsemble(Classifier[] cl,ArrayList<String> names){
         w=WeightType.PROPORTIONAL;
         setClassifiers(cl,names);
         weights=new double[c.length];
+        cvAccs=new double[c.length];
     }
     public void setWeightType(WeightType a){w=a;}
     public void setWeightType(String s){
         String str=s.toUpperCase();
-        w=WeightType.EQUAL;
-/*        switch(str){
+        switch(str){
             case "EQUAL": case "EQ": case "E":
                 w=WeightType.EQUAL;
                 break;
@@ -59,51 +68,66 @@ public class WeightedEnsemble extends AbstractClassifier{
             case "PROPORTIONAL": case "PROP": case "P":
                 w=WeightType.PROPORTIONAL;
                 break;
-            case "SIGNIFICANT_BINOMIAL": case "SIGB": case "SIG": case "S":
+ /*            case "SIGNIFICANT_BINOMIAL": case "SIGB": case "SIG": case "S":
                 w=WeightType.SIGNIFICANT_BINOMIAL;
                 break;
             case "SIGNIFICANT_MCNEMAR": case "SIGM": case "SM":
                 w=WeightType.SIGNIFICANT_MCNEMAR;
                 break;
-                
-                
+ */      
+            default:
+                throw new UnsupportedOperationException("Weighting method "+str+" not supported yet.");       
         }
-  */  
+   
     }
 
-    //Default to kNN, Naive Bayes, C4.5, SVML, SVMQ, RandForest200, RotForest50
+/*The classifiers used are the WEKA [26] implementations
+of k Nearest Neighbour (where k is set through cross
+validation), Naive Bayes, C4.5 decision tree [27], Support
+Vector Machines [28] with linear and quadratic basis
+function kernels, Random Forest [29] (with 100 trees), Ro-
+tation Forest [30] (with 10 trees), and a Bayesian network.
+ */       
     final public Classifier[] setDefaultClassifiers(ArrayList<String> names){
-            ArrayList<Classifier> sc2=new ArrayList<Classifier>();
-            sc2.add(new kNN(1));
+            ArrayList<Classifier> classifiers=new ArrayList<>();
+            kNN k=new kNN(100);
+            k.setCrossValidate(true);
+            k.normalise(false);
+            k.setDistanceFunction(new EuclideanDistance());
+            classifiers.add(k);
             names.add("NN");
-            Classifier c;
-            sc2.add(new NaiveBayes());
+            classifiers.add(new NaiveBayes());
             names.add("NB");
-            sc2.add(new J48());
+            classifiers.add(new J48());
             names.add("C45");
-            c=new SMO();
+            SMO svm=new SMO();
             PolyKernel kernel = new PolyKernel();
             kernel.setExponent(1);
-            ((SMO)c).setKernel(kernel);
-            sc2.add(c);
+            svm.setKernel(kernel);
+            classifiers.add(svm);
             names.add("SVML");
-            c=new SMO();
+            svm=new SMO();
             kernel = new PolyKernel();
             kernel.setExponent(2);
-            ((SMO)c).setKernel(kernel);
-            sc2.add(c);
+            svm.setKernel(kernel);
+            classifiers.add(svm);
             names.add("SVMQ");
-            c=new RandomForest();
-            ((RandomForest)c).setNumTrees(100);
-            sc2.add(c);
-            names.add("RandF200");
-            c=new RotationForest();
-            sc2.add(c);
-            names.add("RotF50");
-
-            Classifier[] sc=new Classifier[sc2.size()];
+            RandomForest r=new RandomForest();
+            r.setNumTrees(100);
+            classifiers.add(r);
+            names.add("RandF100");
+            RotationForest rf=new RotationForest();
+            rf.setNumIterations(30);
+            classifiers.add(rf);
+            names.add("RotF30");
+            BayesNet bn=new BayesNet();
+            classifiers.add(bn);
+            names.add("bayesNet");
+            
+            
+            Classifier[] sc=new Classifier[classifiers.size()];
             for(int i=0;i<sc.length;i++)
-                    sc[i]=sc2.get(i);
+                    sc[i]=classifiers.get(i);
 
             return sc;
     }
@@ -111,9 +135,13 @@ public class WeightedEnsemble extends AbstractClassifier{
 
     final public void setClassifiers(Classifier[] cl,  ArrayList<String> names){
         c=cl;
-        classifierNames=new ArrayList<String>(names);
+        classifierNames=new ArrayList<>(names);
+        weights=new double[c.length];
+        cvAccs=new double[c.length];
     }
 
+    public final double[] getWeights(){ return weights;}
+    public final double[] getCVAccs(){ return cvAccs;}
     
     @Override
     public void buildClassifier(Instances data) throws Exception {
@@ -124,28 +152,41 @@ public class WeightedEnsemble extends AbstractClassifier{
 //Parameter optimisation first, 
 //NOT IMPLEMENTED YET
 
-//Train the classifiers        
+/*Train the classifiers on the whole train data. These are the classifiers        
+        that will be used for predictions
+ */
         for(int i=0;i<c.length;i++)
             c[i].buildClassifier(train);
-//Find the weights of the classifier through CV
-        if(w!=WeightType.EQUAL){
-            Evaluation eval=new Evaluation(train);
+        
+//If using equal weighting, set cvAcc to 1 and weights to 1/nosClassifiers        
+        if(w==WeightType.EQUAL){
             for(int i=0;i<c.length;i++){
+                cvAccs[i]=1;
+                weights[i]=1/(double)c.length;
+            }
+        }
+//Else, find the cvAccs of the classifier through CV, then weight proportionally
+//All weight types will require this        
+        else{
+            double sum=0;
+            for(int i=0;i<c.length;i++){
+                Evaluation eval=new Evaluation(train);
                 Random r= new Random();
-                r.setSeed(1234);
-//Assume LOOCV, but set the max number of folds to 500
+//                r.setSeed(1234);
+//set the max number of folds to 100 or use LOOCV
                 int folds=train.numInstances();
                 if(folds>MAX_NOS_FOLDS)
                     folds=MAX_NOS_FOLDS;
                 eval.crossValidateModel(c[i],train,folds,r);
-                weights[i]=1-eval.errorRate();
+                cvAccs[i]=1-eval.errorRate();
+                sum+=cvAccs[i];
             }
-        }
-        else{
             for(int i=0;i<c.length;i++)
-                weights[i]=1/(double)c.length;
+                weights[i]=cvAccs[i]/sum;
         }
-        if(w==WeightType.BEST){ //Find largest, set to one and others to zero. 
+        
+ //If using Best find largest, set to one and others to zero.       
+        if(w==WeightType.BEST){  
             int bestPos=0;
             for(int i=1;i<weights.length;i++){
                 if(weights[i]>weights[bestPos])
@@ -159,13 +200,21 @@ public class WeightedEnsemble extends AbstractClassifier{
             }
         }
     }
+    
+//Stores the current individual classifier predictions for the last call to
+//classifyInstance
+    private double[] predictions;
+    
+    public double[] getPredictions(){ return predictions;}
+    
     @Override
     public double[] distributionForInstance(Instance ins) throws Exception{
+        predictions=new double[c.length];
         double[] preds=new double[ins.numClasses()];
         for(int i=0;i<c.length;i++){
-            int p=(int)c[i].classifyInstance(ins);
-//            System.out.println(" Classifier "+classifierNames.get(i)+" predicts class "+p+" with weight "+weights[i]);
-            preds[p]+=weights[i];
+            predictions[i]=c[i].classifyInstance(ins);
+//            System.out.println(" Classifier "+classifierNames.get(i)+" predicts class "+predictions[i]+" with weight "+weights[i]);
+            preds[(int)predictions[i]]+=weights[i];
         }
         double sum=preds[0];
         for(int i=1;i<preds.length;i++)
@@ -176,6 +225,66 @@ public class WeightedEnsemble extends AbstractClassifier{
         return preds;
     }
     public ArrayList<String> getNames(){ return classifierNames;}
+
+    
+    public static void debugTest(){
+//Basic test of build classifer 
+        String problem="ItalyPowerDemand";
+        Instances train =ClassifierTools.loadData(DataSets.dropboxPath+problem+"\\"+problem+"_TRAIN");
+        Instances test =ClassifierTools.loadData(DataSets.dropboxPath+problem+"\\"+problem+"_TEST");
+        WeightedEnsemble we = new WeightedEnsemble();
+//Test equal weight and CV weight for small classifier set
+        DecimalFormat df = new DecimalFormat("###.###");
+        double a;
+        try {
+            Classifier[] c = new Classifier[3];
+            ArrayList<String> names = new ArrayList<>();
+            kNN k=new kNN(100);
+            k.setCrossValidate(true);
+            k.normalise(false);
+            k.setDistanceFunction(new EuclideanDistance());
+            c[0]=k;
+            names.add("NN");
+            c[1]=new NaiveBayes();
+            names.add("NB");
+            c[2]=new J48();
+            names.add("C45");
+            we.setClassifiers(c, names);
+            we.setWeightType("EQUAL");
+            we.buildClassifier(train);
+            a=ClassifierTools.accuracy(test, we);
+            System.out.println(" WE accuracy with equal weight="+a);
+            we.setWeightType("Proportional");
+            we.buildClassifier(train);
+            double[] w=we.getWeights();
+            double[] cv=we.getCVAccs();
+            for(int i=0;i<w.length;i++)
+                System.out.println("Weight ="+df.format(w[i])+" CV ="+df.format(cv[i]));
+            a=ClassifierTools.accuracy(test, we);
+            System.out.println(" WE accuracy with prop weight="+a);
+            
+        } catch (Exception ex) {
+            Logger.getLogger(WeightedEnsemble.class.getName()).log(Level.SEVERE, null, ex);
+        }
+//Test with standard classifiers
+        try {
+            we = new WeightedEnsemble();
+            we.setWeightType("Proportional");
+            we.buildClassifier(train);
+            double[] w=we.getWeights();
+            double[] cv=we.getCVAccs();
+            for(int i=0;i<w.length;i++)
+                System.out.println("Weight ="+df.format(w[i])+" CV ="+df.format(cv[i]));
+            a=ClassifierTools.accuracy(test, we);
+            System.out.println(" WE accuracy with prop weight="+a);
+            
+            
+        } catch (Exception ex) {
+            Logger.getLogger(WeightedEnsemble.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        
+        
+    }
 //Test for the ensemble in the spectral data
  /*   public static void testSpectrum() throws Exception{
         Instances train=ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\Power Spectrum Transformed TSC Problems\\PSItalyPowerDemand\\PSItalyPowerDemand_TRAIN");
@@ -185,10 +294,6 @@ public class WeightedEnsemble extends AbstractClassifier{
         System.out.println(" Accuracy ="+ClassifierTools.accuracy(test, w));
     }
 */    public static void main(String[] args){
-        try{
-//            testSpectrum();
-        }catch(Exception e){
-            
-        }
+            debugTest();
     }
 }

@@ -52,12 +52,9 @@ public class TimeSeriesClassification {
 		Car 
 	*/	
 //		public static String dropboxPath="C:\\Research\\Data\\Time Series Classification\\";
-		//public static String path="C:\\Users\\ajb\\Dropbox\\TSC Problems\\";
-                
-                //Aarons filePath local build.
-                public static String path = "C:\\LocalData\\Dropbox\\TSC Problems\\";
+		public static String path="C:\\Users\\ajb\\Dropbox\\TSC Problems\\";
 		public static String dropboxPath=path;                
-		public static String clusterPath="";
+		public static String clusterPath="TSC Problems/"; ///gpfs/sys/ajb/TSC Problems/";
 
                 //Train Size, Test Size, Series Length, Number of Classes
 		public static String[] fileNames={	
@@ -399,115 +396,115 @@ public class TimeSeriesClassification {
                 static public double[] ucrError1NN={0.389,0.467,0.267,0.148,0.35,0.103,0.25,0.426,0.356,0.38,0.065,0.12,0.203,0.286,0.216,0.231,0.369,0.217,0.087,0.63,0.658,0.045,0.246,0.425,0.086,0.316,0.121,0.171,0.12,0.133,0.483,0.038,0.305,0.141,0.151,0.213,0.1,0.12,0.24,0.253,0.09,0.261,0.338,0.35,0.005,0.382,0.17};
                 static public double[] ucrErrorDTWFull={0.396,0.5,0.267,0.003,0.352,0.349,0.179,0.223,0.208,0.208,0.033,0.23,0.232,0.192,0.17,0.0951,0.31,0.167,0.093,0.623,0.616,0.05,0.131,0.274,0.066,0.263,0.165,0.209,0.135,0.133,0.409,0,0.275,0.169,0.093,0.21,0.05,0.007,0,0.096,0,0.273,0.366,0.342,0.02,0.351,0.164};
                 
-	public static Classifier[] setDefaultSingleClassifiers(ArrayList<String> names){
-		ArrayList<Classifier> sc2=new ArrayList<>();
-		sc2.add(new kNN(1));
-		names.add("NN");
-		Classifier c;
-		sc2.add(new NaiveBayes());
-		names.add("NB");
-		sc2.add(new J48());
-		names.add("C45");
-		c=new SMO();
-		PolyKernel kernel = new PolyKernel();
-		kernel.setExponent(1);
-		((SMO)c).setKernel(kernel);
-		sc2.add(c);
-		names.add("SVML");
-		c=new SMO();
-		kernel = new PolyKernel();
-		kernel.setExponent(2);
-		((SMO)c).setKernel(kernel);
-		sc2.add(c);
-		names.add("SVMQ");
-		c=new RandomForest();
-		((RandomForest)c).setNumTrees(100);
-		sc2.add(c);
-		names.add("RandF100");
-		c=new RotationForest();
-		sc2.add(c);
-		names.add("RotF10");
-	
-		Classifier[] sc=new Classifier[sc2.size()];
-		for(int i=0;i<sc.length;i++)
-			sc[i]=sc2.get(i);
+    public static Classifier[] setDefaultSingleClassifiers(ArrayList<String> names){
+            ArrayList<Classifier> sc2=new ArrayList<>();
+            sc2.add(new kNN(1));
+            names.add("NN");
+            Classifier c;
+            sc2.add(new NaiveBayes());
+            names.add("NB");
+            sc2.add(new J48());
+            names.add("C45");
+            c=new SMO();
+            PolyKernel kernel = new PolyKernel();
+            kernel.setExponent(1);
+            ((SMO)c).setKernel(kernel);
+            sc2.add(c);
+            names.add("SVML");
+            c=new SMO();
+            kernel = new PolyKernel();
+            kernel.setExponent(2);
+            ((SMO)c).setKernel(kernel);
+            sc2.add(c);
+            names.add("SVMQ");
+            c=new RandomForest();
+            ((RandomForest)c).setNumTrees(100);
+            sc2.add(c);
+            names.add("RandF100");
+            c=new RotationForest();
+            sc2.add(c);
+            names.add("RotF10");
 
-		return sc;
-	}
- 	public static void recreateUCR_1NN_Results(String resultsPath){
-            DecimalFormat df = new DecimalFormat("###.###");
-            OutFile of = new OutFile(resultsPath);
-		try{
-                    System.out.println("************** EUCLIDEAN DISTANCE*******************");
-                    System.out.println("\t\t  UCR \t 1NN \t IBk(1) \t kNN ");
-                    of.writeLine("Problem,UCR1NN,UEA1NN,IBk(1),kNN");
-			for(int i=0;i<UCRProblems.length;i++)
-			{
-				Instances test=utilities.ClassifierTools.loadData(TimeSeriesClassification.path+UCRProblems[i]+"\\"+TimeSeriesClassification.UCRProblems[i]+"_TEST");
-				Instances train=utilities.ClassifierTools.loadData(TimeSeriesClassification.path+UCRProblems[i]+"\\"+TimeSeriesClassification.UCRProblems[i]+"_TRAIN");			
-				kNN a=new kNN(1);
-                                a.normalise(false);
-				a.buildClassifier(train);
-				double acc1=utilities.ClassifierTools.accuracy(test,a);
-				Classifier b=new IBk(1);
-                                b.buildClassifier(train);
- 				double acc2=utilities.ClassifierTools.accuracy(test,b);
-                                kNN knn = new kNN(100);
-                                knn.normalise(false);
-                                knn.setCrossValidate(true);
-                                knn.buildClassifier(train);
- 				double acc3=utilities.ClassifierTools.accuracy(test,knn);
-				System.out.println(UCRProblems[i]+"\t"+df.format(ucrError1NN[i])+"\t"+df.format((1-acc1))+"\t"+df.format((1-acc2))+"\t"+df.format((1-acc3))+"\t");
-				of.writeLine(UCRProblems[i]+","+df.format(ucrError1NN[i])+","+df.format((1-acc1))+","+df.format((1-acc2))+","+df.format((1-acc3)));
+            Classifier[] sc=new Classifier[sc2.size()];
+            for(int i=0;i<sc.length;i++)
+                    sc[i]=sc2.get(i);
+
+            return sc;
+    }
+    public static void recreateUCR_1NN_Results(String resultsPath){
+        DecimalFormat df = new DecimalFormat("###.###");
+        OutFile of = new OutFile(resultsPath);
+            try{
+                System.out.println("************** EUCLIDEAN DISTANCE*******************");
+                System.out.println("\t\t  UCR \t 1NN \t IBk(1) \t kNN ");
+                of.writeLine("Problem,UCR1NN,UEA1NN,IBk(1),kNN");
+                    for(int i=0;i<UCRProblems.length;i++)
+                    {
+                            Instances test=utilities.ClassifierTools.loadData(TimeSeriesClassification.path+UCRProblems[i]+"\\"+TimeSeriesClassification.UCRProblems[i]+"_TEST");
+                            Instances train=utilities.ClassifierTools.loadData(TimeSeriesClassification.path+UCRProblems[i]+"\\"+TimeSeriesClassification.UCRProblems[i]+"_TRAIN");			
+                            kNN a=new kNN(1);
+                            a.normalise(false);
+                            a.buildClassifier(train);
+                            double acc1=utilities.ClassifierTools.accuracy(test,a);
+                            Classifier b=new IBk(1);
+                            b.buildClassifier(train);
+                            double acc2=utilities.ClassifierTools.accuracy(test,b);
+                            kNN knn = new kNN(100);
+                            knn.normalise(false);
+                            knn.setCrossValidate(true);
+                            knn.buildClassifier(train);
+                            double acc3=utilities.ClassifierTools.accuracy(test,knn);
+                            System.out.println(UCRProblems[i]+"\t"+df.format(ucrError1NN[i])+"\t"+df.format((1-acc1))+"\t"+df.format((1-acc2))+"\t"+df.format((1-acc3))+"\t");
+                            of.writeLine(UCRProblems[i]+","+df.format(ucrError1NN[i])+","+df.format((1-acc1))+","+df.format((1-acc2))+","+df.format((1-acc3)));
 /*
-				b.buildClassifier(train);
-				double acc2=utilities.ClassifierTools.accuracy(test,b);
-				System.out.println(eamonnFiles[i]+" : 1NN Full DTW Error ="+(1-acc2)+" From website ="+TimeSeriesClassification.eamonnEuclidErrors[i]+" Difference ="+((1-acc1)-TimeSeriesClassification.eamonnDTW_FullErrors[i]));
-				Classifier[] sc=new Classifier[1];
+                            b.buildClassifier(train);
+                            double acc2=utilities.ClassifierTools.accuracy(test,b);
+                            System.out.println(eamonnFiles[i]+" : 1NN Full DTW Error ="+(1-acc2)+" From website ="+TimeSeriesClassification.eamonnEuclidErrors[i]+" Difference ="+((1-acc1)-TimeSeriesClassification.eamonnDTW_FullErrors[i]));
+                            Classifier[] sc=new Classifier[1];
 */
 
-			}
-		}catch(Exception e){
-			System.out.println(" Error in accuracy ="+e);
-			e.printStackTrace();
-			System.exit(0);
-		}
-	}
-	               
-	public static void recreateUCR_FullDTW_Results(String resultsPath){
-            DecimalFormat df = new DecimalFormat("###.###");
-            OutFile of = new OutFile(resultsPath);
-		try{
-                    System.out.println("************** DTW DISTANCE*******************");
-                    System.out.println("\t\t  UCR \t DTW_1NN ");
-                    of.writeLine("Problem,UCR_DTW_1NN_FULL,UEA_DTW_1NN_FULL");
-			for(int i=0;i<UCRProblems.length;i++)
-			{
-				Instances test=utilities.ClassifierTools.loadData(TimeSeriesClassification.path+UCRProblems[i]+"\\"+TimeSeriesClassification.UCRProblems[i]+"_TEST");
-				Instances train=utilities.ClassifierTools.loadData(TimeSeriesClassification.path+UCRProblems[i]+"\\"+TimeSeriesClassification.UCRProblems[i]+"_TRAIN");			
-				kNN a=new kNN(1);
-                                a.normalise(false);
-                                BasicDTW dtw = new BasicDTW(true);
-                                a.setDistanceFunction(dtw);
-				a.buildClassifier(train);
-				double acc1=utilities.ClassifierTools.accuracy(test,a);
+                    }
+            }catch(Exception e){
+                    System.out.println(" Error in accuracy ="+e);
+                    e.printStackTrace();
+                    System.exit(0);
+            }
+    }
 
-				System.out.println(UCRProblems[i]+"\t"+df.format(ucrErrorDTWFull[i])+"\t"+df.format((1-acc1)));
-				of.writeLine(UCRProblems[i]+","+df.format(ucrError1NN[i])+","+df.format((1-acc1)));
+    public static void recreateUCR_FullDTW_Results(String resultsPath){
+        DecimalFormat df = new DecimalFormat("###.###");
+        OutFile of = new OutFile(resultsPath);
+            try{
+                System.out.println("************** DTW DISTANCE*******************");
+                System.out.println("\t\t  UCR \t DTW_1NN ");
+                of.writeLine("Problem,UCR_DTW_1NN_FULL,UEA_DTW_1NN_FULL");
+                    for(int i=0;i<UCRProblems.length;i++)
+                    {
+                            Instances test=utilities.ClassifierTools.loadData(TimeSeriesClassification.path+UCRProblems[i]+"\\"+TimeSeriesClassification.UCRProblems[i]+"_TEST");
+                            Instances train=utilities.ClassifierTools.loadData(TimeSeriesClassification.path+UCRProblems[i]+"\\"+TimeSeriesClassification.UCRProblems[i]+"_TRAIN");			
+                            kNN a=new kNN(1);
+                            a.normalise(false);
+                            BasicDTW dtw = new BasicDTW();
+                            a.setDistanceFunction(dtw);
+                            a.buildClassifier(train);
+                            double acc1=utilities.ClassifierTools.accuracy(test,a);
+
+                            System.out.println(UCRProblems[i]+"\t"+df.format(ucrErrorDTWFull[i])+"\t"+df.format((1-acc1)));
+                            of.writeLine(UCRProblems[i]+","+df.format(ucrError1NN[i])+","+df.format((1-acc1)));
 /*
-				b.buildClassifier(train);
-				double acc2=utilities.ClassifierTools.accuracy(test,b);
-				System.out.println(eamonnFiles[i]+" : 1NN Full DTW Error ="+(1-acc2)+" From website ="+TimeSeriesClassification.eamonnEuclidErrors[i]+" Difference ="+((1-acc1)-TimeSeriesClassification.eamonnDTW_FullErrors[i]));
-				Classifier[] sc=new Classifier[1];
+                            b.buildClassifier(train);
+                            double acc2=utilities.ClassifierTools.accuracy(test,b);
+                            System.out.println(eamonnFiles[i]+" : 1NN Full DTW Error ="+(1-acc2)+" From website ="+TimeSeriesClassification.eamonnEuclidErrors[i]+" Difference ="+((1-acc1)-TimeSeriesClassification.eamonnDTW_FullErrors[i]));
+                            Classifier[] sc=new Classifier[1];
 */
 
-			}
-		}catch(Exception e){
-			System.out.println(" Error in accuracy ="+e);
-			e.printStackTrace();
-			System.exit(0);
-		}
-	}
+                    }
+            }catch(Exception e){
+                    System.out.println(" Error in accuracy ="+e);
+                    e.printStackTrace();
+                    System.exit(0);
+            }
+    }
 	               
                  
 		public static void main(String[] args){
@@ -515,95 +512,8 @@ public class TimeSeriesClassification {
  //                   formatUWave();
 //                       recreateUCR_1NN_Results("C:\\Users\\ajb\\Dropbox\\Results\\TimeDomain\\1NN_UCR_Comparison.csv");
  //                   recreateUCR_FullDTW_Results("C:\\Users\\ajb\\Dropbox\\Results\\TimeDomain\\CTW_1NN_UCR_Comparison.csv");
-                    dataDescription();
                 }
-                public static class MetaData implements Comparable<MetaData>{
-                    String fileName;
-                    int trainSetSize;
-                    int testSetSize;
-                    int seriesLength;
-                    int nosClasses;
-                    public MetaData(String n, int t1, int t2, int s, int c){
-                        fileName=n;
-                        trainSetSize=t1;
-                        testSetSize=t2;
-                        seriesLength=s;
-                        nosClasses=c;
-                    }
-                    public String toString(){
-                        return "\t\t\t\""+fileName+"\", // "+trainSetSize+","+testSetSize+","+seriesLength+","+nosClasses;
-                    }
-                @Override
-                    public int compareTo(MetaData o) {
-                            return seriesLength-o.seriesLength;
-                }
-                public static class CompareByTrain implements Comparator<MetaData>{
-                    @Override
-                    public int compare(MetaData a, MetaData b) {
-                        return a.trainSetSize-b.trainSetSize;
-                    }
-                }
-                public static class CompareByTrainSetSize implements Comparator<MetaData>{
-                    @Override
-                    public int compare(MetaData a, MetaData b) {
-                        return a.trainSetSize-b.trainSetSize;
-                    }
-                }
-                public static class CompareByClasses implements Comparator<MetaData>{
-                    @Override
-                    public int compare(MetaData a, MetaData b) {
-                        return a.nosClasses-b.nosClasses;
-                    }
-                }
-                public static class CompareByTotalSize implements Comparator<MetaData>{
-                    @Override
-                    public int compare(MetaData a, MetaData b) {
-                        return a.seriesLength*a.trainSetSize-b.seriesLength*b.trainSetSize;
-                    }
-                }
-            }
-            public static void dataDescription(){
-		//Produce summary descriptions
-                    OutFile f=new OutFile(dropboxPath+"DataDimensions.csv");
-                    MetaData[] all=new MetaData[fileNames.length];
-                    
-                    try{
-                        for(int i=0;i<fileNames.length;i++){
-                            Instances test=ClassifierTools.loadData(dropboxPath+fileNames[i]+"\\"+fileNames[i]+"_TEST");
-                            Instances train=ClassifierTools.loadData(dropboxPath+fileNames[i]+"\\"+fileNames[i]+"_TRAIN");			
-                            Instances allData =new Instances(test);
-                            for(int j=0;j<train.numInstances();j++)
-                                allData.add(train.instance(j));
-                            allData.randomize(new Random());
-                            OutFile combo=new OutFile(dropboxPath+fileNames[i]+"\\"+fileNames[i]+".arff");    
-                            combo.writeString(allData.toString());
-                            f.writeLine("\t\t\t\""+fileNames[i]+"\", // "+train.numInstances()+","+test.numInstances()+","+(train.numAttributes()-1)+","+train.numClasses());
-
-                            all[i]=new MetaData(fileNames[i],train.numInstances(),test.numInstances(),test.numAttributes()-1,test.numClasses());
-                        }
-                    }catch(Exception e){
-                        System.out.println(" ERRROR"+e);
-                    }
-                    Arrays.sort(all);       
-                    f=new OutFile(dropboxPath+"DataDimensionsBySeriesLength.csv");
-                    for(MetaData m: all)
-                        f.writeLine(m.toString());
-                    Arrays.sort(all, new MetaData.CompareByTrain());       
-                    f=new OutFile(dropboxPath+"DataDimensionsByTrainSize.csv");
-                    for(MetaData m: all)
-                        f.writeLine(m.toString());
-                    Arrays.sort(all, new MetaData.CompareByClasses());       
-                    f=new OutFile(dropboxPath+"DataDimensionsByNosClasses.csv");
-                    for(MetaData m: all)
-                        f.writeLine(m.toString());
-                    Arrays.sort(all, new MetaData.CompareByTotalSize());       
-                    f=new OutFile(dropboxPath+"DataDimensionsByTotalSize.csv");
-                    for(MetaData m: all)
-                        f.writeLine(m.toString());
-                    
-			
-            }
-
+ 
             
 	public static Classifier[] setSingleClassifiers(ArrayList<String> names){
 		ArrayList<Classifier> sc2=new ArrayList<>();

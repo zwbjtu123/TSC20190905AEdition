@@ -19,7 +19,7 @@ import weka.core.Instances;
 public class NormalizeCase extends SimpleBatchFilter{
 	public enum NormType {INTERVAL,STD,STD_NORMAL};
 	
-	NormType norm=NormType.STD;
+	NormType norm=NormType.STD_NORMAL;
         public void setNormType( NormType n){norm=n;}
 /* 
  * 
@@ -29,7 +29,7 @@ public class NormalizeCase extends SimpleBatchFilter{
 	     return result;
 	}
 	public Instances process(Instances inst) throws Exception {
-//Clone the 		
+//Clone the istances 		
 		  Instances result = new Instances(inst);
 		  switch(norm){
 		  case INTERVAL:	//Map onto [0,1]
@@ -53,7 +53,7 @@ public class NormalizeCase extends SimpleBatchFilter{
 			max=Double.MIN_VALUE;
 			min=Double.MAX_VALUE;
 			for(int j=0;j<r.numAttributes();j++){
-				if(j!=r.classIndex()){
+				if(j!=r.classIndex()&& !r.attribute(j).isNominal()){// Ignore all nominal atts{
 					double x=r.instance(i).value(j);
 					if(x>max)
 						max=x;
@@ -62,7 +62,7 @@ public class NormalizeCase extends SimpleBatchFilter{
 				}
 			}
 			for(int j=0;j<r.numAttributes();j++){
-				if(j!=r.classIndex()){
+				if(j!=r.classIndex()&& !r.attribute(j).isNominal()){// Ignore all nominal atts{
 					double x=r.instance(i).value(j);
 					r.instance(i).setValue(j,(x-min)/(max-min));
 				}
@@ -79,14 +79,14 @@ public class NormalizeCase extends SimpleBatchFilter{
 		{
 			sum=sumSq=mean=stdev=0;
 			for(int j=0;j<r.numAttributes();j++){
-			if(j!=classIndex){
+			if(j!=classIndex&& !r.attribute(j).isNominal()){// Ignore all nominal atts{
 					x=r.instance(i).value(j);
 					sum+=x;
 				}
 				mean=sum/size;
 			}
 			for(int j=0;j<r.numAttributes();j++){
-				if(j!=classIndex){
+				if(j!=classIndex&& !r.attribute(j).isNominal()){// Ignore all nominal atts{
 					x=r.instance(i).value(j);
 					r.instance(i).setValue(j,(x-mean));
 				}
@@ -117,7 +117,7 @@ public class NormalizeCase extends SimpleBatchFilter{
 		{
 			sum=sumSq=mean=stdev=0;
 			for(int j=0;j<r.numAttributes();j++){
-                            if(j!=classIndex){
+                            if(j!=classIndex && !r.attribute(j).isNominal()){// Ignore all nominal atts
                                 x=r.instance(i).value(j);
                                 sum+=x;
                                 sumSq+=x*x;
@@ -129,7 +129,7 @@ public class NormalizeCase extends SimpleBatchFilter{
                         if(stdev==0)
                                 throw new Exception("Cannot normalise a series with zero variance! Instance number ="+i+" mean ="+mean+" sum = "+sum+" sum sq = "+sumSq+" instance ="+r.instance(i));
                         for(int j=0;j<r.numAttributes();j++){
-                            if(j!=classIndex){
+                            if(j!=classIndex&& !r.attribute(j).isNominal()){
                                     x=r.instance(i).value(j);
                                     r.instance(i).setValue(j,(x-mean)/(stdev));
                             }

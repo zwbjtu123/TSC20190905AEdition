@@ -42,17 +42,6 @@ public class ItakuraParallelogramDTW extends BasicDTW {
         setup(maxWidth);
     }
     
-    /**
-     * Create Itakura Parallelogram distance metric
-     * 
-     * @param maxWidth maximum width of the warping window
-     * @param earlyAbandon enable early abandon
-     * @throws IllegalArgumentException 
-     */
-    public ItakuraParallelogramDTW(int maxWidth, boolean earlyAbandon) throws IllegalArgumentException{
-        super(earlyAbandon);
-        setup(maxWidth);
-    }
     
     /**
      * setup the distance metric

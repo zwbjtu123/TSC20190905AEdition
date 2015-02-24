@@ -1264,7 +1264,9 @@ sanityCheck:Method sanityCheck(): Show all classifiers better on ACF space than 
         }
     }   
 
-   public static Classifier[] setDefaultSingleClassifiers(ArrayList<String> names){
+   
+     
+     public static Classifier[] setDefaultSingleClassifiers(ArrayList<String> names){
             ArrayList<Classifier> sc2=new ArrayList<>();
             kNN k = new kNN(100);
             k.setCrossValidate(true);
@@ -1328,6 +1330,179 @@ sanityCheck:Method sanityCheck(): Show all classifiers better on ACF space than 
             }
         
     }    
+    public static void combineResults(String file){
+        OutFile of = new OutFile(file);
+        for(String s: DataSets.fileNames){
+            File fi=new File("C:\\Research\\Papers\\2015\\TKDE COTE Tony\\acfoutput\\ACF_Results"+s+".csv");
+            if(fi.exists()){
+                InFile f= new InFile("C:\\Research\\Papers\\2015\\TKDE COTE Tony\\acfoutput\\ACF_Results"+s+".csv");
+                of.writeLine(f.readLine());
+            }
+        } 
+        for(String s: DataSets.fileNames){
+            File fi=new File("C:\\Research\\Papers\\2015\\TKDE COTE Tony\\acfoutput\\ACF_ResultsCombo"+s+".csv");
+            if(fi.exists()){
+                InFile f= new InFile("C:\\Research\\Papers\\2015\\TKDE COTE Tony\\acfoutput\\ACF_ResultsCombo"+s+".csv");
+                of.writeLine(f.readLine());
+            }
+        } 
+    }
+    public static void evalTransforms(String fileName, OutFile of, boolean onCluster){ 
+        Instances test=null;
+        Instances train=null;
+        if(!onCluster){
+            test=utilities.ClassifierTools.loadData(TimeSeriesClassification.dropboxPath+fileName+"\\"+fileName+"_TEST");
+            train=utilities.ClassifierTools.loadData(TimeSeriesClassification.dropboxPath+fileName+"\\"+fileName+"_TRAIN");			
+        }
+        else{
+            test=utilities.ClassifierTools.loadData(TimeSeriesClassification.clusterPath+fileName+"/"+fileName+"_TEST");
+            train=utilities.ClassifierTools.loadData(TimeSeriesClassification.clusterPath+fileName+"/"+fileName+"_TRAIN");			
+        }
+            
+        int maxLag=(train.numAttributes()-1)/4;
+        if(maxLag>100)
+            maxLag=100;
+ //       if(maxLag<10)
+ //           maxLag=10;
+        
+        Instances arTrain,arTest;
+        Instances acfTrain,acfTest;
+        Instances pacfTrain,pacfTest;
+        Instances comboTrain,comboTest;
+        ACF acf = new ACF();
+        PACF pacf= new PACF();
+        ARMA ar=new ARMA();
+        ar.setUseAIC(true);
+        acf.setMaxLag(maxLag);
+        pacf.setMaxLag(maxLag);
+        ar.setMaxLag(maxLag);
+        acf.setNormalized(false);
+        try{
+            acfTrain=acf.process(train);
+            arTrain=ar.process(train);
+            pacfTrain=pacf.process(train);
+   /*        comboTrain=new Instances(acfTrain);
+            comboTrain.setClassIndex(-1);
+            comboTrain.deleteAttributeAt(comboTrain.numAttributes()-1); 
+            comboTrain=Instances.mergeInstances(comboTrain, pacfTrain);
+            comboTrain.deleteAttributeAt(comboTrain.numAttributes()-1); 
+            comboTrain=Instances.mergeInstances(comboTrain, arTrain);
+            comboTrain.setClassIndex(comboTrain.numAttributes()-1);
+/* 
+            System.out.println("PACF Train num atts= "+pacfTrain.numAttributes()+" num insts = "+pacfTrain.numInstances());
+            for(int j=0;j<pacfTrain.numInstances();j++){
+                Instance ins=pacfTrain.instance(j);
+                System.out.print("\n PACF Train +"+j+" num atts= "+ins.numAttributes()+"  ");
+                for(int i=0;i<ins.numAttributes();i++)
+                    System.out.print(ins.value(i)+",");
+            }
+            
+            for(int i=0;i<pacfTrain.numAttributes();i++)
+                            System.out.println(i+"  Attribute "+pacfTrain.attribute(i)+" has index ="+pacfTrain.attribute(i).index()+" and isnumeric = "+pacfTrain.attribute(i).isNumeric());
+            System.out.println("PACF full data set = "+pacfTrain.toString());
+*/
+            acfTest=acf.process(test);
+            arTest=ar.process(test);
+            pacfTest=pacf.process(test);
+/*            comboTest=new Instances(acfTest);
+            comboTest.setClassIndex(-1);
+            comboTest.deleteAttributeAt(comboTest.numAttributes()-1); 
+            comboTest=Instances.mergeInstances(comboTest, pacfTest);
+            comboTest.deleteAttributeAt(comboTest.numAttributes()-1); 
+            comboTest=Instances.mergeInstances(comboTest, arTest);
+            comboTest.setClassIndex(comboTest.numAttributes()-1);
+  */        WeightedEnsemble we= new WeightedEnsemble();
+            we.buildClassifier(acfTrain);
+            double a1=ClassifierTools.accuracy(acfTest, we);
+           we= new WeightedEnsemble();
+            we.buildClassifier(arTrain);
+            double a2=ClassifierTools.accuracy(arTest, we);
+            we= new WeightedEnsemble();
+            we.buildClassifier(pacfTrain);
+            double a3=ClassifierTools.accuracy(pacfTest, we);
+            we= new WeightedEnsemble();
+//            we.buildClassifier(comboTrain);
+//            double a4=ClassifierTools.accuracy(comboTest, we);
+            System.out.println(fileName+","+a1+","+a2+","+a3);
+            of.writeLine(fileName+","+a1+","+a2+","+a3);
+        }catch(Exception e){
+            System.out.println(" ERROR in ACF Combo experiment ="+e);
+            e.printStackTrace();
+            System.exit(0);
+        }
+        Instances fullTrain=comboAcfPacf(train,maxLag);                            
+        Instances fullTest=comboAcfPacf(test,maxLag);   
+    }
+    
+
+    public static void evalComboTransforms(String fileName, OutFile of, boolean onCluster){ 
+        Instances test=null;
+        Instances train=null;
+        if(!onCluster){
+            test=utilities.ClassifierTools.loadData(TimeSeriesClassification.dropboxPath+fileName+"\\"+fileName+"_TEST");
+            train=utilities.ClassifierTools.loadData(TimeSeriesClassification.dropboxPath+fileName+"\\"+fileName+"_TRAIN");			
+        }
+        else{
+            test=utilities.ClassifierTools.loadData(TimeSeriesClassification.clusterPath+fileName+"/"+fileName+"_TEST");
+            train=utilities.ClassifierTools.loadData(TimeSeriesClassification.clusterPath+fileName+"/"+fileName+"_TRAIN");			
+        }
+            
+        int maxLag=(train.numAttributes()-1)/4;
+        if(maxLag>100)
+            maxLag=100;
+ //       if(maxLag<10)
+ //           maxLag=10;
+        
+        Instances arTrain,arTest;
+        Instances acfTrain,acfTest;
+        Instances pacfTrain,pacfTest;
+        Instances comboTrain,comboTest;
+        ACF acf = new ACF();
+        PACF pacf= new PACF();
+        ARMA ar=new ARMA();
+        ar.setUseAIC(true);
+        acf.setMaxLag(maxLag);
+        pacf.setMaxLag(maxLag);
+        ar.setMaxLag(maxLag);
+        acf.setNormalized(false);
+        try{
+            acfTrain=acf.process(train);
+            arTrain=ar.process(train);
+            pacfTrain=pacf.process(train);
+           comboTrain=new Instances(acfTrain);
+            comboTrain.setClassIndex(-1);
+            comboTrain.deleteAttributeAt(comboTrain.numAttributes()-1); 
+            comboTrain=Instances.mergeInstances(comboTrain, pacfTrain);
+            comboTrain.deleteAttributeAt(comboTrain.numAttributes()-1); 
+            comboTrain=Instances.mergeInstances(comboTrain, arTrain);
+            comboTrain.setClassIndex(comboTrain.numAttributes()-1);
+ 
+            acfTest=acf.process(test);
+            arTest=ar.process(test);
+            pacfTest=pacf.process(test);
+            comboTest=new Instances(acfTest);
+            comboTest.setClassIndex(-1);
+            comboTest.deleteAttributeAt(comboTest.numAttributes()-1); 
+            comboTest=Instances.mergeInstances(comboTest, pacfTest);
+            comboTest.deleteAttributeAt(comboTest.numAttributes()-1); 
+            comboTest=Instances.mergeInstances(comboTest, arTest);
+            comboTest.setClassIndex(comboTest.numAttributes()-1);
+            WeightedEnsemble we= new WeightedEnsemble();
+            we.buildClassifier(acfTrain);
+            we.buildClassifier(comboTrain);
+            double a4=ClassifierTools.accuracy(comboTest, we);
+            System.out.println(fileName+","+a4);
+            of.writeLine(fileName+","+a4);
+        }catch(Exception e){
+            System.out.println(" ERROR in ACF Combo experiment ="+e);
+            e.printStackTrace();
+            System.exit(0);
+        }
+        Instances fullTrain=comboAcfPacf(train,maxLag);                            
+        Instances fullTest=comboAcfPacf(test,maxLag);   
+    }
+    
+    
     
     public static void mergeFiles(){
         String path="C:\\Users\\ajb\\Dropbox\\Results\\ChangeDomain\\EnsembleAccuracy\\";
@@ -1399,8 +1574,159 @@ sanityCheck:Method sanityCheck(): Show all classifiers better on ACF space than 
                             e.printStackTrace();
                             System.exit(0);
                     }   }
-     
+  
+       public static void ACFvsARvsPACF(int seriesLength,OutFile of,OutFile of2){
+            int minParas=1,maxParas=4;
+            int nosCases=400;
+            int[] nosCasesPerClass={200,200};
+            int runs=30;
+            WeightedEnsemble c;
+            double[] mean=new double[4];
+            double[]sd=new double[4];
+           ArmaModel.setGlobalVariance(1);
+           SimulateAR.setMinMaxPara(-0.1,0.1);
+           try{
+                    for(int i=0;i<runs;i++){
+                    //Generate data 
+                        Instances all=SimulateAR.generateARDataSet(minParas,maxParas,seriesLength,nosCasesPerClass,true);
+                        Instances train,test; 
+                        all.randomize(new Random());
+
+                        train=all;
+                        test=new Instances(all);
+                        for(int k=0;k<nosCases/2;k++){
+                            train.delete(0);
+                            test.delete(nosCases/2-1);
+                        }
+                        int maxLag=(train.numAttributes()-1)/4;
+                        if(maxLag>100)
+                            maxLag=100;
+        //2. ACF
+//                    System.out.print(" ACF full ...");
+                        ACF acf=new ACF();
+                        acf.setMaxLag(maxLag);
+                        
+                        acf.setNormalized(false);
+                        Instances acfTrain=acf.process(train);
+                        Instances acfTest=acf.process(test);
+                        c=new WeightedEnsemble();
+                        c.buildClassifier(acfTrain);
+                        double a=ClassifierTools.accuracy(acfTest, c);
+                        mean[0]+=a;
+                        sd[0]+=a*a;
+                       
+        //2. ARMA ACF Global truncated
+ //                   System.out.print(" ACF trun ...");
+                        ARMA arma=new ARMA();                        
+                        arma.setMaxLag(maxLag);
+                        arma.setUseAIC(false);
+                        Instances arTrain=arma.process(train);
+                        Instances arTest=arma.process(test);
+                        c=new WeightedEnsemble();
+                        c.buildClassifier(arTrain);
+                        a=ClassifierTools.accuracy(arTest, c);
+                        mean[1]+=a;
+                        sd[1]+=a*a;
+       //3. PACF Full
+ //                   System.out.print(" PACF full ...");
+                       PACF pacf=new PACF();
+                       pacf.setMaxLag(maxLag);
+                       Instances pacfTrain=pacf.process(train);
+                       Instances pacfTest=pacf.process(test);
+//                       System.out.println(" PACF num attributes="+pacfTrain.numAttributes());
+                        c=new WeightedEnsemble();
+                        c.buildClassifier(pacfTrain);
+                        a=ClassifierTools.accuracy(pacfTest, c);
+                        mean[2]+=a;
+                        sd[2]+=a*a;                                              
+       //6. COMBO
+                        Instances comboTrain=new Instances(acfTrain);
+                        comboTrain.setClassIndex(-1);
+                        comboTrain.deleteAttributeAt(comboTrain.numAttributes()-1); 
+                        comboTrain=Instances.mergeInstances(comboTrain, pacfTrain);
+                        comboTrain.deleteAttributeAt(comboTrain.numAttributes()-1); 
+                        comboTrain=Instances.mergeInstances(comboTrain, arTrain);
+                        comboTrain.setClassIndex(comboTrain.numAttributes()-1);
+                        Instances comboTest=new Instances(acfTest);
+                        comboTest.setClassIndex(-1);
+                        comboTest.deleteAttributeAt(comboTest.numAttributes()-1); 
+                        comboTest=Instances.mergeInstances(comboTest, pacfTest);
+                        comboTest.deleteAttributeAt(comboTest.numAttributes()-1); 
+                        comboTest=Instances.mergeInstances(comboTest, arTest);
+                        comboTest.setClassIndex(comboTest.numAttributes()-1);
+                        c= new WeightedEnsemble();
+                        c.buildClassifier(acfTrain);
+                        c.buildClassifier(comboTrain);
+                        a=ClassifierTools.accuracy(comboTest, c);
+                        mean[3]+=a;
+                        sd[3]+=a*a;
+                 
+                    }
+//Calculate mean and SD
+                    for(int i=0;i<sd.length;i++)
+                    {
+                        sd[i]=(sd[i]-mean[i]*mean[i]/runs)/runs;
+                        mean[i]/=runs;
+                        System.out.println(" \t "+mean[i]);
+
+                    }
+                  
+   //Write results to file
+                    of.writeString(seriesLength+",");
+                    of2.writeString(seriesLength+" &\t");
+                    for(int i=0;i<mean.length;i++){
+                        of.writeString(mean[i]+",");
+                        of2.writeString(" "+mean[i]+" ("+sd[i]+")\t &");
+                    }
+                    for(int i=0;i<mean.length;i++){
+                        of.writeString(sd[i]+",");
+                    }
+                    of.writeString("\n");
+                    of2.writeString("\\\\ \n");
+               
+           }catch(Exception e){
+			System.out.println(" Exception in ACF harness="+e);
+			e.printStackTrace();
+                        System.exit(0);
+           }
+       }
+
+
+    
+    public static void mergeSimResults(String file){
+        String path="C:\\Research\\Papers\\2015\\TKDE COTE Tony\\acfsimoutput\\";
+        OutFile combo=new OutFile(path+file);
+        for(int i=100;i<=900;i+=10){
+            InFile f = new InFile(path+"ACFSim"+i+".csv");
+            combo.writeLine(f.readLine());
+        }
+        
+    }
      public static void main(String[] args){
+          if(args[0]!=null){
+            int index=Integer.parseInt(args[0])-1;
+            index=100+10*index;
+            OutFile of = new OutFile("acfsimoutput/ACFSim"+index+".csv");
+            OutFile of2=new OutFile("acfsimoutput/ACFSimLatex"+index+".tex");
+    //            of.writeLine(seriesLength+",ACF,AR,PACF,COMBO");
+     //           of2.writeLine(seriesLength+" &  ACF & AR & PACF & COMBO\\");
+            ACFvsARvsPACF(index,of,of2);
+         }
+         System.exit(0);
+//         System.out.println(" Nos problems = "+DataSets.fileNames.length);
+         if(args[0]!=null){
+             int index=Integer.parseInt(args[0])-1;
+             OutFile of = new OutFile("acfoutput/ACF_ResultsCombo"+DataSets.fileNames[index]+".csv");
+            evalComboTransforms(DataSets.fileNames[index],of,true);
+            //evalTransforms(DataSets.fileNames[index],of,true);
+         }else{
+             OutFile of = new OutFile("ACF_Results.csv");
+            for(int i=0;i<DataSets.fileNames.length;i++)
+                evalTransforms(DataSets.fileNames[i],of,false);
+         }
+         System.exit(0);
+             
+         
 //          testACF();     
     transformComparisonTruncationTestProblems("C:\\Users\\ajb\\Dropbox\\Results\\ChangeDomain\\ACF_PACFTest.csv",false);         
   //     transformAllDataSets("C:\\Users\\ajb\\Dropbox\\Results\\ChangeDomain\\ACF_PACFTest.csv",true);

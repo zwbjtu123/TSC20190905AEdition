@@ -634,9 +634,16 @@ All included except Cricket. There are three criket problems and they are not
                 
     } 
             public static void main(String[] args){
-                testMemoryCache();                
+                Instances sony = ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\TSC Problems\\SonyAIBORobotSurfaceII\\SonyAIBORobotSurfaceII_TRAIN");
+                OutFile test = new OutFile("C:\\Users\\ajb\\Dropbox\\TSC Problems\\SonyAIBORobotSurfaceII\\test.arff");
+             try {
+                 generateShapeletFile(sony,test);
+             } catch (Exception ex) {
+                 Logger.getLogger(ShapeletClassification.class.getName()).log(Level.SEVERE, null, ex);
+             }
                 System.exit(0);
               
+                testMemoryCache();                
                 
                 try{
                     beefTest();
@@ -656,4 +663,18 @@ All included except Cricket. There are three criket problems and they are not
 //                    ucrDataSets("C:\\Users\\ajb\\Dropbox\\Results\\Shapelets\\FastShapeletsRecreation.csv",true);
 //                    generateTransforms("C:\\Users\\ajb\\Dropbox\\Results\\Shapelets\\FastShapeletsRecreation.csv");
             }
+public static void generateShapeletFile(Instances train, OutFile dest) throws Exception{
+            //Shapelet
+        ShapeletTransform s2=new ShapeletTransform();
+        s2.setNumberOfShapelets(train.numInstances()*10);
+        s2.setShapeletMinAndMax(3, train.numAttributes()-1);
+        s2.setDebug(false);
+        s2.supressOutput();
+        s2.turnOffLog();  
+        s2.setQualityMeasure(QualityMeasures.ShapeletQualityChoice.F_STAT);
+        Instances shapeletTrain=s2.process(train);
+        dest.writeLine(shapeletTrain+"");
+}
+
+
 }

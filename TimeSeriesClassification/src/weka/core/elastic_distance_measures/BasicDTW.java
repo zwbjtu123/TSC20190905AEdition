@@ -18,7 +18,7 @@ import weka.core.neighboursearch.PerformanceStats;
 public class BasicDTW extends EuclideanDistance{
     
     protected double[][] distances;
-    protected boolean isEarlyAbandon=false; //This doesnt seem to work!
+    protected boolean isEarlyAbandon=false; //This doesnt work!
     
 //    private int distanceCount = 0;
    
@@ -31,7 +31,7 @@ public class BasicDTW extends EuclideanDistance{
     public BasicDTW(){
         super();
         this.m_DontNormalize = true;
-        this.isEarlyAbandon = true;
+        this.isEarlyAbandon = false;
     }
     
     /** 
@@ -39,11 +39,6 @@ public class BasicDTW extends EuclideanDistance{
      * 
      * @param earlyAbandon boolean value setting if early abandon is enabled
      */
-    public BasicDTW(boolean earlyAbandon) {	
-        super();
-        this.isEarlyAbandon = earlyAbandon;
-        this.m_DontNormalize = true;
-    }
     public BasicDTW(Instances d) {	
         super(d);
         this.m_DontNormalize = true;
@@ -76,7 +71,7 @@ public class BasicDTW extends EuclideanDistance{
     @Override
     public double distance(Instance first, Instance second, double cutOffValue){
 
-        //remove class index from first instance if there is one
+        //remove class index from first instance if there iscutOffValue one
         int firtClassIndex = first.classIndex();
         double[] arr1;
         if(firtClassIndex > 0){
@@ -258,15 +253,6 @@ public class BasicDTW extends EuclideanDistance{
      */
     public boolean isEarlyAbandon() {
         return isEarlyAbandon;
-    }
-
-    /**
-     * Set early abandon
-     * 
-     * @param isEarlyAbandon value for early abandon
-     */
-    public void setIsEarlyAbandon(boolean isEarlyAbandon) {
-        this.isEarlyAbandon = isEarlyAbandon;
     }
 
     @Override

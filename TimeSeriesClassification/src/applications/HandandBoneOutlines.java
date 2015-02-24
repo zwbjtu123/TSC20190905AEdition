@@ -55,7 +55,7 @@ public class HandandBoneOutlines {
         static String[] boneOutlines={"pp_seg","mp_seg","dp_seg","comb_seg"};
 	static DecimalFormat df=new DecimalFormat("###.###");
  	public static Classifier[] setSingleClassifiers(ArrayList<String> names){
-		ArrayList<Classifier> sc2=new ArrayList<Classifier>();
+		ArrayList<Classifier> sc2=new ArrayList<>();
 		sc2.add(new kNN(1));
 		names.add("NN");
 		Classifier c;
@@ -91,7 +91,7 @@ public class HandandBoneOutlines {
 	}
    
         public static void classifierCheck(String path,String[] files) throws Exception{
-            ArrayList<String> names= new ArrayList<String>();
+            ArrayList<String> names= new ArrayList<>();
             Classifier[] c=setSingleClassifiers(names);
 
             Instances[] train;

@@ -151,10 +151,10 @@ public class FelixstowePort {
         ArrayList<SingleEntry> readings;
         TowerStats stats;
         public SingleTower(){
-            readings=new ArrayList<SingleEntry>();
+            readings=new ArrayList<>();
         }
         public SingleTower(String name){
-            readings=new ArrayList<SingleEntry>();
+            readings=new ArrayList<>();
             id=name;
         }
         

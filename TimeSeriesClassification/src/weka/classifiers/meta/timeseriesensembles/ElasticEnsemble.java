@@ -1,5 +1,6 @@
 package weka.classifiers.meta.timeseriesensembles;
 
+import fileIO.OutFile;
 import java.io.File;
 import java.io.FileReader;
 import java.util.ArrayList;
@@ -29,6 +30,7 @@ import weka.classifiers.Classifier;
 import weka.core.EuclideanDistance;
 
 public class ElasticEnsemble implements Classifier{
+    double[] predictions;
 
     // note distributionForInstance and getCapabilities added to appease the new Classifier interface, NO IMPLEMENTATION
     @Override
@@ -222,9 +224,12 @@ public class ElasticEnsemble implements Classifier{
     
     private boolean parallel;
 
+    public double[] getCVAccs(){ return cvAccs;}
     public ElasticEnsemble(){
-        this.ensembleType = null;
+        setEnsembleType(ElasticEnsemble.EnsembleType.Prop);
         this.classifiersToUse = new TreeSet<ClassifierVariants>();
+        classifiersToUse.addAll(Arrays.asList(ClassifierVariants.values()));
+
         this.finalClassifiers = null;
         this.fileWriting = false;
         this.outpurDirLocation = null;
@@ -683,12 +688,9 @@ public class ElasticEnsemble implements Classifier{
 
         int numProcessors = Runtime.getRuntime().availableProcessors();
         int numThreads = (numProcessors > this.finalClassifiers.length) ? this.finalClassifiers.length:numProcessors;
-        
         ExecutorService service = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
         ArrayList<Future<IndividualClassificationOutput>> futures = new ArrayList<Future<IndividualClassificationOutput>>();
-        
-        double[] predictions = new double[this.finalClassifiers.length];
-
+        predictions = new double[this.finalClassifiers.length];
         ClassifierVariants classifier;
         for(int i = 0; i < predictions.length; i++){
             classifier = this.finalClassifiers[i];
@@ -713,14 +715,15 @@ public class ElasticEnsemble implements Classifier{
             case Equal:
                 return this.classifyInstances_equal(predictions);
             case Prop:
+ 
                 return this.classifyInstances_prop(predictions);
             case Signif:
                 return this.classifyInstances_prop(predictions);
             default:
                 throw new Exception("Error: Unexpected ensemble type");
-        }
+        }        
     }
-
+    public double[] getPredictions(){ return predictions;}
 
     private double classifyInstances_best(double[] predictions){
 
@@ -904,8 +907,8 @@ public class ElasticEnsemble implements Classifier{
         System.out.println("TRAIN/TEST CLASSIFICATION");
         System.out.println("-----------------------------------------");
         
-        // To save time and create a fair comparison, we build once and then classify seperately for each ensemble strategy. This is valid, as ensemble type is 
-        // completely independent from the CV in the training stage of the classifier, so would be the same if we carried it our seperately for each ensemble 
+        // To save time and create a fair comparison, we build once and then classify separately for each ensemble strategy. This is valid, as ensemble type is 
+        // completely independent from the CV in the training stage of the classifier, so would be the same if we carried it our separately for each ensemble 
         EnsembleType[] types = {EnsembleType.Best, EnsembleType.Equal, EnsembleType.Prop, EnsembleType.Signif};
         for(int t = 0; t < types.length; t++){
             elastic.setEnsembleType(types[t]);
@@ -1078,7 +1081,52 @@ public class ElasticEnsemble implements Classifier{
         }
     }
     
+     public static void debugEE(Instances train, Instances test, OutFile of) throws Exception{
+ //Build all the classifiers       
+//Elastic ensemble
+
+        
+        ElasticEnsemble ee= new ElasticEnsemble();
+        ee.turnAllClassifiersOn();
+        ee.setEnsembleType(ElasticEnsemble.EnsembleType.Prop);
+        ee.buildClassifier(train);
+        System.out.println("BUILT EE");
+        
+//We need the training CV for all the ensembles. 
+        double[] elasticCVAccs=ee.getCVAccs();
+        if(elasticCVAccs==null)
+            System.out.println("CV ACCS IS NULL");
+        System.out.println("Train CV ACC ("+elasticCVAccs.length+")");   
+        of.writeLine("Train CV ACC ("+elasticCVAccs.length+")");
+        of.writeString(",");
+        
+        for(double d:elasticCVAccs){
+            of.writeString((d/100.0)+",");
+            System.out.print((d/100.0)+",");
+        }
+        of.writeString("\n");
+        System.out.print("\n");
+        for(int i=0;i<test.numInstances();i++){
+//Get predictions for all
+            ee.classifyInstance(test.instance(i));
+            System.out.println("CLASSIFIED EE instance "+i);
+
+            double[] eePreds=ee.getPredictions();
+            for(double d:eePreds)
+                of.writeString(d+",");
+// Write all preds to file
+            of.writeString("\n");
+            if(i%10==0)
+                System.out.println("Finished case "+(i+1)+" of "+test.numInstances());
+            
+            
+            
+        }
+        
+        
+    }
     
+   
     
     
 }

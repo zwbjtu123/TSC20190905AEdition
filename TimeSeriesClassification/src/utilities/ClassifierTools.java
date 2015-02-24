@@ -28,6 +28,7 @@ import weka.filters.unsupervised.attribute.ReplaceMissingValues;
 
 
 import fileIO.OutFile;
+import weka.classifiers.lazy.kNN;
 
 /**
  * @author ajb
@@ -44,20 +45,20 @@ public class ClassifierTools {
  */
 	public static Instances loadData(String fullPath)
 	{
-            Instances d=null;
-            FileReader r;
-            int nosAtts;
-            try{		
-                    r= new FileReader(fullPath+".arff"); 
-                    d = new Instances(r); 
-                    d.setClassIndex(d.numAttributes()-1);
-            }
-            catch(Exception e)
-            {
-                    System.out.println("Unable to load data on path "+fullPath+" Exception thrown ="+e);
-                    System.exit(0);
-            }
-            return d;
+		Instances d=null;
+		FileReader r;
+		int nosAtts;
+		try{		
+			r= new FileReader(fullPath+".arff"); 
+			d = new Instances(r); 
+			d.setClassIndex(d.numAttributes()-1);
+		}
+		catch(Exception e)
+		{
+			System.out.println("Unable to load data on path "+fullPath+" Exception thrown ="+e);
+			System.exit(0);
+		}
+		return d;
 	}
 
 /**
@@ -89,6 +90,43 @@ public class ClassifierTools {
 		return a/size;
 	}	
 	
+	public static Classifier[] setDefaultSingleClassifiers(ArrayList<String> names){
+		ArrayList<Classifier> sc2=new ArrayList<>();
+		sc2.add(new kNN(1));
+		names.add("NN");
+		Classifier c;
+		sc2.add(new NaiveBayes());
+		names.add("NB");
+		sc2.add(new J48());
+		names.add("C45");
+		c=new SMO();
+		PolyKernel kernel = new PolyKernel();
+		kernel.setExponent(1);
+		((SMO)c).setKernel(kernel);
+		sc2.add(c);
+		names.add("SVML");
+		c=new SMO();
+		kernel = new PolyKernel();
+		kernel.setExponent(2);
+		((SMO)c).setKernel(kernel);
+		sc2.add(c);
+		names.add("SVMQ");
+		c=new RandomForest();
+		((RandomForest)c).setNumTrees(100);
+		sc2.add(c);
+		names.add("RandF100");
+		c=new RotationForest();
+		sc2.add(c);
+		names.add("RotF30");
+	
+		Classifier[] sc=new Classifier[sc2.size()];
+		for(int i=0;i<sc.length;i++)
+			sc[i]=sc2.get(i);
+
+		return sc;
+	}
+         
+        
 /**
  * This method returns the data in the same order it was given, and returns probability distributions for each test data
  * Assume data is randomised already
@@ -123,8 +161,8 @@ public class ClassifierTools {
 		{
 			EvaluationUtils evalU;
 			double[][] preds=new double[2][allData.numInstances()];
-			FastVector f;
 			Object[] p;
+			FastVector f;
 			NominalPrediction nom;
 			try{
 				evalU=new EvaluationUtils();
@@ -137,8 +175,7 @@ public class ClassifierTools {
 					preds[1][i]=nom.predicted();
 					preds[0][i]=nom.actual();
 				}
-			}catch(Exception e)
-			{
+			}catch(Exception e){
 				System.out.println(" Error ="+e+" in method Cross Validate Experiment");
 				e.printStackTrace();
 				System.out.println(allData.relationName());
@@ -352,20 +389,15 @@ public class ClassifierTools {
 	{
 		//Perform a simple experiment,
 		double acc=0;
-		double act;
 		try{
 			c.buildClassifier(train);
-			Evaluation eval=new Evaluation(test);
-			double[] d=eval.evaluateModel(c,test);
-			for(int i=0;i<d.length;i++)
-			{
-				act=test.instance(i).classValue();
-//				System.out.println(" Actual = "+act+" predicted = "+d[i]);
-				if(act==d[i])
-					acc++;
-			}
-			acc/=d.length;
-//			System.out.println("ACCURACY = "+acc);
+                        int correct=0;
+                        for(Instance ins:test){
+                            int pred=(int)c.classifyInstance(ins);
+                            if(pred==ins.classValue())
+                                correct++;
+                        }
+			acc=correct/(double)test.numInstances();
 			
 		}catch(Exception e)
 		{

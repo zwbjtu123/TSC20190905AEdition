@@ -301,6 +301,42 @@ public class ACF extends SimpleBatchFilter {
                     return i;
             return sigThreshold.length-1;
         }
+   public static Instances formChangeCombo(Instances d){
+            try{
+                int maxLag=(d.numAttributes()-1)/4;
+                if(maxLag>100)
+                    maxLag=100;
+                //1. ACF
+                ACF acf=new ACF();
+                acf.setMaxLag(maxLag);
+                acf.setNormalized(false);
+                Instances acfData=acf.process(d);
+          //2. ARMA 
+                ARMA arma=new ARMA();                        
+                arma.setMaxLag(maxLag);
+                arma.setUseAIC(false);
+                Instances arData=arma.process(d);
+          //3. PACF Full
+                PACF pacf=new PACF();
+                pacf.setMaxLag(maxLag);
+                Instances pacfData=pacf.process(d);
+                Instances combo=new Instances(acfData);
+                combo.setClassIndex(-1);
+                combo.deleteAttributeAt(combo.numAttributes()-1); 
+                combo=Instances.mergeInstances(combo, pacfData);
+                combo.deleteAttributeAt(combo.numAttributes()-1); 
+                combo=Instances.mergeInstances(combo, arData);
+                combo.setClassIndex(combo.numAttributes()-1);
+                return combo;
+
+           }catch(Exception e){
+			System.out.println(" Exception in Combo="+e);
+			e.printStackTrace();
+                        System.exit(0);
+           }
+           return null;
+    }
+    
  
         /*
     public static void testTransform(){

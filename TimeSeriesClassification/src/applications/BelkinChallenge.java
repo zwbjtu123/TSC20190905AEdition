@@ -347,7 +347,7 @@ public class BelkinChallenge {
     
     public static void classificationTest(String channel) throws Exception{
         //On detection
-        ArrayList<String> names=new ArrayList<String>();
+        ArrayList<String> names=new ArrayList<>();
         Classifier[] c= TimeSeriesClassification.setSimpleClassifiers(names);
 //On Classification
         String path="C:\\Users\\ajb\\Dropbox\\Belkin Competition\\RealPower\\";

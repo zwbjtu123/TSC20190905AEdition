@@ -36,7 +36,7 @@ public class Otoliths {
         data=ClassifierTools.loadData(dataPath);
     }
         public static void CSSClassifier(int folds){
-        ArrayList<String> names=new ArrayList<String>();
+        ArrayList<String> names=new ArrayList<>();
         Instances all=ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\TSC Problems\\Otoliths\\CSSHerringA");
         all.randomize(new Random());
         NormalizeCase nc=new NormalizeCase();

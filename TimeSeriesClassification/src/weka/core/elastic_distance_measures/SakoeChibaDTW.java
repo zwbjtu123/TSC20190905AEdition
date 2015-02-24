@@ -26,17 +26,6 @@ public class SakoeChibaDTW extends BasicDTW {
         setup(bandPercent);
     }
 
-    /**
-     * Creates new Sakoe Chiba Distance metric
-     * 
-     * @param bandPercent warping window width
-     * @param earlyAbandon set early abandon
-     * @throws IllegalArgumentException bandSize must be > 0
-     */
-    public SakoeChibaDTW(int bandPercent, boolean earlyAbandon) throws IllegalArgumentException {
-        super(earlyAbandon);
-        setup(bandPercent);
-    }
 
     /**
      * sets up the distance metric

@@ -24,17 +24,6 @@ public class PiecewiseDTW extends BasicDTW {
         setup(frameSize);
     }
     
-    /**
-     * Creates new Piecewise DTW distance metric
-     * 
-     * @param frameSize size of frame to split the data
-     * @param earlyAbandon set early abandon
-     * @throws IllegalArgumentException frameSize must be a factor of number of attributes in data
-     */
-    public PiecewiseDTW(int frameSize, boolean earlyAbandon) throws IllegalArgumentException{
-        super(earlyAbandon);
-        setup(frameSize);
-    }
     
     /**
      * Setup distance metric
