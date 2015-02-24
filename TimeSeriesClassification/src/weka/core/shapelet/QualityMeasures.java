@@ -1,8 +1,9 @@
 package weka.core.shapelet;
 
 import java.util.ArrayList;
-import java.util.TreeMap;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.TreeMap;
 import weka.filters.timeseries.shapelet_transforms.FullShapeletTransform;
 
 
@@ -93,11 +94,11 @@ public class QualityMeasures {
             double thisClassVal;
             int oldCount;
 
-            for(int i = 0; i < orderline.size()-1; i++){
-                thisDist = orderline.get(i).getDistance();
+            for(OrderLineObj ol : orderline){
+                thisDist = ol.getDistance();
 
                 //move the threshold along one (effectively by adding this dist to lessClasses
-                thisClassVal = orderline.get(i).getClassVal();
+                thisClassVal = ol.getClassVal();
                 oldCount = lessClasses.get(thisClassVal)+1;
                 lessClasses.put(thisClassVal,oldCount);
                 oldCount = greaterClasses.get(thisClassVal)-1;
@@ -138,29 +139,41 @@ public class QualityMeasures {
             double thisPart;
             double toAdd;
             int total = 0;
-            for(Double d : classDistributions.keySet()){
-                total += classDistributions.get(d);
+            //Aaron: should be simpler than iterating using the keySet.
+            //Values is backed by the Map so it doesn't need to be constructed.
+            Collection<Integer> values = classDistributions.values();
+            for(Integer d : values){
+                total += d;
             }
+            
             // to avoid NaN calculations, the individual parts of the entropy are calculated and summed.
             // i.e. if there is 0 of a class, then that part would calculate as NaN, but this can be caught and
-            // set to 0.
-            ArrayList<Double> entropyParts = new ArrayList<Double>();
-            for(Double d : classDistributions.keySet()){
-                thisPart =(double) classDistributions.get(d) / total;
+            // set to 0. 
+            //Aaron:  Instead of using the keyset to loop through, use the underlying Array to iteratre through, ordering of calculations doesnt matter.
+            //just that we do them all. so i think previously it was n log n, now should be just n.
+            double entropy =0;
+            for(Integer d : values){
+                thisPart = (double) d / total;
                 toAdd = -thisPart * Math.log10(thisPart) / Math.log10(2);
-                if(Double.isNaN(toAdd))
-                    toAdd=0;
-                entropyParts.add(toAdd);
+                //Aaron: if its not NaN we can add it, if it was NaN we'd just add 0.
+                if(!Double.isNaN(toAdd))
+                    entropy += toAdd;
             }
-
-            double entropy = 0;
-            for(int i = 0; i < entropyParts.size(); i++){
-                entropy += entropyParts.get(i);
-            }
+            
             return entropy;
         }
 
 
+    }
+    
+    
+    
+    /**
+     * A class for calculating the binary information gain of a shapelet , according to the set of distances from the shapelet to a dataset.
+     */
+    public static class BinaryInformationGain extends InformationGain
+    {
+        
     }
 
     /**

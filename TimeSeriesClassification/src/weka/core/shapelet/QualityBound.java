@@ -120,12 +120,7 @@ public class QualityBound{
             }
  
             //The precondition is met, so quality bound can be computed
-            double gainBound = calculateBestQuality();
-            if(gainBound > bsfQuality){
-                return false;
-            }
-            
-            return true;
+            return calculateBestQuality() <= bsfQuality;
         }                
     }
     
