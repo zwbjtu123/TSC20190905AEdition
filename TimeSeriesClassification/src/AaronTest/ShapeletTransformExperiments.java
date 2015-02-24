@@ -71,20 +71,18 @@ public class ShapeletTransformExperiments
         //get the save location from the static utility class for my local save.
         String outLogFileName = LocalInfo.getSaveLocation(dataName.getName(), shapeletClass, qm);
 
-        try
-        {
+        try{
             //create our classifier. 
             s = (FullShapeletTransform) shapeletClass.newInstance();
             //init
             initializeShapelet(s, train, qm);
-            testAndTrain[0] = s.process(train);
-            LocalInfo.saveDataset(testAndTrain[0], outLogFileName + "_TRAIN");
-            
-            testAndTrain[1] = s.process(test);
-            LocalInfo.saveDataset(testAndTrain[1], outLogFileName + "_TEST");
+                testAndTrain[0] = s.process(train);
+                LocalInfo.saveDataset(testAndTrain[0], outLogFileName + "_TRAIN");
+
+                testAndTrain[1] = s.process(test);
+                LocalInfo.saveDataset(testAndTrain[1], outLogFileName + "_TEST");
         }
-        catch(InstantiationException | IllegalAccessException | IllegalArgumentException e)
-        {
+        catch(Exception e)        {
             System.out.println("error: " + e);
         }
         
