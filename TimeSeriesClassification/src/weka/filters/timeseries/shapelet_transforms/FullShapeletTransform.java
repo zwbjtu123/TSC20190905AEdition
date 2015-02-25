@@ -842,6 +842,7 @@ public class FullShapeletTransform extends SimpleBatchFilter
         // distance from candidate to all data, inserting in order.
         ArrayList<OrderLineObj> orderline = new ArrayList<>();
 
+
         int dataSize = data.numInstances();
 
         for (int i = 0; i < dataSize; i++)

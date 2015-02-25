@@ -5,6 +5,7 @@
  */
 package AaronTest;
 
+import development.DataSets;
 import development.TimeSeriesClassification;
 import java.io.File;
 import java.util.HashMap;
@@ -33,8 +34,8 @@ public class ShapeletTransformExperiments
     //creates the shapelet transoform datasets.
     static Class[] classList =
     {
-        FullShapeletTransform.class//BinarisedShapeletTransform.class//ShapeletTransformDistCaching2.class, ShapeletTransformDistCaching.class
-    };
+        /*FullShapeletTransform.class,*/ BinarisedShapeletTransform.class/* ,ShapeletTransformDistCaching2.class, ShapeletTransformDistCaching.class
+    */};
 
     static QualityMeasures.ShapeletQualityChoice[] qualityMeasures =
     { 
@@ -206,9 +207,9 @@ public class ShapeletTransformExperiments
                 
         String folder = "75 Data sets for Elastic Ensemble DAMI Paper";
         
-        for (String dataSet : LocalInfo.ucrTiny)
+        //for (String dataSet : DataSets.ucrSmall)
         {
-            File f = new File(folder+File.separator+dataSet);
+            File f = new File(folder+File.separator+"Trace");
             testDataSet(f, true);
         }
 

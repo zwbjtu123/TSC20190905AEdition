@@ -10,7 +10,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Set;
 import java.util.TreeMap;
 import weka.core.Instances;
 import weka.core.shapelet.OrderLineObj;
@@ -18,10 +17,6 @@ import weka.core.shapelet.QualityBound;
 import weka.core.shapelet.Shapelet;
 import static weka.filters.timeseries.shapelet_transforms.FullShapeletTransform.getClassDistributions;
 import static weka.filters.timeseries.shapelet_transforms.FullShapeletTransform.removeSelfSimilar;
-import static weka.filters.timeseries.shapelet_transforms.FullShapeletTransform.subsequenceDistance;
-import static weka.filters.timeseries.shapelet_transforms.FullShapeletTransform.subsequenceDistance;
-import static weka.filters.timeseries.shapelet_transforms.FullShapeletTransform.subsequenceDistance;
-import static weka.filters.timeseries.shapelet_transforms.FullShapeletTransform.subsequenceDistance;
 import static weka.filters.timeseries.shapelet_transforms.FullShapeletTransform.subsequenceDistance;
 
 /**
@@ -31,11 +26,16 @@ import static weka.filters.timeseries.shapelet_transforms.FullShapeletTransform.
 public class BinarisedShapeletTransform extends FullShapeletTransform
 {
 
+    Map<Double, Map<Double, Integer>> binaryClassDistribution;
+    
+    
+    
     //default.
     public BinarisedShapeletTransform()
     {
         super();
     }
+
 
     /**
      * protected method for extracting k shapelets.
@@ -51,6 +51,8 @@ public class BinarisedShapeletTransform extends FullShapeletTransform
         ArrayList<Shapelet> kShapelets;
         ArrayList<Shapelet> seriesShapelets;                                    // temp store of all shapelets for each time series
         classDistributions = getClassDistributions(data);                       // used to calc info gain
+        binaryClassDistribution = buildBinaryDistributions(classDistributions); //used for binary info gain.
+        System.out.println("binaryClassDistribution:" + binaryClassDistribution);
 
         //construct a map for our K-shapelets lists, on for each classVal.
         Map<Double, ArrayList<Shapelet>> kShapeletsMap = new TreeMap();
@@ -130,8 +132,11 @@ public class BinarisedShapeletTransform extends FullShapeletTransform
         // create orderline by looping through data set and calculating the subsequence
         // distance from candidate to all data, inserting in order.
         ArrayList<OrderLineObj> orderline = new ArrayList<>();
-
+        
+        //we want to build a differentClassDistributions one which represents a binary split of the data, and a binary orderline.
+        double shapeletClassVal = data.get(seriesId).classValue();
         int dataSize = data.numInstances();
+        
 
         //TODO: 
         //the way we calculate our orderline needs to be different. 
@@ -151,8 +156,8 @@ public class BinarisedShapeletTransform extends FullShapeletTransform
                 distance = subsequenceDistance(candidate, getToDoubleArrayOfInstance(data, i));
             }
 
-            //TODO: change this line to binarise instead of copying the value.
-            double classVal = data.instance(i).classValue();
+            //binarise instead of copying the value.
+            double classVal = binariseClassVal(data.instance(i).classValue(), shapeletClassVal);
 
             // without early abandon, it is faster to just add and sort at the end. 
             orderline.add(new OrderLineObj(distance, classVal));
@@ -169,8 +174,54 @@ public class BinarisedShapeletTransform extends FullShapeletTransform
         // this method in the future for speed up, but distance early abandon is more important
         // create a shapelet object to store all necessary info, i.e.
         Shapelet shapelet = new Shapelet(candidate, dataSourceIDs[seriesId], startPos, this.qualityMeasure);
-        shapelet.calculateQuality(orderline, classDistributions);
+        shapelet.calculateQuality(orderline, getBinaryDistribution(shapeletClassVal));
         return shapelet;
+    }
+    
+    private static double binariseClassVal(double classVal, double shapeletClassVal)
+    {
+        return classVal == shapeletClassVal ? 0.0 : 1.0;
+    }
+    
+    private static Map<Double, Integer> binariseDistributions(Map<Double, Integer> classDistributions, double shapeletClassVal)
+    {
+        Map<Double, Integer> binaryDistribution = new TreeMap<>();
+
+        Integer shapeletClassCount = classDistributions.get(shapeletClassVal);
+        binaryDistribution.put(0.0, shapeletClassCount);
+        
+        int sum = 0;
+        for(Integer count : classDistributions.values())
+        {
+            sum += count;
+        }
+        
+        //remove the shapeletsClass count. Rest should be all the other classes.
+        sum -= shapeletClassCount; 
+        binaryDistribution.put(1.0, sum);
+        
+        System.out.println("shapelet val " + shapeletClassVal);
+        System.out.println("binary " + binaryDistribution);
+        System.out.println("normal distribution " + classDistributions);
+        
+        return binaryDistribution;
+    }
+    
+    public static Map<Double, Map<Double, Integer>> buildBinaryDistributions(Map<Double, Integer> classDistributions)
+    {
+        Map<Double, Map<Double, Integer>> binaryMapping = new TreeMap<>();
+        
+        //for each classVal build a binary distribution map.
+        for(Double cVal : classDistributions.keySet())
+        {
+            binaryMapping.put(cVal, binariseDistributions(classDistributions, cVal));
+        }
+        return binaryMapping;
+    }
+    
+    public Map<Double, Integer> getBinaryDistribution(double classVal)
+    {
+        return this.binaryClassDistribution.get(classVal);
     }
 
 }
