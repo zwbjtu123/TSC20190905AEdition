@@ -196,7 +196,7 @@ public class ShapeletTransformDistCaching2 extends FullShapeletTransform
             
             stats.computeStats(i, data);
             
-            seriesShapelets = findShapeletCandidates(dataInst, i, data[i], kShapelets);
+            seriesShapelets = findShapeletCandidates(dataInst, i, data[i], kShapelets.get(kShapelets.size()-1));
             
             Comparator comp = useSeparationGap ? new Shapelet.ReverseSeparationGap(): new Shapelet.ReverseOrder();
             Collections.sort(seriesShapelets,comp);

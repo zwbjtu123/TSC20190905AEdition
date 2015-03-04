@@ -83,7 +83,8 @@ public class ShapeletTransformExperiments
                 testAndTrain[1] = s.process(test);
                 LocalInfo.saveDataset(testAndTrain[1], outLogFileName + "_TEST");
         }
-        catch(Exception e)        {
+        catch(IllegalAccessException | IllegalArgumentException | InstantiationException e)        
+        {
             System.out.println("error: " + e);
         }
         
@@ -207,9 +208,9 @@ public class ShapeletTransformExperiments
                 
         String folder = "75 Data sets for Elastic Ensemble DAMI Paper";
         
-        //for (String dataSet : DataSets.ucrSmall)
+        for (String dataSet : DataSets.ucrSmall)
         {
-            File f = new File(folder+File.separator+"Trace");
+            File f = new File(folder+File.separator+"SonyAIBORobotSurface");
             testDataSet(f, true);
         }
 

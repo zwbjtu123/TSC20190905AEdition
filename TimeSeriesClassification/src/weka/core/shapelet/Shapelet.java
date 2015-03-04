@@ -31,6 +31,7 @@ public class Shapelet implements Comparable<Shapelet>
     public double qualityValue;
     public boolean hasContent = true;
     boolean useSeparationGap = false;
+    public double classValue;
 
     public void setUseSeparationGap(boolean b)
     {

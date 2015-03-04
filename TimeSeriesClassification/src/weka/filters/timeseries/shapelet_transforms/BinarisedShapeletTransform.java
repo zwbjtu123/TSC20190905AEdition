@@ -28,14 +28,11 @@ public class BinarisedShapeletTransform extends FullShapeletTransform
 
     Map<Double, Map<Double, Integer>> binaryClassDistribution;
     
-    
-    
     //default.
     public BinarisedShapeletTransform()
     {
         super();
     }
-
 
     /**
      * protected method for extracting k shapelets.
@@ -52,14 +49,16 @@ public class BinarisedShapeletTransform extends FullShapeletTransform
         ArrayList<Shapelet> seriesShapelets;                                    // temp store of all shapelets for each time series
         classDistributions = getClassDistributions(data);                       // used to calc info gain
         binaryClassDistribution = buildBinaryDistributions(classDistributions); //used for binary info gain.
-        System.out.println("binaryClassDistribution:" + binaryClassDistribution);
-
+        
         //construct a map for our K-shapelets lists, on for each classVal.
         Map<Double, ArrayList<Shapelet>> kShapeletsMap = new TreeMap();
         for (Double classVal : classDistributions.keySet())
         {
             kShapeletsMap.put(classVal, new ArrayList<Shapelet>());
         }
+        
+        //found out how many we want in each sub list.
+        int proportion = numShapelets/kShapeletsMap.keySet().size();
 
         //for all time series
         outputPrint("Processing data: ");
@@ -74,15 +73,19 @@ public class BinarisedShapeletTransform extends FullShapeletTransform
             kShapelets = kShapeletsMap.get(data.get(i).classValue());
 
             double[] wholeCandidate = getToDoubleArrayOfInstance(data, i);
-
-            seriesShapelets = findShapeletCandidates(data, i, wholeCandidate, kShapelets);
+            
+            //we only want to pass in the worstKShapelet if we've found K shapelets. but we only care about this class values worst one.
+            //this is due to the way we represent each classes shapelets in the map.
+            Shapelet kWorst = kShapelets.size() == proportion ? kShapelets.get(kShapelets.size()-1) : null;
+            
+            seriesShapelets = findShapeletCandidates(data, i, wholeCandidate, kWorst);
 
             Comparator comp = useSeparationGap ? new Shapelet.ReverseSeparationGap() : new Shapelet.ReverseOrder();
             Collections.sort(seriesShapelets, comp);
 
             seriesShapelets = removeSelfSimilar(seriesShapelets);
 
-            kShapelets = combine(numShapelets, kShapelets, seriesShapelets);
+            kShapelets = combine(proportion, kShapelets, seriesShapelets);
             
             //re-update the list because it's changed now. 
             kShapeletsMap.put(data.get(i).classValue(), kShapelets);
@@ -97,6 +100,7 @@ public class BinarisedShapeletTransform extends FullShapeletTransform
 
         return kShapelets;
     }
+       
     
     private ArrayList<Shapelet> buildKShapeletsFromMap(Map<Double, ArrayList<Shapelet>> kShapeletsMap)
     {
@@ -175,6 +179,7 @@ public class BinarisedShapeletTransform extends FullShapeletTransform
         // create a shapelet object to store all necessary info, i.e.
         Shapelet shapelet = new Shapelet(candidate, dataSourceIDs[seriesId], startPos, this.qualityMeasure);
         shapelet.calculateQuality(orderline, getBinaryDistribution(shapeletClassVal));
+        shapelet.classValue = shapeletClassVal; //set classValue of shapelet. (interesing to know).
         return shapelet;
     }
     
@@ -199,11 +204,6 @@ public class BinarisedShapeletTransform extends FullShapeletTransform
         //remove the shapeletsClass count. Rest should be all the other classes.
         sum -= shapeletClassCount; 
         binaryDistribution.put(1.0, sum);
-        
-        System.out.println("shapelet val " + shapeletClassVal);
-        System.out.println("binary " + binaryDistribution);
-        System.out.println("normal distribution " + classDistributions);
-        
         return binaryDistribution;
     }
     

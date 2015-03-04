@@ -520,7 +520,10 @@ public class FullShapeletTransform extends SimpleBatchFilter
 
             double[] wholeCandidate = getToDoubleArrayOfInstance(data, i);
 
-            seriesShapelets = findShapeletCandidates(data, i, wholeCandidate, kShapelets);
+            //changed to pass in the worst of the K-Shapelets.
+            Shapelet worstKShapelet = kShapelets.size() == numShapelets ? kShapelets.get(numShapelets - 1) : null;
+            
+            seriesShapelets = findShapeletCandidates(data, i, wholeCandidate, worstKShapelet);
 
             Comparator comp = useSeparationGap ? new Shapelet.ReverseSeparationGap() : new Shapelet.ReverseOrder();
             Collections.sort(seriesShapelets, comp);
@@ -556,7 +559,7 @@ public class FullShapeletTransform extends SimpleBatchFilter
         return findBestKShapeletsCache(data);
     }
 
-    protected ArrayList<Shapelet> findShapeletCandidates(Instances data, int i, double[] wholeCandidate, ArrayList<Shapelet> kShapelets)
+    protected ArrayList<Shapelet> findShapeletCandidates(Instances data, int i, double[] wholeCandidate, Shapelet worstKShapelet)
     {
         //get our time series as a double array.
         ArrayList<Shapelet> seriesShapelets = new ArrayList<>();
@@ -580,9 +583,9 @@ public class FullShapeletTransform extends SimpleBatchFilter
                 QualityBound.ShapeletQualityBound qualityBound = initializeQualityBound(classDistributions);
 
                 //Set bound of the bounding algorithm
-                if (qualityBound != null && kShapelets.size() == numShapelets)
+                if (qualityBound != null && worstKShapelet != null)
                 {
-                    qualityBound.setBsfQuality(kShapelets.get(numShapelets - 1).qualityValue);
+                    qualityBound.setBsfQuality(worstKShapelet.qualityValue);
                 }
 
                 //compare the shapelet candidate to the other time series.
@@ -658,13 +661,13 @@ public class FullShapeletTransform extends SimpleBatchFilter
         System.out.println();
         System.out.println("Output Shapelets:");
         System.out.println("-------------------");
-        System.out.println("informationGain,seriesId,startPos");
+        System.out.println("informationGain,seriesId,startPos,classVal");
         System.out.println("<shapelet>");
         System.out.println("-------------------");
         System.out.println();
         for (Shapelet kShapelet : kShapelets)
         {
-            System.out.println(kShapelet.qualityValue + "," + kShapelet.seriesId + "," + kShapelet.startPos);
+            System.out.println(kShapelet.qualityValue + "," + kShapelet.seriesId + "," + kShapelet.startPos + "," + kShapelet.classValue);
             double[] shapeletContent = kShapelet.content;
             for (int j = 0; j < shapeletContent.length; j++)
             {
@@ -691,8 +694,6 @@ public class FullShapeletTransform extends SimpleBatchFilter
     //NOTE: could be more efficient here
     protected ArrayList<Shapelet> combine(int k, ArrayList<Shapelet> kBestSoFar, ArrayList<Shapelet> timeSeriesShapelets)
     {
-
-        ArrayList<Shapelet> newBestSoFar = new ArrayList<>();
         kBestSoFar.addAll(timeSeriesShapelets);
 
         Comparator comp = useSeparationGap ? new Shapelet.ReverseSeparationGap() : new Shapelet.ReverseOrder();
@@ -703,6 +704,7 @@ public class FullShapeletTransform extends SimpleBatchFilter
             return kBestSoFar;
         }
 
+        ArrayList<Shapelet> newBestSoFar = new ArrayList<>();
         for (int i = 0; i < k; i++)
         {
             newBestSoFar.add(kBestSoFar.get(i));
@@ -878,7 +880,8 @@ public class FullShapeletTransform extends SimpleBatchFilter
 
         // create a shapelet object to store all necessary info, i.e.
         Shapelet shapelet = new Shapelet(candidate, dataSourceIDs[seriesId], startPos, this.qualityMeasure);
-        shapelet.calculateQuality(orderline, classDistributions);
+        shapelet.calculateQuality(orderline, classDistributions); 
+        shapelet.classValue =  data.instance(seriesId).classValue(); //set classValue of shapelet. (interesing to know).
         return shapelet;
     }
 
