@@ -28,6 +28,7 @@ import weka.filters.unsupervised.attribute.ReplaceMissingValues;
 
 
 import fileIO.OutFile;
+import java.io.IOException;
 import weka.classifiers.lazy.kNN;
 
 /**
@@ -53,7 +54,7 @@ public class ClassifierTools {
 			d = new Instances(r); 
 			d.setClassIndex(d.numAttributes()-1);
 		}
-		catch(Exception e)
+		catch(IOException e)
 		{
 			System.out.println("Unable to load data on path "+fullPath+" Exception thrown ="+e);
 			System.exit(0);

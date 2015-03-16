@@ -23,7 +23,7 @@ import static weka.filters.timeseries.shapelet_transforms.FullShapeletTransform.
  *
  * @author raj09hxu
  */
-public class BinarisedShapeletTransform extends FullShapeletTransform
+public class BinarisedShapeletTransform extends ShapeletTransform
 {
 
     Map<Double, Map<Double, Integer>> binaryClassDistribution;
@@ -141,10 +141,9 @@ public class BinarisedShapeletTransform extends FullShapeletTransform
         double shapeletClassVal = data.get(seriesId).classValue();
         int dataSize = data.numInstances();
         
-
-        //TODO: 
-        //the way we calculate our orderline needs to be different. 
-        //We need to build the orderline as a representation of whether the class value is the same as ours or not. BINARY!
+        
+        double[][] sortedIndexes = sortIndexes(candidate);
+        
         for (int i = 0; i < dataSize; i++)
         {
             //Check if it is possible to prune the candidate. if it is possible, we can just return null.
@@ -157,7 +156,7 @@ public class BinarisedShapeletTransform extends FullShapeletTransform
             //don't compare the shapelet to the the time series it came from.
             if (i != seriesId)
             {
-                distance = subsequenceDistance(candidate, getToDoubleArrayOfInstance(data, i));
+                distance = onlineSubsequenceDistance(candidate, sortedIndexes, getToDoubleArrayOfInstance(data, i));
             }
 
             //binarise instead of copying the value.
