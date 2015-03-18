@@ -48,7 +48,6 @@ public class ClassifierTools {
 	{
 		Instances d=null;
 		FileReader r;
-		int nosAtts;
 		try{		
 			r= new FileReader(fullPath+".arff"); 
 			d = new Instances(r); 

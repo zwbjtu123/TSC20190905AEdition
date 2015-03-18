@@ -6,13 +6,15 @@
 package papers;
 
 import AaronTest.LocalInfo;
-import static AaronTest.ShapeletTransformExperiments.testDataSet;
 import development.DataSets;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Scanner;
 import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -31,19 +33,21 @@ import weka.filters.timeseries.shapelet_transforms.FullShapeletTransform;
  */
 public class DaWaK2015
 {
+    
+    //each dataSet has its own tuning parameters for length.
 
-    public static void initializeShapelet(FullShapeletTransform s, Instances data, QualityMeasures.ShapeletQualityChoice qm)
+    public static void initializeShapelet(FullShapeletTransform s, int numberOfShapelets, QualityMeasures.ShapeletQualityChoice qm, int min, int max)
     {
         //transform from 3 - n, where n is the max length of the series.
-        s.setNumberOfShapelets(data.numInstances() * 10); //10n
-        int minLength = 3;
-        int maxLength = data.numAttributes() - 1;
+        s.setNumberOfShapelets(numberOfShapelets); //10n
+        int minLength = min;
+        int maxLength = max;
         s.setShapeletMinAndMax(minLength, maxLength);
         s.setQualityMeasure(qm);
         s.turnOffLog();
     }
 
-    public static void extractShapelet(File dataName)
+    public static void extractShapelet(dataParams dm)
     {
         Instances test = null;
         Instances train;
@@ -52,7 +56,7 @@ public class DaWaK2015
 
         Instances[] testAndTrain = new Instances[2];
 
-        String filePath = dataName.toString() + File.separator + dataName.getName();
+        String filePath = "75 Data sets for Elastic Ensemble DAMI Paper"+File.separator+dm.fileName + File.separator + dm.fileName;
 
         System.out.println("FilePath: " + filePath);
 
@@ -63,12 +67,12 @@ public class DaWaK2015
         //create our classifier. 
         transform = new BinarisedShapeletTransform();
         //get the save location from the static utility class for my local save.
-        String outLogFileName = "results" + File.separator + dataName.getName() + File.separator + dataName.getName();
+        String outLogFileName = "results1" + File.separator + dm.fileName + File.separator + dm.fileName;
 
         try
         {
             //init
-            initializeShapelet(transform, train, qm);
+            initializeShapelet(transform, (train.numInstances()*10), qm, dm.min, dm.max);
             testAndTrain[0] = transform.process(train);
             LocalInfo.saveDataset(testAndTrain[0], outLogFileName + "_TRAIN");
 
@@ -83,32 +87,74 @@ public class DaWaK2015
 
     public static void main(String args[])
     {
-        //String dir = "C:\\LocalData\\BinarisedShapelets";
-        String dir = "results";
-        //String dir = "75 Data sets for Elastic Ensemble DAMI Paper";
-
+        int index = Integer.parseInt(args[0]) - 1;
+        buildDataSets(index);
+        //shapeletAccuracies(index);
+    }
+    
+    public static void buildDataSets(int i)
+    {
+        String dir = "75 Data sets for Elastic Ensemble DAMI Paper";
+        
         File fDir = new File(dir);
         final File[] ds = fDir.listFiles();
-
+        
+        ArrayList<dataParams> data = buildParamsArray();
+        
+        extractShapelet(data.get(i));         
+    }
+    
+    private static ArrayList<dataParams> buildParamsArray()
+    {
         try
         {
-            File f = new File("binarisedShapelets.csv");
-            PrintWriter outFile = new PrintWriter(new FileWriter(f));
-            outFile.printf("%s,%s\n", "dataSet", "accuracy");
+            File f = new File("params.csv");
+
+            Scanner sc = new Scanner(f);
+            sc.useDelimiter(",");
             
-            for (File d : ds)
+            ArrayList<dataParams> dp = new ArrayList<>();
+            
+            //skip header
+            sc.nextLine();
+            
+            while(sc.hasNextLine())
             {
-                //int index = Integer.parseInt(args[0]) - 1;
-                //final int index = i;
-
-                //extractShapelet(ds[index]);
-                double accuracy = weightedEnsembleAccuracy(d);
-
-                System.out.printf("%s,%f\n", d.getName(), accuracy);
-
-                //File f = new File(ds[index].getName()+".csv");
-                outFile.printf("%s,%f\n", d.getName(), accuracy);
+                String fields[] = sc.nextLine().split(",");
+                //System.out.println(sc.next()+ " " + sc.nextInt() + " " + sc.nextInt());
+                dp.add(new dataParams(fields[0], Integer.parseInt(fields[1]), Integer.parseInt(fields[2])));
             }
+        
+            return dp;
+        }
+        catch(FileNotFoundException ex)
+        {
+            System.out.println("Exception: " + ex);
+        }
+        return null;
+    }
+    
+    public static void shapeletAccuracies(int i)
+    {
+        String dir = "results";
+        
+        File fDir = new File(dir);
+        final File[] ds = fDir.listFiles();
+        binarisedShapeletsAccuracies(ds[i]);  
+    }
+    
+    public static void binarisedShapeletsAccuracies(File d)
+    {
+        try
+        {
+            File f = new File(d.getName()+"_accuracy.csv");
+            PrintWriter outFile = new PrintWriter(new FileWriter(f));
+
+            double accuracy = weightedEnsembleAccuracy(d);
+
+            System.out.printf("%s,%f\n", d.getName(), accuracy);
+
+            outFile.printf("%s,%f\n", d.getName(), accuracy);
 
             outFile.close();
         }
@@ -116,11 +162,36 @@ public class DaWaK2015
         {
             System.out.println("IOException " + ex);
         }
-
-        //classDistributionsInfo();
     }
 
-    //create a dataFile about representation of classes with certain values.
+
+    public static double weightedEnsembleAccuracy(File dataSets)
+    {
+        try
+        {
+            Instances train, test;
+            String filePath = dataSets.toString() + File.separator + dataSets.getName();
+
+            //get the train and test instances for each dataset.
+            test = utilities.ClassifierTools.loadData(filePath + "_TEST");
+            train = utilities.ClassifierTools.loadData(filePath + "_TRAIN");
+
+            System.out.println("loaded FilePath: " + filePath);
+            
+            //build the elastic Ensemble on our training data.
+            WeightedEnsemble we = new WeightedEnsemble();
+            we.buildClassifier(train);
+            return utilities.ClassifierTools.accuracy(test, we);
+        }
+        catch (Exception ex)
+        {
+            System.out.println("Classifier exception: " + ex);
+        }
+
+        return 0;
+    }
+    
+        //create a dataFile about representation of classes with certain values.
     public static void classDistributionsInfo()
     {
         //String dir = "75 Data sets for Elastic Ensemble DAMI Paper";
@@ -164,29 +235,19 @@ public class DaWaK2015
         }
 
     }
-
-    public static double weightedEnsembleAccuracy(File dataSets)
+    
+    public static class dataParams
     {
-        try
+        public String fileName;
+        public int min;
+        public int max;
+        
+        public dataParams(String fn, int mn, int mx) 
         {
-            Instances train, test;
-            String filePath = dataSets.toString() + File.separator + dataSets.getName();
-            System.out.println("FilePath: " + filePath);
-
-            //get the train and test instances for each dataset.
-            test = utilities.ClassifierTools.loadData(filePath + "_TEST");
-            train = utilities.ClassifierTools.loadData(filePath + "_TRAIN");
-
-            //build the elastic Ensemble on our training data.
-            WeightedEnsemble we = new WeightedEnsemble();
-            we.buildClassifier(train);
-            return utilities.ClassifierTools.accuracy(test, we);
+            fileName = fn;
+            min = mn;
+            max = mx;
         }
-        catch (Exception ex)
-        {
-            System.out.println("Classifier exception: " + ex);
-        }
-
-        return 0;
     }
+
 }
