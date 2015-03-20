@@ -34,7 +34,7 @@ public class ShapeletTransformExperiments
     //creates the shapelet transoform datasets.
     static Class[] classList =
     {
-        /*FullShapeletTransform.class,*/ BinarisedShapeletTransform.class/* ,ShapeletTransformDistCaching2.class, ShapeletTransformDistCaching.class
+       BinarisedShapeletTransform.class, ShapeletTransform.class/*FullShapeletTransform.class,/* ,ShapeletTransformDistCaching2.class, ShapeletTransformDistCaching.class
     */};
 
     static QualityMeasures.ShapeletQualityChoice[] qualityMeasures =
@@ -46,7 +46,7 @@ public class ShapeletTransformExperiments
     public static void initializeShapelet(FullShapeletTransform s, Instances data, QualityMeasures.ShapeletQualityChoice qm)
     {
         //transform from 3 - n, where n is the max length of the series.
-        s.setNumberOfShapelets(data.numAttributes() / 2);
+        s.setNumberOfShapelets(data.numInstances() * 10);
         int minLength = 3;
         int maxLength = data.numAttributes() - 1;
         s.setShapeletMinAndMax(minLength, maxLength);
@@ -77,11 +77,15 @@ public class ShapeletTransformExperiments
             s = (FullShapeletTransform) shapeletClass.newInstance();
             //init
             initializeShapelet(s, train, qm);
-                testAndTrain[0] = s.process(train);
-                LocalInfo.saveDataset(testAndTrain[0], outLogFileName + "_TRAIN");
+            testAndTrain[0] = s.process(train);
+            LocalInfo.saveDataset(testAndTrain[0], outLogFileName + "_TRAIN");
 
-                testAndTrain[1] = s.process(test);
-                LocalInfo.saveDataset(testAndTrain[1], outLogFileName + "_TEST");
+            System.out.println("opCount" + ShapeletTransform.subseqDistOpCount);
+
+            testAndTrain[1] = s.process(test);
+            LocalInfo.saveDataset(testAndTrain[1], outLogFileName + "_TEST");
+            
+            System.out.println("opCount" + ShapeletTransform.subseqDistOpCount);
         }
         catch(IllegalAccessException | IllegalArgumentException | InstantiationException e)        
         {
@@ -208,7 +212,7 @@ public class ShapeletTransformExperiments
                 
         String folder = "75 Data sets for Elastic Ensemble DAMI Paper";
         
-        for (String dataSet : DataSets.ucrSmall)
+        //for (String dataSet : DataSets.ucrSmall)
         {
             File f = new File(folder+File.separator+"SonyAIBORobotSurface");
             testDataSet(f, true);

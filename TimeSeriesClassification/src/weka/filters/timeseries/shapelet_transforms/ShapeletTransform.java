@@ -27,7 +27,7 @@ import weka.core.shapelet.Shapelet;
 public class ShapeletTransform extends FullShapeletTransform
 {
 
-    private static long subseqDistOpCount;
+    public static long subseqDistOpCount;
 
     /**
      * Default constructor; Quality measure defaults to information gain.
@@ -35,6 +35,7 @@ public class ShapeletTransform extends FullShapeletTransform
     public ShapeletTransform()
     {
         super();
+        subseqDistOpCount = 0;
     }
 
     /**
@@ -216,7 +217,6 @@ public class ShapeletTransform extends FullShapeletTransform
         double[] subseq = new double[candidate.length];
         System.arraycopy(timeSeries, 0, subseq, 0, subseq.length);
         subseq = optimizedZNormalise(subseq, false, sumPointer, sum2Pointer);
-
         //Keep count of fundamental ops for experiment
         subseqDistOpCount += subseq.length;
 
@@ -233,9 +233,9 @@ public class ShapeletTransform extends FullShapeletTransform
         for (int i = 0; i < candidate.length; i++)
         {
             temp = candidate[i] - subseq[i];
-            bestDist += temp * temp;
+            bestDist = bestDist + (temp * temp);
         }
-
+        
         //Keep count of fundamental ops for experiment
         subseqDistOpCount += candidate.length;
 
@@ -253,28 +253,35 @@ public class ShapeletTransform extends FullShapeletTransform
             double stdv2 = (sum2 - (mean * mean * candidate.length)) / candidate.length;
 
             stdv = (stdv2 < ROUNDING_ERROR_CORRECTION) ? 0.0 : Math.sqrt(stdv2);
-
+            
+            
             int j = 0;
             double currentDist = 0.0;
             double toAdd;
             int reordedIndex;
+            double normalisedVal = 0.0;
+            boolean dontStdv = stdv == 0.0;
+            
             while (j < candidate.length && currentDist < bestDist)
             {
                 reordedIndex = (int) sortedIndices[j][0];
-                toAdd = candidate[reordedIndex] - (stdv == 0.0 ? 0.0 : ((timeSeries[i + reordedIndex] - mean) / stdv));
+                //if our stdv isn't 
+                normalisedVal = dontStdv ? 0.0 : ((timeSeries[i + reordedIndex] - mean) / stdv);
+                toAdd = candidate[reordedIndex] - normalisedVal;
                 currentDist += (toAdd * toAdd);
                 j++;
 
                 //Keep count of fundamental ops for experiment
                 subseqDistOpCount++;
             }
+            
 
             if (currentDist < bestDist)
             {
                 bestDist = currentDist;
             }
         }
-
+        
         return (bestDist == 0.0) ? 0.0 : (1.0 / candidate.length * bestDist);
     }
 
@@ -326,11 +333,9 @@ public class ShapeletTransform extends FullShapeletTransform
      * @param input the input time series to be z-normalised
      * @param classValOn specify whether the time series includes a class value
      * (e.g. an full instance might, a candidate shapelet wouldn't)
-     * @param storeGlobally specify whether the sum and sum of squares should be
-     * stored globally - this is used in subsequence distance method
      * @return a z-normalised version of input
      */
-    private static double[] optimizedZNormalise(double[] input, boolean classValOn, DoubleWrapper sum, DoubleWrapper sum2)
+    protected static double[] optimizedZNormalise(double[] input, boolean classValOn, DoubleWrapper sum, DoubleWrapper sum2)
     {
         double mean;
         double stdv;
@@ -370,7 +375,7 @@ public class ShapeletTransform extends FullShapeletTransform
         return output;
     }
 
-    private static class DoubleWrapper
+    protected static class DoubleWrapper
     {
 
         private double d;
@@ -440,7 +445,7 @@ public class ShapeletTransform extends FullShapeletTransform
         System.out.println("\n 2) Testing subsequence distance: ");
         System.out.println("Original dist: " + FullShapeletTransform.subsequenceDistance(subseq, normSeries));
         double[][] sortedIndexes = sortIndexes(subseq);
-        System.out.println("Optimized dist: " + onlineSubsequenceDistance(subseq, sortedIndexes, normSeries));
+        //System.out.println("Optimized dist: " + onlineSubsequenceDistance(subseq, sortedIndexes, normSeries));
     }
     /* Method to estimate the range 
     

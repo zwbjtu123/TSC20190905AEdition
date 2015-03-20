@@ -6,6 +6,7 @@
 package weka.filters.timeseries.shapelet_transforms;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
@@ -15,6 +16,7 @@ import weka.core.Instances;
 import weka.core.shapelet.OrderLineObj;
 import weka.core.shapelet.QualityBound;
 import weka.core.shapelet.Shapelet;
+import static weka.filters.timeseries.shapelet_transforms.FullShapeletTransform.ROUNDING_ERROR_CORRECTION;
 import static weka.filters.timeseries.shapelet_transforms.FullShapeletTransform.getClassDistributions;
 import static weka.filters.timeseries.shapelet_transforms.FullShapeletTransform.removeSelfSimilar;
 import static weka.filters.timeseries.shapelet_transforms.FullShapeletTransform.subsequenceDistance;
@@ -45,11 +47,14 @@ public class BinarisedShapeletTransform extends ShapeletTransform
     public ArrayList<Shapelet> findBestKShapeletsCache(Instances data)
     {
         //TODO: update this to have a list for each class instead of a mega list.
-        ArrayList<Shapelet> kShapelets;
-        ArrayList<Shapelet> seriesShapelets;                                    // temp store of all shapelets for each time series
+        
         classDistributions = getClassDistributions(data);                       // used to calc info gain
         binaryClassDistribution = buildBinaryDistributions(classDistributions); //used for binary info gain.
         
+        return super.findBestKShapeletsCache(data);
+        
+        /*ArrayList<Shapelet> kShapelets;
+        ArrayList<Shapelet> seriesShapelets;                                    // temp store of all shapelets for each time series
         //construct a map for our K-shapelets lists, on for each classVal.
         Map<Double, ArrayList<Shapelet>> kShapeletsMap = new TreeMap();
         for (Double classVal : classDistributions.keySet())
@@ -98,7 +103,7 @@ public class BinarisedShapeletTransform extends ShapeletTransform
         recordShapelets(kShapelets);
         printShapelets(kShapelets);
 
-        return kShapelets;
+        return kShapelets;*/
     }
        
     
@@ -132,7 +137,6 @@ public class BinarisedShapeletTransform extends ShapeletTransform
     @Override
     protected Shapelet checkCandidate(double[] candidate, Instances data, int seriesId, int startPos, QualityBound.ShapeletQualityBound qualityBound)
     {
-
         // create orderline by looping through data set and calculating the subsequence
         // distance from candidate to all data, inserting in order.
         ArrayList<OrderLineObj> orderline = new ArrayList<>();
@@ -156,7 +160,7 @@ public class BinarisedShapeletTransform extends ShapeletTransform
             //don't compare the shapelet to the the time series it came from.
             if (i != seriesId)
             {
-                distance = onlineSubsequenceDistance(candidate, sortedIndexes, getToDoubleArrayOfInstance(data, i));
+                distance = onlineSubsequenceDistance(candidate, sortedIndexes, getToDoubleArrayOfInstance(data, i), startPos);
             }
 
             //binarise instead of copying the value.
@@ -221,6 +225,186 @@ public class BinarisedShapeletTransform extends ShapeletTransform
     public Map<Double, Integer> getBinaryDistribution(double classVal)
     {
         return this.binaryClassDistribution.get(classVal);
+    }
+    
+    
+     /**
+     * Calculate the distance between a shapelet candidate and a full time
+     * series (both double[]).
+     *
+     * @param candidate a double[] representation of a shapelet candidate
+     * @param sortedIndices
+     * @param timeSeries a double[] representation of a whole time series (inc.
+     * class value)
+     * @param startPos
+     * @return the distance between a candidate and a time series
+     *
+     *
+     * NOTE: it seems that the reordering is repeated for each new time series.
+     * This could be avoided, but not sure how to structure the code to do it
+     */
+    public static double onlineSubsequenceDistance(double[] candidate, double[][] sortedIndices, double[] timeSeries, int startPos)
+    {
+        DoubleWrapper sumPointer = new DoubleWrapper();
+        DoubleWrapper sum2Pointer = new DoubleWrapper();
+
+        //Generate initial subsequence that starts at the same position our candidate does.
+        double[] subseq = new double[candidate.length];
+        System.arraycopy(timeSeries, startPos, subseq, 0, subseq.length);
+        subseq = optimizedZNormalise(subseq, false, sumPointer, sum2Pointer);
+        
+        
+        //Keep count of fundamental ops for experiment
+        subseqDistOpCount += subseq.length;
+
+        //copy for left and right.
+        double sumR = sumPointer.get(),    sumL = sumPointer.get();
+        double sum2R = sum2Pointer.get(),  sum2L = sum2Pointer.get();
+        
+        double bestDist = 0.0;
+        double temp;
+        
+        //Compute initial distance. from the startPosition the candidate was found.
+        for (int i = 0; i < candidate.length; i++)
+        {
+            temp = candidate[i] - subseq[i];
+            bestDist = bestDist + (temp * temp);
+        }
+
+        //Keep count of fundamental ops for experiment
+        subseqDistOpCount += candidate.length;
+
+        double startL, endL, startR, endR;
+
+        // Scan through all possible subsequences of two
+        boolean traverseRight = true, traverseLeft = true;
+        int i=1;
+        int posL, posR;
+        double currentDist;
+        while(traverseRight || traverseLeft)
+        {
+            posL = startPos - i;
+            posR = startPos + i;
+            
+            traverseRight = posR < timeSeries.length - candidate.length;
+            traverseLeft = posL >= 0;
+
+            if(traverseRight)     
+            {     
+                startR  = timeSeries[posR-1];
+                endR    = timeSeries[posR-1 + candidate.length];
+            
+                //Update the running sums - get the begining and remove, get the end and add. going right.
+                sumR = sumR - startR + endR; 
+                sum2R = sum2R -(startR * startR) + (endR * endR);
+
+                currentDist = calculateBestDistance(posR, timeSeries, candidate, sortedIndices, bestDist, sumR, sum2R);  
+                
+                if (currentDist < bestDist)
+                    bestDist = currentDist;
+            }
+            
+            if(traverseLeft)
+            {
+                startL  = timeSeries[posL];
+                endL    = timeSeries[posL + candidate.length];
+                
+                //Update the running sums - get the begining and add, get the end and remove. going left.
+                sumL = sumL + startL - endL; 
+                sum2L = sum2L + (startL * startL) - (endL * endL);
+                
+                currentDist = calculateBestDistance(posL, timeSeries, candidate, sortedIndices, bestDist, sumL, sum2L);
+
+                if (currentDist < bestDist)
+                    bestDist = currentDist;
+            }
+            
+            i++;
+        }
+
+        return (bestDist == 0.0) ? 0.0 : (1.0 / candidate.length * bestDist);
+    }
+    
+    private static double calculateBestDistance(int i, double[] timeSeries, double[] candidate, double[][] sortedIndices, double bestDist, double sum, double sum2)
+    {
+        //Compute the stats for new series
+        double mean = sum / candidate.length;
+
+        //Get rid of rounding errors
+        double stdv2 = (sum2 - (mean * mean * candidate.length)) / candidate.length;
+
+        double stdv = (stdv2 < ROUNDING_ERROR_CORRECTION) ? 0.0 : Math.sqrt(stdv2);
+                  
+        
+        //calculate the normalised distance between the series
+        int j = 0;
+        double currentDist = 0.0;
+        double toAdd;
+        int reordedIndex;
+        double normalisedVal = 0.0;
+        boolean dontStdv = (stdv == 0.0);
+
+        while (j < candidate.length  && currentDist < bestDist)
+        {
+            reordedIndex = (int) sortedIndices[j][0];
+            //if our stdv isn't done then make it 0.
+            normalisedVal = dontStdv ? 0.0 : ((timeSeries[i + reordedIndex] - mean) / stdv);
+            toAdd = candidate[reordedIndex] - normalisedVal;
+            currentDist += (toAdd * toAdd);
+            j++;
+
+            //Keep count of fundamental ops for experiment
+            subseqDistOpCount++;
+        }
+
+        return currentDist;
+    }
+    
+    
+    public static void main(String[] args)
+    {
+
+        //################ Test 1 ################
+        System.out.println("1) Testing index sorter: ");
+        double[] series = new double[1000];
+        double[] subseq = new double[series.length / 2];
+
+        int min = -5;
+        int max = 5;
+        for (int i = 0; i < series.length; i++)
+        {
+            series[i] = min + (int) (Math.random() * ((max - min) + 1));
+            if (i < series.length / 2)
+            {
+                subseq[i] = min + (int) (Math.random() * ((max - min) + 1));
+            }
+        }
+
+        System.out.println(Arrays.toString(series));
+        //printSeries(series);
+        double[][] indices = sortIndexes(series);
+        for (int i = 0; i < series.length; i++)
+        {
+            System.out.print(series[(int) indices[i][0]] + ((i == series.length - 1) ? "\n" : ", "));
+        }
+
+        //################ Test 2 ################
+        System.out.println("\n 2) Testing normalization: ");
+        double[] normSeries;
+        normSeries = FullShapeletTransform.zNormalise(series, false);
+        System.out.print("Original: ");
+        printSeries(normSeries);
+        normSeries = optimizedZNormalise(series, false);
+        System.out.print("Optimized: ");
+        printSeries(normSeries);
+
+        //################ Test 3 ################
+        System.out.println("\n 2) Testing subsequence distance: ");
+        double[][] sortedIndexes = sortIndexes(subseq);
+                
+        System.out.println("Jon: dist: " + ShapeletTransform.onlineSubsequenceDistance(subseq, sortedIndexes, normSeries));
+        
+        System.out.println("Aaron: Optimized dist: " + BinarisedShapeletTransform.onlineSubsequenceDistance(subseq, sortedIndexes, normSeries, 3));
     }
 
 }
