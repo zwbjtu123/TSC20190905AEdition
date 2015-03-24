@@ -80,12 +80,12 @@ public class ShapeletTransformExperiments
             testAndTrain[0] = s.process(train);
             LocalInfo.saveDataset(testAndTrain[0], outLogFileName + "_TRAIN");
 
-            System.out.println("opCount" + ShapeletTransform.subseqDistOpCount);
+            System.out.println(s.getClass().getSimpleName() + " train opCount" + ShapeletTransform.subseqDistOpCount);
 
             testAndTrain[1] = s.process(test);
             LocalInfo.saveDataset(testAndTrain[1], outLogFileName + "_TEST");
             
-            System.out.println("opCount" + ShapeletTransform.subseqDistOpCount);
+            System.out.println(s.getClass().getSimpleName() + " test opCount" + ShapeletTransform.subseqDistOpCount);
         }
         catch(IllegalAccessException | IllegalArgumentException | InstantiationException e)        
         {

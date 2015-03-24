@@ -1,5 +1,8 @@
 package weka.filters.timeseries.shapelet_transforms;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -28,6 +31,7 @@ public class ShapeletTransform extends FullShapeletTransform
 {
 
     public static long subseqDistOpCount;
+    public static long prunes;
 
     /**
      * Default constructor; Quality measure defaults to information gain.
@@ -36,6 +40,7 @@ public class ShapeletTransform extends FullShapeletTransform
     {
         super();
         subseqDistOpCount = 0;
+        prunes =0;
     }
 
     /**
@@ -80,6 +85,9 @@ public class ShapeletTransform extends FullShapeletTransform
     @Override
     protected Instances buildTansformedDataset(Instances data)
     {
+        //logFile
+        writeToLogFile("\nTEST\n");
+        
         //Reorder the training data and reset the shapelet indexes
         Instances output = determineOutputFormat(data);
 
@@ -100,12 +108,16 @@ public class ShapeletTransform extends FullShapeletTransform
         {
             s = shapelets.get(i);
             sortedIndexes = sortIndexes(s.content);
-
+            long currentOp = subseqDistOpCount;
             for (int j = 0; j < dataSize; j++)
             {
+                
                 dist = onlineSubsequenceDistance(s.content, sortedIndexes, data.instance(j));
+                
                 output.instance(j).setValue(i, dist);
             }
+            
+            writeToLogFile("%d,%d,%d,%d,%d\n", s.seriesId, s.startPos, s.content.length, (subseqDistOpCount-currentOp), subseqDistOpCount);
         }
 
         //do the classValues.
@@ -127,17 +139,17 @@ public class ShapeletTransform extends FullShapeletTransform
         boolean pruned = false;
         double[][] sortedIndexes = sortIndexes(candidate);
 
+        long currentOp = subseqDistOpCount;
+        
         int dataSize = data.numInstances();
         for (int i = 0; i < dataSize; i++)
         {
             //Check if it is possible to prune the candidate
-            if (qualityBound != null)
+            if (qualityBound != null && qualityBound.pruneCandidate())
             {
-                if (qualityBound.pruneCandidate())
-                {
-                    pruned = true;
-                    break;
-                }
+                prunes+= (dataSize - i); //how many we're skipping.
+                System.out.println((dataSize - i));
+                return null;
             }
 
             double distance = 0.0;
@@ -145,6 +157,7 @@ public class ShapeletTransform extends FullShapeletTransform
             {
                 distance = onlineSubsequenceDistance(candidate, sortedIndexes, data.instance(i));
             }
+            
             double classVal = data.instance(i).classValue();
 
             // without early abandon, it is faster to just add and sort at the end
@@ -157,20 +170,13 @@ public class ShapeletTransform extends FullShapeletTransform
             }
 
         }
+        
+        writeToLogFile("%d,%d,%d,%d,%d\n", seriesId, startPos, candidate.length, (subseqDistOpCount-currentOp), subseqDistOpCount);
 
-        // note: early abandon entropy pruning would appear here, but has been ommitted
-        // in favour of a clear multi-class information gain calculation. Could be added in
-        // this method in the future for speed up, but distance early abandon is more important
-        //If shapelet is pruned then it should no longer be considered in further processing
-        if (!pruned)
-        {
-            // create a shapelet object to store all necessary info, i.e.
-            Shapelet shapelet = new Shapelet(candidate, dataSourceIDs[seriesId], startPos, qualityMeasure);
-            shapelet.calculateQuality(orderline, classDistributions);
-            return shapelet;
-        }
-
-        return null;
+        // create a shapelet object to store all necessary info, i.e.
+        Shapelet shapelet = new Shapelet(candidate, dataSourceIDs[seriesId], startPos, qualityMeasure);
+        shapelet.calculateQuality(orderline, classDistributions);
+        return shapelet;
     }
 
     @Override
@@ -275,6 +281,8 @@ public class ShapeletTransform extends FullShapeletTransform
                 subseqDistOpCount++;
             }
             
+            //System.out.println("shapelet performed calculations: " + j + " of " + candidate.length);
+            
 
             if (currentDist < bestDist)
             {
@@ -333,6 +341,8 @@ public class ShapeletTransform extends FullShapeletTransform
      * @param input the input time series to be z-normalised
      * @param classValOn specify whether the time series includes a class value
      * (e.g. an full instance might, a candidate shapelet wouldn't)
+     * @param sum
+     * @param sum2
      * @return a z-normalised version of input
      */
     protected static double[] optimizedZNormalise(double[] input, boolean classValOn, DoubleWrapper sum, DoubleWrapper sum2)

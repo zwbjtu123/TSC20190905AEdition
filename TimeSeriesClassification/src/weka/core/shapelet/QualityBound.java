@@ -3,6 +3,7 @@ package weka.core.shapelet;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.ListIterator;
+import java.util.Map;
 import java.util.TreeMap;
 
 /**
@@ -29,11 +30,11 @@ public class QualityBound{
         /**
          * Class distribution of the observed distance, class pairs
          */
-        protected TreeMap<Double, Integer> orderLineClassDist;
+        protected Map<Double, Integer> orderLineClassDist;
         /**
          * Class distribution of the dataset, which currently being processed
          */
-        protected TreeMap<Double, Integer> parentClassDist;
+        protected Map<Double, Integer> parentClassDist;
         /**
          * Number of instances in the dataset, which is currently being processed
          */
@@ -49,11 +50,11 @@ public class QualityBound{
          * @param classDist
          * @param percentage
          */
-        protected void initParentFields(TreeMap<Double, Integer> classDist, int percentage){
+        protected void initParentFields(Map<Double, Integer> classDist, int percentage){
             //Initialize the fields
             bsfQuality = Double.MAX_VALUE;
-            orderLine = new ArrayList<OrderLineObj>();
-            orderLineClassDist = new TreeMap<Double, Integer>();
+            orderLine = new ArrayList<>();
+            orderLineClassDist = new TreeMap<>();
             parentClassDist = classDist;
             this.percentage = percentage;
             
@@ -137,13 +138,15 @@ public class QualityBound{
          * @param classDist class distribution of the data currently being processed
          * @param percentage percentage of data required to be processed before
          *                   bounding mechanism is used.
-         */
-        public InformationGainBound(TreeMap<Double, Integer> classDist, int percentage, boolean isExact){
+         *
+         * @param isExact
+         * */
+        public InformationGainBound(Map<Double, Integer> classDist, int percentage, boolean isExact){
             initParentFields(classDist, percentage);
             this.isExact = isExact;
             parentEntropy = QualityMeasures.InformationGain.entropy(parentClassDist);
         }
-        public InformationGainBound(TreeMap<Double, Integer> classDist, int percentage){
+        public InformationGainBound(Map<Double, Integer> classDist, int percentage){
             this(classDist,percentage,false);
         }
            
@@ -153,7 +156,7 @@ public class QualityBound{
          */
         @Override
         protected double calculateBestQuality(){
-            TreeMap<Double, Boolean> perms = new TreeMap<Double, Boolean>();
+            TreeMap<Double, Boolean> perms = new TreeMap<>();
             double bsfGain = -1;
                         
             //Cycle through all permutations
@@ -189,6 +192,7 @@ public class QualityBound{
                         }
 
                         if(bsfGain > bsfQuality){
+                            System.out.println("cycles left: " + (totalCycles - cycle));
                             break;
                         }
 
@@ -205,11 +209,11 @@ public class QualityBound{
             return bsfGain;
         }
         
-        private double computeIG(TreeMap<Double, Boolean> perm){
+        private double computeIG(Map<Double, Boolean> perm){
             //Initialise class counts
-            TreeMap<Double, Integer> lessClasses = new TreeMap<Double, Integer>();
-            TreeMap<Double, Integer> greaterClasses = new TreeMap<Double, Integer>();
-            TreeMap<Double, Boolean> isShifted = new TreeMap<Double, Boolean>();
+            TreeMap<Double, Integer> lessClasses = new TreeMap<>();
+            TreeMap<Double, Integer> greaterClasses = new TreeMap<>();
+            TreeMap<Double, Boolean> isShifted = new TreeMap<>();
             
             int countOfAllClasses = 0;
             int countOfLessClasses = 0;
@@ -328,7 +332,7 @@ public class QualityBound{
          * @param percentage percentage of data required to be processed before
          *                   bounding mechanism is used.
          */
-        public MoodsMedianBound(TreeMap<Double, Integer> classDist, int percentage){
+        public MoodsMedianBound(Map<Double, Integer> classDist, int percentage){
             initParentFields(classDist, percentage);
         }
                 
@@ -429,7 +433,7 @@ public class QualityBound{
          * @param percentage percentage of data required to be processed before
          *                   bounding mechanism is used.
          */
-        public FStatBound(TreeMap<Double, Integer> classDist, int percentage){
+        public FStatBound(Map<Double, Integer> classDist, int percentage){
             initParentFields(classDist, percentage);
           
             int numClasses = parentClassDist.size();
@@ -609,7 +613,7 @@ public class QualityBound{
          * @param percentage percentage of data required to be processed before
          *                   bounding mechanism is used.
          */
-        public KruskalWallisBound(TreeMap<Double, Integer> classDist, int percentage){
+        public KruskalWallisBound(Map<Double, Integer> classDist, int percentage){
             initParentFields(classDist, percentage);
         }
                

@@ -26,6 +26,7 @@ import weka.core.Instances;
 import weka.core.shapelet.QualityMeasures;
 import weka.filters.timeseries.shapelet_transforms.BinarisedShapeletTransform;
 import weka.filters.timeseries.shapelet_transforms.FullShapeletTransform;
+import weka.filters.timeseries.shapelet_transforms.ShapeletTransform;
 
 /**
  *
@@ -51,7 +52,8 @@ public class DaWaK2015
     {
         Instances test = null;
         Instances train;
-        BinarisedShapeletTransform transform;
+        
+        ShapeletTransform transform;
         QualityMeasures.ShapeletQualityChoice qm = QualityMeasures.ShapeletQualityChoice.INFORMATION_GAIN;
 
         Instances[] testAndTrain = new Instances[2];
@@ -64,11 +66,15 @@ public class DaWaK2015
         test = utilities.ClassifierTools.loadData(filePath + "_TEST");
         train = utilities.ClassifierTools.loadData(filePath + "_TRAIN");
 
-        //create our classifier. 
-        transform = new BinarisedShapeletTransform();
         //get the save location from the static utility class for my local save.
         String outLogFileName = "results1" + File.separator + dm.fileName + File.separator + dm.fileName;
-
+        
+        //create our classifier
+        //transform = new BinarisedShapeletTransform(); 
+        transform = new ShapeletTransform();
+        transform.useCandidatePruning();
+        transform.setLogFileName(outLogFileName+"_"+transform.getClass().getSimpleName()+"_opLog.csv");
+        
         try
         {
             //init
@@ -76,8 +82,16 @@ public class DaWaK2015
             testAndTrain[0] = transform.process(train);
             LocalInfo.saveDataset(testAndTrain[0], outLogFileName + "_TRAIN");
 
+            
+            long opCount = ShapeletTransform.subseqDistOpCount;
+            System.out.println(transform.getClass().getSimpleName() + " train opCount\t" + ShapeletTransform.subseqDistOpCount);
+            
             testAndTrain[1] = transform.process(test);
             LocalInfo.saveDataset(testAndTrain[1], outLogFileName + "_TEST");
+            
+            System.out.println(transform.getClass().getSimpleName() + " test opCount\t" + (ShapeletTransform.subseqDistOpCount-opCount));
+            
+            
         }
         catch (IllegalArgumentException e)
         {

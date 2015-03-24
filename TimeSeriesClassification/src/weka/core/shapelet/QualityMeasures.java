@@ -178,7 +178,7 @@ public class QualityMeasures
             // to avoid NaN calculations, the individual parts of the entropy are calculated and summed.
             // i.e. if there is 0 of a class, then that part would calculate as NaN, but this can be caught and
             // set to 0. 
-            //Aaron:  Instead of using the keyset to loop through, use the underlying Array to iteratre through, ordering of calculations doesnt matter.
+            //Aaron:  Instead of using the keyset to loop through, use the underlying Array to iterate through, ordering of calculations doesnt matter.
             //just that we do them all. so i think previously it was n log n, now should be just n.
             double entropy = 0;
             for (Integer d : values)

@@ -12,6 +12,7 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.TreeMap;
+import weka.core.DenseInstance;
 import weka.core.Instances;
 import weka.core.shapelet.OrderLineObj;
 import weka.core.shapelet.QualityBound;
@@ -19,7 +20,8 @@ import weka.core.shapelet.Shapelet;
 import static weka.filters.timeseries.shapelet_transforms.FullShapeletTransform.ROUNDING_ERROR_CORRECTION;
 import static weka.filters.timeseries.shapelet_transforms.FullShapeletTransform.getClassDistributions;
 import static weka.filters.timeseries.shapelet_transforms.FullShapeletTransform.removeSelfSimilar;
-import static weka.filters.timeseries.shapelet_transforms.FullShapeletTransform.subsequenceDistance;
+import static weka.filters.timeseries.shapelet_transforms.ShapeletTransform.onlineSubsequenceDistance;
+import static weka.filters.timeseries.shapelet_transforms.ShapeletTransform.sortIndexes;
 
 /**
  *
@@ -50,10 +52,8 @@ public class BinarisedShapeletTransform extends ShapeletTransform
         
         classDistributions = getClassDistributions(data);                       // used to calc info gain
         binaryClassDistribution = buildBinaryDistributions(classDistributions); //used for binary info gain.
-        
-        return super.findBestKShapeletsCache(data);
-        
-        /*ArrayList<Shapelet> kShapelets;
+
+        ArrayList<Shapelet> kShapelets;
         ArrayList<Shapelet> seriesShapelets;                                    // temp store of all shapelets for each time series
         //construct a map for our K-shapelets lists, on for each classVal.
         Map<Double, ArrayList<Shapelet>> kShapeletsMap = new TreeMap();
@@ -64,7 +64,8 @@ public class BinarisedShapeletTransform extends ShapeletTransform
         
         //found out how many we want in each sub list.
         int proportion = numShapelets/kShapeletsMap.keySet().size();
-
+        System.out.println("proportion: " + proportion);
+        
         //for all time series
         outputPrint("Processing data: ");
 
@@ -103,7 +104,7 @@ public class BinarisedShapeletTransform extends ShapeletTransform
         recordShapelets(kShapelets);
         printShapelets(kShapelets);
 
-        return kShapelets;*/
+        return kShapelets;
     }
        
     
@@ -133,6 +134,50 @@ public class BinarisedShapeletTransform extends ShapeletTransform
        
        return kShapelets;
     }
+    
+    @Override
+    protected ArrayList<Shapelet> findShapeletCandidates(Instances data, int i, double[] wholeCandidate, Shapelet worstKShapelet)
+    {
+        //get our time series as a double array.
+        ArrayList<Shapelet> seriesShapelets = new ArrayList<>();
+
+        //for all possible lengths
+        for (int length = minShapeletLength; length <= maxShapeletLength; length++)
+        {
+            double[] candidate = new double[length];
+            //for all possible starting positions of that length
+            for (int start = 0; start <= wholeCandidate.length - length - 1; start++)
+            {
+                //-1 = avoid classVal - handle later for series with no class val
+                // CANDIDATE ESTABLISHED - got original series, length and starting position
+                // extract relevant part into a double[] for processing
+                System.arraycopy(wholeCandidate, start, candidate, 0, length);
+
+                // znorm candidate here so it's only done once, rather than in each distance calculation
+                candidate = zNorm(candidate, false);
+
+                //Initialize bounding algorithm for current candidate
+                QualityBound.ShapeletQualityBound qualityBound = initializeQualityBound(getBinaryDistribution(data.get(i).classValue()));
+
+                //Set bound of the bounding algorithm
+                if (qualityBound != null && worstKShapelet != null)
+                {
+                    qualityBound.setBsfQuality(worstKShapelet.qualityValue);
+                }
+
+                //compare the shapelet candidate to the other time series.
+                Shapelet candidateShapelet = checkCandidate(candidate, data, i, start, qualityBound);
+
+                if (candidateShapelet != null)
+                {
+                    seriesShapelets.add(candidateShapelet);
+                }
+            }
+        }
+        return seriesShapelets;
+    }
+    
+    
 
     @Override
     protected Shapelet checkCandidate(double[] candidate, Instances data, int seriesId, int startPos, QualityBound.ShapeletQualityBound qualityBound)
@@ -148,11 +193,15 @@ public class BinarisedShapeletTransform extends ShapeletTransform
         
         double[][] sortedIndexes = sortIndexes(candidate);
         
+        long currentOp = subseqDistOpCount;
+        
         for (int i = 0; i < dataSize; i++)
         {
+            
             //Check if it is possible to prune the candidate. if it is possible, we can just return null.
             if (qualityBound != null && qualityBound.pruneCandidate())
             {
+                prunes+= (dataSize - i); //how many we're skipping.
                 return null;
             }
 
@@ -160,6 +209,7 @@ public class BinarisedShapeletTransform extends ShapeletTransform
             //don't compare the shapelet to the the time series it came from.
             if (i != seriesId)
             {
+                
                 distance = onlineSubsequenceDistance(candidate, sortedIndexes, getToDoubleArrayOfInstance(data, i), startPos);
             }
 
@@ -175,6 +225,8 @@ public class BinarisedShapeletTransform extends ShapeletTransform
                 qualityBound.updateOrderLine(orderline.get(orderline.size() - 1));
             }
         }
+        
+        writeToLogFile("%d,%d,%d,%d,%d\n", seriesId, startPos, candidate.length, (subseqDistOpCount-currentOp), subseqDistOpCount);
 
         // note: early abandon entropy pruning would appear here, but has been ommitted
         // in favour of a clear multi-class information gain calculation. Could be added in
@@ -225,6 +277,50 @@ public class BinarisedShapeletTransform extends ShapeletTransform
     public Map<Double, Integer> getBinaryDistribution(double classVal)
     {
         return this.binaryClassDistribution.get(classVal);
+    }
+    
+       @Override
+    protected Instances buildTansformedDataset(Instances data)
+    {
+         //logFile
+        writeToLogFile("\nTRAIN\n");
+        
+        //Reorder the training data and reset the shapelet indexes
+        Instances output = determineOutputFormat(data);
+
+        Shapelet s;
+        double[][] sortedIndexes;
+        // for each data, get distance to each shapelet and create new instance
+        int size = shapelets.size();
+        int dataSize = data.numInstances();
+
+        //create our data instances
+        for (int j = 0; j < dataSize; j++)
+        {
+            output.add(new DenseInstance(size + 1));
+        }
+
+        double dist;
+        for (int i = 0; i < size; i++)
+        {
+            s = shapelets.get(i);
+            sortedIndexes = sortIndexes(s.content);
+            long currentOp = subseqDistOpCount;
+            for (int j = 0; j < dataSize; j++)
+            {
+                dist = onlineSubsequenceDistance(s.content, sortedIndexes, getToDoubleArrayOfInstance(data, j), s.startPos);
+                output.instance(j).setValue(i, dist);
+            }
+            writeToLogFile("%d,%d,%d,%d,%d\n",s.seriesId, s.startPos, s.content.length, (subseqDistOpCount-currentOp), subseqDistOpCount);
+        }
+
+        //do the classValues.
+        for (int j = 0; j < dataSize; j++)
+        {
+            output.instance(j).setValue(size, data.instance(j).classValue());
+        }
+
+        return output;
     }
     
     
@@ -356,6 +452,11 @@ public class BinarisedShapeletTransform extends ShapeletTransform
             //Keep count of fundamental ops for experiment
             subseqDistOpCount++;
         }
+        
+                    
+        //System.out.println("binarised performed calculations: " + j + " of " + candidate.length);
+            
+
 
         return currentDist;
     }

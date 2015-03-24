@@ -11,13 +11,16 @@
 package weka.filters.timeseries.shapelet_transforms;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.ListIterator;
+import java.util.Map;
 import java.util.Scanner;
 import java.util.TreeMap;
 import weka.core.*;
@@ -44,6 +47,22 @@ public class FullShapeletTransform extends SimpleBatchFilter
     //Variables for experiments
     protected static long subseqDistOpCount;
     protected TreeMap<Double, Integer> classDistributions;
+    
+    //logFile
+    PrintWriter opLogFile = null;
+    String logFileName;
+    public void setLogFileName(String s)
+    {
+        logFileName = s;
+    }
+    
+    public void writeToLogFile(String pattern, Object... args)
+    {
+        if(opLogFile != null)
+            opLogFile.printf(pattern, args);
+    }
+    
+    
 
     @Override
     public String globalInfo()
@@ -435,6 +454,17 @@ public class FullShapeletTransform extends SimpleBatchFilter
         //checks if the shapelets haven't been found yet, finds them if it needs too.
         if (!shapeletsTrained)
         {
+            try
+            {
+                opLogFile = new PrintWriter(new File(logFileName));
+                opLogFile.printf("TRAIN\n");
+                opLogFile.printf("candidateId,candidateStartPos,candidateLength,opCount,totalOpCount\n");
+            }
+            catch (FileNotFoundException ex)
+            {
+                System.out.println("Couldn't create log file " + ex);    
+            }
+            
             trainShapelets(data);
         }
 
@@ -509,6 +539,9 @@ public class FullShapeletTransform extends SimpleBatchFilter
         ArrayList<Shapelet> seriesShapelets;                                    // temp store of all shapelets for each time series
         classDistributions = getClassDistributions(data);                       // used to calc info gain
 
+        
+        System.out.println("k: " + numShapelets);
+        
         //for all time series
         outputPrint("Processing data: ");
 
@@ -718,7 +751,7 @@ public class FullShapeletTransform extends SimpleBatchFilter
      * @param classDist
      * @return
      */
-    protected QualityBound.ShapeletQualityBound initializeQualityBound(TreeMap<Double, Integer> classDist)
+    protected QualityBound.ShapeletQualityBound initializeQualityBound(Map<Double, Integer> classDist)
     {
         if (useCandidatePruning)
         {
@@ -845,6 +878,7 @@ public class FullShapeletTransform extends SimpleBatchFilter
         ArrayList<OrderLineObj> orderline = new ArrayList<>();
 
 
+        
         int dataSize = data.numInstances();
 
         for (int i = 0; i < dataSize; i++)
