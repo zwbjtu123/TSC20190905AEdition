@@ -48,12 +48,12 @@ public class DaWaK2015
         s.turnOffLog();
     }
 
-    public static void extractShapelet(dataParams dm)
+    public static void extractShapelet(dataParams dm, ShapeletTransform transform)
     {
         Instances test = null;
         Instances train;
         
-        ShapeletTransform transform;
+        
         QualityMeasures.ShapeletQualityChoice qm = QualityMeasures.ShapeletQualityChoice.INFORMATION_GAIN;
 
         Instances[] testAndTrain = new Instances[2];
@@ -67,13 +67,10 @@ public class DaWaK2015
         train = utilities.ClassifierTools.loadData(filePath + "_TRAIN");
 
         //get the save location from the static utility class for my local save.
-        String outLogFileName = "results1" + File.separator + dm.fileName + File.separator + dm.fileName;
+        String outLogFileName = transform.getClass().getSimpleName() + "_oldDist" + File.separator + dm.fileName + File.separator + dm.fileName;
         
-        //create our classifier
-        //transform = new BinarisedShapeletTransform(); 
-        transform = new ShapeletTransform();
         transform.useCandidatePruning();
-        transform.setLogFileName(outLogFileName+"_"+transform.getClass().getSimpleName()+"_opLog.csv");
+        transform.setLogFileName(outLogFileName);
         
         try
         {
@@ -115,7 +112,9 @@ public class DaWaK2015
         
         ArrayList<dataParams> data = buildParamsArray();
         
-        extractShapelet(data.get(i));         
+        //create our classifier timing experiments are embedded
+        extractShapelet(data.get(i), new BinarisedShapeletTransform());  
+        //extractShapelet(data.get(i), new ShapeletTransform());  
     }
     
     private static ArrayList<dataParams> buildParamsArray()

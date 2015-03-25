@@ -125,6 +125,15 @@ public class ShapeletTransform extends FullShapeletTransform
         {
             output.instance(j).setValue(size, data.instance(j).classValue());
         }
+        
+        
+        //close LogFile 
+        if(opLogFile != null)
+            opLogFile.close();
+        
+        if(pruneLogFile != null)
+            pruneLogFile.close();
+        
 
         return output;
     }
@@ -136,7 +145,6 @@ public class ShapeletTransform extends FullShapeletTransform
         // distance from candidate to all data, inserting in order.
         ArrayList<OrderLineObj> orderline = new ArrayList<>();
 
-        boolean pruned = false;
         double[][] sortedIndexes = sortIndexes(candidate);
 
         long currentOp = subseqDistOpCount;
@@ -148,7 +156,7 @@ public class ShapeletTransform extends FullShapeletTransform
             if (qualityBound != null && qualityBound.pruneCandidate())
             {
                 prunes+= (dataSize - i); //how many we're skipping.
-                System.out.println((dataSize - i));
+                writeToLogFile(pruneLogFile,"%d,%d,%d,%d,%d\n",seriesId, startPos, candidate.length, (dataSize - i), prunes);
                 return null;
             }
 
@@ -168,7 +176,6 @@ public class ShapeletTransform extends FullShapeletTransform
             {
                 qualityBound.updateOrderLine(orderline.get(orderline.size() - 1));
             }
-
         }
         
         writeToLogFile("%d,%d,%d,%d,%d\n", seriesId, startPos, candidate.length, (subseqDistOpCount-currentOp), subseqDistOpCount);

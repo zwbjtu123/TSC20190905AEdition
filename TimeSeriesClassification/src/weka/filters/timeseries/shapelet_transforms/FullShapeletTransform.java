@@ -50,16 +50,25 @@ public class FullShapeletTransform extends SimpleBatchFilter
     
     //logFile
     PrintWriter opLogFile = null;
+    PrintWriter pruneLogFile = null;
     String logFileName;
     public void setLogFileName(String s)
     {
         logFileName = s;
     }
     
+    public void writeToLogFile(PrintWriter pw, String pattern, Object... args)
+    {
+        if(pw != null)
+        {
+            pw.printf(pattern, args);
+            pw.flush();
+        }
+    }
+    
     public void writeToLogFile(String pattern, Object... args)
     {
-        if(opLogFile != null)
-            opLogFile.printf(pattern, args);
+        writeToLogFile(opLogFile, pattern, args);
     }
     
     
@@ -456,9 +465,19 @@ public class FullShapeletTransform extends SimpleBatchFilter
         {
             try
             {
-                opLogFile = new PrintWriter(new File(logFileName));
-                opLogFile.printf("TRAIN\n");
-                opLogFile.printf("candidateId,candidateStartPos,candidateLength,opCount,totalOpCount\n");
+                File f = new File(logFileName+"_opLog.csv");
+                //make the dirs on the files parent directors.
+                f.getParentFile().mkdirs(); 
+                opLogFile = new PrintWriter(f);
+                writeToLogFile("TRAIN\n");
+                writeToLogFile("candidateId,candidateStartPos,candidateLength,opCount,totalOpCount\n");
+                
+                f = new File(logFileName+"_pruneLog.csv");
+                //make the dirs on the files parent directors.
+                f.getParentFile().mkdirs();
+                pruneLogFile = new PrintWriter(f);
+                writeToLogFile(pruneLogFile,"TRAIN\n");
+                writeToLogFile(pruneLogFile,"candidateId, candidateStartPos, candidate.length, prunedSeries, totalPruned\n");
             }
             catch (FileNotFoundException ex)
             {

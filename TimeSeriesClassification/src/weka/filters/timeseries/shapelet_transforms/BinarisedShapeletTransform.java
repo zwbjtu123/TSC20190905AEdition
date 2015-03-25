@@ -197,11 +197,11 @@ public class BinarisedShapeletTransform extends ShapeletTransform
         
         for (int i = 0; i < dataSize; i++)
         {
-            
             //Check if it is possible to prune the candidate. if it is possible, we can just return null.
             if (qualityBound != null && qualityBound.pruneCandidate())
             {
                 prunes+= (dataSize - i); //how many we're skipping.
+                writeToLogFile(pruneLogFile,"%d,%d,%d,%d,%d\n",seriesId, startPos, candidate.length, (dataSize - i), prunes);
                 return null;
             }
 
@@ -209,7 +209,6 @@ public class BinarisedShapeletTransform extends ShapeletTransform
             //don't compare the shapelet to the the time series it came from.
             if (i != seriesId)
             {
-                
                 distance = onlineSubsequenceDistance(candidate, sortedIndexes, getToDoubleArrayOfInstance(data, i), startPos);
             }
 
