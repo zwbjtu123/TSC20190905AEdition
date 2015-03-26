@@ -348,7 +348,7 @@ public class BinarisedShapeletTransform extends ShapeletTransform
         System.arraycopy(timeSeries, startPos, subseq, 0, subseq.length);
         subseq = optimizedZNormalise(subseq, false, sumPointer, sum2Pointer);
         
-        
+
         //Keep count of fundamental ops for experiment
         subseqDistOpCount += subseq.length;
 
@@ -366,6 +366,11 @@ public class BinarisedShapeletTransform extends ShapeletTransform
             bestDist = bestDist + (temp * temp);
         }
 
+        
+                
+        System.out.println("bestDist: " + bestDist);
+        
+        
         //Keep count of fundamental ops for experiment
         subseqDistOpCount += candidate.length;
 
@@ -396,7 +401,10 @@ public class BinarisedShapeletTransform extends ShapeletTransform
                 currentDist = calculateBestDistance(posR, timeSeries, candidate, sortedIndices, bestDist, sumR, sum2R);  
                 
                 if (currentDist < bestDist)
+                {
                     bestDist = currentDist;
+                    System.out.println("best dist pos: " + posR);
+                }
             }
             
             if(traverseLeft)
@@ -411,7 +419,10 @@ public class BinarisedShapeletTransform extends ShapeletTransform
                 currentDist = calculateBestDistance(posL, timeSeries, candidate, sortedIndices, bestDist, sumL, sum2L);
 
                 if (currentDist < bestDist)
+                {
                     bestDist = currentDist;
+                    System.out.println("best dist pos: " + posL);
+                }
             }
             
             i++;
@@ -463,48 +474,25 @@ public class BinarisedShapeletTransform extends ShapeletTransform
     
     public static void main(String[] args)
     {
-
-        //################ Test 1 ################
-        System.out.println("1) Testing index sorter: ");
-        double[] series = new double[1000];
-        double[] subseq = new double[series.length / 2];
-
-        int min = -5;
-        int max = 5;
-        for (int i = 0; i < series.length; i++)
-        {
-            series[i] = min + (int) (Math.random() * ((max - min) + 1));
-            if (i < series.length / 2)
-            {
-                subseq[i] = min + (int) (Math.random() * ((max - min) + 1));
-            }
-        }
-
-        System.out.println(Arrays.toString(series));
-        //printSeries(series);
-        double[][] indices = sortIndexes(series);
-        for (int i = 0; i < series.length; i++)
-        {
-            System.out.print(series[(int) indices[i][0]] + ((i == series.length - 1) ? "\n" : ", "));
-        }
-
-        //################ Test 2 ################
-        System.out.println("\n 2) Testing normalization: ");
-        double[] normSeries;
-        normSeries = FullShapeletTransform.zNormalise(series, false);
-        System.out.print("Original: ");
-        printSeries(normSeries);
-        normSeries = optimizedZNormalise(series, false);
-        System.out.print("Optimized: ");
-        printSeries(normSeries);
-
-        //################ Test 3 ################
-        System.out.println("\n 2) Testing subsequence distance: ");
+        test();
+    }
+    
+    public static void test()
+    {
+        double[] series = {1.598006,1.599439,1.570529,1.550474,1.507371,1.434341,1.368986,1.305294,1.210305,1.116653,1.023976,0.925977,0.828107,0.739222,0.643051,0.556432,0.462948,0.369575,0.278426,0.18583,0.095532,0.010646,-0.080856,-0.165549,-0.243492,-0.33543,-0.426109,-0.497486,-0.56685,-0.649856,-0.732247,-0.7778,-0.842984,-0.917304,-0.987973,-1.055011,-1.096775,-1.147065,-1.198429,-1.243188,-1.28163,-1.312638,-1.335745,-1.351122,-1.37692,-1.387935,-1.376892,-1.357099,-1.329577,-1.293692,-1.257696,-1.230419,-1.17425,-1.114199,-1.072004,-1.006755,-0.948929,-0.870171,-0.79017,-0.724507,-0.642835,-0.591634,-0.521392,-0.43063,-0.350848,-0.269856,-0.173638,-0.089113,-0.00392,0.085453,0.175176,0.267055,0.362971,0.452381,0.549112,0.649817,0.746244,0.845659,0.946333,1.045681,1.146307,1.24236,1.343994,1.441798,1.540663,1.624094,1.669585,1.685201,1.69666,1.697462,1.687431,1.638525,1.573703,1.478584,1.376902,1.276597,1.177031,1.0777,0.979203,0.880533,0.777926,0.681645,0.590432,0.492751,0.404343,0.308589,0.213516,0.122677,0.037603,-0.052602,-0.13751,-0.220402,-0.315558,-0.394614,-0.446076,-0.533439,-0.60286,-0.673407,-0.737606,-0.81903,-0.885258,-0.950083,-1.002563,-1.063003,-1.125195,-1.165769,-1.204262,-1.248452,-1.27377,-1.28438,-1.273337,-1.286739,-1.291872,-1.288647,-1.277739,-1.258145,-1.231352,-1.197268,-1.156312,-1.110456,-1.084524,-1.025831,-0.962551,-0.895071,-0.847815,-0.772537,-0.694573,-0.631998,-0.551219,-0.484587,-0.408677,-0.324424,-0.247454,-0.163651,-0.076913,0.008801,0.097274,0.185896,0.284005,0.381205,0.463025,0.556933,0.65097,0.7382,0.834742,0.929939,1.02486,1.120906,1.217175,1.31253,1.40292,1.481043,1.521012,1.564154,1.570854,1.59289};
+        double[] subseq = {-1.097483,-1.158599,-1.22042,-1.277007,-1.32718,-1.369576,-1.395475,-1.416281,-1.427878,-1.427286,-1.422008};
         double[][] sortedIndexes = sortIndexes(subseq);
-                
-        System.out.println("Jon: dist: " + ShapeletTransform.onlineSubsequenceDistance(subseq, sortedIndexes, normSeries));
         
-        System.out.println("Aaron: Optimized dist: " + BinarisedShapeletTransform.onlineSubsequenceDistance(subseq, sortedIndexes, normSeries, 3));
+        double [] normSeries = optimizedZNormalise(series, false);
+        
+        System.out.println("BinarisedShapeletTransform.subseqDistOpCount: " + BinarisedShapeletTransform.subseqDistOpCount);
+        BinarisedShapeletTransform.onlineSubsequenceDistance(subseq, sortedIndexes, normSeries, 124);
+        System.out.println("BinarisedShapeletTransform.subseqDistOpCount: " + BinarisedShapeletTransform.subseqDistOpCount);
+        ShapeletTransform.subseqDistOpCount=0;
+        System.out.println("ShapeletTransform.subseqDistOpCount: " + ShapeletTransform.subseqDistOpCount);
+        ShapeletTransform.onlineSubsequenceDistance(subseq, sortedIndexes, normSeries);
+        System.out.println("ShapeletTransform.subseqDistOpCount: " + ShapeletTransform.subseqDistOpCount);
+    
     }
 
 }

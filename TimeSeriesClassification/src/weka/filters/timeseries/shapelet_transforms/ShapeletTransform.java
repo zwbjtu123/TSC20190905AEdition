@@ -249,6 +249,8 @@ public class ShapeletTransform extends FullShapeletTransform
             bestDist = bestDist + (temp * temp);
         }
         
+        System.out.println("bestDist: " + bestDist);
+        
         //Keep count of fundamental ops for experiment
         subseqDistOpCount += candidate.length;
 
@@ -294,6 +296,7 @@ public class ShapeletTransform extends FullShapeletTransform
             if (currentDist < bestDist)
             {
                 bestDist = currentDist;
+                System.out.println("best dist pos: " + i);
             }
         }
         
