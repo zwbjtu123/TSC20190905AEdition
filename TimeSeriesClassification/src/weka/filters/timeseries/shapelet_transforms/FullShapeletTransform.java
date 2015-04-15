@@ -463,27 +463,7 @@ public class FullShapeletTransform extends SimpleBatchFilter
         //checks if the shapelets haven't been found yet, finds them if it needs too.
         if (!shapeletsTrained)
         {
-            try
-            {
-                File f = new File(logFileName+"_opLog.csv");
-                //make the dirs on the files parent directors.
-                f.getParentFile().mkdirs(); 
-                opLogFile = new PrintWriter(f);
-                writeToLogFile("TRAIN\n");
-                writeToLogFile("candidateId,candidateStartPos,candidateLength,opCount,totalOpCount\n");
-                
-                f = new File(logFileName+"_pruneLog.csv");
-                //make the dirs on the files parent directors.
-                f.getParentFile().mkdirs();
-                pruneLogFile = new PrintWriter(f);
-                writeToLogFile(pruneLogFile,"TRAIN\n");
-                writeToLogFile(pruneLogFile,"candidateId, candidateStartPos, candidate.length, prunedSeries, totalPruned\n");
-            }
-            catch (FileNotFoundException ex)
-            {
-                System.out.println("Couldn't create log file " + ex);    
-            }
-            
+            initLogFiles();
             trainShapelets(data);
         }
 
@@ -491,6 +471,30 @@ public class FullShapeletTransform extends SimpleBatchFilter
         return buildTansformedDataset(data);
     }
 
+    private void initLogFiles()
+    {
+        try
+        {
+            File f = new File(logFileName+"_opLog.csv");
+            //make the dirs on the files parent directors.
+            f.getParentFile().mkdirs(); 
+            opLogFile = new PrintWriter(f);
+            writeToLogFile("TRAIN\n");
+            writeToLogFile("candidateId,candidateStartPos,candidateLength,opCount,totalOpCount\n");
+
+            f = new File(logFileName+"_pruneLog.csv");
+            //make the dirs on the files parent directors.
+            f.getParentFile().mkdirs();
+            pruneLogFile = new PrintWriter(f);
+            writeToLogFile(pruneLogFile,"TRAIN\n");
+            writeToLogFile(pruneLogFile,"candidateId, candidateStartPos, candidate.length, prunedSeries, totalPruned\n");
+        }
+        catch (FileNotFoundException ex)
+        {
+            System.out.println("Couldn't create log file " + ex);    
+        }
+    }
+    
     protected void trainShapelets(Instances data)
     {
 
