@@ -15,6 +15,7 @@ import utilities.ClassifierTools;
 import weka.classifiers.trees.*;
 import weka.classifiers.bayes.*;
 import weka.classifiers.functions.Logistic;
+import weka.core.elastic_distance_measures.*;
 
 
 /*
