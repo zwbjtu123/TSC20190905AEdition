@@ -26,6 +26,7 @@ import weka.core.*;
 import weka.filters.*;
 import applications.HeartRate;
 import development.*;
+import weka.core.elastic_distance_measures.*;
 import weka.filters.timeseries.*;
 
 /*
@@ -129,7 +130,7 @@ public static double[][][] exampleModels={
 			NormalizableDistance df =new EuclideanDistance();
 			df.setDontNormalize(true);
 			all[0] = new kNN(df);
-			all[1]=new kNN(new DTW_DistanceEfficient());
+			all[1]=new kNN(new DTW());
 			ARMA ar=new ARMA();
 			try{
 				trainARMA=ar.process(train);
@@ -275,7 +276,7 @@ public static double[][][] exampleModels={
 //				Classifier c=new kNN(new DTW_DistanceBasic());
 //				dtwAcc=ClassifierTools.singleTrainTestSplitAccuracy(c,train,test);
 				histAcc[0]=ClassifierTools.singleTrainTestSplitAccuracy(new kNN(1),histoTrain,histoTest);
-				histAcc[1]=ClassifierTools.singleTrainTestSplitAccuracy(new kNN(new DTW_DistanceBasic()),histoTrain,histoTest);
+				histAcc[1]=ClassifierTools.singleTrainTestSplitAccuracy(new kNN(new DTW()),histoTrain,histoTest);
 				histAcc[2]=ClassifierTools.singleTrainTestSplitAccuracy(new kNN(new GowerDistance(histoTrain)),histoTrain,histoTest);
 				histAcc[3]=ClassifierTools.singleTrainTestSplitAccuracy(new kNN(new LikelihoodRatioDistance()),histoTrain,histoTest);
 				armaAcc=ClassifierTools.singleTrainTestSplitAccuracy(new IB1(),armaTrain,armaTest);
@@ -937,7 +938,7 @@ public static double[][][] exampleModels={
 
 			//3. Do test train accuracy with.
 			Classifier dtw,gower;
-			dtw=new kNN(new DTW_DistanceBasic());
+			dtw=new kNN(new DTW());
 			gower=new kNN(new GowerDistance(rlTrain));
 			
 			acc[0]=ClassifierTools.singleTrainTestSplitAccuracy(new kNN(new EuclideanDistance()),arTrain,arTest);
@@ -1050,7 +1051,7 @@ public static double[][][] exampleModels={
 			//3. Do test train accuracy with.
 			
 			acc[0]=ClassifierTools.singleTrainTestSplitAccuracy(new IB1(),arTrain,arTest);
-			acc[1]=ClassifierTools.singleTrainTestSplitAccuracy(new kNN(new DTW_DistanceBasic()),rlTrain,rlTest);
+			acc[1]=ClassifierTools.singleTrainTestSplitAccuracy(new kNN(new DTW()),rlTrain,rlTest);
 			acc[2]=ClassifierTools.singleTrainTestSplitAccuracy(new IB1(),fftTrain,fftTest);
 			acc[3]=ClassifierTools.singleTrainTestSplitAccuracy(new IB1(),acfTrain,acfTest);
 
@@ -1104,7 +1105,7 @@ public static double[][][] exampleModels={
 			fft.truncate(fftTest,n/10);
 			//3. Do test train accuracy with.
 			Classifier dtw;
-			dtw=new kNN(new DTW_DistanceBasic());
+			dtw=new kNN(new DTW());
 			
 			acc[0]=ClassifierTools.singleTrainTestSplitAccuracy(new IB1(),arTrain,arTest);
 			acc[1]=ClassifierTools.singleTrainTestSplitAccuracy(new J48(),arTrain,arTest);
@@ -1217,7 +1218,7 @@ public static double[][][] exampleModels={
 			acfTest=acf.process(test);
 			//3. Do test train accuracy with.
 			Classifier dtw;
-			dtw=new kNN(new DTW_DistanceBasic());
+			dtw=new kNN(new DTW());
 			acc[0]=ClassifierTools.singleTrainTestSplitAccuracy(new Logistic(),arTrain,arTest);
 			acc[1]=ClassifierTools.singleTrainTestSplitAccuracy(dtw,rlTrain,rlTest);
 			acc[2]=ClassifierTools.singleTrainTestSplitAccuracy(new Logistic(),acfTrain,acfTest);
