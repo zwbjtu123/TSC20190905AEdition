@@ -133,6 +133,6 @@ public class PiecewiseDTW extends BasicDTW {
 
     @Override
     public String toString() {
-        return "PiecewiseDTW{ " + "frameSize=" + this.frameSize + ", earlyAbandon=" + this.isEarlyAbandon + " }";
+        return "PiecewiseDTW{ " + "frameSize=" + this.frameSize + ", }";
     }
 }

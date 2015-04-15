@@ -122,6 +122,7 @@ public class EuclideanDistance
    * 
    * @return 		the technical information about this class
    */
+  @Override
   public TechnicalInformation getTechnicalInformation() {
     TechnicalInformation 	result;
     
@@ -140,6 +141,7 @@ public class EuclideanDistance
    * @param second 	the second instance
    * @return 		the distance between the two given instances
    */
+  @Override
   public double distance(Instance first, Instance second) {
     return distance(first, second, Double.POSITIVE_INFINITY);
   }

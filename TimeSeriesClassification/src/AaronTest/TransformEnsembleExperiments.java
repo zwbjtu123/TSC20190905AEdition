@@ -6,7 +6,6 @@
 
 package AaronTest;
 
-import development.TimeSeriesClassification;
 import weka.classifiers.lazy.IBk;
 import weka.classifiers.meta.Bagging;
 import weka.core.Instances;

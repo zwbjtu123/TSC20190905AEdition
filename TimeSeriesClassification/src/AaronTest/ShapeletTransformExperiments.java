@@ -6,7 +6,6 @@
 package AaronTest;
 
 import development.DataSets;
-import development.TimeSeriesClassification;
 import java.io.File;
 import java.util.HashMap;
 import weka.classifiers.AbstractClassifier;
@@ -251,7 +250,7 @@ public class ShapeletTransformExperiments
 
         Instances[] testAndTrain = new Instances[2];
 
-        String filePath = TimeSeriesClassification.path + dataName + File.separator + dataName;
+        String filePath = DataSets.dropboxPath + dataName + File.separator + dataName;
 
         //get the train and test instances for each dataset.
         test = utilities.ClassifierTools.loadData(filePath + "_TEST");

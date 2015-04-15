@@ -12,7 +12,7 @@ import weka.classifiers.bayes.NaiveBayes;
 import weka.classifiers.functions.SMO;
 import weka.classifiers.functions.supportVector.PolyKernel;
 import weka.classifiers.functions.supportVector.RBFKernel;
-import weka.classifiers.lazy.DTW_kNN;
+import weka.classifiers.lazy.DTW_1NN;
 import weka.classifiers.lazy.kNN;
 import weka.classifiers.meta.AdaBoostM1;
 import weka.classifiers.meta.Bagging;
@@ -92,9 +92,8 @@ public class SDM2012_Bagnall {
 		sc2.add(new kNN(1));
 		names.add("NN");
 		Classifier c;
-		c=new DTW_kNN(1);
-		((DTW_kNN)c).setMaxR(0.1);
-		((DTW_kNN)c).optimiseWindow(false);
+		c=new DTW_1NN();
+		((DTW_1NN)c).optimiseWindow(false);
 		
 		sc2.add(c);
 		names.add("NNDTW");
@@ -226,13 +225,13 @@ public class SDM2012_Bagnall {
 			for(int i=0;i<sdm2012fileNames.length;i++)
 			{
 //Load default test train split
-				Instances test=ClassifierTools.loadData(TimeSeriesClassification.path+sdm2012fileNames[i]+"\\"+sdm2012fileNames[i]+"_TEST");
-				Instances train=ClassifierTools.loadData(TimeSeriesClassification.path+sdm2012fileNames[i]+"\\"+sdm2012fileNames[i]+"_TRAIN");			
+				Instances test=ClassifierTools.loadData(DataSets.dropboxPath+sdm2012fileNames[i]+"\\"+sdm2012fileNames[i]+"_TEST");
+				Instances train=ClassifierTools.loadData(DataSets.dropboxPath+sdm2012fileNames[i]+"\\"+sdm2012fileNames[i]+"_TRAIN");			
 
 /*				//Resampling for DTW
-				if(tooLarge(TimeSeriesClassification.fileNames[i])){
+				if(tooLarge(DataSets.fileNames[i])){
 					System.out.println("Sampling  ....");
-					if(TimeSeriesClassification.fileNames[i].equals("Earthquakes"))
+					if(DataSets.fileNames[i].equals("Earthquakes"))
 						train=sample(train,0.3);
 					else{
 						train=sample(train,0.1);
@@ -242,8 +241,8 @@ public class SDM2012_Bagnall {
 */				
 //Normalise if necessary.
 				
-				if(normalise(TimeSeriesClassification.fileNames[i])){
-					System.out.println("Standardising "+TimeSeriesClassification.fileNames[i]);
+				if(normalise(DataSets.fileNames[i])){
+					System.out.println("Standardising "+DataSets.fileNames[i]);
 					NormalizeCase nc=new NormalizeCase();
 					train=nc.process(train);
 					test=nc.process(test);
@@ -257,9 +256,9 @@ public class SDM2012_Bagnall {
 					
 				//Set folds. If 1 then it does the  test/train split defined by the two files			
 				int folds=setNosFolds(test,train);			
-				of.writeString("\n"+TimeSeriesClassification.fileNames[i]+","+folds+",");
+				of.writeString("\n"+DataSets.fileNames[i]+","+folds+",");
 				System.out.println("Train size = "+train.numInstances()+" Test size ="+test.numInstances()+" folds ="+folds);
-				System.out.println(TimeSeriesClassification.fileNames[i]);
+				System.out.println(DataSets.fileNames[i]);
 				System.out.println("************************************");
 
 				//Returns an array of stats, only using accuracy at present.
@@ -287,12 +286,12 @@ public class SDM2012_Bagnall {
 		of.writeLine("NEAREST NEIGHBOUR CLASSIFIERS, 10 fold cross validation results");
 		of.writeLine(",TimeDomain,PowerSpectrumDomain,ACFDomain,PCADomain");
 		of.writeLine(",1-NN");
-		String[] files=TimeSeriesClassification.fileNames;
+		String[] files=DataSets.fileNames;
 		Classifier base=null;
 		if(baseClassifier.equals("1NN"))
 			base=new kNN(1);
 		else if(baseClassifier.equals("DTW"))
-			base=new DTW_kNN(1);
+			base=new DTW_1NN();
 		else if(baseClassifier.equals("RotationForest"))
 			base=new RotationForest();
 		else if(baseClassifier.equals("RandomForest")){
@@ -308,16 +307,16 @@ public class SDM2012_Bagnall {
 		try{
 			for(int i=0;i<files.length;i++)
 			{
-				Instances test=ClassifierTools.loadData(TimeSeriesClassification.path+files[i]+"\\"+files[i]+"_TEST");
-				Instances train=ClassifierTools.loadData(TimeSeriesClassification.path+files[i]+"\\"+files[i]+"_TRAIN");			
-				of.writeString("\n"+TimeSeriesClassification.fileNames[i]+",");
-				System.out.println("\n"+TimeSeriesClassification.fileNames[i]+",");
+				Instances test=ClassifierTools.loadData(DataSets.dropboxPath+files[i]+"\\"+files[i]+"_TEST");
+				Instances train=ClassifierTools.loadData(DataSets.dropboxPath+files[i]+"\\"+files[i]+"_TRAIN");			
+				of.writeString("\n"+DataSets.fileNames[i]+",");
+				System.out.println("\n"+DataSets.fileNames[i]+",");
 				//Set folds
 				int folds=setNosFolds(test,train);
 				Classifier[] sc= new Classifier[1];
 				Instances timeTrain, timeTest;
-				if(normalise(TimeSeriesClassification.fileNames[i])){
-					System.out.println("Standardising "+TimeSeriesClassification.fileNames[i]);
+				if(normalise(DataSets.fileNames[i])){
+					System.out.println("Standardising "+DataSets.fileNames[i]);
 					NormalizeCase nc=new NormalizeCase();
 					timeTrain=new Instances(train);
 					timeTest=new Instances(test);
@@ -332,7 +331,7 @@ public class SDM2012_Bagnall {
 				System.out.println("******************Time Domain******************");
   
 				sc[0]=AbstractClassifier.makeCopy(base);
-//				sc[1]=new DTW_kNN(1);
+//				sc[1]=new DTW_1NN(1);
 				stats=ClassifierTools.evalClassifiers(timeTest,timeTrain,folds,sc);
 				for(int j=0;j<stats.length;j++){
 					of.writeString(stats[j].accuracy+",");
@@ -405,12 +404,12 @@ public class SDM2012_Bagnall {
 		ClassifierTools.ResultsStats[] stats;
 		System.out.println("ENSEMBLECLASSIFIERS");
 		of.writeLine(baseClassifier+",CombinedEqual,CombinedBest,CombinedWeighted,CombinedStep");
-		String[] files=TimeSeriesClassification.fileNames;
+		String[] files=DataSets.fileNames;
 		Classifier base=null;
 		if(baseClassifier.equals("1NN"))
 			base=new kNN(1);
 		else if(baseClassifier.equals("DTW"))
-			base=new DTW_kNN(1);
+			base=new DTW_1NN();
 		else if(baseClassifier.equals("RotationForest"))
 			base=new RotationForest();
 		else if(baseClassifier.equals("RandomForest")){
@@ -444,16 +443,16 @@ public class SDM2012_Bagnall {
 		try{
 			for(int i=0;i<files.length;i++)
 			{
-				Instances test=ClassifierTools.loadData(TimeSeriesClassification.path+files[i]+"\\"+files[i]+"_TEST");
-				Instances train=ClassifierTools.loadData(TimeSeriesClassification.path+files[i]+"\\"+files[i]+"_TRAIN");			
-				of.writeString("\n"+TimeSeriesClassification.fileNames[i]+",");
-				System.out.println("\n"+TimeSeriesClassification.fileNames[i]+",");
+				Instances test=ClassifierTools.loadData(DataSets.dropboxPath+files[i]+"\\"+files[i]+"_TEST");
+				Instances train=ClassifierTools.loadData(DataSets.dropboxPath+files[i]+"\\"+files[i]+"_TRAIN");			
+				of.writeString("\n"+DataSets.fileNames[i]+",");
+				System.out.println("\n"+DataSets.fileNames[i]+",");
 				//Set folds
 				int folds=setNosFolds(test,train);
 				Classifier[] sc= new Classifier[1];
 				Instances timeTrain, timeTest;
-				if(normalise(TimeSeriesClassification.fileNames[i])){
-					System.out.println("Standardising "+TimeSeriesClassification.fileNames[i]);
+				if(normalise(DataSets.fileNames[i])){
+					System.out.println("Standardising "+DataSets.fileNames[i]);
 					NormalizeCase nc=new NormalizeCase();
 					timeTrain=new Instances(train);
 					timeTest=new Instances(test);
@@ -507,7 +506,7 @@ public class SDM2012_Bagnall {
 				}
 				String w=((TransformEnsembles)sc[0]).getWeights();
 				String w2=((TransformEnsembles)sc[0]).getCV();
-				of2.writeLine(TimeSeriesClassification.fileNames[i]+","+w+","+w2);
+				of2.writeLine(DataSets.fileNames[i]+","+w+","+w2);
 			}
 		}catch(Exception e){System.out.println("Exception ="+e);e.printStackTrace();System.exit(0);}
 	}	
@@ -642,12 +641,12 @@ public class SDM2012_Bagnall {
 	{
 		OutFile of =new OutFile(path);
 		try{
-			for(int i=0;i<TimeSeriesClassification.fileNames.length;i++)
+			for(int i=0;i<DataSets.fileNames.length;i++)
 			{
 //Load default test train split
-				Instances test=ClassifierTools.loadData(TimeSeriesClassification.path+TimeSeriesClassification.fileNames[i]+"\\"+TimeSeriesClassification.fileNames[i]+"_TEST");
-				Instances train=ClassifierTools.loadData(TimeSeriesClassification.path+TimeSeriesClassification.fileNames[i]+"\\"+TimeSeriesClassification.fileNames[i]+"_TRAIN");			
-				of.writeString(TimeSeriesClassification.fileNames[i]+","+train.numInstances()+","+test.numInstances());
+				Instances test=ClassifierTools.loadData(DataSets.dropboxPath+DataSets.fileNames[i]+"\\"+DataSets.fileNames[i]+"_TEST");
+				Instances train=ClassifierTools.loadData(DataSets.dropboxPath+DataSets.fileNames[i]+"\\"+DataSets.fileNames[i]+"_TRAIN");			
+				of.writeString(DataSets.fileNames[i]+","+train.numInstances()+","+test.numInstances());
 				of.writeString(","+(train.numAttributes()-1)+","+train.numClasses());
 				double[] classDist=new double[train.numClasses()];
 				for(int j=0;j<train.numInstances();j++)
@@ -684,7 +683,7 @@ public class SDM2012_Bagnall {
 //Table 2: Compare alternative 1-NN Euclid classifiers on the raw data	
 //		timeDomain("NN_EuclidClassifiers", new kNN(1));
 		//Table 2: Compare alternative 1-NN DTW classifiers on the raw data	
-//		timeDomain("NN_EuclidClassifiers", new DTW_kNN(1));
+//		timeDomain("NN_EuclidClassifiers", new DTW_1NN(1));
 //		dataTransforms("DTW");
 //		basicDataTransforms("1NN");		
 //		ensembleTransforms("1NN");
@@ -715,12 +714,12 @@ public class SDM2012_Bagnall {
 		ClassifierTools.ResultsStats stats;
 		System.out.println("Ensemble on several transformations");
 		try{
-			for(int i=0;i<TimeSeriesClassification.fileNames.length;i++)
+			for(int i=0;i<DataSets.fileNames.length;i++)
 			{
-				Instances test=ClassifierTools.loadData(TimeSeriesClassification.path+TimeSeriesClassification.fileNames[i]+"\\"+TimeSeriesClassification.fileNames[i]+"_TEST");
-				Instances train=ClassifierTools.loadData(TimeSeriesClassification.path+TimeSeriesClassification.fileNames[i]+"\\"+TimeSeriesClassification.fileNames[i]+"_TRAIN");			
-				of.writeString("\n"+TimeSeriesClassification.fileNames[i]+",");
-				System.out.println(TimeSeriesClassification.fileNames[i]+",");
+				Instances test=ClassifierTools.loadData(DataSets.dropboxPath+DataSets.fileNames[i]+"\\"+DataSets.fileNames[i]+"_TEST");
+				Instances train=ClassifierTools.loadData(DataSets.dropboxPath+DataSets.fileNames[i]+"\\"+DataSets.fileNames[i]+"_TRAIN");			
+				of.writeString("\n"+DataSets.fileNames[i]+",");
+				System.out.println(DataSets.fileNames[i]+",");
 							//Time domain			
 				//Set folds
 				int folds=setNosFolds(test,train);

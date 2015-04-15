@@ -44,8 +44,7 @@ public class ClassifierTools {
  * @param fullPath source path for ARFF file WITHOUT THE EXTENSION for some reason
  * @return Instances from path
  */
-	public static Instances loadData(String fullPath)
-	{
+	public static Instances loadData(String fullPath){
 		Instances d=null;
 		FileReader r;
 		try{		
@@ -135,8 +134,7 @@ public class ClassifierTools {
  * @param c
  * @return distributionForInstance for each Instance in testData
  */
-	public static double[][] predict(Instances trainData,Instances testData, Classifier c)
-	{
+	public static double[][] predict(Instances trainData,Instances testData, Classifier c){
 		double[][] results=new double[testData.numInstances()][];
 		try{
 			c.buildClassifier(trainData);
@@ -147,128 +145,127 @@ public class ClassifierTools {
 		}
 		return results;
 	}
-	/**
-	 * This method does a cross validation using the EvaluationUtils and stores the predicted and actual values.
-	 * I implemented this because I saw no way of using the built in cross vals to get the actual predictions,
-	 * useful for e.g McNemar's test (and cv variance). Note that the use of FastVector has been depreciated 
-         * @param c
-	 * @param allData
-	 * @param m
-	 * @return
-	 */
-		@SuppressWarnings({ "deprecation", "rawtypes" })
-		public static double[][] crossValidation(Classifier c, Instances allData, int m)
-		{
-			EvaluationUtils evalU;
-			double[][] preds=new double[2][allData.numInstances()];
-			Object[] p;
-			FastVector f;
-			NominalPrediction nom;
-			try{
-				evalU=new EvaluationUtils();
-				evalU.setSeed(10);
-				f=evalU.getCVPredictions(c,allData,m);
-				p=f.toArray(); 
-				for(int i=0;i<p.length;i++)
-				{
-					nom=((NominalPrediction)p[i]);
-					preds[1][i]=nom.predicted();
-					preds[0][i]=nom.actual();
-				}
-			}catch(Exception e){
-				System.out.println(" Error ="+e+" in method Cross Validate Experiment");
-				e.printStackTrace();
-				System.out.println(allData.relationName());
-				System.exit(0);
-				
-			}
-			return preds;
-		
-		}
-	
-	
-	/**
-	 * 	This method does a cross validation using the EvaluationUtils and stores the predicted and actual values.
-	 * Accuracy is stored in preds[0][0], StdDev of accuracy between folds SHOULD BE stored in preds[1][0].
-         * TO IMPLEMENT!
-         * Could do with some testing, there is some uncertainty over the last fold.
-	 * @param allData
-	 * @param m
-	 * @return
-	 */
-		@SuppressWarnings({ "deprecation", "rawtypes" })
-		public static double[][] crossValidationWithStats(Classifier c, Instances allData, int m)
-		{
-			EvaluationUtils evalU;
-			double[][] preds=new double[2][allData.numInstances()+1];
-                        int foldSize=allData.numInstances()/m;  //Last fold may have fewer cases than this
-			FastVector f;
-			Object[] p;
-			NominalPrediction nom;
-                        double acc=0,sum=0,sumsq=0;
-			try{
-				evalU=new EvaluationUtils();
-//				evalU.setSeed(10);
-				f=evalU.getCVPredictions(c,allData,m);
-				p=f.toArray(); 
-				for(int i=0;i<p.length;i++)
-				{
-                                    nom=((NominalPrediction)p[i]);
-                                    preds[1][i+1]=nom.predicted();
-                                    preds[0][i+1]=nom.actual();
-//					System.out.println(" pred = "+preds[i+1]);
-                                    if(preds[0][i+1]==preds[1][i+1]){
-        				preds[0][0]++;
-                                        acc++;
-                                    }
-                                    if((i>0 && i%foldSize==0)){
-//Sum Squares                                        
-                                        sumsq+=(acc/foldSize)*(acc/foldSize);
-//Sum                                                                           
-                                        sum+=(acc/foldSize);
-                                        acc=0;                                        
-                                    }
-				}
-				//Accuracy stored in preds[0][0]
-				preds[0][0]=preds[0][0]/p.length;
-                                preds[1][0]=(sumsq-sum*sum/m)/m;
-                                preds[1][0]=Math.sqrt(preds[1][0]);
-			}catch(Exception e)
-			{
-				System.out.println(" Error ="+e+" in method Cross Validate Experiment");
-				e.printStackTrace();
-				System.out.println(allData.relationName());
-				System.exit(0);
-				
-			}
-			return preds;
-		
-		}
-		
-	public static double stratifiedCrossValidation(Instances data, Classifier c, int folds, int seed){
-            Random rand = new Random(seed);   // create seeded number generator
-            Instances randData = new Instances(data);   // create copy of original data
-            randData.randomize(rand);         // randomize data with number generator
-            randData.stratify(folds);
-            int correct=0;
-            int total=data.numInstances();
-            for (int n = 0; n < folds; n++) {
-               Instances train = randData.trainCV(folds, n);
-               Instances test = randData.testCV(folds, n);
-               try{
-                   c.buildClassifier(train);
-                    for(Instance ins:test){
-                        int pred=(int)c.classifyInstance(ins);
-                        if(pred==ins.classValue())
-                            correct++;
+/**
+ * This method does a cross validation using the EvaluationUtils and stores the predicted and actual values.
+ * I implemented this because I saw no way of using the built in cross vals to get the actual predictions,
+ * useful for e.g McNemar's test (and cv variance). Note that the use of FastVector has been depreciated 
+ * @param c
+ * @param allData
+ * @param m
+ * @return
+ */
+    @SuppressWarnings({ "deprecation", "rawtypes" })
+    public static double[][] crossValidation(Classifier c, Instances allData, int m){
+            EvaluationUtils evalU;
+            double[][] preds=new double[2][allData.numInstances()];
+            Object[] p;
+            FastVector f;
+            NominalPrediction nom;
+            try{
+                    evalU=new EvaluationUtils();
+                    evalU.setSeed(10);
+                    f=evalU.getCVPredictions(c,allData,m);
+                    p=f.toArray(); 
+                    for(int i=0;i<p.length;i++)
+                    {
+                            nom=((NominalPrediction)p[i]);
+                            preds[1][i]=nom.predicted();
+                            preds[0][i]=nom.actual();
                     }
-               }catch(Exception e){
-                   System.err.println("ERROR BUILDING FOLD "+n+" for data set "+data.relationName());
-                   System.exit(0);
-               }
-            }            
-            return ((double)correct)/total;
-        }
+            }catch(Exception e){
+                    System.out.println(" Error ="+e+" in method Cross Validate Experiment");
+                    e.printStackTrace();
+                    System.out.println(allData.relationName());
+                    System.exit(0);
+
+            }
+            return preds;
+
+    }
+	
+	
+/**
+* 	This method does a cross validation using the EvaluationUtils and stores the predicted and actual values.
+* Accuracy is stored in preds[0][0], StdDev of accuracy between folds SHOULD BE stored in preds[1][0].
+* TO IMPLEMENT!
+* Could do with some testing, there is some uncertainty over the last fold.
+* @param allData
+* @param m
+* @return
+*/
+    @SuppressWarnings({ "deprecation", "rawtypes" })
+    public static double[][] crossValidationWithStats(Classifier c, Instances allData, int m)
+    {
+            EvaluationUtils evalU;
+            double[][] preds=new double[2][allData.numInstances()+1];
+            int foldSize=allData.numInstances()/m;  //Last fold may have fewer cases than this
+            FastVector f;
+            Object[] p;
+            NominalPrediction nom;
+            double acc=0,sum=0,sumsq=0;
+            try{
+                    evalU=new EvaluationUtils();
+//				evalU.setSeed(10);
+                    f=evalU.getCVPredictions(c,allData,m);
+                    p=f.toArray(); 
+                    for(int i=0;i<p.length;i++)
+                    {
+                        nom=((NominalPrediction)p[i]);
+                        preds[1][i+1]=nom.predicted();
+                        preds[0][i+1]=nom.actual();
+//					System.out.println(" pred = "+preds[i+1]);
+                        if(preds[0][i+1]==preds[1][i+1]){
+                            preds[0][0]++;
+                            acc++;
+                        }
+                        if((i>0 && i%foldSize==0)){
+//Sum Squares                                        
+                            sumsq+=(acc/foldSize)*(acc/foldSize);
+//Sum                                                                           
+                            sum+=(acc/foldSize);
+                            acc=0;                                        
+                        }
+                    }
+                    //Accuracy stored in preds[0][0]
+                    preds[0][0]=preds[0][0]/p.length;
+                    preds[1][0]=(sumsq-sum*sum/m)/m;
+                    preds[1][0]=Math.sqrt(preds[1][0]);
+            }catch(Exception e)
+            {
+                    System.out.println(" Error ="+e+" in method Cross Validate Experiment");
+                    e.printStackTrace();
+                    System.out.println(allData.relationName());
+                    System.exit(0);
+
+            }
+            return preds;
+
+    }
+		
+    public static double stratifiedCrossValidation(Instances data, Classifier c, int folds, int seed){
+        Random rand = new Random(seed);   // create seeded number generator
+        Instances randData = new Instances(data);   // create copy of original data
+        randData.randomize(rand);         // randomize data with number generator
+        randData.stratify(folds);
+        int correct=0;
+        int total=data.numInstances();
+        for (int n = 0; n < folds; n++) {
+           Instances train = randData.trainCV(folds, n);
+           Instances test = randData.testCV(folds, n);
+           try{
+               c.buildClassifier(train);
+                for(Instance ins:test){
+                    int pred=(int)c.classifyInstance(ins);
+                    if(pred==ins.classValue())
+                        correct++;
+                }
+           }catch(Exception e){
+               System.err.println("ERROR BUILDING FOLD "+n+" for data set "+data.relationName());
+               System.exit(0);
+           }
+        }            
+        return ((double)correct)/total;
+    }
 
 /**
  * This does a manual cross validation (i.e. without EvalUtils) and rather confusingly returns 
@@ -278,48 +275,42 @@ public class ClassifierTools {
  * @param numFolds
  * @return distribution for each Instance 
  */
-	public static double[][] performManualCrossValidation(Instances data, Classifier c, int numFolds)
-	{
-		double[][] results=new double[data.numInstances()][data.numClasses()];
-		Instances train;
-		Instances test;
-		int interval = data.numInstances()/numFolds;
-		int start=0;		
-		int end=interval;
-		int testCount=0;
-		try{
-		for(int f=0;f<numFolds;f++)
-		{
-			//Split Data
-			train=new Instances(data,0);
-			test=new Instances(data,0);
-			for(int i=0;i<data.numInstances();i++)
-			{
-				if(i>=start && i<end)
-					test.add(data.instance(i));
-				else
-					train.add(data.instance(i));
-				
-			}
-			//Classify on training
-			c.buildClassifier(data);
-			//Predict
-			for(int i=0;i<interval;i++)
-			{
-				results[testCount]=c.distributionForInstance(test.instance(i));
-				testCount++;
-			}
-			//Increment
-			start=end;
-			end=end+interval;
-		}
-		}catch(Exception e)
-		{
-			System.out.println(" Error in manual cross val");
-		}
-		return results;
-		
-	}
+    public static double[][] performManualCrossValidation(Instances data, Classifier c, int numFolds)
+    {
+        double[][] results=new double[data.numInstances()][data.numClasses()];
+        Instances train;
+        Instances test;
+        int interval = data.numInstances()/numFolds;
+        int start=0;		
+        int end=interval;
+        int testCount=0;
+        try{
+            for(int f=0;f<numFolds;f++){
+                //Split Data
+                train=new Instances(data,0);
+                test=new Instances(data,0);
+                for(int i=0;i<data.numInstances();i++){
+                    if(i>=start && i<end)
+                            test.add(data.instance(i));
+                    else
+                            train.add(data.instance(i));
+                }
+                //Classify on training
+                c.buildClassifier(data);
+                //Predict
+                for(int i=0;i<interval;i++){
+                    results[testCount]=c.distributionForInstance(test.instance(i));
+                    testCount++;
+                }
+                //Increment
+                start=end;
+                end=end+interval;
+            }
+        }catch(Exception e){
+            System.out.println(" Error in manual cross val");
+        }
+        return results;
+    }
 	
 /**
  * Writes the predictions vs actual of a pre trained classifier to a file
@@ -327,177 +318,170 @@ public class ClassifierTools {
  * @param data
  * @param path
  */
-	public static void makePredictions(Classifier model,Instances data, String path)
-	{
-		OutFile f1 = new OutFile(path+".csv");
-		double actual,pred;
-		Instance t;
-		try{
-		for(int i=0;i<data.numInstances();i++)
-		{
-			t=data.instance(i);
-			actual=t.classValue();
-			pred=model.classifyInstance(t);
-			f1.writeLine(i+","+actual+","+pred);
-		}
-		}catch(Exception e)
-		{
-			System.out.println("Exception in makePredictions"+e);
-		}
-	}
+    public static void makePredictions(Classifier model,Instances data, String path){
+        OutFile f1 = new OutFile(path+".csv");
+        double actual,pred;
+        Instance t;
+        try{
+            for(int i=0;i<data.numInstances();i++){
+                t=data.instance(i);
+                actual=t.classValue();
+                pred=model.classifyInstance(t);
+                f1.writeLine(i+","+actual+","+pred);
+            }
+        }catch(Exception e){
+            System.out.println("Exception in makePredictions"+e);
+        }
+    }
 
+    public static Classifier[] setSingleClassifiers(ArrayList<String> names){
+        ArrayList<Classifier> sc2=new ArrayList<Classifier>();
+        IBk k=new IBk(50);
+        k.setCrossValidate(true);
+        sc2.add(k);
+        names.add("kNN");
+        Classifier c;
+        sc2.add(new NaiveBayes());
+        names.add("NB");
+        sc2.add(new J48());
+        names.add("C45");
+        c=new SMO();
+        PolyKernel kernel = new PolyKernel();
+        kernel.setExponent(1);
+        ((SMO)c).setKernel(kernel);
+        sc2.add(c);
+        names.add("SVML");
+        c=new SMO();
+        kernel = new PolyKernel();
+        kernel.setExponent(2);
+        ((SMO)c).setKernel(kernel);
+        sc2.add(c);
+        names.add("SVMQ");
+        c=new RandomForest();
+        ((RandomForest)c).setNumTrees(100);
+        sc2.add(c);
+        names.add("RandF100");
+        c=new RotationForest();
+        sc2.add(c);
+        names.add("RotF30");
 
+        Classifier[] sc=new Classifier[sc2.size()];
+        for(int i=0;i<sc.length;i++)
+                sc[i]=sc2.get(i);
 
-	public static Classifier[] setSingleClassifiers(ArrayList<String> names){
-		ArrayList<Classifier> sc2=new ArrayList<Classifier>();
-		IBk k=new IBk(50);
-		k.setCrossValidate(true);
-		sc2.add(k);
-		names.add("kNN");
-		Classifier c;
-		sc2.add(new NaiveBayes());
-		names.add("NB");
-		sc2.add(new J48());
-		names.add("C45");
-		c=new SMO();
-		PolyKernel kernel = new PolyKernel();
-		kernel.setExponent(1);
-		((SMO)c).setKernel(kernel);
-		sc2.add(c);
-		names.add("SVML");
-		c=new SMO();
-		kernel = new PolyKernel();
-		kernel.setExponent(2);
-		((SMO)c).setKernel(kernel);
-		sc2.add(c);
-		names.add("SVMQ");
-		c=new RandomForest();
-		((RandomForest)c).setNumTrees(100);
-		sc2.add(c);
-		names.add("RandF100");
-		c=new RotationForest();
-		sc2.add(c);
-		names.add("RotF30");
-	
-		Classifier[] sc=new Classifier[sc2.size()];
-		for(int i=0;i<sc.length;i++)
-			sc[i]=sc2.get(i);
+        return sc;
+    }
 
-		return sc;
-	}
-	public static double singleTrainTestSplitAccuracy(Classifier c, Instances train, Instances test)
-	{
-		//Perform a simple experiment,
-		double acc=0;
-		try{
-			c.buildClassifier(train);
-                        int correct=0;
-                        for(Instance ins:test){
-                            int pred=(int)c.classifyInstance(ins);
-                            if(pred==ins.classValue())
-                                correct++;
-                        }
-			acc=correct/(double)test.numInstances();
-			
-		}catch(Exception e)
-		{
-			System.out.println(" Error ="+e+" in method simpleExperiment"+e);
-			e.printStackTrace();
-			System.exit(0);
-		}
-		return acc;
-	}	
-	
-/**
- * 
- * @author ajb
- * Stores results stats for classifiers. NEEDS TESTING, not sure if it is used anywhere!
- */
-	public static class ResultsStats{
-		public double accuracy;
-		public double sd;
-		public double min;
-		public double max;
-		
-		public ResultsStats(){
-			accuracy=0;
-			sd=0;
-		}
-		public ResultsStats(double[][] preds, int folds){
-			findCVMeanSD(preds,folds);
-		}
-		public static ResultsStats find(double[][] preds, int folds){
-			ResultsStats f=new ResultsStats();
-			f.findCVMeanSD(preds,folds);
-			return f;
-		}
-		
-			public void findCVMeanSD(double[][] preds, int folds){
-			double[] acc= new double[folds];
-                        //System.out.println("No. of folds = "+acc.length); // Test output
-			int count=0; // Changed from 1
-			int window=(preds[0].length-1)/folds;	//Put any excess in the last fold 
-                        window=(preds[0].length)/folds; //Changed from length-1
-                        //System.out.println("Window = "+window+" readings; excess goes in last fold"); // Test output
-			for(int i=0;i<folds-1;i++)
-			{
-				acc[i]=0;
-				for(int j=0;j<window;j++){
-					if(preds[0][count]==preds[1][count])
-						acc[i]++;
-					count++;
-                                        
-				}
-                                
-                                //System.out.println("Accuracy of fold "+(i+1)+" = " + acc[i]);//Test output
-			}
-			//Last fold is the remainder 
-			int lastSize=preds[0].length-count;
-                        //System.out.println("Last fold has " + lastSize + " instances.");//Test output
-			for(int j=count;j<preds[0].length;j++){
-				if(preds[0][count]==preds[1][count])
-					acc[folds-1]++;
-				count++;
-                                //System.out.println(acc[folds-1]);//Test output
-			}
-                        //System.out.println("Final fold has accuracy = " + acc[folds-1]);//Test outputs
-	//Find mean, min and max		
-			accuracy=acc[0];
-                        //System.out.println("First fold accuracy = "+accuracy);//Test output
-			//min=1.0; // Should be acc[0];
-                        min=acc[0];
-			max=0;
-			for(int i=1;i<folds;i++){
-                                accuracy+=acc[i];
-                                //System.out.println("Sum of accuracies = " + accuracy);//Test output
-				if(acc[i]<min)
-					min=acc[i];
-				if(acc[i]>max)
-					max=acc[i];
-			}
-			//System.out.println(accuracy+"/"+(preds[0].length));//Test output
-                        accuracy/=preds[0].length;//Changed from length -1.
-                        //System.out.println(accuracy);//Test output
-	//Find SD
-			sd=0;
-			for(int i=0;i<folds-1;i++)// Changed from int i=1
-                        {sd+=(acc[i]/window-accuracy)*(acc[i]/window-accuracy);
-                         //System.out.println("Accuracy used here = " +acc[i]); //Test output, added braces.
-                        }
-                        sd+=(acc[folds-1]/lastSize-accuracy)*(acc[folds-1]/lastSize-accuracy);//Last fold
-			sd/=folds;
-			sd=Math.sqrt(sd);
-		}
-			public String toString(){
-				return "Accuracy = "+accuracy+" SD = "+sd+" Min = "+min+" Max = "+max; //Added some spaces
-			}
-		
-	}
+    public static double singleTrainTestSplitAccuracy(Classifier c, Instances train, Instances test){
+        //Perform a simple experiment,
+        double acc=0;
+        try{
+            c.buildClassifier(train);
+            int correct=0;
+            for(Instance ins:test){
+                int pred=(int)c.classifyInstance(ins);
+                if(pred==ins.classValue())
+                    correct++;
+            }
+            acc=correct/(double)test.numInstances();
+        }catch(Exception e)
+        {
+            System.out.println(" Error ="+e+" in method simpleExperiment"+e);
+            e.printStackTrace();
+            System.exit(0);
+        }
+        return acc;
+    }	
+    
+    public static void removeConstantTrainAttributes(Instances train, Instances test){
+        for(int i=0;i<train.numAttributes();i++){
+// Test if constant
+            int j=1;
+            while(j<train.numInstances() && train.instance(j-1).value(i)==train.instance(j).value(i))
+                j++;
+            if(j==train.numInstances()){
+    // Remove from train
 
+    // Remove from test            
+            }
+        }
+        
+    }
+    
+    public static class ResultsStats{
+        public double accuracy;
+        public double sd;
+        public double min;
+        public double max;
 
-	
-
-
+        public ResultsStats(){
+            accuracy=0;
+            sd=0;
+        }
+        public ResultsStats(double[][] preds, int folds){
+            findCVMeanSD(preds,folds);
+        }
+        public static ResultsStats find(double[][] preds, int folds){
+            ResultsStats f=new ResultsStats();
+            f.findCVMeanSD(preds,folds);
+            return f;
+        }
+        public void findCVMeanSD(double[][] preds, int folds){
+            double[] acc= new double[folds];
+            //System.out.println("No. of folds = "+acc.length); // Test output
+            int count=0; // Changed from 1
+            int window=(preds[0].length-1)/folds;	//Put any excess in the last fold 
+            window=(preds[0].length)/folds; //Changed from length-1
+            //System.out.println("Window = "+window+" readings; excess goes in last fold"); // Test output
+            for(int i=0;i<folds-1;i++){
+                acc[i]=0;
+                for(int j=0;j<window;j++){
+                        if(preds[0][count]==preds[1][count])
+                                acc[i]++;
+                        count++;
+                }
+            }
+            //Last fold is the remainder 
+            int lastSize=preds[0].length-count;
+            //System.out.println("Last fold has " + lastSize + " instances.");//Test output
+            for(int j=count;j<preds[0].length;j++){
+                if(preds[0][count]==preds[1][count])
+                        acc[folds-1]++;
+                count++;
+            }
+            //System.out.println("Final fold has accuracy = " + acc[folds-1]);//Test outputs
+//Find mean, min and max		
+            accuracy=acc[0];
+            //System.out.println("First fold accuracy = "+accuracy);//Test output
+            //min=1.0; // Should be acc[0];
+            min=acc[0];
+            max=0;
+            for(int i=1;i<folds;i++){
+                accuracy+=acc[i];
+                //System.out.println("Sum of accuracies = " + accuracy);//Test output
+                if(acc[i]<min)
+                        min=acc[i];
+                if(acc[i]>max)
+                        max=acc[i];
+            }
+            //System.out.println(accuracy+"/"+(preds[0].length));//Test output
+            accuracy/=preds[0].length;//Changed from length -1.
+            //System.out.println(accuracy);//Test output
+//Find SD
+            sd=0;
+            for(int i=0;i<folds-1;i++)// Changed from int i=1
+            {
+                sd+=(acc[i]/window-accuracy)*(acc[i]/window-accuracy);
+             //System.out.println("Accuracy used here = " +acc[i]); //Test output, added braces.
+            }
+            sd+=(acc[folds-1]/lastSize-accuracy)*(acc[folds-1]/lastSize-accuracy);//Last fold
+            sd/=folds;
+            sd=Math.sqrt(sd);
+        }
+        public String toString(){
+                return "Accuracy = "+accuracy+" SD = "+sd+" Min = "+min+" Max = "+max; //Added some spaces
+        }
+    }
 	
 //	public static void main(String[] args) // Test harness.
 //	{

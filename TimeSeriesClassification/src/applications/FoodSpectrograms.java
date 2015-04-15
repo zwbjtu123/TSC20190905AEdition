@@ -11,7 +11,7 @@ import utilities.ThreadedClassifierExperiment;
 import weka.classifiers.Classifier;
 import weka.classifiers.functions.SMO;
 import weka.classifiers.functions.supportVector.PolyKernel;
-import weka.classifiers.lazy.DTW_kNN;
+import weka.classifiers.lazy.DTW_1NN;
 import weka.classifiers.lazy.IBk;
 import weka.classifiers.lazy.kNN;
 import weka.core.Instances;
@@ -99,8 +99,7 @@ public class FoodSpectrograms {
         Thread[] threads=new Thread[nosExp];
         
         for(int i=0;i<nosExp;i++){
-            DTW_kNN c=new DTW_kNN();
-            c.setMaxR(1);
+            DTW_1NN c=new DTW_1NN();
             c.optimiseWindow(true);
                     
             runs[i]=new ThreadedClassifierExperiment(train[i],test[i],c);

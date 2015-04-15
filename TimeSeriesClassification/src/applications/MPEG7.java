@@ -15,7 +15,7 @@ import weka.classifiers.Evaluation;
 import weka.classifiers.bayes.NaiveBayes;
 import weka.classifiers.functions.SMO;
 import weka.classifiers.functions.supportVector.PolyKernel;
-import weka.classifiers.lazy.DTW_kNN;
+import weka.classifiers.lazy.DTW_1NN;
 import weka.classifiers.lazy.IBk;
 import weka.classifiers.meta.RotationForest;
 import weka.classifiers.trees.J48;
@@ -53,14 +53,9 @@ public class MPEG7 {
                 c2.setCrossValidate(true);
                 sc2.add(c2);
 		names.add("kNN");
-                c=new DTW_kNN();
-		((DTW_kNN)c).setMaxR(0.1);
+                c=new DTW_1NN();
 		sc2.add(c);
 		names.add("OneNNDTW_10");
-                c=new DTW_kNN();
-		((DTW_kNN)c).setMaxR(0.3);
-		sc2.add(c);
-		names.add("OneNNDTW_30");
  /*          
 		sc2.add(new NaiveBayes());
 		names.add("NB");

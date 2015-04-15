@@ -19,7 +19,7 @@ import weka.classifiers.Evaluation;
 import weka.classifiers.bayes.NaiveBayes;
 import weka.classifiers.functions.SMO;
 import weka.classifiers.functions.supportVector.PolyKernel;
-import weka.classifiers.lazy.DTW_kNN;
+import weka.classifiers.lazy.DTW_1NN;
 import weka.classifiers.lazy.IBk;
 import weka.classifiers.lazy.kNN;
 import weka.classifiers.meta.RotationForest;
@@ -91,8 +91,7 @@ public class Otoliths {
 		sc2.add(c);
                 ((RotationForest) c).setNumIterations(50);
 		names.add("RotF30");
-                c=new DTW_kNN(1);
-		((DTW_kNN)c).setMaxR(1);		
+                c=new DTW_1NN();
 		sc2.add(c);
 		names.add("NN_DTW");
 	
@@ -191,7 +190,7 @@ public class Otoliths {
 		if(baseClassifier.equals("1NN"))
 			base=new kNN(1);
 		else if(baseClassifier.equals("DTW"))
-			base=new DTW_kNN(1);
+			base=new DTW_1NN();
 		else if(baseClassifier.equals("RotationForest"))
 			base=new RotationForest();
 		else if(baseClassifier.equals("RandomForest")){

@@ -1,6 +1,6 @@
 package applications;
 
-import development.TimeSeriesClassification;
+import development.*;
 import fileIO.OutFile;
 import weka.core.Instances;
 import weka.filters.NormalizeCase;
@@ -13,8 +13,8 @@ public class ElectricityUsage {
 
    
     public static void fixData(){
-        Instances test=utilities.ClassifierTools.loadData(TimeSeriesClassification.path+"ElectricDevices"+"\\"+"ElectricDevices"+"_TEST");
-	Instances train=utilities.ClassifierTools.loadData(TimeSeriesClassification.path+"ElectricDevices"+"\\"+"ElectricDevices"+"_TRAIN");			
+        Instances test=utilities.ClassifierTools.loadData(DataSets.dropboxPath+"ElectricDevices"+"\\"+"ElectricDevices"+"_TEST");
+	Instances train=utilities.ClassifierTools.loadData(DataSets.dropboxPath+"ElectricDevices"+"\\"+"ElectricDevices"+"_TRAIN");			
         int i=0;
         int c=0;
         while(i<train.numInstances()){
@@ -45,8 +45,8 @@ public class ElectricityUsage {
                 i++;
         }
         System.out.println(" Removed "+c+" from test");
-        OutFile of = new OutFile(TimeSeriesClassification.path+"ElectricDevices"+"\\"+"ElectricDevices"+"_TEST.arff");
-        OutFile of2 = new OutFile(TimeSeriesClassification.path+"ElectricDevices"+"\\"+"ElectricDevices"+"_TRAIN.arff");
+        OutFile of = new OutFile(DataSets.dropboxPath+"ElectricDevices"+"\\"+"ElectricDevices"+"_TEST.arff");
+        OutFile of2 = new OutFile(DataSets.dropboxPath+"ElectricDevices"+"\\"+"ElectricDevices"+"_TRAIN.arff");
         of.writeLine(test.toString());
         of2.writeLine(train.toString());
         

@@ -8,6 +8,7 @@ Data Path
 
 package applications;
 
+import fileIO.InFile;
 import fileIO.OutFile;
 import java.util.ArrayList;
 import java.util.Random;
@@ -284,17 +285,6 @@ public static void tidyUp() throws Exception{
                 of.writeString(all+",");
             
          }
-
-
-public static void main(String[] args) throws Exception{
-//    classifyBySummaryStats();
- //   classifyOnNormalizedRange();
-//   tidyUp();
- //  System.exit(0);
-//    debugRun();
-    clusterRun(args);
- //   desktopRun(2);
-}
 public static void debugRun()throws Exception{
     String path="Results/IFR/TwoClassDistillerySplits/";
     String sourcePath="IFRProblems/";
@@ -327,6 +317,12 @@ public static void clusterRun(String[] args) throws Exception{
     resampleExperimentSplitByDistillery(all,rep,path);    
 }
 
+public static void mergeBoozeFiles(String path,int nosBottles){
+    OutFile of = new OutFile(path+"combinedBooze.csv");
+    for(int i=0;i<nosBottles;i++){
+        InFile f =new InFile(path+"booze"+i+".csv");
+        of.writeLine(f.readLine());   }
+}
    public static void firstExperiment(){
 //   generateHeader();
     Instances all = ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\IFR Spirits\\TwoClassSpirits");
@@ -356,5 +352,20 @@ public static void clusterRun(String[] args) throws Exception{
 //   System.out.println(" Rand forest 10 fold acc ="+acc[0][0]);
           
    } 
+public static void main(String[] args) throws Exception{
+    mergeBoozeFiles("C:\\Users\\ajb\\Dropbox\\Results\\IFR Spirits\\GlobalShape\\ElasticEnsemble\\",46);
+    System.exit(0);
+    Instances all=ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\IFR Spirits\\2ClassProblem");
+    System.out.println(" all = "+all.toString());
+    
+    
+//    classifyBySummaryStats();
+ //   classifyOnNormalizedRange();
+//   tidyUp();
+ //  System.exit(0);
+//    debugRun();
+ //   clusterRun(args);
+ //   desktopRun(2);
+}
  
 }

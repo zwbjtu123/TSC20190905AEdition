@@ -64,104 +64,102 @@ import weka.filters.timeseries.shapelet_transforms.ShapeletTransformFactory;
  */
 public class ACFDomainClassification {
     
-	static String resultPath="C:\\Users\\ajb\\Dropbox\\Results\\ACFTest";
-	static String dataPath="C:\\Data\\";
+    static String resultPath="C:\\Users\\ajb\\Dropbox\\Results\\ACFTest";
+    static String dataPath="C:\\Data\\";
     
     public static void transformAllDataSets(String resultsPath, boolean saveTransforms){
-             DecimalFormat df = new DecimalFormat("###.###");
-            OutFile of = new OutFile(resultsPath);
-            System.out.println("************** ACF TRANSFORM ON ALL*******************");
-            System.out.println("************** Use concatination of ACF and PACF, both with lag n/4*******************");
-            ArrayList<String> names=new ArrayList<>();
-            String[] fileNames=DataSets.fileNames;
-            for(String s:names){
-                of.writeString(s+",");
-                System.out.print(s+"\t");
-            }
-                of.writeString("\n");
-                System.out.print("\n");
-                for(int i=0;i<fileNames.length;i++)
-                {
-                     Instances test=null;
-                     Instances train=null;
-                    try{
-                           test=utilities.ClassifierTools.loadData(TimeSeriesClassification.path+fileNames[i]+"\\"+fileNames[i]+"_TEST");
-                            train=utilities.ClassifierTools.loadData(TimeSeriesClassification.path+fileNames[i]+"\\"+fileNames[i]+"_TRAIN");			
-                            OutFile o2=null,o3=null;
-                            if(saveTransforms){
-                                File f = new File(dataPath+"ACF Transformed TSC Problems\\ACF"+fileNames[i]);
-                                if(!f.isDirectory())//Test whether directory exists
-                                    f.mkdir();
-                                o2=new OutFile(dataPath+"ACF Transformed TSC Problems\\ACF"+fileNames[i]+"\\ACF"+fileNames[i]+"_TRAIN.arff");
-                                o3=new OutFile(dataPath+"ACF Transformed TSC Problems\\ACF"+fileNames[i]+"\\ACF"+fileNames[i]+"_TEST.arff");
-                            }
-                            System.gc();
-                            System.out.println("Transforming "+fileNames[i]);
-                                
-                            int maxLag=(train.numAttributes()-1)/4;
-                            Instances allTrain=comboAcfPacf(train,maxLag);
-                            Instances allTest=comboAcfPacf(test,maxLag);
-                            dataValidate(train,test);
-                            
-                            if(saveTransforms){
-    //Need to do this instance by instance to save memory
-                                Instances header=new Instances(allTrain,0);
-                                o2.writeLine(header.toString());
-                                o3.writeLine(header.toString());
-                                for(int j=0;j<allTrain.numInstances();j++)
-                                    o2.writeLine(allTrain.instance(j).toString());
-                                for(int j=0;j<allTest.numInstances();j++)
-                                    o3.writeLine(allTest.instance(j).toString());
-                            }
+        DecimalFormat df = new DecimalFormat("###.###");
+        OutFile of = new OutFile(resultsPath);
+        System.out.println("************** ACF TRANSFORM ON ALL*******************");
+        System.out.println("************** Use concatination of ACF and PACF, both with lag n/4*******************");
+        ArrayList<String> names=new ArrayList<>();
+        String[] fileNames=DataSets.fileNames;
+        for(String s:names){
+            of.writeString(s+",");
+            System.out.print(s+"\t");
+        }
+        of.writeString("\n");
+        System.out.print("\n");
+        for(int i=0;i<fileNames.length;i++)
+        {
+             Instances test=null;
+             Instances train=null;
+            try{
+                test=utilities.ClassifierTools.loadData(DataSets.dropboxPath+fileNames[i]+"\\"+fileNames[i]+"_TEST");
+                train=utilities.ClassifierTools.loadData(DataSets.dropboxPath+fileNames[i]+"\\"+fileNames[i]+"_TRAIN");			
+                OutFile o2=null,o3=null;
+                if(saveTransforms){
+                    File f = new File(dataPath+"ACF Transformed TSC Problems\\ACF"+fileNames[i]);
+                    if(!f.isDirectory())//Test whether directory exists
+                        f.mkdir();
+                    o2=new OutFile(dataPath+"ACF Transformed TSC Problems\\ACF"+fileNames[i]+"\\ACF"+fileNames[i]+"_TRAIN.arff");
+                    o3=new OutFile(dataPath+"ACF Transformed TSC Problems\\ACF"+fileNames[i]+"\\ACF"+fileNames[i]+"_TEST.arff");
+                }
+                System.gc();
+                System.out.println("Transforming "+fileNames[i]);
 
+                int maxLag=(train.numAttributes()-1)/4;
+                Instances allTrain=comboAcfPacf(train,maxLag);
+                Instances allTest=comboAcfPacf(test,maxLag);
+                dataValidate(train,test);
+
+                if(saveTransforms){
+//Need to do this instance by instance to save memory
+                    Instances header=new Instances(allTrain,0);
+                    o2.writeLine(header.toString());
+                    o3.writeLine(header.toString());
+                    for(int j=0;j<allTrain.numInstances();j++)
+                        o2.writeLine(allTrain.instance(j).toString());
+                    for(int j=0;j<allTest.numInstances();j++)
+                        o3.writeLine(allTest.instance(j).toString());
+                }
     //Save results to file
     //Train Classifiers
-                            System.out.print(" Classifying ....\n ");
-                            Classifier[] c= setDefaultSingleClassifiers(names);
-                            of.writeString(fileNames[i]+",");
-                            for(int j=0;j<c.length;j++){
-                                c[j].buildClassifier(allTrain);
-                                double a=utilities.ClassifierTools.accuracy(allTest,c[j]);
-                                System.out.print(a+"\t");
-                                of.writeString(a+",");
-                            }                                    
-                                System.out.print("\n");
-                                of.writeString("\n");
-                    }catch(Exception e){
-                            System.out.println(" Error in accuracy ="+e);
-                            e.printStackTrace();
-                            System.exit(0);
-                    } catch(OutOfMemoryError m){
-                        System.out.println("OUT OF MEMORY ERROR");
-                        m.printStackTrace();
-                        Runtime runtime = Runtime.getRuntime();
-                        long totalMemory = runtime.totalMemory();
-                        long freeMemory = runtime.freeMemory();
-                        long maxMemory = runtime.maxMemory();
-                        long usedMemory = totalMemory - freeMemory;
+                System.out.print(" Classifying ....\n ");
+                Classifier[] c= setDefaultSingleClassifiers(names);
+                of.writeString(fileNames[i]+",");
+                for(int j=0;j<c.length;j++){
+                    c[j].buildClassifier(allTrain);
+                    double a=utilities.ClassifierTools.accuracy(allTest,c[j]);
+                    System.out.print(a+"\t");
+                    of.writeString(a+",");
+                }                                    
+                System.out.print("\n");
+                of.writeString("\n");
+            }catch(Exception e){
+                System.out.println(" Error in accuracy ="+e);
+                e.printStackTrace();
+                System.exit(0);
+            } catch(OutOfMemoryError m){
+                System.out.println("OUT OF MEMORY ERROR");
+                m.printStackTrace();
+                Runtime runtime = Runtime.getRuntime();
+                long totalMemory = runtime.totalMemory();
+                long freeMemory = runtime.freeMemory();
+                long maxMemory = runtime.maxMemory();
+                long usedMemory = totalMemory - freeMemory;
     //Summarise memory                    
-                        System.out.println(" Total ="+totalMemory+" used = "+usedMemory);
-                        System.out.println(" Problem ="+fileNames[i]);
-                        try{
-                            
-                            long testSize=SizeOf.iterativeSizeOf(test);
-                            long trainSize=SizeOf.iterativeSizeOf(train);
-                            
-                            System.out.println("Train set size ="+trainSize);
-                            System.out.println("Test set size ="+testSize);                            
-                            System.out.println(" USED ="+usedMemory/1000000+" Main Data ="+(testSize+trainSize)/1000000);
-     
-                            System.exit(0);
-                        }catch(Exception e){
-                             System.out.println(" Error in memory sizeOf ="+e);
-                            e.printStackTrace();
-                            System.exit(0);
-                            
-                        }
-                    }
-               }     
-                                
-             }
+                System.out.println(" Total ="+totalMemory+" used = "+usedMemory);
+                System.out.println(" Problem ="+fileNames[i]);
+                try{
+
+                    long testSize=SizeOf.iterativeSizeOf(test);
+                    long trainSize=SizeOf.iterativeSizeOf(train);
+
+                    System.out.println("Train set size ="+trainSize);
+                    System.out.println("Test set size ="+testSize);                            
+                    System.out.println(" USED ="+usedMemory/1000000+" Main Data ="+(testSize+trainSize)/1000000);
+
+                    System.exit(0);
+                }catch(Exception e){
+                     System.out.println(" Error in memory sizeOf ="+e);
+                    e.printStackTrace();
+                    System.exit(0);
+
+                }
+            }
+       }     
+    }
 
         
         
@@ -676,7 +674,7 @@ sanityCheck:Method sanityCheck(): Show all classifiers better on ACF space than 
            arma.setUseAIC(true);
 
            of.writeLine("DataSet,PS,ACF,PACF,ARMA,ACF_PACF,ACF_PACF_ARMA");
-           String[] files=TimeSeriesClassification.fileNames;
+           String[] files=DataSets.ucrNames;
             try{
                 for(int i=0;i<files.length;i++){
                     System.gc();
@@ -1163,11 +1161,11 @@ sanityCheck:Method sanityCheck(): Show all classifiers better on ACF space than 
         System.out.println("************** ACF TRANSFORM ON "+fileName+"   *******************");
         Instances test=null;
         Instances train=null;
-        test=utilities.ClassifierTools.loadData(TimeSeriesClassification.clusterPath+directoryName+"/"+fileName+"/"+fileName+"_TEST");
-        train=utilities.ClassifierTools.loadData(TimeSeriesClassification.clusterPath+directoryName+"/"+fileName+"/"+fileName+"_TRAIN");			
+        test=utilities.ClassifierTools.loadData(DataSets.clusterPath+directoryName+"/"+fileName+"/"+fileName+"_TEST");
+        train=utilities.ClassifierTools.loadData(DataSets.clusterPath+directoryName+"/"+fileName+"/"+fileName+"_TRAIN");			
         OutFile o2=null,o3=null;
-        o2=new OutFile(TimeSeriesClassification.clusterPath+resultName+"/Change"+fileName+"/Change"+fileName+"_TRAIN.arff");
-        o3=new OutFile(TimeSeriesClassification.clusterPath+resultName+"/Change"+fileName+"/Change"+fileName+"_TEST.arff");
+        o2=new OutFile(DataSets.clusterPath+resultName+"/Change"+fileName+"/Change"+fileName+"_TRAIN.arff");
+        o3=new OutFile(DataSets.clusterPath+resultName+"/Change"+fileName+"/Change"+fileName+"_TEST.arff");
         Instances header;
         try{
             int maxLag=(train.numAttributes()-1)/4;
@@ -1197,15 +1195,15 @@ sanityCheck:Method sanityCheck(): Show all classifiers better on ACF space than 
         System.out.println("************** ACF TRANSFORM ON "+fileName+"   *******************");
         Instances test=null;
         Instances train=null;
-        test=utilities.ClassifierTools.loadData(TimeSeriesClassification.dropboxPath+directoryName+"/"+fileName+"/"+fileName+"_TEST");
-        train=utilities.ClassifierTools.loadData(TimeSeriesClassification.dropboxPath+directoryName+"/"+fileName+"/"+fileName+"_TRAIN");			
+        test=utilities.ClassifierTools.loadData(DataSets.dropboxPath+directoryName+"/"+fileName+"/"+fileName+"_TEST");
+        train=utilities.ClassifierTools.loadData(DataSets.dropboxPath+directoryName+"/"+fileName+"/"+fileName+"_TRAIN");			
         OutFile o2=null,o3=null;
         
-        File f = new File(TimeSeriesClassification.dropboxPath+resultName+"/Change"+fileName);
+        File f = new File(DataSets.dropboxPath+resultName+"/Change"+fileName);
         if(!f.isDirectory())//Test whether directory exists
              f.mkdir();        
-        o2=new OutFile(TimeSeriesClassification.dropboxPath+resultName+"/Change"+fileName+"/Change"+fileName+"_TRAIN.arff");
-        o3=new OutFile(TimeSeriesClassification.dropboxPath+resultName+"/Change"+fileName+"/Change"+fileName+"_TEST.arff");
+        o2=new OutFile(DataSets.dropboxPath+resultName+"/Change"+fileName+"/Change"+fileName+"_TRAIN.arff");
+        o3=new OutFile(DataSets.dropboxPath+resultName+"/Change"+fileName+"/Change"+fileName+"_TEST.arff");
 
 //Change transform: ACF, PACF and AR 1/6 original length
 // For normal data, first difference and second difference.        
@@ -1312,8 +1310,8 @@ sanityCheck:Method sanityCheck(): Show all classifiers better on ACF space than 
      
     public static void buildClassifier(String fileName){
         String directoryName="Change Transformed TSC Problems";
-        Instances test=utilities.ClassifierTools.loadData(TimeSeriesClassification.clusterPath+directoryName+"/Change"+fileName+"/Change"+fileName+"_TEST");
-        Instances train=utilities.ClassifierTools.loadData(TimeSeriesClassification.clusterPath+directoryName+"/Change"+fileName+"/Change"+fileName+"_TRAIN");			
+        Instances test=utilities.ClassifierTools.loadData(DataSets.clusterPath+directoryName+"/Change"+fileName+"/Change"+fileName+"_TEST");
+        Instances train=utilities.ClassifierTools.loadData(DataSets.clusterPath+directoryName+"/Change"+fileName+"/Change"+fileName+"_TRAIN");			
         ArrayList<String> names= new ArrayList<>();
         Classifier[] c =setDefaultSingleClassifiers(names); 
         WeightedEnsemble    w=new WeightedEnsemble(c,names);
@@ -1351,12 +1349,12 @@ sanityCheck:Method sanityCheck(): Show all classifiers better on ACF space than 
         Instances test=null;
         Instances train=null;
         if(!onCluster){
-            test=utilities.ClassifierTools.loadData(TimeSeriesClassification.dropboxPath+fileName+"\\"+fileName+"_TEST");
-            train=utilities.ClassifierTools.loadData(TimeSeriesClassification.dropboxPath+fileName+"\\"+fileName+"_TRAIN");			
+            test=utilities.ClassifierTools.loadData(DataSets.dropboxPath+fileName+"\\"+fileName+"_TEST");
+            train=utilities.ClassifierTools.loadData(DataSets.dropboxPath+fileName+"\\"+fileName+"_TRAIN");			
         }
         else{
-            test=utilities.ClassifierTools.loadData(TimeSeriesClassification.clusterPath+fileName+"/"+fileName+"_TEST");
-            train=utilities.ClassifierTools.loadData(TimeSeriesClassification.clusterPath+fileName+"/"+fileName+"_TRAIN");			
+            test=utilities.ClassifierTools.loadData(DataSets.clusterPath+fileName+"/"+fileName+"_TEST");
+            train=utilities.ClassifierTools.loadData(DataSets.clusterPath+fileName+"/"+fileName+"_TRAIN");			
         }
             
         int maxLag=(train.numAttributes()-1)/4;
@@ -1436,15 +1434,15 @@ sanityCheck:Method sanityCheck(): Show all classifiers better on ACF space than 
     
 
     public static void evalComboTransforms(String fileName, OutFile of, boolean onCluster){ 
-        Instances test=null;
-        Instances train=null;
+        Instances test;
+        Instances train;
         if(!onCluster){
-            test=utilities.ClassifierTools.loadData(TimeSeriesClassification.dropboxPath+fileName+"\\"+fileName+"_TEST");
-            train=utilities.ClassifierTools.loadData(TimeSeriesClassification.dropboxPath+fileName+"\\"+fileName+"_TRAIN");			
+            test=utilities.ClassifierTools.loadData(DataSets.dropboxPath+fileName+"\\"+fileName+"_TEST");
+            train=utilities.ClassifierTools.loadData(DataSets.dropboxPath+fileName+"\\"+fileName+"_TRAIN");			
         }
         else{
-            test=utilities.ClassifierTools.loadData(TimeSeriesClassification.clusterPath+fileName+"/"+fileName+"_TEST");
-            train=utilities.ClassifierTools.loadData(TimeSeriesClassification.clusterPath+fileName+"/"+fileName+"_TRAIN");			
+            test=utilities.ClassifierTools.loadData(DataSets.clusterPath+fileName+"/"+fileName+"_TEST");
+            train=utilities.ClassifierTools.loadData(DataSets.clusterPath+fileName+"/"+fileName+"_TRAIN");			
         }
             
         int maxLag=(train.numAttributes()-1)/4;
@@ -1538,8 +1536,8 @@ sanityCheck:Method sanityCheck(): Show all classifiers better on ACF space than 
                      Instances test=null;
                      Instances train=null;
                     try{
-                           test=utilities.ClassifierTools.loadData(TimeSeriesClassification.path+fileName+"\\"+fileName+"_TEST");
-                            train=utilities.ClassifierTools.loadData(TimeSeriesClassification.path+fileName+"\\"+fileName+"_TRAIN");			
+                           test=utilities.ClassifierTools.loadData(DataSets.dropboxPath+fileName+"\\"+fileName+"_TEST");
+                            train=utilities.ClassifierTools.loadData(DataSets.dropboxPath+fileName+"\\"+fileName+"_TRAIN");			
                             OutFile o2=null,o3=null;
                             int maxLag=(train.numAttributes()-1)/4;
                             train=comboAcfPacf(train,maxLag);                            

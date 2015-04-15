@@ -270,8 +270,8 @@ All included except Cricket. There are three criket problems and they are not
                      Instances test=null;
                      Instances train=null;
                     try{
-                           test=utilities.ClassifierTools.loadData(TimeSeriesClassification.path+fastShapeletProblems[i]+"\\"+fastShapeletProblems[i]+"_TEST");
-                            train=utilities.ClassifierTools.loadData(TimeSeriesClassification.path+fastShapeletProblems[i]+"\\"+fastShapeletProblems[i]+"_TRAIN");			
+                           test=utilities.ClassifierTools.loadData(DataSets.dropboxPath+fastShapeletProblems[i]+"\\"+fastShapeletProblems[i]+"_TEST");
+                            train=utilities.ClassifierTools.loadData(DataSets.dropboxPath+fastShapeletProblems[i]+"\\"+fastShapeletProblems[i]+"_TRAIN");			
                             OutFile o2=null,o3=null;
                             if(saveTransforms){
                                 File f = new File("C:\\Users\\ajb\\Dropbox\\Shapelet Transformed TSC Problems\\Shapelet"+fastShapeletProblems[i]);
@@ -430,8 +430,8 @@ All included except Cricket. There are three criket problems and they are not
                 Instances test=null;
                 Instances train=null;
 
-                test=utilities.ClassifierTools.loadData(TimeSeriesClassification.path+fastShapeletProblems[i]+"\\"+fastShapeletProblems[i]+"_TEST");
-                train=utilities.ClassifierTools.loadData(TimeSeriesClassification.path+fastShapeletProblems[i]+"\\"+fastShapeletProblems[i]+"_TRAIN");			
+                test=utilities.ClassifierTools.loadData(DataSets.dropboxPath+fastShapeletProblems[i]+"\\"+fastShapeletProblems[i]+"_TEST");
+                train=utilities.ClassifierTools.loadData(DataSets.dropboxPath+fastShapeletProblems[i]+"\\"+fastShapeletProblems[i]+"_TRAIN");			
                 OutFile o2=null,o3=null;
                 File f = new File("C:\\Users\\ajb\\Dropbox\\Shapelet Transformed TSC Problems\\Shapelet"+fastShapeletProblems[i]);
                 if(!f.isDirectory())//Test whether directory exists
@@ -483,14 +483,14 @@ All included except Cricket. There are three criket problems and they are not
         FullShapeletTransform s=null;
         Instances test=null;
         Instances train=null;
-        test=utilities.ClassifierTools.loadData(TimeSeriesClassification.clusterPath+directoryName+"/"+fileName+"/"+fileName+"_TEST");
-        train=utilities.ClassifierTools.loadData(TimeSeriesClassification.clusterPath+directoryName+"/"+fileName+"/"+fileName+"_TRAIN");			
+        test=utilities.ClassifierTools.loadData(DataSets.clusterPath+directoryName+"/"+fileName+"/"+fileName+"_TEST");
+        train=utilities.ClassifierTools.loadData(DataSets.clusterPath+directoryName+"/"+fileName+"/"+fileName+"_TRAIN");			
         OutFile o2=null,o3=null;
-        o2=new OutFile(TimeSeriesClassification.clusterPath+resultName+"/Shapelet"+fileName+"/Shapelet"+fileName+"_TRAIN.arff");
-        o3=new OutFile(TimeSeriesClassification.clusterPath+resultName+"/Shapelet"+fileName+"/Shapelet"+fileName+"_TEST.arff");
+        o2=new OutFile(DataSets.clusterPath+resultName+"/Shapelet"+fileName+"/Shapelet"+fileName+"_TRAIN.arff");
+        o3=new OutFile(DataSets.clusterPath+resultName+"/Shapelet"+fileName+"/Shapelet"+fileName+"_TEST.arff");
         ShapeletTransformFactory fact =new ShapeletTransformFactory();
         s=fact.createTransform(train);
-        s.setLogOutputFile(TimeSeriesClassification.clusterPath+resultName+"/Shapelet"+fileName+"/Shapelet"+fileName+"logFile.txt");
+        s.setLogOutputFile(DataSets.clusterPath+resultName+"/Shapelet"+fileName+"/Shapelet"+fileName+"logFile.txt");
         System.out.print("Transforming train "+fileName+" .... ");
         Instances header;
         try{

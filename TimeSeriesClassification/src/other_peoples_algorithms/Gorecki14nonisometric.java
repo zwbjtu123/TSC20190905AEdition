@@ -12,17 +12,15 @@
 package other_peoples_algorithms;
 
 import development.DataSets;
-import development.TimeSeriesClassification;
-import static development.TimeSeriesClassification.UCRProblems;
 import fileIO.InFile;
 import fileIO.OutFile;
 import java.text.DecimalFormat;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import utilities.ClassifierTools;
-import weka.classifiers.lazy.DTW_kNN;
+import weka.classifiers.lazy.DTW_1NN;
 import weka.classifiers.lazy.kNN;
-import weka.core.DTW_DistanceBasic;
+import weka.core.elastic_distance_measures.DTW_DistanceBasic;
 import weka.core.Instance;
 import weka.core.Instances;
 import weka.filters.timeseries.*;
@@ -39,8 +37,8 @@ public class Gorecki14nonisometric {
             String s="Beef";
             OutFile of1 = new OutFile("C:\\Users\\ajb\\Dropbox\\test\\BeefCosine_TRAIN.arff");
             OutFile of2 = new OutFile("C:\\Users\\ajb\\Dropbox\\test\\BeefCosine_TEST.arff");
-            Instances test=utilities.ClassifierTools.loadData(TimeSeriesClassification.path+s+"\\"+s+"_TEST");
-            Instances train=utilities.ClassifierTools.loadData(TimeSeriesClassification.path+s+"\\"+s+"_TRAIN");			
+            Instances test=utilities.ClassifierTools.loadData(DataSets.ucrPath+s+"\\"+s+"_TEST");
+            Instances train=utilities.ClassifierTools.loadData(DataSets.ucrPath+s+"\\"+s+"_TRAIN");			
             Cosine cosTransform= new Cosine();
             Sine sinTransform=new Sine();
             Hilbert hilbertTransform= new Hilbert();
@@ -51,8 +49,7 @@ public class Gorecki14nonisometric {
                 of1.writeString(cosTrain+"");
                 of2.writeString(cosTest+"");
                 System.out.println(" Cosine trans complete");
-                kNN a=new DTW_kNN(1);
-                a.normalise(false);
+                DTW_1NN a=new DTW_1NN();
                 a.buildClassifier(cosTrain);
                 double acc=ClassifierTools.accuracy(cosTest, a);
                 System.out.println(" Cosine acc ="+acc);
@@ -60,8 +57,7 @@ public class Gorecki14nonisometric {
                 Instances sinTrain=sinTransform.process(train);
                 Instances sinTest=sinTransform.process(test);
                 System.out.println(" Sine trans complete");
-                a=new DTW_kNN(1);
-                a.normalise(false);
+                a=new DTW_1NN();
                 a.buildClassifier(sinTrain);
                 acc=ClassifierTools.accuracy(sinTest, a);
                 System.out.println(" Sine acc ="+acc);
@@ -69,8 +65,7 @@ public class Gorecki14nonisometric {
                 Instances hilbertTrain=hilbertTransform.process(train);
                 Instances hilbertTest=hilbertTransform.process(test);
                 System.out.println(" Hilbert trans complete");              
-                a=new DTW_kNN(1);
-                a.normalise(false);
+                a=new DTW_1NN();
                 a.buildClassifier(hilbertTrain);
                 acc=ClassifierTools.accuracy(hilbertTest, a);
                 System.out.println(" Hilbert acc ="+acc);
@@ -94,8 +89,8 @@ public class Gorecki14nonisometric {
             alphaVals[i]=0.01+alphaVals[i];
         double[] mistakes=new double[alphaVals.length];
         for(String s:DataSets.ucrSmall){
-            Instances test=utilities.ClassifierTools.loadData(TimeSeriesClassification.path+s+"\\"+s+"_TEST");
-            Instances train=utilities.ClassifierTools.loadData(TimeSeriesClassification.path+s+"\\"+s+"_TRAIN");			
+            Instances test=utilities.ClassifierTools.loadData(DataSets.dropboxPath+s+"\\"+s+"_TEST");
+            Instances train=utilities.ClassifierTools.loadData(DataSets.dropboxPath+s+"\\"+s+"_TRAIN");			
             Cosine cosTransform= new Cosine();
             Sine sinTransform=new Sine();
             Hilbert hilbertTransform= new Hilbert();
@@ -134,8 +129,8 @@ public class Gorecki14nonisometric {
      public static void singleDistanceClassifiersTable2(){
             OutFile of = new OutFile("C:\\Users\\ajb\\Dropbox\\Results\\Other Peoples Published Results\\gorecki14Table2Combined.csv");
         for(String s:DataSets.ucrSmall){
-            Instances test=utilities.ClassifierTools.loadData(TimeSeriesClassification.path+s+"\\"+s+"_TEST");
-            Instances train=utilities.ClassifierTools.loadData(TimeSeriesClassification.path+s+"\\"+s+"_TRAIN");			
+            Instances test=utilities.ClassifierTools.loadData(DataSets.dropboxPath+s+"\\"+s+"_TEST");
+            Instances train=utilities.ClassifierTools.loadData(DataSets.dropboxPath+s+"\\"+s+"_TRAIN");			
             Cosine cosTransform= new Cosine();
             Sine sinTransform=new Sine();
             Hilbert hilbertTransform= new Hilbert();
@@ -145,8 +140,7 @@ public class Gorecki14nonisometric {
                 Instances cosTrain=cosTransform.process(train);
                 Instances cosTest=cosTransform.process(test);
                 System.out.println(" Cosine trans complete");
-                kNN a=new DTW_kNN(1);
-                a.normalise(false);
+                DTW_1NN a=new DTW_1NN();
                 a.buildClassifier(cosTrain);
                 double acc=ClassifierTools.accuracy(cosTest, a);
                 of.writeString(acc+",");
@@ -155,8 +149,7 @@ public class Gorecki14nonisometric {
                 Instances sinTrain=sinTransform.process(train);
                 Instances sinTest=sinTransform.process(test);
                 System.out.println(" Sine trans complete");
-                a=new DTW_kNN(1);
-                a.normalise(false);
+                a=new DTW_1NN();
                 a.buildClassifier(sinTrain);
                 acc=ClassifierTools.accuracy(sinTest, a);
                 of.writeString(acc+",");
@@ -165,8 +158,7 @@ public class Gorecki14nonisometric {
                 Instances hilbertTrain=hilbertTransform.process(train);
                 Instances hilbertTest=hilbertTransform.process(test);
                 System.out.println(" Hilbert trans complete");              
-                a=new DTW_kNN(1);
-                a.normalise(false);
+                a=new DTW_1NN();
                 a.buildClassifier(hilbertTrain);
                 acc=ClassifierTools.accuracy(hilbertTest, a);
                 of.writeString(acc+",");
@@ -190,8 +182,8 @@ public class Gorecki14nonisometric {
         of.writeString("Problem,TrainCVError,TestMistakes,TestError");
 
         for(String s:DataSets.ucrNames){
-            Instances test=utilities.ClassifierTools.loadData(TimeSeriesClassification.path+s+"\\"+s+"_TEST");
-            Instances train=utilities.ClassifierTools.loadData(TimeSeriesClassification.path+s+"\\"+s+"_TRAIN");
+            Instances test=utilities.ClassifierTools.loadData(DataSets.dropboxPath+s+"\\"+s+"_TEST");
+            Instances train=utilities.ClassifierTools.loadData(DataSets.dropboxPath+s+"\\"+s+"_TRAIN");
             String problem=inf.readString();
             if(!s.equals(problem)){
                 System.out.println("ERROR: file mismatch: "+s+" and from CV file :"+problem);
@@ -257,8 +249,8 @@ public class Gorecki14nonisometric {
 
         for(String s:DataSets.ucrNames){
             of.writeString(s+",");
-            Instances test=utilities.ClassifierTools.loadData(TimeSeriesClassification.path+s+"\\"+s+"_TEST");
-            Instances train=utilities.ClassifierTools.loadData(TimeSeriesClassification.path+s+"\\"+s+"_TRAIN");			
+            Instances test=utilities.ClassifierTools.loadData(DataSets.dropboxPath+s+"\\"+s+"_TEST");
+            Instances train=utilities.ClassifierTools.loadData(DataSets.dropboxPath+s+"\\"+s+"_TRAIN");			
             double step = 0.01;
             int k = (int)((Math.PI/2)/step);
             double[] alpha=new double[k];

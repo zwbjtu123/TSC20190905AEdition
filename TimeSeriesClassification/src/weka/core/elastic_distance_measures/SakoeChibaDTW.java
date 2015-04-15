@@ -51,7 +51,7 @@ public class SakoeChibaDTW extends BasicDTW {
 
 
 
-    public int calcaulteBandSize(int instanceLength){
+    public int calculateBandSize(int instanceLength){
         if(this.bandPercent==0){
             return 1;
         }else{
@@ -72,7 +72,7 @@ public class SakoeChibaDTW extends BasicDTW {
     @Override
     public double distance(double[] first, double[] second, double cutOffValue) {
 
-        int bandSize = this.calcaulteBandSize(first.length);
+        int bandSize = this.calculateBandSize(first.length);
 
         //create empty array
         this.distances = new double[first.length][second.length];
@@ -80,10 +80,6 @@ public class SakoeChibaDTW extends BasicDTW {
         //first value
         this.distances[0][0] = (first[0] - second[0]) * (first[0] - second[0]);
 
-        //early abandon if first values is larger than cut off
-        if (this.distances[0][0] > cutOffValue && this.isEarlyAbandon) {
-            return Double.MAX_VALUE;
-        }
 
         //top row
         for (int i = 1; i < second.length; i++) {
@@ -106,27 +102,17 @@ public class SakoeChibaDTW extends BasicDTW {
         //warp rest
         double minDistance;
         for (int i = 1; i < first.length; i++) {
-            boolean overflow = true;
             for (int j = 1; j < second.length; j++) {
                 //Checks if i and j are within the band window
                 if (i < j + bandSize && j < i + bandSize) {
                     minDistance = Math.min(this.distances[i][j - 1], Math.min(this.distances[i - 1][j], this.distances[i - 1][j - 1]));
                     //Assign distance
-                    if (minDistance > cutOffValue && this.isEarlyAbandon) {
-                        this.distances[i][j] = Double.MAX_VALUE;
-                    } else {
                         this.distances[i][j] = minDistance + ((first[i] - second[j]) * (first[i] - second[j]));
-                        overflow = false;
-                    }
                 } else {
                     this.distances[i][j] = Double.MAX_VALUE;
                 }
             }
 
-            //early abandon
-            if (overflow && this.isEarlyAbandon) {
-                return Double.MAX_VALUE;
-            }
         }
         
         return this.distances[first.length - 1][second.length - 1];
@@ -153,6 +139,6 @@ public class SakoeChibaDTW extends BasicDTW {
 
     @Override
     public String toString() {
-        return "SakoeChibaDTW{ " + "bandSize=" + this.bandPercent + ", earlyAbandon=" + this.isEarlyAbandon + " }";
+        return "SakoeChibaDTW{ " + "bandSize=" + this.bandPercent + "}";
     }
 }

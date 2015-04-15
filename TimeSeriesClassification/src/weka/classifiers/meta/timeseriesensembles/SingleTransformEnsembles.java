@@ -5,7 +5,7 @@ import weka.attributeSelection.PrincipalComponents;
 import weka.classifiers.AbstractClassifier;
 import weka.classifiers.Classifier;
 import weka.classifiers.Evaluation;
-import weka.classifiers.lazy.DTW_kNN;
+import weka.classifiers.lazy.DTW_1NN;
 import weka.classifiers.lazy.kNN;
 import weka.core.Instance;
 import weka.core.Instances;

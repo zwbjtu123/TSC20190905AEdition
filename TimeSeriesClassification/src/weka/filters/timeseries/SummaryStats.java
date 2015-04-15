@@ -33,6 +33,9 @@ public class SummaryStats extends SimpleBatchFilter {
 		name = "Moment_"+(i+1);
 		atts.addElement(new Attribute(name));
 	}
+	atts.addElement(new Attribute("MIN"));
+	atts.addElement(new Attribute("MAX"));
+        
 	if(inputFormat.classIndex()>=0){	//Classification set, set class 
 		//Get the class values as a fast vector			
 		Attribute target =inputFormat.attribute(inputFormat.classIndex());
@@ -78,7 +81,7 @@ public Instances process(Instances inst) throws Exception {
  //                           System.arraycopy(d,c+1,temp,c,d.length-(c+1));
 			d=temp;
 		}
-                double[] moments=new double[numMoments];
+                double[] moments=new double[numMoments+2];
 /**
  * 
  * 
@@ -86,10 +89,17 @@ public Instances process(Instances inst) throws Exception {
  * 
  * 
 **/
+            double max=0;
+            double min=Double.MAX_VALUE;
             double sum = 0;      
             //Find mean
-            for(int j=0;j<d.length;j++)
+            for(int j=0;j<d.length;j++){
                 sum = sum+d[j];
+                if(d[j]>max)
+                    max=d[j];
+                if(d[j]<min)
+                    min=d[j];
+            }
             moments[0] = sum/d.length;
             double totalVar=0;
             double totalSkew =0;
@@ -112,13 +122,15 @@ public Instances process(Instances inst) throws Exception {
           //Extract out the terms and set the attributes
             Instance newInst=null;
             if(inst.classIndex()>=0)
-                    newInst=new DenseInstance(numMoments+1);
+                    newInst=new DenseInstance(numMoments+2+1);
             else
-                    newInst=new DenseInstance(numMoments);
+                    newInst=new DenseInstance(numMoments+2);
 
             for(int j=0;j<numMoments;j++){
                         newInst.setValue(j,moments[j]);
             }
+            newInst.setValue(numMoments,min);
+            newInst.setValue(numMoments+1,max);
             if(inst.classIndex()>=0)
                     newInst.setValue(output.classIndex(), inst.instance(i).classValue());
             output.add(newInst);     

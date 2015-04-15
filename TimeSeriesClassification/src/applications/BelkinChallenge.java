@@ -1,6 +1,5 @@
 package applications;
 
-import development.TimeSeriesClassification;
 import fileIO.InFile;
 import fileIO.OutFile;
 import java.util.ArrayList;
@@ -348,7 +347,7 @@ public class BelkinChallenge {
     public static void classificationTest(String channel) throws Exception{
         //On detection
         ArrayList<String> names=new ArrayList<>();
-        Classifier[] c= TimeSeriesClassification.setSimpleClassifiers(names);
+        Classifier[] c= ClassifierTools.setDefaultSingleClassifiers(names);
 //On Classification
         String path="C:\\Users\\ajb\\Dropbox\\Belkin Competition\\RealPower\\";
         OutFile results=new OutFile(path+"DeviceOn"+channel+"Classification.csv");

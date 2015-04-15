@@ -18,8 +18,6 @@ import weka.core.neighboursearch.PerformanceStats;
 public class BasicDTW extends EuclideanDistance{
     
     protected double[][] distances;
-    protected boolean isEarlyAbandon=false; //This doesnt work!
-    
 //    private int distanceCount = 0;
    
         
@@ -31,7 +29,6 @@ public class BasicDTW extends EuclideanDistance{
     public BasicDTW(){
         super();
         this.m_DontNormalize = true;
-        this.isEarlyAbandon = false;
     }
     
     /** 
@@ -72,6 +69,7 @@ public class BasicDTW extends EuclideanDistance{
     public double distance(Instance first, Instance second, double cutOffValue){
 
         //remove class index from first instance if there iscutOffValue one
+        
         int firtClassIndex = first.classIndex();
         double[] arr1;
         if(firtClassIndex > 0){
@@ -119,10 +117,6 @@ public class BasicDTW extends EuclideanDistance{
         //first value
         this.distances[0][0] = (first[0]-second[0])*(first[0]-second[0]);
         
-        //early abandon if first values is larger than cut off
-        if(this.distances[0][0] > cutOffValue && this.isEarlyAbandon){
-            return Double.MAX_VALUE;
-        }
         
         //top row
         for(int i=1;i<second.length;i++){
@@ -137,23 +131,10 @@ public class BasicDTW extends EuclideanDistance{
         //warp rest
         double minDistance;
         for(int i = 1; i<first.length; i++){
-            boolean overflow = true;
-            
             for(int j = 1; j<second.length; j++){
                 //calculate distances
                 minDistance = Math.min(this.distances[i][j-1], Math.min(this.distances[i-1][j], this.distances[i-1][j-1]));
-                
-                if(minDistance > cutOffValue && this.isEarlyAbandon){
-                    this.distances[i][j] = Double.MAX_VALUE;
-                }else{
-                    this.distances[i][j] = minDistance+((first[i]-second[j])*(first[i]-second[j]));
-                    overflow = false;
-                }
-            }
-            
-            //early abandon
-            if(overflow && this.isEarlyAbandon){
-                return Double.MAX_VALUE;
+                this.distances[i][j] = minDistance+((first[i]-second[j])*(first[i]-second[j]));
             }
         }
         return Math.sqrt(this.distances[first.length-1][second.length-1]);
@@ -246,18 +227,10 @@ public class BasicDTW extends EuclideanDistance{
         System.out.println("------------------ End ------------------");
     }
 
-    /**
-     * Check if early abandon enabled
-     * 
-     * @return early abandon enabled
-     */
-    public boolean isEarlyAbandon() {
-        return isEarlyAbandon;
-    }
 
     @Override
     public String toString() {
-        return "BasicDTW{ " + "earlyAbandon=" + this.isEarlyAbandon + " }";
+        return "BasicDTW";
     }
     
     public static void main(String[] args){

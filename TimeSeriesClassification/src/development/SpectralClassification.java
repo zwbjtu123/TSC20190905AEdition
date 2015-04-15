@@ -40,11 +40,11 @@ public class SpectralClassification {
         System.out.println("************** ACF TRANSFORM ON "+fileName+"   *******************");
         Instances test;
         Instances train;
-        test=utilities.ClassifierTools.loadData(TimeSeriesClassification.clusterPath+directoryName+"/"+fileName+"/"+fileName+"_TEST");
-        train=utilities.ClassifierTools.loadData(TimeSeriesClassification.clusterPath+directoryName+"/"+fileName+"/"+fileName+"_TRAIN");			
+        test=utilities.ClassifierTools.loadData(DataSets.clusterPath+directoryName+"/"+fileName+"/"+fileName+"_TEST");
+        train=utilities.ClassifierTools.loadData(DataSets.clusterPath+directoryName+"/"+fileName+"/"+fileName+"_TRAIN");			
         OutFile o2=null,o3=null;
-        o2=new OutFile(TimeSeriesClassification.clusterPath+resultName+"/PS"+fileName+"/PS"+fileName+"_TRAIN.arff");
-        o3=new OutFile(TimeSeriesClassification.clusterPath+resultName+"/PS"+fileName+"/PS"+fileName+"_TEST.arff");
+        o2=new OutFile(DataSets.clusterPath+resultName+"/PS"+fileName+"/PS"+fileName+"_TRAIN.arff");
+        o3=new OutFile(DataSets.clusterPath+resultName+"/PS"+fileName+"/PS"+fileName+"_TEST.arff");
 
         Instances header;
         try{
@@ -83,8 +83,8 @@ public class SpectralClassification {
                      Instances test=null;
                      Instances train=null;
                     try{
-                           test=utilities.ClassifierTools.loadData(TimeSeriesClassification.path+fileNames[i]+"\\"+fileNames[i]+"_TEST");
-                            train=utilities.ClassifierTools.loadData(TimeSeriesClassification.path+fileNames[i]+"\\"+fileNames[i]+"_TRAIN");			
+                           test=utilities.ClassifierTools.loadData(DataSets.dropboxPath+fileNames[i]+"\\"+fileNames[i]+"_TEST");
+                            train=utilities.ClassifierTools.loadData(DataSets.dropboxPath+fileNames[i]+"\\"+fileNames[i]+"_TRAIN");			
                             OutFile o2=null,o3=null;
                             if(saveTransforms){
                                 File f = new File("C:\\Users\\ajb\\Dropbox\\Power Spectrum Transformed TSC Problems\\PS"+fileNames[i]);
@@ -116,7 +116,7 @@ public class SpectralClassification {
     //Save results to file
     //Train Classifiers
                             System.out.print(" Classifying ....\n ");
-                            Classifier[] c= TimeSeriesClassification.setDefaultSingleClassifiers(names);
+                            Classifier[] c= ClassifierTools.setDefaultSingleClassifiers(names);
                             of.writeString(fileNames[i]+",");
                             for(int j=0;j<c.length;j++){
                                 c[j].buildClassifier(train);
@@ -228,8 +228,8 @@ public class SpectralClassification {
             OutFile of = new OutFile(resultsPath);
             System.out.println("************** POWER SPECTRUM TRAIN CV ACCURACIES*******************");
             ArrayList<String> names=new ArrayList<>();
-            Classifier[] c= TimeSeriesClassification.setDefaultSingleClassifiers(names);
-            String[] fileNames=TimeSeriesClassification.fileNames;
+            Classifier[] c= ClassifierTools.setDefaultSingleClassifiers(names);
+            String[] fileNames=DataSets.fileNames;
             String path="C:\\Users\\ajb\\Dropbox\\Power Spectrum Transformed TSC Problems\\PS";
             int folds=5;
             System.out.print("\t\t");
@@ -246,7 +246,7 @@ public class SpectralClassification {
                         train.randomize(new Random());
     //Train Classifiers
                         System.out.print((i+1)+"  "+fileNames[i]+"\t");
-                        c= TimeSeriesClassification.setDefaultSingleClassifiers(names);
+                        c= ClassifierTools.setDefaultSingleClassifiers(names);
                         of.writeString(fileNames[i]+",");
                         for(int j=0;j<c.length;j++){
                             double[][] a=ClassifierTools.crossValidationWithStats(c[j], train, folds);
@@ -273,7 +273,7 @@ public class SpectralClassification {
              DecimalFormat df= new DecimalFormat("###.#####");
             OutFile of = new OutFile(resultsPath+"TrainCV.csv");
             OutFile of2 = new OutFile(resultsPath+"Test.csv");
-            String[] fileNames=TimeSeriesClassification.fileNames;
+            String[] fileNames=DataSets.fileNames;
             String path="C:\\Users\\ajb\\Dropbox\\Power Spectrum Transformed TSC Problems\\PS";
             int folds=5;
              ArrayList<String> names=new ArrayList<>();
@@ -281,7 +281,7 @@ public class SpectralClassification {
 //             at.setEvaluation(new InfoGainAttributeEval());
 //             at.setSearch(new Ranker());
              
-             Classifier[] c= TimeSeriesClassification.setDefaultSingleClassifiers(names);
+             Classifier[] c= ClassifierTools.setDefaultSingleClassifiers(names);
             System.out.print("\t\t");
             for(String s:names){
                 of.writeString(s+",");
@@ -298,7 +298,7 @@ public class SpectralClassification {
                         
                          
                         System.out.print("\n"+(i+1)+"  "+fileNames[i]+"\t");
-                        c= TimeSeriesClassification.setDefaultSingleClassifiers(names);
+                        c= ClassifierTools.setDefaultSingleClassifiers(names);
                         of.writeString("\n"+fileNames[i]+",");
                         of2.writeString("\n"+fileNames[i]+",");
                         Instances reducedTrain=at.filterTrainSet(train);    
@@ -335,7 +335,7 @@ public class SpectralClassification {
              DecimalFormat df= new DecimalFormat("###.#####");
             OutFile of = new OutFile(resultsPath+"TrainCV.csv");
             OutFile of2 = new OutFile(resultsPath+"Test.csv");
-            String[] fileNames=TimeSeriesClassification.fileNames;
+            String[] fileNames=DataSets.fileNames;
             String path="C:\\Users\\ajb\\Dropbox\\Power Spectrum Transformed TSC Problems\\PS";
             int folds=5;
              ArrayList<String> names=new ArrayList<>();
@@ -343,7 +343,7 @@ public class SpectralClassification {
              WrapperSubsetEval eval=new WrapperSubsetEval();
              at.setEvaluation(eval);
 //             at.setSearch(new Ranker());
-             Classifier[] c= TimeSeriesClassification.setDefaultSingleClassifiers(names);
+             Classifier[] c= ClassifierTools.setDefaultSingleClassifiers(names);
             System.out.print("\t\t");
             for(String s:names){
                 of.writeString(s+",");
@@ -360,7 +360,7 @@ public class SpectralClassification {
                         
                          
                         System.out.print("\n"+(i+1)+"  "+fileNames[i]+"\t");
-                        c= TimeSeriesClassification.setDefaultSingleClassifiers(names);
+                        c= ClassifierTools.setDefaultSingleClassifiers(names);
                         of.writeString("\n"+fileNames[i]+",");
                         of2.writeString("\n"+fileNames[i]+",");
                         for(int j=0;j<c.length;j++){
@@ -392,11 +392,11 @@ public class SpectralClassification {
     
     public static void testPredictionsWithFilter(String resultsPath){
             OutFile of;
-            String[] fileNames=TimeSeriesClassification.fileNames;
+            String[] fileNames=DataSets.fileNames;
             String path="C:\\Users\\ajb\\Dropbox\\Power Spectrum Transformed TSC Problems\\PS";
              ArrayList<String> names=new ArrayList<>();
              AttributeSelectionTools at= new AttributeSelectionTools();
-             Classifier[] c= TimeSeriesClassification.setDefaultSingleClassifiers(names);
+             Classifier[] c= ClassifierTools.setDefaultSingleClassifiers(names);
                 System.out.print("\n");
                 for(int i=0;i<fileNames.length;i++)
                 {
@@ -410,7 +410,7 @@ public class SpectralClassification {
                         of.writeString("Actual\n");
                         train.randomize(new Random());
                         System.out.print("\n"+(i+1)+"  "+fileNames[i]+"\t");
-                        c= TimeSeriesClassification.setDefaultSingleClassifiers(names);
+                        c= ClassifierTools.setDefaultSingleClassifiers(names);
                         Instances reducedTrain=at.filterTrainSet(train);    
                         Instances reducedTest=at.filterTestSet(test);
                         double[][] preds=new double[c.length][reducedTest.numInstances()];
@@ -450,7 +450,7 @@ public class SpectralClassification {
                 classifierNames[i]=temp[i+1];
                 System.out.println(" Classifier ="+classifierNames[i]);
             }
-            String[] fileNames=TimeSeriesClassification.fileNames;
+            String[] fileNames=DataSets.fileNames;
             double[][] cvAccuracy=new double[fileNames.length][classifierNames.length];
             //Load all Train CV accuracies
             for(int i=0;i<fileNames.length;i++){
@@ -585,8 +585,8 @@ public class SpectralClassification {
     }
     public static void buildClassifier(String fileName){
         String directoryName="Power Spectrum Transformed TSC Problems";
-        Instances test=utilities.ClassifierTools.loadData(TimeSeriesClassification.clusterPath+directoryName+"/PS"+fileName+"/PS"+fileName+"_TEST");
-        Instances train=utilities.ClassifierTools.loadData(TimeSeriesClassification.clusterPath+directoryName+"/PS"+fileName+"/PS"+fileName+"_TRAIN");			
+        Instances test=utilities.ClassifierTools.loadData(DataSets.clusterPath+directoryName+"/PS"+fileName+"/PS"+fileName+"_TEST");
+        Instances train=utilities.ClassifierTools.loadData(DataSets.clusterPath+directoryName+"/PS"+fileName+"/PS"+fileName+"_TRAIN");			
         ArrayList<String> names= new ArrayList<>();
         Classifier[] c =setDefaultSingleClassifiers(names); 
         WeightedEnsemble    w=new WeightedEnsemble(c,names);

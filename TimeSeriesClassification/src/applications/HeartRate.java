@@ -27,6 +27,7 @@ For TSC problem, we remove the pre cases for chi and do not use yoga, there bein
 * */
 package applications;
 
+import weka.core.elastic_distance_measures.DTW_DistanceBasic;
 import weka.core.spectral_distance_functions.LikelihoodRatioDistance;
 import fileIO.*;
 import java.text.DecimalFormat;
@@ -39,7 +40,7 @@ import weka.classifiers.bayes.NaiveBayes;
 import weka.classifiers.functions.SMO;
 import weka.classifiers.functions.supportVector.PolyKernel;
 import weka.classifiers.functions.supportVector.RBFKernel;
-import weka.classifiers.lazy.DTW_kNN;
+import weka.classifiers.lazy.DTW_1NN;
 import weka.classifiers.lazy.IBk;
 import weka.classifiers.lazy.kNN;
 import weka.classifiers.meta.RotationForest;
@@ -62,8 +63,8 @@ public class HeartRate {
 
       /*		sc2.add(new IBk(1));
 		names.add("NN");
-          //      c=new DTW_kNN(1);
-	//	((DTW_kNN)c).setMaxR(0.01);		
+          //      c=new DTW_1NN(1);
+	//	((DTW_1NN)c).setMaxR(0.01);		
 	//	sc2.add(c);
 	//	names.add("NNDTW");
 /*		sc2.add(new NaiveBayes());
@@ -373,19 +374,19 @@ public class HeartRate {
                 printConfusionMatrix(e.confusionMatrix());
                 e=new Evaluation(trans);
                 kNN c2= new kNN(new DTW_DistanceBasic());
-	//	((DTW_kNN)c).setMaxR(0.01);)
+	//	((DTW_1NN)c).setMaxR(0.01);)
                 e.crossValidateModel(c2, trans, trans.numInstances(), new Random());
                 System.out.println(" Run Length Accuracy 1NN DTW ="+(e.correct()/(double)trans.numInstances()));
                 printConfusionMatrix(e.confusionMatrix());
                 e=new Evaluation(trans);
                 kNN c3= new kNN(new GowerDistance(trans));
-	//	((DTW_kNN)c).setMaxR(0.01);)
+	//	((DTW_1NN)c).setMaxR(0.01);)
                 e.crossValidateModel(c3, trans, trans.numInstances(), new Random());
                 System.out.println(" Run Length Accuracy GOWER ="+(e.correct()/(double)trans.numInstances()));
                 printConfusionMatrix(e.confusionMatrix());
                 e=new Evaluation(trans);
                 kNN c4= new kNN(new LikelihoodRatioDistance());
-	//	((DTW_kNN)c).setMaxR(0.01);)
+	//	((DTW_1NN)c).setMaxR(0.01);)
                 e.crossValidateModel(c4, trans, trans.numInstances(), new Random());
                 System.out.println(" Run Length Accuracy LR ="+(e.correct()/(double)trans.numInstances()));
                 printConfusionMatrix(e.confusionMatrix());

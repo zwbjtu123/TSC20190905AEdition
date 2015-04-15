@@ -4,7 +4,7 @@
  * */
 package weka.filters.timeseries;
 
-import development.TimeSeriesClassification;
+import development.DataSets;
 import fileIO.OutFile;
 import java.io.FileReader;
 import java.util.*;
@@ -12,7 +12,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import other_peoples_algorithms.Gorecki14nonisometric;
 import utilities.ClassifierTools;
-import weka.classifiers.lazy.DTW_kNN;
+import weka.classifiers.lazy.DTW_1NN;
 import weka.classifiers.lazy.kNN;
 import weka.core.*;
 import weka.filters.SimpleBatchFilter;
@@ -86,8 +86,8 @@ public class Cosine extends SimpleBatchFilter {
             String s="Beef";
             OutFile of1 = new OutFile("C:\\Users\\ajb\\Dropbox\\test\\BeefCosine_TRAIN.arff");
             OutFile of2 = new OutFile("C:\\Users\\ajb\\Dropbox\\test\\BeefCosine_TEST.arff");
-            Instances test=utilities.ClassifierTools.loadData(TimeSeriesClassification.path+s+"\\"+s+"_TEST");
-            Instances train=utilities.ClassifierTools.loadData(TimeSeriesClassification.path+s+"\\"+s+"_TRAIN");			
+            Instances test=utilities.ClassifierTools.loadData(DataSets.dropboxPath+s+"\\"+s+"_TEST");
+            Instances train=utilities.ClassifierTools.loadData(DataSets.dropboxPath+s+"\\"+s+"_TRAIN");			
             Cosine cosTransform= new Cosine();
             Sine sinTransform=new Sine();
             Hilbert hilbertTransform= new Hilbert();
@@ -98,8 +98,8 @@ public class Cosine extends SimpleBatchFilter {
                 of1.writeString(cosTrain+"");
                 of2.writeString(cosTest+"");
                 System.out.println(" Cosine trans complete");
-                kNN a=new DTW_kNN(1);
-                a.normalise(false);
+                DTW_1NN a=new DTW_1NN();
+//                a.normalise(false);
                 a.buildClassifier(cosTrain);
                 double acc=ClassifierTools.accuracy(cosTest, a);
                 System.out.println(" Cosine acc ="+acc);

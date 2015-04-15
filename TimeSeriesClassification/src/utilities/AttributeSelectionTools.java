@@ -1,6 +1,5 @@
 package utilities;
 
-import development.TimeSeriesClassification;
 import java.util.Random;
 
 import weka.attributeSelection.ASEvaluation;
@@ -292,7 +291,7 @@ THIS NEEDS TESTING
             attSelect.setEvaluator(eval);
             attSelect.setSearch(search);
             ArrayList<String> names= new ArrayList<>();
-            Classifier[] c = TimeSeriesClassification.setDefaultSingleClassifiers(names);
+            Classifier[] c = ClassifierTools.setDefaultSingleClassifiers(names);
             double[] acc =new double[c.length];
             double[] acc2 =new double[c.length];
             try{
