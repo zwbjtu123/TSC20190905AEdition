@@ -4,6 +4,7 @@ import java.io.FileReader;
 import weka.core.*;
 
 import weka.core.EuclideanDistance;
+import weka.core.elastic_distance_measures.DTW;
 
 /* This class is a specialisation of kNN that can only be used with the efficient DTW distance
  * 
@@ -35,7 +36,7 @@ public class DTW_kNN extends kNN {
 	private Instances train;
 	private int trainSize;
 	private int bestWarp;
-	DTW_DistanceBasic dtw=new DTW_DistanceBasic();
+	DTW dtw=new DTW();
 	
 //	DTW_DistanceEfficient dtw=new DTW_DistanceEfficient();
 	public DTW_kNN(){
