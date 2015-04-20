@@ -497,7 +497,24 @@ public class FullShapeletTransform extends SimpleBatchFilter
     
     protected void trainShapelets(Instances data)
     {
+        initDataSouce(data);
+        shapelets = findBestKShapeletsCache(data); // get k shapelets
+        shapeletsTrained = true;
 
+        outputPrint(shapelets.size() + " Shapelets have been generated");
+
+        //Reorder the training data and reset the shapelet indexes
+        if (roundRobin)
+        {
+            resetDataOrder(data, dataSourceIDs);
+            resetShapeletIndices(shapelets, dataSourceIDs);
+        }
+
+    }
+    
+    private void initDataSouce(Instances data)
+    {
+        
         int dataSize = data.numInstances();
         // shapelets discovery has not yet been caried out, so this must be training data
         dataSourceIDs = new int[dataSize];
@@ -513,19 +530,6 @@ public class FullShapeletTransform extends SimpleBatchFilter
                 dataSourceIDs[i] = i;
             }
         }
-
-        shapelets = findBestKShapeletsCache(data); // get k shapelets
-        shapeletsTrained = true;
-
-        outputPrint(shapelets.size() + " Shapelets have been generated");
-
-        //Reorder the training data and reset the shapelet indexes
-        if (roundRobin)
-        {
-            resetDataOrder(data, dataSourceIDs);
-            resetShapeletIndices(shapelets, dataSourceIDs);
-        }
-
     }
 
     protected Instances buildTansformedDataset(Instances data)
@@ -562,9 +566,6 @@ public class FullShapeletTransform extends SimpleBatchFilter
         ArrayList<Shapelet> seriesShapelets;                                    // temp store of all shapelets for each time series
         classDistributions = getClassDistributions(data);                       // used to calc info gain
 
-        
-        System.out.println("k: " + numShapelets);
-        
         //for all time series
         outputPrint("Processing data: ");
 
@@ -594,6 +595,8 @@ public class FullShapeletTransform extends SimpleBatchFilter
         recordShapelets(kShapelets);
         printShapelets(kShapelets);
 
+        System.out.println("kShapelets size: " + kShapelets.size());
+        
         return kShapelets;
     }
 
@@ -612,6 +615,7 @@ public class FullShapeletTransform extends SimpleBatchFilter
         this.numShapelets = numShapelets;
         this.minShapeletLength = minShapeletLength;
         this.maxShapeletLength = maxShapeletLength;
+        initDataSouce(data);
         return findBestKShapeletsCache(data);
     }
 
@@ -936,6 +940,7 @@ public class FullShapeletTransform extends SimpleBatchFilter
 
 
         // create a shapelet object to store all necessary info, i.e.
+        
         Shapelet shapelet = new Shapelet(candidate, dataSourceIDs[seriesId], startPos, this.qualityMeasure);
         shapelet.calculateQuality(orderline, classDistributions); 
         shapelet.classValue =  data.instance(seriesId).classValue(); //set classValue of shapelet. (interesing to know).

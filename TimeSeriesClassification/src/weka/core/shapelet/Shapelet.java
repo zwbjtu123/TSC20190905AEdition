@@ -237,22 +237,16 @@ public class Shapelet implements Comparable<Shapelet>
     public int compareTo(Shapelet s2)
     {
 
-        if (qualityValue > s2.qualityValue)
-        {
-            return 1;
-        }
-        if (qualityValue < s2.qualityValue)
-        {
-            return -1;
-        }
+        int compare = Double.compare(qualityValue, s2.qualityValue);
+        if(compare != 0)
+            return compare;
+        
         if (length > s2.length)
-        {
             return 1;
-        }
+        
         if (content.length > s2.content.length)
-        {
             return 1;
-        }
+        
         return 0;
     }
 
