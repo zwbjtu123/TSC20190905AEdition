@@ -22,8 +22,10 @@ import weka.filters.timeseries.shapelet_transforms.*;
 public class ResamplingExperiments
 {
     
-    private static final String saveLocation = "C:\\LocalData\\resampled data sets";
+    private static final String saveLocation = "E:\\resampled data sets";
     private static final String loadLocation = "75 Data sets for Elastic Ensemble DAMI Paper";
+    
+    public static final int noSamples = 100;
 
     public static void main(String args[])
     {
@@ -31,15 +33,15 @@ public class ResamplingExperiments
         final File[] ds = fDir.listFiles();
         
         //create the datasets.
-        //for (File d : ds)
-            //createResmapleSets(d.getName());
+        for (int i=71; i < ds.length; i++)
+            createResmapleSets(ds[i].getName());
         
         //create all the shapelets sets for the small resamples.
         //String[] smallDatasets = DataSets.ucrSmall;
         //for(String fileName : smallDatasets)
             //createShapeletsOnResample(fileName);
         
-        createShapeletsOnResample("ItalyPowerDemand");
+        //createShapeletsOnResample("ItalyPowerDemand");
         
     }
     
@@ -59,9 +61,15 @@ public class ResamplingExperiments
         
         int testSize = test.numInstances();
 
+        int i=0;
+        
+        //so sample split 0 is the train and test.
+        LocalInfo.saveDataset(train, savePath+i+"_TRAIN");
+        LocalInfo.saveDataset(test, savePath+i+"_TEST");
+        
         //generate 100 folds.
         //start from 1.
-        for(int i=1; i<=100; i++)
+        for(i=1; i< noSamples; i++)
         {
             Random r = new Random(i);
             all.randomize(r);
@@ -74,7 +82,7 @@ public class ResamplingExperiments
                 te.add(tr.remove(0));
             }
             
-            LocalInfo.saveDataset(te, savePath+i+"_TRAIN");
+            LocalInfo.saveDataset(tr, savePath+i+"_TRAIN");
             LocalInfo.saveDataset(te, savePath+i+"_TEST");
         }
     }
@@ -88,7 +96,7 @@ public class ResamplingExperiments
         //get the saveLocation of the resampled files.
         String filePath = saveLocation+ fileExtension;
         
-        for(int i=1; i<=100; i++)
+        for(int i=0; i<noSamples; i++)
         {
             Instances test  = utilities.ClassifierTools.loadData(filePath + i + "_TEST");
             Instances train = utilities.ClassifierTools.loadData(filePath + i + "_TRAIN");

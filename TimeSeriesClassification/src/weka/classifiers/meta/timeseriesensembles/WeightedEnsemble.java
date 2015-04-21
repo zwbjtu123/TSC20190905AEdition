@@ -169,8 +169,9 @@ tation Forest [30] (with 10 trees), and a Bayesian network.
 //All weight types will require this        
         else{
             double sum=0;
+            Evaluation eval;
             for(int i=0;i<c.length;i++){
-                Evaluation eval=new Evaluation(train);
+                eval=new Evaluation(train);
                 Random r= new Random();
 //                r.setSeed(1234);
 //set the max number of folds to 100 or use LOOCV

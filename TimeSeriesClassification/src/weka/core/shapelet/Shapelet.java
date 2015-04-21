@@ -234,20 +234,11 @@ public class Shapelet implements Comparable<Shapelet>
     }
 
     @Override
-    public int compareTo(Shapelet s2)
-    {
-
-        int compare = Double.compare(qualityValue, s2.qualityValue);
-        if(compare != 0)
-            return compare;
-        
-        if (length > s2.length)
-            return 1;
-        
-        if (content.length > s2.content.length)
-            return 1;
-        
-        return 0;
+    public int compareTo(Shapelet shapelet) {
+        //compare by quality, if they're quality is equal we sort by the shorter shapelets.
+        int compare1 = Double.compare(qualityValue, shapelet.qualityValue);
+        int compare2 = Double.compare(content.length, shapelet.content.length);
+        return compare1 != 0 ? compare1 : compare2;
     }
 
     @Override
