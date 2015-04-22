@@ -8,6 +8,7 @@ package weka.filters.timeseries;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Map;
 import java.util.TreeMap;
 import weka.core.Attribute;
 import weka.core.DenseInstance;
@@ -115,11 +116,11 @@ public class BinaryTransform extends SimpleBatchFilter{
         for(int i=0;i<vals.length;i++)
             list.add(new OrderLineObj(vals[i],classes[i]));
         //Sort the vals
-        TreeMap<Double,Integer> tree = FullShapeletTransform.getClassDistributions(data);
+        Map<Double,Integer> tree = FullShapeletTransform.getClassDistributions(data);
         Collections.sort(list);
         return infoGainThreshold(list,tree);
     }
-   private static double entropy(TreeMap<Double, Integer> classDistributions){
+   private static double entropy(Map<Double, Integer> classDistributions){
             if(classDistributions.size() == 1){
                 return 0;
             }
@@ -149,7 +150,7 @@ public class BinaryTransform extends SimpleBatchFilter{
             return entropy;
         }
 
-    public static double infoGainThreshold(ArrayList<OrderLineObj> orderline, TreeMap<Double, Integer> classDistribution){
+    public static double infoGainThreshold(ArrayList<OrderLineObj> orderline, Map<Double, Integer> classDistribution){
 // for each split point, starting between 0 and 1, ending between end-1 and end
 // addition: track the last threshold that was used, don't bother if it's the same as the last one
         double lastDist = orderline.get(0).getDistance(); // must be initialised as not visited(no point breaking before any data!)

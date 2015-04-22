@@ -22,8 +22,11 @@ import weka.filters.timeseries.shapelet_transforms.*;
 public class ResamplingExperiments
 {
     
-    private static final String saveLocation = "E:\\resampled data sets";
+    private static final String saveLocation = "C:\\resampled data sets";
     private static final String loadLocation = "75 Data sets for Elastic Ensemble DAMI Paper";
+    private static final String dotdotSlash = ".." + File.separator;
+    private static final String shapeletLoadLocation = dotdotSlash + dotdotSlash + "resampled data sets";
+    private static final String shapeletSaveLocation = dotdotSlash + dotdotSlash + "resampled transforms";
     
     public static final int noSamples = 100;
 
@@ -33,16 +36,14 @@ public class ResamplingExperiments
         final File[] ds = fDir.listFiles();
         
         //create the datasets.
-        for (int i=71; i < ds.length; i++)
+        for (int i=0; i < ds.length; i++)
             createResmapleSets(ds[i].getName());
         
+        
         //create all the shapelets sets for the small resamples.
+        //int index = Integer.parseInt(args[0]) - 1;
         //String[] smallDatasets = DataSets.ucrSmall;
-        //for(String fileName : smallDatasets)
-            //createShapeletsOnResample(fileName);
-        
-        //createShapeletsOnResample("ItalyPowerDemand");
-        
+        //createShapeletsOnResample(smallDatasets[index]);        
     }
     
     public static void createResmapleSets(String fileName)
@@ -93,27 +94,30 @@ public class ResamplingExperiments
         System.out.println("creating resample for "+ fileName);
         String fileExtension = File.separator+ fileName + File.separator + fileName;
          
-        //get the saveLocation of the resampled files.
-        String filePath = saveLocation+ fileExtension;
+        //get the loadLocation of the resampled files.
+        String filePath = shapeletLoadLocation + fileExtension;
+        String savePath = shapeletSaveLocation + File.separator + "FullShapeletTransform" + fileExtension;
         
+        FullShapeletTransform transform;
+        Instances test, train;
+        int[] minAndMax;
         for(int i=0; i<noSamples; i++)
         {
-            Instances test  = utilities.ClassifierTools.loadData(filePath + i + "_TEST");
-            Instances train = utilities.ClassifierTools.loadData(filePath + i + "_TRAIN");
+            test  = utilities.ClassifierTools.loadData(filePath + i + "_TEST");
+            train = utilities.ClassifierTools.loadData(filePath + i + "_TRAIN");
             
             //estimate min max of shapelet. 
-            int[] minAndMax = ShapeletTransformFactory.estimateMinAndMax(train);
+            minAndMax = ShapeletTransformFactory.estimateMinAndMax(train);
             
             System.out.println(Arrays.toString(minAndMax));
             
-            /*
             //construct shapelet classifiers.
-            FullShapeletTransform transform = new FullShapeletTransform(train.numInstances()*10,minAndMax[0], minAndMax[1],QualityMeasures.ShapeletQualityChoice.INFORMATION_GAIN);
+            transform = new FullShapeletTransform(train.numInstances()*10,minAndMax[0], minAndMax[1], QualityMeasures.ShapeletQualityChoice.INFORMATION_GAIN);
             transform.turnOffLog();
 
-            LocalInfo.saveDataset(transform.process(train), filePath + "_transform_" + i + "_TRAIN");
-            LocalInfo.saveDataset(transform.process(test) , filePath + "_transform_" + i + "_TEST");
-            */
+            //saveLocation/FullShapeletTransform/ItalyPowerDemand/ItalyPowerDemandi_TRAIN
+            LocalInfo.saveDataset(transform.process(train), savePath + i + "_TRAIN");
+            LocalInfo.saveDataset(transform.process(test) , savePath + i + "_TEST");
         }
         
         

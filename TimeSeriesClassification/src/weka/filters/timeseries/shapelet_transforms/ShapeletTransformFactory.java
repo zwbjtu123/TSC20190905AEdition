@@ -11,6 +11,7 @@ package weka.filters.timeseries.shapelet_transforms;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Random;
 import weka.core.Instances;
 import weka.core.shapelet.*;
@@ -111,10 +112,9 @@ public class ShapeletTransformFactory
             randData.randomize(new Random());
             randSubset = new Instances(randData, 0, 10);
             shapelets.addAll(st.findBestKShapeletsCache(10, randSubset, 1, randSubset.numAttributes() - 1));
-            System.out.println(shapelets.size());
         }
 
-        Collections.sort(shapelets);
+        Collections.sort(shapelets, new ShapeletLengthComparator());
         int min = shapelets.get(24).getContent().length;
         int max = shapelets.get(74).getContent().length;
 
@@ -124,5 +124,17 @@ public class ShapeletTransformFactory
         };
 
         return parEstimates;
+    }
+    
+        //Class implementing comparator which compares shapelets according to their length
+    public static class ShapeletLengthComparator implements Comparator<Shapelet>{
+   
+        @Override
+        public int compare(Shapelet shapelet1, Shapelet shapelet2){
+            int shapelet1Length = shapelet1.getContent().length;        
+            int shapelet2Length = shapelet2.getContent().length;
+
+            return Integer.compare(shapelet1Length, shapelet2Length);  
+        }
     }
 }

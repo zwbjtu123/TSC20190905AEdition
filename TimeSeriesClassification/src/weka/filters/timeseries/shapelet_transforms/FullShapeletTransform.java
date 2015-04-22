@@ -46,7 +46,7 @@ public class FullShapeletTransform extends SimpleBatchFilter
     protected double[][] cachedDoubleArray;
     //Variables for experiments
     protected static long subseqDistOpCount;
-    protected TreeMap<Double, Integer> classDistributions;
+    protected Map<Double, Integer> classDistributions;
     
     //logFile
     PrintWriter opLogFile = null;
@@ -463,7 +463,7 @@ public class FullShapeletTransform extends SimpleBatchFilter
         //checks if the shapelets haven't been found yet, finds them if it needs too.
         if (!shapeletsTrained)
         {
-            initLogFiles();
+            //initLogFiles();
             trainShapelets(data);
         }
 
@@ -595,8 +595,6 @@ public class FullShapeletTransform extends SimpleBatchFilter
         recordShapelets(kShapelets);
         printShapelets(kShapelets);
 
-        System.out.println("kShapelets size: " + kShapelets.size());
-        
         return kShapelets;
     }
 
@@ -864,9 +862,9 @@ public class FullShapeletTransform extends SimpleBatchFilter
      * @return a TreeMap<Double, Integer> in the form of <Class Value,
      * Frequency>
      */
-    public static TreeMap<Double, Integer> getClassDistributions(Instances data)
+    public static Map<Double, Integer> getClassDistributions(Instances data)
     {
-        TreeMap<Double, Integer> classDistribution = new TreeMap<>();
+        Map<Double, Integer> classDistribution = new TreeMap<>();
 
         ListIterator<Instance> it = data.listIterator();
         double classValue;
@@ -880,7 +878,6 @@ public class FullShapeletTransform extends SimpleBatchFilter
             classDistribution.put(classValue, val);
         }
         
-        System.out.println("class dists: " + classDistribution);
         return classDistribution;
     }
 
@@ -951,7 +948,7 @@ public class FullShapeletTransform extends SimpleBatchFilter
     {
         double[] quals = new double[trans.numAttributes() - 1];
 
-        TreeMap map = getClassDistributions(trans);
+        Map map = getClassDistributions(trans);
 
         for (int i = 0; i < quals.length; i++)
         {
@@ -1365,7 +1362,7 @@ public class FullShapeletTransform extends SimpleBatchFilter
         TreeMap<Double, ArrayList<Integer>> positionsByClass = new TreeMap<>();
 
         //Get class distributions 
-        TreeMap<Double, Integer> classDistribution = FullShapeletTransform.getClassDistributions(data);
+        Map<Double, Integer> classDistribution = FullShapeletTransform.getClassDistributions(data);
 
         //Allocate arrays for instances of every class
         for (Double key : classDistribution.keySet())

@@ -288,9 +288,6 @@ public class ShapeletTransform extends FullShapeletTransform
                 subseqDistOpCount++;
             }
             
-            //System.out.println("shapelet performed calculations: " + j + " of " + candidate.length);
-            
-
             if (currentDist < bestDist)
             {
                 bestDist = currentDist;

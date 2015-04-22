@@ -6,22 +6,15 @@
 package papers;
 
 import AaronTest.LocalInfo;
-import development.DataSets;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Map;
 import java.util.Scanner;
-import java.util.TreeMap;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import weka.classifiers.Classifier;
-import weka.classifiers.meta.timeseriesensembles.ElasticEnsemble;
 import weka.classifiers.meta.timeseriesensembles.WeightedEnsemble;
-import weka.core.Instance;
 import weka.core.Instances;
 import weka.core.shapelet.QualityMeasures;
 import weka.filters.timeseries.shapelet_transforms.BinarisedShapeletTransform;
@@ -232,8 +225,8 @@ public class DaWaK2015
                 test = utilities.ClassifierTools.loadData(filePath + "_TEST");
                 train = utilities.ClassifierTools.loadData(filePath + "_TRAIN");
 
-                TreeMap<Double, Integer> trainDist = FullShapeletTransform.getClassDistributions(train);
-                TreeMap<Double, Integer> testDist = FullShapeletTransform.getClassDistributions(test);
+                Map<Double, Integer> trainDist = FullShapeletTransform.getClassDistributions(train);
+                Map<Double, Integer> testDist = FullShapeletTransform.getClassDistributions(test);
                 outFile.printf("%s,%s,%s\n", dataName.getName(), trainDist.toString().replace('{', '\0').replace('}', '\0'), testDist.toString().replace('{', '\0').replace('}', '\0'));
             }
         }
