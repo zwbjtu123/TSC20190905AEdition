@@ -386,7 +386,7 @@ public class ClassifierTools {
             acc=correct/(double)test.numInstances();
         }catch(Exception e)
         {
-            System.out.println(" Error ="+e+" in method simpleExperiment"+e);
+            System.out.println(" Error ="+e+" in method singleTrainTestSplitAccuracy"+e);
             e.printStackTrace();
             System.exit(0);
         }

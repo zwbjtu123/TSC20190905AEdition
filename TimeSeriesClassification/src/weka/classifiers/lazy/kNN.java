@@ -24,14 +24,18 @@ public class kNN extends IBk {
 	double[][] distMatrix;
 	boolean storeDistance;
 	public kNN(){
-//Defaults to Euclidean distance		
+//Defaults to Euclidean distance 1NN without attribute normalisation		
             super();
             super.setKNN(1);
-            setDistanceFunction(new EuclideanDistance());
+            EuclideanDistance ed = new EuclideanDistance();
+            ed.setDontNormalize(true);
+            setDistanceFunction(ed);
 	}
 	public kNN(int k){
             super(k);
-            setDistanceFunction(new EuclideanDistance());
+            EuclideanDistance ed = new EuclideanDistance();
+            ed.setDontNormalize(true);
+            setDistanceFunction(ed);
 	}
 	public kNN(DistanceFunction df){
             super();

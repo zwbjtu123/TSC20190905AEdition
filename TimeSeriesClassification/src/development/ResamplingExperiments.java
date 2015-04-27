@@ -37,7 +37,7 @@ public class ResamplingExperiments
         
         //create the datasets.
         for (int i=0; i < ds.length; i++)
-            createResmapleSets(ds[i].getName());
+            createResampleSets(ds[i].getName());
         
         
         //create all the shapelets sets for the small resamples.
@@ -46,7 +46,7 @@ public class ResamplingExperiments
         //createShapeletsOnResample(smallDatasets[index]);        
     }
     
-    public static void createResmapleSets(String fileName)
+    public static void createResampleSets(String fileName)
     {
         System.out.println("Creating resmaples for " +fileName);
         
@@ -119,8 +119,7 @@ public class ResamplingExperiments
             LocalInfo.saveDataset(transform.process(train), savePath + i + "_TRAIN");
             LocalInfo.saveDataset(transform.process(test) , savePath + i + "_TEST");
         }
-        
-        
+         
     }
     
     

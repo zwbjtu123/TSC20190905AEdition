@@ -23,8 +23,10 @@ import weka.filters.timeseries.SummaryStats;
  */
 public class DataSets {
     
-    public static String clusterPath="TSC Problems/";
+    public static String clusterPath="/gpfs/home/ajb/";
+    
     public static String dropboxPath="C:\\Users\\ajb\\Dropbox\\TSC Problems\\";
+    public static String resultsPath="C:\\Users\\ajb\\Dropbox\\Results\\";
     public static String uciPath="C:\\Users\\ajb\\Dropbox\\UCI Classification Problems\\";
     public static String ucrPath="C:\\Users\\ajb\\Dropbox\\UCRArff\\";
     
@@ -93,7 +95,7 @@ public class DataSets {
 			"SmallKitchenAppliances", // 375,375,720,3
 			"SonyAIBORobotSurface", // 20,601,70,2
 			"SonyAIBORobotSurfaceII", // 27,953,65,2
-			"StarLightCurves", // 1000,8236,1024,3
+			"StarlightCurves", // 1000,8236,1024,3
 			"Strawberry",
                         "SwedishLeaf", // 500,625,128,15
 			"Symbols", // 25,995,398,6
@@ -192,6 +194,19 @@ public class DataSets {
                 };   
       //</editor-fold>
 
+    //<editor-fold defaultstate="collapsed" desc="spectral: IFR Spectral data">    
+		public static String[] spectral={	
+//Train Size, Test Size, Series Length, Nos Classes
+			"Beef", // 30,30,470,5
+			"Coffee", // 28,28,286,2
+			"Ham",
+			"Meat",
+			"OliveOil", // 30,30,570,4
+			"Strawberry",
+			"Wine",
+//To add: spirits                        
+                        
+                };
   //Small Files  
     //<editor-fold defaultstate="collapsed" desc="smallFileNames:">    
 		public static String[] smallFileNames={	
