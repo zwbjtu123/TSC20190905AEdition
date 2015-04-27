@@ -97,10 +97,9 @@ public class ShapeletTransformFactory
     }
 
     // Method to estimate min/max shapelet lenght for a given data
-    public static int[] estimateMinAndMax(Instances data)
+    public static int[] estimateMinAndMax(Instances data, FullShapeletTransform st)
     {
         ArrayList<Shapelet> shapelets = new ArrayList<>();
-        FullShapeletTransform st = new ShapeletTransform();
         st.supressOutput();
         st.turnOffLog();
 
@@ -124,6 +123,12 @@ public class ShapeletTransformFactory
         };
 
         return parEstimates;
+    }
+    
+    //bog standard min max estimation.
+    public static int[] estimateMinAndMax(Instances data)
+    {
+        return estimateMinAndMax(data, new FullShapeletTransform());
     }
     
         //Class implementing comparator which compares shapelets according to their length

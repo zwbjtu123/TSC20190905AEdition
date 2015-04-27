@@ -16,6 +16,7 @@ import weka.core.DenseInstance;
 import weka.core.Instances;
 import weka.core.shapelet.OrderLineObj;
 import weka.core.shapelet.QualityBound;
+import weka.core.shapelet.QualityMeasures;
 import weka.core.shapelet.Shapelet;
 import static weka.filters.timeseries.shapelet_transforms.FullShapeletTransform.ROUNDING_ERROR_CORRECTION;
 import static weka.filters.timeseries.shapelet_transforms.FullShapeletTransform.getClassDistributions;
@@ -35,6 +36,10 @@ public class BinarisedShapeletTransform extends ShapeletTransform
     public BinarisedShapeletTransform()
     {
         super();
+    }
+
+    public BinarisedShapeletTransform(int i, int min, int max, QualityMeasures.ShapeletQualityChoice shapeletQualityChoice) {
+        super(i,min,max,shapeletQualityChoice);
     }
 
     /**

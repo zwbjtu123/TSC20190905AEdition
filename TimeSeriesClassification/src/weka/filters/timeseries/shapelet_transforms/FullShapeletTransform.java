@@ -878,6 +878,8 @@ public class FullShapeletTransform extends SimpleBatchFilter
             classDistribution.put(classValue, val);
         }
         
+        System.out.println(classDistribution);
+        
         return classDistribution;
     }
 
