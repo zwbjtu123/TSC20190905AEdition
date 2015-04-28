@@ -37,25 +37,27 @@ public class ResamplingExperiments {
 
 
     private static final String dotdotSlash = ".." + File.separator;
-    private static final String ucrLocation         = dotdotSlash + dotdotSlash + "75 Data sets for Elastic Ensemble DAMI Paper";
-    private static final String resampleLocation    = dotdotSlash + dotdotSlash + "resampled data sets";
-    private static final String transformLocation   = dotdotSlash + dotdotSlash + "resampled transforms";
-    private static final String accuraciesLocation  = dotdotSlash + dotdotSlash + "resampled accuracies";
+
 
     public static final int noSamples = 100;
 
     public static void main(String args[]) {
-        File fDir = new File(ucrLocation);
+        final String ucrLocation         = dotdotSlash + dotdotSlash + "75 Data sets for Elastic Ensemble DAMI Paper";
+        final String resampleLocation    = dotdotSlash + dotdotSlash + "resampled data sets";
+        final String transformLocation   = dotdotSlash + dotdotSlash + "resampled transforms";
+        final String accuraciesLocation  = dotdotSlash + dotdotSlash + "resampled accuracies";
+        
+        /*File fDir = new File(ucrLocation);
         final File[] ds = fDir.listFiles();
 
         for (File d : ds) 
-           createResmapleSets(d.getName());
-       
+        {
+            String fileExtension = File.separator + d.getName() + File.separator + d.getName();
+            createResmapleSets(ucrLocation + fileExtension, resampleLocation + fileExtension, );
+        }
+       */
 
-       
-           
         //create all the shapelets sets for the small resamples.
-        /*
         int inputVal = Integer.parseInt(args[0]) - 1;
         int sampleSize = Integer.parseInt(args[1]);
 
@@ -66,32 +68,26 @@ public class ResamplingExperiments {
 
         String[] smallDatasets = DataSets.ucrSmall;
         System.out.println("creating resample for " + smallDatasets[index] + " for fold: " + fold);
-        */
-        //String fileExtension = File.separator + smallDatasets[index] + File.separator + smallDatasets[index];
+        
+        String fileExtension = File.separator + smallDatasets[index] + File.separator + smallDatasets[index];
 
-        //FullShapeletTransform transform = new FullShapeletTransform();
+        FullShapeletTransform transform = new FullShapeletTransform();
 
         //get the loadLocation of the resampled files.
-        //String classifierDir = File.separator + transform.getClass().getSimpleName() + fileExtension;
+        String classifierDir = File.separator + transform.getClass().getSimpleName() + fileExtension;
 
-        //String samplePath       = shapeletLoadLocation + fileExtension;
-        //String transformPath    = shapeletSaveLocation + classifierDir;
-        //String accuracyPath     = accuraciesLocation   + classifierDir;
+        String samplePath       = resampleLocation + fileExtension;
+        String transformPath    = transformLocation + classifierDir;
+        String accuracyPath     = accuraciesLocation   + classifierDir;
 
-        //createShapeletsOnResample(samplePath, transformPath, fold, transform);            
+        createShapeletsOnResample(samplePath, transformPath, fold, transform);            
         
         //save path in this instance is where the transformed data is.
         //createWeightedEnsembleAccuracies(transformPath, accuracyPath, fold);
     }
 
-    public static void createResmapleSets(String fileName) {
-        System.out.println("Creating resmaples for " + fileName);
-
-        String fileExtension = File.separator + fileName + File.separator + fileName;
-
-        String filePath = ucrLocation + fileExtension;
-        String savePath = resampleLocation + fileExtension;
-
+    //where does the train and test set come from, where do you want to save the resample versions.
+    public static void createResmapleSets(String filePath, String savePath) {
         Instances test = utilities.ClassifierTools.loadData(filePath + "_TEST");
         Instances train = utilities.ClassifierTools.loadData(filePath + "_TRAIN");
         Instances all = new Instances(train);
