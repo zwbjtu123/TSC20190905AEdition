@@ -44,4 +44,29 @@ public class InstanceTools {
         
         return classDistribution;
     }
+    
+    public static Map<Double, Instances> getClassInstancesMap(Instances data)
+    {
+        Map<Double, Instances> instancesMap = new TreeMap<>();
+        
+        ListIterator<Instance> it = data.listIterator();
+        double classValue;
+        while (it.hasNext())
+        {
+            Instance inst = it.next();
+            classValue = inst.classValue();
+
+            Instances val = instancesMap.get(classValue);
+
+            if(val == null)
+                val = new Instances(data, 0);
+            
+            val.add(inst);
+            
+            instancesMap.put(classValue, val);
+        }
+        
+        return instancesMap;
+        
+    }
 }

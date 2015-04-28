@@ -11,9 +11,15 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Arrays;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import utilities.InstanceTools;
 import weka.classifiers.meta.timeseriesensembles.WeightedEnsemble;
 import weka.core.Instance;
 import weka.core.Instances;
@@ -42,8 +48,8 @@ public class ResamplingExperiments {
         File fDir = new File(ucrLocation);
         final File[] ds = fDir.listFiles();
 
-        //for (File d : ds) 
-           createResmapleSets(ds[0].getName());
+        for (File d : ds) 
+           createResmapleSets(d.getName());
        
 
        
@@ -97,31 +103,32 @@ public class ResamplingExperiments {
         LocalInfo.saveDataset(train, savePath + i + "_TRAIN");
         LocalInfo.saveDataset(test, savePath + i + "_TEST");
 
-        
-
+        Map<Double, Integer> trainDistribution = InstanceTools.getClassDistributions(train);
+        Map<Double, Instances> classBins = InstanceTools.getClassInstancesMap(all);
+       
         //generate 100 folds.
         //start from 1.
         for (i = 1; i < noSamples; i++) {
             Random r = new Random(i);
-            all.randomize(r);
-            all.stratify(noSamples-1);
-
-            // Percent split
-            //figure out what our train test split percentage is.
-            double ratio = (double) train.numInstances() / (double) all.numInstances();
-            int trainSize = (int) Math.round(all.numInstances() * ratio);
-            int testSize = all.numInstances() - trainSize;
             
-            Instances tr = new Instances(all, 0, trainSize);
-            Instances te = new Instances(all, trainSize, testSize);
+            //empty instances.
+            Instances tr = new Instances(all, 0);
+            Instances te = new Instances(all, 0);
 
-            
-            //TODO: figure out our stratify splits.
-            //int a = FullShapeletTransform.getClassDistributions(te).keySet().size();
-            //int b = FullShapeletTransform.getClassDistributions(tr).keySet().size();
-
-            //LocalInfo.saveDataset(tr, savePath + i + "_TRAIN");
-            //LocalInfo.saveDataset(te, savePath + i + "_TEST");
+             Iterator<Double> keys = classBins.keySet().iterator();
+             while(keys.hasNext())
+             {
+                 double classVal = keys.next();
+                 int occurences = trainDistribution.get(classVal);
+                 Instances bin = classBins.get(classVal);
+                 bin.randomize(r); //randomise the bin.
+                 
+                 tr.addAll(bin.subList(0,occurences));//copy the first portion of the bin into the train set
+                 te.addAll(bin.subList(occurences, bin.size()));//copy the remaining portion of the bin into the test set.
+             }
+             
+            LocalInfo.saveDataset(tr, savePath + i + "_TRAIN");
+            LocalInfo.saveDataset(te, savePath + i + "_TEST");
         }
     }
 
