@@ -12,6 +12,7 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.TreeMap;
+import static utilities.InstanceTools.getClassDistributions;
 import weka.core.DenseInstance;
 import weka.core.Instances;
 import weka.core.shapelet.OrderLineObj;
@@ -19,7 +20,6 @@ import weka.core.shapelet.QualityBound;
 import weka.core.shapelet.QualityMeasures;
 import weka.core.shapelet.Shapelet;
 import static weka.filters.timeseries.shapelet_transforms.FullShapeletTransform.ROUNDING_ERROR_CORRECTION;
-import static weka.filters.timeseries.shapelet_transforms.FullShapeletTransform.getClassDistributions;
 import static weka.filters.timeseries.shapelet_transforms.FullShapeletTransform.removeSelfSimilar;
 import static weka.filters.timeseries.shapelet_transforms.ShapeletTransform.sortIndexes;
 

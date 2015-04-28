@@ -5,6 +5,7 @@ import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.TreeMap;
+import static utilities.InstanceTools.getClassDistributions;
 import weka.core.DenseInstance;
 import weka.core.Instances;
 import weka.core.shapelet.OrderLineObj;

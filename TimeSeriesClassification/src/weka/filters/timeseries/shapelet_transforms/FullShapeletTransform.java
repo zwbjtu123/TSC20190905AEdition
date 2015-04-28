@@ -23,6 +23,7 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.TreeMap;
+import static utilities.InstanceTools.getClassDistributions;
 import weka.core.*;
 import weka.core.shapelet.*;
 import weka.filters.SimpleBatchFilter;
@@ -853,35 +854,7 @@ public class FullShapeletTransform extends SimpleBatchFilter
         return outputShapelets;
     }
 
-    /**
-     * Private method to calculate the class distributions of a dataset. Main
-     * purpose is for computing shapelet qualities.
-     *
-     * @param data the input data set that the class distributions are to be
-     * derived from
-     * @return a TreeMap<Double, Integer> in the form of <Class Value,
-     * Frequency>
-     */
-    public static Map<Double, Integer> getClassDistributions(Instances data)
-    {
-        Map<Double, Integer> classDistribution = new TreeMap<>();
 
-        ListIterator<Instance> it = data.listIterator();
-        double classValue;
-        while (it.hasNext())
-        {
-            classValue = it.next().classValue();
-
-            Integer val = classDistribution.get(classValue);
-
-            val = (val != null) ? val + 1 : 1;
-            classDistribution.put(classValue, val);
-        }
-        
-        System.out.println(classDistribution);
-        
-        return classDistribution;
-    }
 
     /**
      * protected method to check a candidate shapelet. Functions by passing in
@@ -1364,7 +1337,7 @@ public class FullShapeletTransform extends SimpleBatchFilter
         TreeMap<Double, ArrayList<Integer>> positionsByClass = new TreeMap<>();
 
         //Get class distributions 
-        Map<Double, Integer> classDistribution = FullShapeletTransform.getClassDistributions(data);
+        Map<Double, Integer> classDistribution = getClassDistributions(data);
 
         //Allocate arrays for instances of every class
         for (Double key : classDistribution.keySet())
