@@ -144,6 +144,10 @@ public class ShapeletTransformDistCaching extends FullShapeletTransform
                 {
                     stats.computeStats(s.getSeriesId(), data);
                 }
+                else
+                {
+                    subseqDistance.setCandidate(s.content);
+                }
             }
 
             for (int j = 0; j < dataInst.numInstances(); j++)
@@ -158,7 +162,7 @@ public class ShapeletTransformDistCaching extends FullShapeletTransform
                     }
                     else
                     {
-                        dist = subseqDistance(s.getContent(), dataInst.instance(j));
+                        dist = subseqDistance.calculate(dataInst.instance(j).toDoubleArray());
                     }
 
                     if (i == 0)
@@ -637,6 +641,8 @@ public class ShapeletTransformDistCaching extends FullShapeletTransform
         int minShapeletLength = seriesLength / 2;
         int maxShapeletLength = seriesLength / 2;
 
+        FullShapeletTransform fst = new FullShapeletTransform();
+        
         //Every time series instance
         for (int i = 0; i < numOfSeries; i++)
         {
@@ -662,12 +668,13 @@ public class ShapeletTransformDistCaching extends FullShapeletTransform
                     //System.out.println("MEAN: " + computeMean(candidate, false) + " = " + stats.getMeanX(start, length));
                     //System.out.println("STDV: " + computeStdv(candidate, false) + " = " + stats.getStdDevX(start, length));
                     //Compute distance for each candidate
+                    fst.subseqDistance.setCandidate(FullShapeletTransform.zNormalise(candidate, false));
                     for (int j = 0; j < numOfSeries; j++)
                     {
                         stats.setCurrentY(j);
 
                         double distanceCached = cachedSubsequenceDistance(start, candidate.length, data[j].length, stats);
-                        double distanceOriginal = FullShapeletTransform.subsequenceDistance(FullShapeletTransform.zNormalise(candidate, false), data[j]);
+                        double distanceOriginal = fst.subseqDistance.calculate(data[j]);
                         if (Math.abs(distanceCached - distanceOriginal) > 0.0000000000000000001)
                         {
                             System.out.println("Candidate = " + i + ", startPos = " + start + ", series = " + j + ":\t" + distanceCached + " = " + distanceOriginal);

@@ -85,10 +85,6 @@ public class ShapeletTransformDistCaching2 extends FullShapeletTransform
         //check the input data is correct and assess whether the filter has been setup correctly.
         inputCheck(dataInst);
 
-        //instantiate the caching array here, so it gets refreshed if we're using a test set.
-        if(cacheDoubleArrays)
-            cachedDoubleArray = new double[dataInst.numInstances()][];
-        
         //checks if the shapelets haven't been found yet, finds them if it needs too.
         if (!shapeletsTrained)
         {
@@ -132,9 +128,11 @@ public class ShapeletTransformDistCaching2 extends FullShapeletTransform
         for (int i = 0; i < size; i++)
         {
             s = shapelets.get(i);
-            if (data != null && stats != null)
-            {
+            if (data != null && stats != null){
                 stats.computeStats(s.getSeriesId(), data);
+            }
+            else{
+                subseqDistance.setCandidate(s.content);
             }
 
             for (int j = 0; j < dataSize; j++)
@@ -146,7 +144,7 @@ public class ShapeletTransformDistCaching2 extends FullShapeletTransform
                 }
                 else
                 {
-                    dist = subseqDistance(s.getContent(), dataInst.instance(j));
+                    dist = subseqDistance.calculate(dataInst.instance(j).toDoubleArray());
                 }
 
                 output.instance(j).setValue(i, dist);
@@ -171,7 +169,7 @@ public class ShapeletTransformDistCaching2 extends FullShapeletTransform
         data = new double[dataSize][];
         for (int i = 0; i < dataSize; i++)
         {
-            data[i] = FullShapeletTransform.zNormalise(getToDoubleArrayOfInstance(dataInst, i), true);
+            data[i] = FullShapeletTransform.zNormalise(dataInst.get(i).toDoubleArray(), true);
         }
     }
 
@@ -591,6 +589,8 @@ public class ShapeletTransformDistCaching2 extends FullShapeletTransform
         int minShapeletLength = seriesLength / 2;
         int maxShapeletLength = seriesLength / 2;
 
+        FullShapeletTransform fst = new FullShapeletTransform();
+        
         //Every time series instance
         for (int i = 0; i < numOfSeries; i++)
         {
@@ -616,12 +616,13 @@ public class ShapeletTransformDistCaching2 extends FullShapeletTransform
                     //System.out.println("MEAN: " + computeMean(candidate, false) + " = " + stats.getMeanX(start, length));
                     //System.out.println("STDV: " + computeStdv(candidate, false) + " = " + stats.getStdDevX(start, length));
                     //Compute distance for each candidate
+                    fst.subseqDistance.setCandidate(FullShapeletTransform.zNormalise(candidate, false));
                     for (int j = 0; j < numOfSeries; j++)
                     {
                         stats.setCurrentY(j);
 
                         double distanceCached = cachedSubsequenceDistance(start, candidate.length, data[j].length, stats);
-                        double distanceOriginal = FullShapeletTransform.subsequenceDistance(FullShapeletTransform.zNormalise(candidate, false), data[j]);
+                        double distanceOriginal = fst.subseqDistance.calculate(data[j]);
                         if (Math.abs(distanceCached - distanceOriginal) > 0.0000000000000000001)
                         {
                             System.out.println("Candidate = " + i + ", startPos = " + start + ", series = " + j + ":\t" + distanceCached + " = " + distanceOriginal);

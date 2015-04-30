@@ -187,7 +187,8 @@ public class ClusteredShapeletTransform extends SimpleBatchFilter{
             Instance toAdd = new DenseInstance(this.clusteredShapelets.size() + 1);
             int shapeletNum = 0;
             for (Shapelet s : this.clusteredShapelets) {
-                double dist = FullShapeletTransform.subsequenceDistance(s.content, data.instance(i));
+                st.subseqDistance.setCandidate(s.content);
+                double dist = st.subseqDistance.calculate(data.instance(i).toDoubleArray());
                 toAdd.setValue(shapeletNum++, dist);
             }
             toAdd.setValue(this.clusteredShapelets.size(), data.instance(i).classValue());

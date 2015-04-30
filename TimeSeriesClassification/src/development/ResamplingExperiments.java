@@ -71,7 +71,8 @@ public class ResamplingExperiments {
         
         String fileExtension = File.separator + smallDatasets[index] + File.separator + smallDatasets[index];
 
-        FullShapeletTransform transform = new FullShapeletTransform();
+        //FullShapeletTransform transform = new FullShapeletTransform();
+        BinarisedShapeletTransform transform = new BinarisedShapeletTransform();
 
         //get the loadLocation of the resampled files.
         String classifierDir = File.separator + transform.getClass().getSimpleName() + fileExtension;

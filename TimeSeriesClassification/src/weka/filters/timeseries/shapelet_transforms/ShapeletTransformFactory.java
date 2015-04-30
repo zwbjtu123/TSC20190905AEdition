@@ -37,17 +37,14 @@ public class ShapeletTransformFactory
         //Currently the cache is in doubles, will convert to floats.
         distCache *= 32;   //8 bytes per double, 4 for floats, but be conservative
         FullShapeletTransform s;
-        s = new ShapeletTransform();
-        System.out.println(" No Caching");
+        
         if (distCache < MEM_CUTOFF * mem)
         {   //Use caching
             s = new ShapeletTransformDistCaching();
-            System.out.println(" Using Caching");
         }
         else
         {
             s = new ShapeletTransform();
-            System.out.println(" No Caching");
         }
 //2. Number of shapelets to retain
         int m = train.numAttributes() - 1;
@@ -117,12 +114,7 @@ public class ShapeletTransformFactory
         int min = shapelets.get(24).getContent().length;
         int max = shapelets.get(74).getContent().length;
 
-        int[] parEstimates =
-        {
-            min, max
-        };
-
-        return parEstimates;
+        return new int[]{min,max};
     }
     
     //bog standard min max estimation.
