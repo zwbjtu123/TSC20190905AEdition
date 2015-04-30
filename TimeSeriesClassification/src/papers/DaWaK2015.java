@@ -14,6 +14,7 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.Scanner;
+import static utilities.InstanceTools.getClassDistributions;
 import weka.classifiers.meta.timeseriesensembles.WeightedEnsemble;
 import weka.core.Instances;
 import weka.core.shapelet.QualityMeasures;
@@ -92,8 +93,8 @@ public class DaWaK2015
     public static void main(String args[])
     {
         int index = Integer.parseInt(args[0]) - 1;
-        buildDataSets(index);
-        //shapeletAccuracies(index);
+        //buildDataSets(index);
+        shapeletAccuracies(index);
     }
     
     public static void buildDataSets(int i)
@@ -142,7 +143,7 @@ public class DaWaK2015
     
     public static void shapeletAccuracies(int i)
     {
-        String dir = "results";
+        String dir = "results1";
         
         File fDir = new File(dir);
         final File[] ds = fDir.listFiles();
@@ -225,8 +226,8 @@ public class DaWaK2015
                 test = utilities.ClassifierTools.loadData(filePath + "_TEST");
                 train = utilities.ClassifierTools.loadData(filePath + "_TRAIN");
 
-                Map<Double, Integer> trainDist = FullShapeletTransform.getClassDistributions(train);
-                Map<Double, Integer> testDist = FullShapeletTransform.getClassDistributions(test);
+                Map<Double, Integer> trainDist = getClassDistributions(train);
+                Map<Double, Integer> testDist = getClassDistributions(test);
                 outFile.printf("%s,%s,%s\n", dataName.getName(), trainDist.toString().replace('{', '\0').replace('}', '\0'), testDist.toString().replace('{', '\0').replace('}', '\0'));
             }
         }
