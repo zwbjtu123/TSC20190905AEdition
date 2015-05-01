@@ -26,7 +26,7 @@ public class InstanceTools {
      * @return a TreeMap<Double, Integer> in the form of <Class Value,
      * Frequency>
      */
-    public static Map<Double, Integer> getClassDistributions(Instances data)
+    public static Map<Double, Integer> createClassDistributions(Instances data)
     {
         Map<Double, Integer> classDistribution = new TreeMap<>();
 
@@ -45,7 +45,7 @@ public class InstanceTools {
         return classDistribution;
     }
     
-    public static Map<Double, Instances> getClassInstancesMap(Instances data)
+    public static Map<Double, Instances> createClassInstancesMap(Instances data)
     {
         Map<Double, Instances> instancesMap = new TreeMap<>();
         

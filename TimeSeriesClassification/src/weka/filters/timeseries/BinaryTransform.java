@@ -10,7 +10,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
 import java.util.TreeMap;
-import static utilities.InstanceTools.getClassDistributions;
+import static utilities.InstanceTools.createClassDistributions;
 import weka.core.Attribute;
 import weka.core.DenseInstance;
 import weka.core.FastVector;
@@ -117,7 +117,7 @@ public class BinaryTransform extends SimpleBatchFilter{
         for(int i=0;i<vals.length;i++)
             list.add(new OrderLineObj(vals[i],classes[i]));
         //Sort the vals
-        Map<Double,Integer> tree = getClassDistributions(data);
+        Map<Double,Integer> tree = createClassDistributions(data);
         Collections.sort(list);
         return infoGainThreshold(list,tree);
     }

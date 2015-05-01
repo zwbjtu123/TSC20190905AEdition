@@ -100,8 +100,8 @@ public class ResamplingExperiments {
         LocalInfo.saveDataset(train, savePath + i + "_TRAIN");
         LocalInfo.saveDataset(test, savePath + i + "_TEST");
 
-        Map<Double, Integer> trainDistribution = InstanceTools.getClassDistributions(train);
-        Map<Double, Instances> classBins = InstanceTools.getClassInstancesMap(all);
+        Map<Double, Integer> trainDistribution = InstanceTools.createClassDistributions(train);
+        Map<Double, Instances> classBins = InstanceTools.createClassInstancesMap(all);
        
         //generate 100 folds.
         //start from 1.

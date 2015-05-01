@@ -5,7 +5,7 @@ import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.TreeMap;
-import static utilities.InstanceTools.getClassDistributions;
+import utilities.InstanceTools;
 import weka.core.DenseInstance;
 import weka.core.Instances;
 import weka.core.shapelet.OrderLineObj;
@@ -144,10 +144,6 @@ public class ShapeletTransformDistCaching extends FullShapeletTransform
                 {
                     stats.computeStats(s.getSeriesId(), data);
                 }
-                else
-                {
-                    subseqDistance.setCandidate(s.content);
-                }
             }
 
             for (int j = 0; j < dataInst.numInstances(); j++)
@@ -162,7 +158,7 @@ public class ShapeletTransformDistCaching extends FullShapeletTransform
                     }
                     else
                     {
-                        dist = subseqDistance.calculate(dataInst.instance(j).toDoubleArray());
+                        dist = subseqDistance(s.getContent(), dataInst.instance(j));
                     }
 
                     if (i == 0)
@@ -189,7 +185,7 @@ public class ShapeletTransformDistCaching extends FullShapeletTransform
     {
         ArrayList<Shapelet> kShapelets = new ArrayList<>();                     // store (upto) the best k shapelets overall
         ArrayList<Shapelet> seriesShapelets;                                    // temp store of all shapelets for each time series
-        classDistributions = getClassDistributions(dataInst);                   // used to calc info gain
+        classDistributions = InstanceTools.createClassDistributions(dataInst);                   // used to calc info gain
 
         //Initialise stats object
         stats = new Stats();
@@ -641,8 +637,6 @@ public class ShapeletTransformDistCaching extends FullShapeletTransform
         int minShapeletLength = seriesLength / 2;
         int maxShapeletLength = seriesLength / 2;
 
-        FullShapeletTransform fst = new FullShapeletTransform();
-        
         //Every time series instance
         for (int i = 0; i < numOfSeries; i++)
         {
@@ -668,13 +662,12 @@ public class ShapeletTransformDistCaching extends FullShapeletTransform
                     //System.out.println("MEAN: " + computeMean(candidate, false) + " = " + stats.getMeanX(start, length));
                     //System.out.println("STDV: " + computeStdv(candidate, false) + " = " + stats.getStdDevX(start, length));
                     //Compute distance for each candidate
-                    fst.subseqDistance.setCandidate(FullShapeletTransform.zNormalise(candidate, false));
                     for (int j = 0; j < numOfSeries; j++)
                     {
                         stats.setCurrentY(j);
 
                         double distanceCached = cachedSubsequenceDistance(start, candidate.length, data[j].length, stats);
-                        double distanceOriginal = fst.subseqDistance.calculate(data[j]);
+                        double distanceOriginal = FullShapeletTransform.subsequenceDistance(FullShapeletTransform.zNormalise(candidate, false), data[j]);
                         if (Math.abs(distanceCached - distanceOriginal) > 0.0000000000000000001)
                         {
                             System.out.println("Candidate = " + i + ", startPos = " + start + ", series = " + j + ":\t" + distanceCached + " = " + distanceOriginal);

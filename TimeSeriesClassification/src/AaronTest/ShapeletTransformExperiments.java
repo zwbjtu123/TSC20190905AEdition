@@ -21,7 +21,6 @@ import weka.filters.timeseries.shapelet_transforms.BinarisedShapeletTransform;
 import weka.filters.timeseries.shapelet_transforms.FullShapeletTransform;
 import weka.filters.timeseries.shapelet_transforms.ShapeletTransform;
 import weka.filters.timeseries.shapelet_transforms.ShapeletTransformDistCaching;
-import weka.filters.timeseries.shapelet_transforms.ShapeletTransformDistCaching2;
 
 /**
  *

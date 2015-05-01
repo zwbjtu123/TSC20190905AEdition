@@ -5,6 +5,8 @@
  */
 package weka.filters.timeseries.shapelet_transforms.subsequenceDist;
 
+import weka.core.Instances;
+
 /**
  *
  * @author raj09hxu
@@ -12,15 +14,17 @@ package weka.filters.timeseries.shapelet_transforms.subsequenceDist;
 public class ImprovedOnlineSubSeqDistance extends OnlineSubSeqDistance{
 
     @Override
-    public double calculate(double[] timeSeries, int startPos)
+    public double calculate(double[] timeSeries)
     {
+        int startPos = shapelet.startPos;
+        
         DoubleWrapper sumPointer = new DoubleWrapper();
         DoubleWrapper sum2Pointer = new DoubleWrapper();
 
         //Generate initial subsequence that starts at the same position our candidate does.
         double[] subseq = new double[candidate.length];
         System.arraycopy(timeSeries, startPos, subseq, 0, subseq.length);
-        subseq = optimizedZNormalise(subseq, false, sumPointer, sum2Pointer);
+        subseq = zNormalise(subseq, false, sumPointer, sum2Pointer);
         
         double bestDist = 0.0;
         double temp;

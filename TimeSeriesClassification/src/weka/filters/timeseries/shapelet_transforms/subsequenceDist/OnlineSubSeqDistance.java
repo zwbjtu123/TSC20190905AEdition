@@ -7,38 +7,33 @@ package weka.filters.timeseries.shapelet_transforms.subsequenceDist;
 
 import java.util.Arrays;
 import java.util.Comparator;
+import weka.core.Instances;
+import weka.core.shapelet.Shapelet;
 
 /**
  *
  * @author raj09hxu
  */
-public class OnlineSubSeqDistance implements SubSequenceDistance {
+public class OnlineSubSeqDistance extends SubSequenceDistance {
 
-    protected double[] candidate;
     protected double[][] sortedIndices;
 
     @Override
-    public void setCandidate(double[] cnd) {
-        candidate = cnd;
+    public void setCandidate(Shapelet shape) {
+        super.setCandidate(shape);
         sortedIndices = sortIndexes(candidate);
-    }
-
-    @Override
-    public double calculate(double[] timeSeries) 
-    {
-        return calculate(timeSeries, 0); 
     }
     
     //we take in a start pos, but we also start from 0.
     @Override
-    public double calculate(double[] timeSeries, int startPos) {
+    public double calculate(double[] timeSeries) {
         DoubleWrapper sumPointer = new DoubleWrapper();
         DoubleWrapper sumsqPointer = new DoubleWrapper();
 
         //Generate initial subsequence 
         double[] subseq = new double[candidate.length];
         System.arraycopy(timeSeries, 0, subseq, 0, subseq.length);
-        subseq = optimizedZNormalise(subseq, false, sumPointer, sumsqPointer);
+        subseq = zNormalise(subseq, false, sumPointer, sumsqPointer);
         //Keep count of fundamental ops for experiment
 
         double sum = sumPointer.get();
@@ -117,7 +112,7 @@ public class OnlineSubSeqDistance implements SubSequenceDistance {
      * @param sum2
      * @return a z-normalised version of input
      */
-    protected static double[] optimizedZNormalise(double[] input, boolean classValOn, DoubleWrapper sum, DoubleWrapper sum2) {
+    protected double[] zNormalise(double[] input, boolean classValOn, DoubleWrapper sum, DoubleWrapper sum2) {
         double mean;
         double stdv;
 
