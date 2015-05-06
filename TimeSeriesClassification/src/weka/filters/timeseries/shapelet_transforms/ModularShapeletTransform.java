@@ -29,7 +29,10 @@ import weka.core.*;
 import weka.core.shapelet.*;
 import weka.filters.SimpleBatchFilter;
 import weka.filters.timeseries.shapelet_transforms.classValue.NormalClassValue;
-import weka.filters.timeseries.shapelet_transforms.subsequenceDist.SubSequenceDistance;
+import weka.filters.timeseries.shapelet_transforms.subsequenceDist.CachedSubSeqDistance;
+import weka.filters.timeseries.shapelet_transforms.subsequenceDist.ImprovedOnlineSubSeqDistance;
+import weka.filters.timeseries.shapelet_transforms.subsequenceDist.OnlineSubSeqDistance;
+import weka.filters.timeseries.shapelet_transforms.subsequenceDist.SubSeqDistance;
 
 /**
  * A filter to transform a dataset by k shapelets. Once built on a training set,
@@ -43,7 +46,7 @@ import weka.filters.timeseries.shapelet_transforms.subsequenceDist.SubSequenceDi
  *
  * @author Aaron Bostrom
  */
-public class ModularShapeletTransform extends SimpleBatchFilter
+public class ModularShapeletTransform extends FullShapeletTransform
 {
 
     //Variables for experiments
@@ -102,10 +105,10 @@ public class ModularShapeletTransform extends SimpleBatchFilter
     protected boolean useSeparationGap = false;
     protected boolean useRoundRobin = false;
 
-    protected SubSequenceDistance   subseqDistance;
+    protected SubSeqDistance   subseqDistance;
     protected NormalClassValue          classValue;
     
-    public void setSubSequenceDistance(SubSequenceDistance ssd)
+    public void setSubSeqDistance(SubSeqDistance ssd)
     {
         subseqDistance = ssd;
     }
@@ -114,7 +117,6 @@ public class ModularShapeletTransform extends SimpleBatchFilter
     {
         classValue = cv;
     }
-    
     
     public void setUseSeparationGap(boolean b)
     {
@@ -198,7 +200,10 @@ public class ModularShapeletTransform extends SimpleBatchFilter
         this.qualityChoice = qualityChoice;
 
         setQualityMeasure(qualityChoice);
-        this.subseqDistance = new SubSequenceDistance();
+        //this.subseqDistance = new CachedSubSeqDistance();
+        //this.subseqDistance = new SubSeqDistance();
+        this.subseqDistance = new OnlineSubSeqDistance();
+        //this.subseqDistance = new ImprovedOnlineSubSeqDistance();
         this.classValue     = new NormalClassValue();
     }
 
@@ -481,7 +486,7 @@ public class ModularShapeletTransform extends SimpleBatchFilter
         {
             trainShapelets(data);
         }
-
+        
         //build the transformed dataset with the shapelets we've found either on this data, or the previous training data
         return buildTansformedDataset(data);
     }
@@ -551,6 +556,9 @@ public class ModularShapeletTransform extends SimpleBatchFilter
     {
         //Reorder the training data and reset the shapelet indexes
         Instances output = determineOutputFormat(data);
+        
+        //reinit our data.
+        subseqDistance.init(data);
 
         Shapelet s;
         // for each data, get distance to each shapelet and create new instance
@@ -567,10 +575,10 @@ public class ModularShapeletTransform extends SimpleBatchFilter
         for (int i = 0; i < size; i++)
         {
             s = shapelets.get(i);
-            subseqDistance.setCandidate(s);
+            subseqDistance.setShapelet(s);
             for (int j = 0; j < dataSize; j++)
             {
-                dist = subseqDistance.calculate(data.instance(j).toDoubleArray());                
+                dist = subseqDistance.calculate(data.instance(j).toDoubleArray(), j);                
                 output.instance(j).setValue(i, dist);
             }
         }
@@ -609,6 +617,11 @@ public class ModularShapeletTransform extends SimpleBatchFilter
 
             //changed to pass in the worst of the K-Shapelets.
             Shapelet worstKShapelet = kShapelets.size() == numShapelets ? kShapelets.get(numShapelets - 1) : null;
+            
+            //set the series we're working with.
+            subseqDistance.setSeries(i);
+            //set the clas value of the series we're working with.
+            classValue.setShapeletValue(data.get(i));
             
             seriesShapelets = findShapeletCandidates(data, i, wholeCandidate, worstKShapelet);
 
@@ -665,10 +678,7 @@ public class ModularShapeletTransform extends SimpleBatchFilter
                 System.arraycopy(wholeCandidate, start, candidate, 0, length);
 
                 // znorm candidate here so it's only done once, rather than in each distance calculation
-                candidate = zNorm(candidate, false);
-
-                //set the shapelet series.
-                classValue.setShapeletValue(data.get(i));
+                candidate = subseqDistance.zNormalise(candidate, false);
                 
                 //Initialize bounding algorithm for current candidate
                 QualityBound.ShapeletQualityBound qualityBound = initializeQualityBound(classValue.getClassDistributions());
@@ -893,6 +903,8 @@ public class ModularShapeletTransform extends SimpleBatchFilter
         
         int dataSize = data.numInstances();
 
+        subseqDistance.setCandidate(candidate, startPos);
+        
         for (int i = 0; i < dataSize; i++)
         {
             //Check if it is possible to prune the candidate
@@ -905,10 +917,9 @@ public class ModularShapeletTransform extends SimpleBatchFilter
             //don't compare the shapelet to the the time series it came from.
             if (i != seriesId)
             {
-                //subseqDistance.setSeriesId(i);
-                distance = subseqDistance.calculate(data.instance(i).toDoubleArray());
+                distance = subseqDistance.calculate(data.instance(i).toDoubleArray(), i);
             }
-
+            
             //this could be binarised or normal. 
             double classVal = classValue.getClassValue(data.instance(i));
             
@@ -928,7 +939,6 @@ public class ModularShapeletTransform extends SimpleBatchFilter
 
 
         // create a shapelet object to store all necessary info, i.e.
-        
         Shapelet shapelet = new Shapelet(candidate, dataSourceIDs[seriesId], startPos, this.qualityMeasure);
         //this class distribution could be binarised or normal.
         shapelet.calculateQuality(orderline, classValue.getClassDistributions()); 
@@ -962,71 +972,7 @@ public class ModularShapeletTransform extends SimpleBatchFilter
 
         return quals;
     }
-
-
-    /**
-     *
-     * @param input
-     * @param classValOn
-     * @return
-     */
-    protected double[] zNorm(double[] input, boolean classValOn)
-    {
-        return ModularShapeletTransform.zNormalise(input, classValOn);
-    }
-
-    /**
-     * Z-Normalise a time series
-     *
-     * @param input the input time series to be z-normalised
-     * @param classValOn specify whether the time series includes a class value
-     * (e.g. an full instance might, a candidate shapelet wouldn't)
-     * @return a z-normalised version of input
-     */
-    public static double[] zNormalise(double[] input, boolean classValOn)
-    {
-        double mean;
-        double stdv;
-
-        int classValPenalty = classValOn ? 1 : 0;
-        int inputLength = input.length - classValPenalty;
-
-        double[] output = new double[input.length];
-        double seriesTotal = 0;
-
-        for (int i = 0; i < inputLength; i++)
-        {
-            seriesTotal += input[i];
-        }
-
-        mean = seriesTotal / (double) inputLength;
-        stdv = 0;
-        double temp;
-        for (int i = 0; i < inputLength; i++)
-        {
-            temp = (input[i] - mean);
-            stdv += temp * temp;
-        }
-
-        stdv /= (double) inputLength;
-
-        // if the variance is less than the error correction, just set it to 0, else calc stdv.
-        stdv = (stdv < ROUNDING_ERROR_CORRECTION) ? 0.0 : Math.sqrt(stdv);
-
-        for (int i = 0; i < inputLength; i++)
-        {
-            //if the stdv is 0 then set to 0, else normalise.
-            output[i] = (stdv == 0.0) ? 0.0 : ((input[i] - mean) / stdv);
-        }
-
-        if (classValOn)
-        {
-            output[output.length - 1] = input[input.length - 1];
-        }
-
-        return output;
-    }
-
+    
     /**
      * Load a set of Instances from an ARFF
      *
@@ -1182,7 +1128,7 @@ public class ModularShapeletTransform extends SimpleBatchFilter
                 contentArray[i] = content.get(i);
             }
 
-            contentArray = zNormalise(contentArray, false);
+            contentArray = sf.subseqDistance.zNormalise(contentArray, false);
 
             Shapelet s = new Shapelet(contentArray, qualVal, serID, starPos);
 

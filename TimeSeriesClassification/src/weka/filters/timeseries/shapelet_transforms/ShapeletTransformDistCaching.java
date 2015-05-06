@@ -216,8 +216,9 @@ public class ShapeletTransformDistCaching extends FullShapeletTransform
 
             //Compute statistics for the candidate series and every instance
             stats.computeStats(i, data);
-
-            seriesShapelets = findShapeletCandidates(dataInst, i, data[i], kShapelets.get(kShapelets.size()-1));
+            Shapelet worstKShapelet = kShapelets.size() == numShapelets ? kShapelets.get(numShapelets - 1) : null;
+ 
+            seriesShapelets = findShapeletCandidates(dataInst, i, data[i], worstKShapelet);
             
             // now that we have all shapelets, self similarity can be fairly assessed without fear of removing potentially
             // good shapelets

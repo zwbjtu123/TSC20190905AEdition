@@ -14,19 +14,26 @@ import weka.core.shapelet.Shapelet;
  *
  * @author raj09hxu
  */
-public class OnlineSubSeqDistance extends SubSequenceDistance {
+public class OnlineSubSeqDistance extends SubSeqDistance {
 
     protected double[][] sortedIndices;
 
     @Override
-    public void setCandidate(Shapelet shape) {
-        super.setCandidate(shape);
+    public void setShapelet(Shapelet shp)
+    {
+        super.setShapelet(shp);
+        sortedIndices = sortIndexes(candidate);
+    }
+    
+    @Override
+    public void setCandidate(double [] cnd, int strtPos) {
+        super.setCandidate(cnd, strtPos);
         sortedIndices = sortIndexes(candidate);
     }
     
     //we take in a start pos, but we also start from 0.
     @Override
-    public double calculate(double[] timeSeries) {
+    public double calculate(double[] timeSeries, int timeSeriesId) {
         DoubleWrapper sumPointer = new DoubleWrapper();
         DoubleWrapper sumsqPointer = new DoubleWrapper();
 
@@ -41,35 +48,41 @@ public class OnlineSubSeqDistance extends SubSequenceDistance {
 
         double bestDist = 0.0;
 
-        double mean;
-        double stdv;
-
         double temp;
+        
+        int bestPos =0;
         //Compute initial distance
         for (int i = 0; i < candidate.length; i++) {
             temp = candidate[i] - subseq[i];
             bestDist = bestDist + (temp * temp);
         }
 
-        double currentDist;
+        double currentDist, start, end;
         // Scan through all possible subsequences of two
         for (int i = 1; i < timeSeries.length - candidate.length; i++) {
             //Update the running sums
-            sum = sum - timeSeries[i - 1] + timeSeries[i - 1 + candidate.length];
-            sumsq = sumsq - (timeSeries[i - 1] * timeSeries[i - 1]) + (timeSeries[i - 1 + candidate.length] * timeSeries[i - 1 + candidate.length]);
-
-            currentDist = calculateBestDistance(i, timeSeries, candidate, sortedIndices, bestDist, sum, sumsq);  
+            start = timeSeries[i - 1];
+            end = timeSeries[i - 1 + candidate.length];
+            
+            //get rid of the start and add on the ends.
+            sum = sum + end - start;
+            sumsq = sumsq + (end * end) - (start * start);
+            currentDist = calculateBestDistance(i, timeSeries, bestDist, sum, sumsq);  
+            
+            //System.out.println(i+" "+sum+" "+sumsq+" "+currentDist);
 
             if (currentDist < bestDist) {
                 bestDist = currentDist;
+                bestPos = i;
             }
         }
-
-        return (bestDist == 0.0) ? 0.0 : (1.0 / candidate.length * bestDist);
+        bestDist = (bestDist == 0.0) ? 0.0 : (1.0 / candidate.length * bestDist);
+        
+        return bestDist;
     }
     
         
-    protected double calculateBestDistance(int i, double[] timeSeries, double[] candidate, double[][] sortedIndices, double bestDist, double sum, double sum2)
+    protected double calculateBestDistance(int i, double[] timeSeries, double bestDist, double sum, double sum2)
     {
         //Compute the stats for new series
         double mean = sum / candidate.length;
@@ -94,7 +107,7 @@ public class OnlineSubSeqDistance extends SubSequenceDistance {
             //if our stdv isn't done then make it 0.
             normalisedVal = dontStdv ? 0.0 : ((timeSeries[i + reordedIndex] - mean) / stdv);
             toAdd = candidate[reordedIndex] - normalisedVal;
-            currentDist += (toAdd * toAdd);
+            currentDist = currentDist + (toAdd * toAdd);
             j++;
         }
         
@@ -143,7 +156,7 @@ public class OnlineSubSeqDistance extends SubSequenceDistance {
         if (classValOn) {
             output[output.length - 1] = input[input.length - 1];
         }
-
+        
         return output;
     }
     
@@ -185,6 +198,9 @@ public class OnlineSubSeqDistance extends SubSequenceDistance {
             sortedSeries[i][1] = Math.abs(series[i]);
         }
 
+        
+        //this is the lamda expression.
+        //Arrays.sort(sortedSeries (double[] o1, double[] o2) -> Double.compare(o1[1],o2[1]));
         Arrays.sort(sortedSeries, new Comparator<double[]>()
         {
             @Override

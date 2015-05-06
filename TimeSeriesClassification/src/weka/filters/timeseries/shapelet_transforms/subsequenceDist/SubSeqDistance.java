@@ -5,6 +5,7 @@
  */
 package weka.filters.timeseries.shapelet_transforms.subsequenceDist;
 
+import java.util.Arrays;
 import weka.core.Instances;
 import weka.core.shapelet.Shapelet;
 
@@ -12,26 +13,39 @@ import weka.core.shapelet.Shapelet;
  *
  * @author raj09hxu
  */
-public class SubSequenceDistance{
+public class SubSeqDistance{
 
     public static final double ROUNDING_ERROR_CORRECTION = 0.000000000000001;
     
     protected Shapelet shapelet;
     protected double[] candidate;
     protected int      seriesId;
+    protected int      startPos;
 
     public void init(Instances data)
     {
         
     }
     
-    public void setCandidate(Shapelet cnd) {
-        shapelet = cnd;
-        candidate = cnd.content;
+    public void setShapelet(Shapelet shp) {
+        shapelet = shp;
+        candidate = shp.content;
+        seriesId = shp.seriesId;
+        startPos = shp.startPos;
     }
+    
+    public void setCandidate(double [] cnd, int strtPos) {
+        candidate = cnd;
+        startPos = strtPos;
+    }
+    
+    public void setSeries(int srsId) {
+        seriesId = srsId;
+    }
+    
            
     //we take in a start pos, but we also start from 0.
-    public double calculate(double[] timeSeries) 
+    public double calculate(double[] timeSeries, int timeSeriesId) 
     {
         double bestSum = Double.MAX_VALUE;
         double sum;
@@ -51,7 +65,7 @@ public class SubSequenceDistance{
             for (int j = 0; j < candidate.length; j++)
             {
                 temp = (candidate[j] - subseq[j]);
-                sum += temp * temp;
+                sum = sum + (temp * temp);
             }
 
             if (sum < bestSum)
@@ -59,6 +73,9 @@ public class SubSequenceDistance{
                 bestSum = sum;
             }
         }
+        
+
+        //System.out.println("subseq " + bestSum);
         return (bestSum == 0.0) ? 0.0 : (1.0 / candidate.length * bestSum);
     }
 
@@ -70,7 +87,7 @@ public class SubSequenceDistance{
      * (e.g. an full instance might, a candidate shapelet wouldn't)
      * @return a z-normalised version of input
      */
-    protected double[] zNormalise(double[] input, boolean classValOn)
+    public double[] zNormalise(double[] input, boolean classValOn)
     {
         double mean;
         double stdv;
@@ -83,7 +100,7 @@ public class SubSequenceDistance{
 
         for (int i = 0; i < inputLength; i++)
         {
-            seriesTotal += input[i];
+            seriesTotal = seriesTotal + input[i];
         }
 
         mean = seriesTotal / (double) inputLength;
@@ -92,7 +109,7 @@ public class SubSequenceDistance{
         for (int i = 0; i < inputLength; i++)
         {
             temp = (input[i] - mean);
-            stdv += temp * temp;
+            stdv = stdv + temp * temp;
         }
 
         stdv /= (double) inputLength;

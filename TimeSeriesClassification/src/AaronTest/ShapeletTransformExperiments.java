@@ -19,6 +19,7 @@ import weka.core.shapelet.QualityMeasures;
 import static weka.core.shapelet.QualityMeasures.ShapeletQualityChoice.*;
 import weka.filters.timeseries.shapelet_transforms.BinarisedShapeletTransform;
 import weka.filters.timeseries.shapelet_transforms.FullShapeletTransform;
+import weka.filters.timeseries.shapelet_transforms.ModularShapeletTransform;
 import weka.filters.timeseries.shapelet_transforms.ShapeletTransform;
 import weka.filters.timeseries.shapelet_transforms.ShapeletTransformDistCaching;
 
@@ -32,8 +33,8 @@ public class ShapeletTransformExperiments
     //creates the shapelet transoform datasets.
     static Class[] classList =
     {
-       BinarisedShapeletTransform.class, ShapeletTransform.class/*FullShapeletTransform.class,/* ,ShapeletTransformDistCaching2.class, ShapeletTransformDistCaching.class
-    */};
+       ModularShapeletTransform.class, FullShapeletTransform.class /*, ShapeletTransformDistCaching.class, ShapeletTransformDistCaching2.class, ShapeletTransformDistCaching.class*/
+    };
 
     static QualityMeasures.ShapeletQualityChoice[] qualityMeasures =
     { 

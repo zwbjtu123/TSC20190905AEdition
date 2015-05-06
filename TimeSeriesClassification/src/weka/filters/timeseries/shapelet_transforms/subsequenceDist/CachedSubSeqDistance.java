@@ -12,7 +12,7 @@ import weka.core.shapelet.Shapelet;
  *
  * @author raj09hxu
  */
-public class CachedSubSeqDistance extends SubSequenceDistance{
+public class CachedSubSeqDistance extends SubSeqDistance{
 
     protected Stats stats;
     protected double[][] data;
@@ -34,22 +34,28 @@ public class CachedSubSeqDistance extends SubSequenceDistance{
     }
     
     @Override
-    public void setCandidate(Shapelet shape) {
-        super.setCandidate(shape);
+    public void setShapelet(Shapelet shp)
+    {
+        super.setShapelet(shp);
         
-        //do some extra stats.
-        stats.computeStats(shape.getSeriesId(), data);
+        stats.computeStats(seriesId, data);
     }
     
     @Override
-    public double calculate(double[] timeSeries) {
+    public void setSeries(int seriesId) {
+        super.setSeries(seriesId);
+        
+        //do some extra stats.
+        stats.computeStats(seriesId, data);
+    }
+    
+    @Override
+    public double calculate(double[] timeSeries, int timeSeriesId) {
         //if the stats object is null, use normal calculations.
         if(stats == null)
-            return super.calculate(timeSeries);
-        
-        int startPos = shapelet.startPos;
-        
-        stats.setCurrentY(seriesId);
+            return super.calculate(timeSeries,timeSeriesId);
+                
+        stats.setCurrentY(timeSeriesId);
         
         double minSum = Double.MAX_VALUE;
         int subLength = candidate.length;
@@ -93,9 +99,9 @@ public class CachedSubSeqDistance extends SubSequenceDistance{
     public static class Stats
     {
 
-        private float[][] cummSums;
-        private float[][] cummSqSums;
-        private float[][][] crossProds;
+        private double[][] cummSums;
+        private double[][] cummSqSums;
+        private double[][][] crossProds;
         private int xIndex;
         private int yIndex;
 
@@ -117,7 +123,7 @@ public class CachedSubSeqDistance extends SubSequenceDistance{
          *
          * @return cumulative sums
          */
-        public float[][] getCummSums()
+        public double[][] getCummSums()
         {
             return cummSums;
         }
@@ -128,7 +134,7 @@ public class CachedSubSeqDistance extends SubSequenceDistance{
          *
          * @return cumulative square sums
          */
-        public float[][] getCummSqSums()
+        public double[][] getCummSqSums()
         {
             return cummSqSums;
         }
@@ -139,7 +145,7 @@ public class CachedSubSeqDistance extends SubSequenceDistance{
          *
          * @return cross products
          */
-        public float[][][] getCrossProds()
+        public double[][][] getCrossProds()
         {
             return crossProds;
         }
@@ -161,7 +167,7 @@ public class CachedSubSeqDistance extends SubSequenceDistance{
          * @param subLength length of the candidate
          * @return mean value of sub-series
          */
-        public float getMeanX(int startPos, int subLength)
+        public double getMeanX(int startPos, int subLength)
         {
             return (cummSums[xIndex][startPos + subLength] - cummSums[xIndex][startPos]) / subLength;
         }
@@ -174,7 +180,7 @@ public class CachedSubSeqDistance extends SubSequenceDistance{
          * @param subLength length of the sub-series
          * @return mean value of sub-series
          */
-        public float getMeanY(int startPos, int subLength)
+        public double getMeanY(int startPos, int subLength)
         {
             return (cummSums[yIndex][startPos + subLength] - cummSums[yIndex][startPos]) / subLength;
         }
@@ -187,9 +193,9 @@ public class CachedSubSeqDistance extends SubSequenceDistance{
          * @param subLength length of the candidate
          * @return standard deviation of the candidate sub-series
          */
-        public float getStdDevX(int startPos, int subLength)
+        public double getStdDevX(int startPos, int subLength)
         {
-            return (float) Math.sqrt(((cummSqSums[xIndex][startPos + subLength] - cummSqSums[xIndex][startPos]) / subLength) - (getMeanX(startPos, subLength) * getMeanX(startPos, subLength)));
+            return (double) Math.sqrt(((cummSqSums[xIndex][startPos + subLength] - cummSqSums[xIndex][startPos]) / subLength) - (getMeanX(startPos, subLength) * getMeanX(startPos, subLength)));
         }
 
         /**
@@ -201,9 +207,9 @@ public class CachedSubSeqDistance extends SubSequenceDistance{
          * @param subLength length of the sub-series
          * @return standard deviation of sub-series
          */
-        public float getStdDevY(int startPos, int subLength)
+        public double getStdDevY(int startPos, int subLength)
         {
-            return (float) Math.sqrt(((cummSqSums[yIndex][startPos + subLength] - cummSqSums[yIndex][startPos]) / subLength) - (getMeanY(startPos, subLength) * getMeanY(startPos, subLength)));
+            return (double) Math.sqrt(((cummSqSums[yIndex][startPos + subLength] - cummSqSums[yIndex][startPos]) / subLength) - (getMeanY(startPos, subLength) * getMeanY(startPos, subLength)));
         }
 
         /**
@@ -216,34 +222,34 @@ public class CachedSubSeqDistance extends SubSequenceDistance{
          * @param length length of the both sub-series
          * @return sum of products for a given overlap between two sub=series
          */
-        public float getSumOfProds(int startX, int startY, int length)
+        public double getSumOfProds(int startX, int startY, int length)
         {
             return crossProds[yIndex][startX + length][startY + length] - crossProds[yIndex][startX][startY];
         }
 
-        private float[][] computeCummSums(double[] currentSeries)
+        private double[][] computeCummSums(double[] currentSeries)
         {
 
-            float[][] output = new float[2][];
-            output[0] = new float[currentSeries.length];
-            output[1] = new float[currentSeries.length];
+            double[][] output = new double[2][];
+            output[0] = new double[currentSeries.length];
+            output[1] = new double[currentSeries.length];
             output[0][0] = 0;
             output[1][0] = 0;
 
             //Compute stats for a given series instance
             for (int i = 1; i < currentSeries.length; i++)
             {
-                output[0][i] = (float) (output[0][i - 1] + currentSeries[i - 1]);                         //Sum of vals
-                output[1][i] = (float) (output[1][i - 1] + (currentSeries[i - 1] * currentSeries[i - 1]));  //Sum of squared vals
+                output[0][i] = (double) (output[0][i - 1] + currentSeries[i - 1]);                         //Sum of vals
+                output[1][i] = (double) (output[1][i - 1] + (currentSeries[i - 1] * currentSeries[i - 1]));  //Sum of squared vals
             }
 
             return output;
         }
 
-        private float[][] computeCrossProd(double[] x, double[] y)
+        private double[][] computeCrossProd(double[] x, double[] y)
         {
 
-            float[][] output = new float[x.length][y.length];
+            double[][] output = new double[x.length][y.length];
 
             for (int u = 1; u < x.length; u++)
             {
@@ -253,12 +259,12 @@ public class CachedSubSeqDistance extends SubSequenceDistance{
                     if (v < u)
                     {
                         t = u - v;
-                        output[u][v] = (float) (output[u - 1][v - 1] + (x[v - 1 + t] * y[v - 1]));
+                        output[u][v] = (double) (output[u - 1][v - 1] + (x[v - 1 + t] * y[v - 1]));
                     }
                     else
                     {//else v >= u
                         t = v - u;
-                        output[u][v] = (float) (output[u - 1][v - 1] + (x[u - 1] * y[u - 1 + t]));
+                        output[u][v] = (double) (output[u - 1][v - 1] + (x[u - 1] * y[u - 1 + t]));
                     }
                 }
             }
@@ -282,11 +288,11 @@ public class CachedSubSeqDistance extends SubSequenceDistance{
             //Initialise stats caching arrays
             if (cummSums == null || cummSqSums == null)
             {
-                cummSums = new float[data.length][];
-                cummSqSums = new float[data.length][];
+                cummSums = new double[data.length][];
+                cummSqSums = new double[data.length][];
             }
 
-            crossProds = new float[data.length][][];
+            crossProds = new double[data.length][][];
 
             //Process all instances
             for (int i = 0; i < data.length; i++)
@@ -295,7 +301,7 @@ public class CachedSubSeqDistance extends SubSequenceDistance{
                 //Check if cummulative sums are already stored for corresponding instance
                 if (cummSums[i] == null || cummSqSums[i] == null)
                 {
-                    float[][] sums = computeCummSums(data[i]);
+                    double[][] sums = computeCummSums(data[i]);
                     cummSums[i] = sums[0];
                     cummSqSums[i] = sums[1];
                 }

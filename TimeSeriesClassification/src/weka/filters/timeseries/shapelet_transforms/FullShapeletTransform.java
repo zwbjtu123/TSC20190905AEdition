@@ -466,7 +466,7 @@ public class FullShapeletTransform extends SimpleBatchFilter
             //initLogFiles();
             trainShapelets(data);
         }
-
+        
         //build the transformed dataset with the shapelets we've found either on this data, or the previous training data
         return buildTansformedDataset(data);
     }
@@ -649,6 +649,7 @@ public class FullShapeletTransform extends SimpleBatchFilter
                 //compare the shapelet candidate to the other time series.
                 Shapelet candidateShapelet = checkCandidate(candidate, data, i, start, qualityBound);
 
+                
                 if (candidateShapelet != null)
                 {
                     seriesShapelets.add(candidateShapelet);
