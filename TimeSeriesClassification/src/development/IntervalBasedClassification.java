@@ -5,10 +5,13 @@ package development;
 
 import fileIO.*;
 import java.io.File;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import utilities.ClassifierTools;
+import utilities.InstanceTools;
 import weka.classifiers.Classifier;
 import weka.classifiers.evaluation.EvaluationUtils;
 import weka.classifiers.lazy.DTW_1NN;
@@ -21,9 +24,9 @@ import weka.filters.NormalizeCase;
  *
  * @author ajb
  */
-public class IntervalBasedClassification {
+public class IntervalBasedClassification{
     
-//1. Train test full enumeration for 1-NN ED
+//1. Train test full enumeration for a classifier with standard enumeration order
     public static void intervalClassifier(Instances train, Instances test, Classifier c, OutFile results){
         int start=0;
         int end=train.numAttributes()-1;
@@ -34,45 +37,108 @@ public class IntervalBasedClassification {
         double bestSD=0;
 //        double sd=train.numInstances()
         System.out.println(" Number of attributes (inc class)"+train.numAttributes());
-        System.out.println(" FULL INTERVAL (0,"+(train.numAttributes()-2));
 //Eval full interval first. 
         double[][] a =ClassifierTools.crossValidationWithStats(c, train,train.numInstances());
         bestAcc=a[0][0];  
-//Find critical region for test.         
-        double var=train.numInstances()*.5*.5;
-        var=Math.sqrt(var)*1.96;
-        for(int i=start;i<end-minInterval;i++){
-//            System.out.println(" Evaluating starting from: "+i);
-            Instances intervalTrain=new Instances(train);
-            for(int k=0;k<i;k++)   //Delete attributes before start
-                intervalTrain.deleteAttributeAt(0);
-            for(int j=end-1;j>=i+minInterval;j--){  //Evaluate interval from i to j
-                    
-                a =ClassifierTools.crossValidationWithStats(c, intervalTrain,intervalTrain.numInstances());
-//                    System.out.println(" interval ("+i+" "+j+")"+" has train acc ="+a[0][0]);
-//                System.out.println("\t Number of attributes ="+(intervalTrain.numAttributes()-1)+" acc ="+a[0][0]);
+        double fullTrainAcc=bestAcc;
+        System.out.println(" FULL INTERVAL (0,"+(train.numAttributes()-2)+"} acc = "+bestAcc);
+        if(bestAcc<1){ //No point continuing if full interval is 1!
+            for(int i=start;i<end-minInterval;i++){
+                Instances intervalTrain=new Instances(train);
+                for(int k=0;k<i;k++)   //Delete attributes before start
+                    intervalTrain.deleteAttributeAt(0);
+                for(int j=end-1;j>=i+minInterval;j--){  //Evaluate interval from i to j
+                    intervalTrain.deleteAttributeAt(intervalTrain.numAttributes()-2);
+                    double[][] temp =ClassifierTools.crossValidationWithStats(c, intervalTrain,intervalTrain.numInstances());
+    //Only accept the new interval if it is significantly better.
+                    if(temp[0][0]>bestAcc){ 
+    //Test is not really appropriate because not normal and not independent!                    
+                        if(classifierTest(temp,a,TestType.ZTEST))
+                        {
+                            bestAcc=temp[0][0];
+                            bestStart=i;
+                            bestEnd=j;
+                            bestSD=temp[1][0];
+                            a=temp;
+                            System.out.println(" Best interval so far: ("+bestStart+" "+bestEnd+")"+" has train acc ="+bestAcc);
+                        }
+                    }
+                } 
+            }
+        }
+//Eval on test
+//Evaluate full interval test and reduced interval test
+        Instances intervalTrain=new Instances(train);
+        Instances intervalTest=new Instances(test);
+        for(int k=0;k<bestStart;k++){   //Delete attributes before start
+            intervalTrain.deleteAttributeAt(0);
+            intervalTest.deleteAttributeAt(0);
+        }
+        for(int k=bestEnd+1;k<end;k++){   //Delete attributes after end
+            intervalTrain.deleteAttributeAt(intervalTrain.numAttributes()-2);
+            intervalTest.deleteAttributeAt(intervalTrain.numAttributes()-2);
+        }
+//        System.out.println(" best start ="+bestStart+" best end ="+bestEnd+" full end ="+end);
+//        System.out.println(" Train data size ="+intervalTrain.numAttributes());
+//        System.out.println(" Test data size ="+intervalTrain.numAttributes());
+        double fullIntervalTestAcc=ClassifierTools.singleTrainTestSplitAccuracy(c, train, test);
+        double testAcc=ClassifierTools.singleTrainTestSplitAccuracy(c, intervalTrain, intervalTest);
+        a =ClassifierTools.crossValidationWithStats(c, train,train.numInstances());
+        System.out.println(" Full data CV accuracy ="+a[0][0]);
+        results.writeLine(bestStart+","+bestEnd+","+fullTrainAcc+","+bestAcc+","+fullIntervalTestAcc+","+testAcc);
+        System.out.println(bestStart+","+bestEnd+","+fullTrainAcc+","+bestAcc+","+fullIntervalTestAcc+","+testAcc);
+    }
+    
 
-//Only accept the new interval if it is significantly better.
-                if(a[0][0]>bestAcc){ 
-                    double p=(a[0][0]+bestAcc)/2; //Pooled proportion
-                    double se=Math.sqrt(p*(1-p)/(2*intervalTrain.numInstances()));     //Standard error
-                    double z=(a[0][0]-bestAcc)/se; 
-//Test is not really appropriate because not normal and not independent!                    
-                    if(z>1.96)
+   public static void intervalClassifierAlternativeOrder(Instances train, Instances test, Classifier c, OutFile results){
+        int start=0;
+        int end=train.numAttributes()-1;
+        int minInterval=3;
+        int bestStart=0;
+        int bestEnd=end;
+        double bestAcc=0;
+        double bestSD=0;
+//        double sd=train.numInstances()
+        System.out.println(" Number of attributes (inc class)"+train.numAttributes());
+//Eval full interval first. 
+        double[][] a =ClassifierTools.crossValidationWithStats(c, train,train.numInstances());
+        bestAcc=a[0][0];  
+        double fullTrainAcc=bestAcc;
+        System.out.println(" FULL INTERVAL (0,"+(train.numAttributes()-2)+"} acc = "+bestAcc);
+        if(bestAcc<1){ //No point continuing!
+            for(int j=end-1;j>=minInterval;j--){ //Evaluate all j length intervals
+                   System.out.println("\n  Eval all "+j+" length intervals");
+//There are end-i intervals, all will start from 0, and end at                 
+                for(int i=0;i<end-j;i++){  //Evaluate interval from i to j
+  //                  System.out.print("  ("+i+" "+(j+i-1)+")");
+//Evaluate full interval test and reduced interval test: will slow things down a lot!
+                    Instances intervalTrain=new Instances(train);
+                    for(int k=0;k<i;k++){   //Delete attributes before start
+                        intervalTrain.deleteAttributeAt(0);
+                    }
+                    for(int k=j+i;k<end;k++){   //Delete attributes after end
+                        intervalTrain.deleteAttributeAt(intervalTrain.numAttributes()-2);
+                    }
+                    System.out.print(" "+(intervalTrain.numAttributes()-1));
+                    double[][] temp =ClassifierTools.crossValidationWithStats(c, intervalTrain,intervalTrain.numInstances());
+                    //                     System.out.println(" interval ("+i+" "+j+")"+" has train acc ="+a[0][0]);
+                    //                  System.out.println("\t Number of attributes ="+(intervalTrain.numAttributes()-1)+" acc ="+a[0][0]);
+
+                    //Only accept the new interval if it is significantly better.
+                    if(temp[0][0]>bestAcc){ 
+                    //Test is not really appropriate because not normal and not independent!                    
+                    if(classifierTest(temp,a,TestType.ZTEST))
                     {
-                        bestAcc=a[0][0];
+                        bestAcc=temp[0][0];
                         bestStart=i;
                         bestEnd=j;
-                        bestSD=a[1][0];
+                        bestSD=temp[1][0];
+                        a=temp;
                         System.out.println(" Best interval so far: ("+bestStart+" "+bestEnd+")"+" has train acc ="+bestAcc);
                     }
-                }
-//Delete the last attribute at the end               
-//                System.out.println("Num atts (inc class) ="+intervalTrain.numAttributes()+"  Class index ="+intervalTrain.classIndex()+"  Deleting attribute"+(intervalTrain.numAttributes()-2));
-                 intervalTrain.deleteAttributeAt(intervalTrain.numAttributes()-2);
-                // Estimate CV accuracyof classi
-                
-            } 
+                    }                                    
+                } 
+            }
         }
 //Eval on test
 //Evaluate full interval test and reduced interval test
@@ -93,14 +159,15 @@ public class IntervalBasedClassification {
         double testAcc=ClassifierTools.singleTrainTestSplitAccuracy(c, intervalTrain, intervalTest);
         a =ClassifierTools.crossValidationWithStats(c, train,train.numInstances());
         System.out.println(" Full data CV accuracy ="+a[0][0]);
-        results.writeLine(bestStart+","+bestEnd+","+bestAcc+","+fullIntervalTestAcc+","+testAcc);
-        System.out.println(bestStart+","+bestEnd+","+bestAcc+","+fullIntervalTestAcc+","+testAcc);
+        results.writeLine(bestStart+","+bestEnd+","+fullTrainAcc+","+bestAcc+","+fullIntervalTestAcc+","+testAcc);
+        System.out.println(bestStart+","+bestEnd+","+fullTrainAcc+","+bestAcc+","+fullIntervalTestAcc+","+testAcc);
     }
+    
     
     public static void allSpectral(){
         OutFile results= new OutFile(DataSets.resultsPath+"IntervalBasedDTW\\EDTrainTest.csv");
-        for(String s:DataSets.spectral){
-//            String s="Coffee";
+//        for(String s:DataSets.spectral){
+            String s="Coffee";{
             results.writeString(s+",");
             System.out.println(s+",");
             Instances train=ClassifierTools.loadData(DataSets.dropboxPath+s+"\\"+s+"_TRAIN");
@@ -110,7 +177,7 @@ public class IntervalBasedClassification {
             try {
                 train=nc.process(train);
                 test=nc.process(test);
-                intervalClassifier(train,test,kNN,results);
+                intervalClassifierAlternativeOrder(train,test,kNN,results);
             } catch (Exception ex) {
                 Logger.getLogger(IntervalBasedClassification.class.getName()).log(Level.SEVERE, null, ex);
             }
@@ -120,7 +187,7 @@ public class IntervalBasedClassification {
 //For cluster run
 //Arg 1: array fold number
 //Arg 2: file name
-//Arg 3: distance measure     
+//Arg 3: distance measure
     public static void clusterRun(String[] args){
 //First arg gives the dataset number: 1 to 82
         int fold=Integer.parseInt(args[0]);
@@ -137,26 +204,35 @@ public class IntervalBasedClassification {
         File f= new File(DataSets.clusterPath+"Results/Interval/"+s);
         if(!f.isDirectory())
             f.mkdir();
-        f= new File(DataSets.clusterPath+"Results/Interval/"+s+"/"+dist);
+        f= new File(DataSets.clusterPath+"Results/Interval/"+s+"/"+dist+VERSION);
         if(!f.isDirectory())
             f.mkdir();
         
-        OutFile results= new OutFile(DataSets.clusterPath+"Results/Interval/"+s+"/"+dist+"/"+s+"_"+dist+"_"+fold+".csv");
+        OutFile results= new OutFile(DataSets.clusterPath+"Results/Interval/"+s+"/"+dist+VERSION+"/"+s+"_"+dist+"_"+fold+".csv");
         results.writeString(s+",");
         Instances train=ClassifierTools.loadData(DataSets.clusterPath+"TSC Problems/"+s+"/"+s+"_TRAIN");
         Instances test=ClassifierTools.loadData(DataSets.clusterPath+"TSC Problems/"+s+"/"+s+"_TEST");
-//Form randomised split
+//Form randomised stratified split
         if(fold!=1){
+            Random r = new Random(fold);
             Instances all = new Instances(train);
             all.addAll(test);
-            int testSize = test.numInstances();
-            Random r = new Random(fold);
-            all.randomize(r);
-            //Form new Train/Test split
-            Instances tr = new Instances(all);
+            Map<Double, Integer> trainDistribution = InstanceTools.getClassDistributions(train);
+            Map<Double, Instances> classBins = InstanceTools.getClassInstancesMap(all);
+            //empty instances.
+            Instances tr = new Instances(all, 0);
             Instances te = new Instances(all, 0);
-            for (int j = 0; j < testSize; j++)
-                te.add(tr.remove(0));
+             Iterator<Double> keys = classBins.keySet().iterator();
+             while(keys.hasNext())
+             {
+                 double classVal = keys.next();
+                 int occurences = trainDistribution.get(classVal);
+                 Instances bin = classBins.get(classVal);
+                 bin.randomize(r); //randomise the bin.
+                 
+                 tr.addAll(bin.subList(0,occurences));//copy the first portion of the bin into the train set
+                 te.addAll(bin.subList(occurences, bin.size()));//copy the remaining portion of the bin into the test set.
+             }
             train=tr;
             test=te;
         }
@@ -170,12 +246,31 @@ public class IntervalBasedClassification {
         try {
             train=nc.process(train);
             test=nc.process(test);
-            intervalClassifier(train,test,knn,results);
+            intervalClassifierAlternativeOrder(train,test,knn,results);
         } catch (Exception ex) {
             System.out.println(" Error : "+ex);
         }
        
         
+    }
+
+    enum TestType {BEST,ZTEST,MCNEMAR};
+    static boolean classifierTest(double[][]a, double[][] b, TestType t){
+        switch(t){
+            case BEST:
+                if(a[0][0]>b[0][0]) return true;
+                return false;
+            case ZTEST:
+                double p=(a[0][0]+b[0][0])/2; //Pooled proportion
+                double se=Math.sqrt(p*(1-p)/(2*(a[0].length-1)));     //Standard error
+                double z=(a[0][0]-b[0][0])/se; 
+                if(z>1.96) return true;
+                return false;
+            case MCNEMAR:
+                throw new UnsupportedOperationException("MCNEMAR Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+            default:    
+                throw new UnsupportedOperationException("Unknown test."); //To change body of generated methods, choose Tools | Templates.
+        }
     }
     public static void combineResults(String path,String[] sourceFiles, String type,int reps){
         
@@ -191,9 +286,10 @@ public class IntervalBasedClassification {
     //Read in the accuracies, find mean and SD of difference             
                 String name="";
                 int start=0,end=0;
-                double trainAcc=0;
+                double intervalTrainAcc=0;
                 double sd=0;
                 double fullTestAcc=0;
+                double fullTrainAcc=0;
                 double fullTestSS=0;
                 double intervalTestAcc=0;
                 double intervalTestSS=0;
@@ -202,18 +298,16 @@ public class IntervalBasedClassification {
                     name=f.readString();
                     start+=f.readInt();
                     end+=f.readInt();
-                    trainAcc+=f.readDouble();
-                    sd+=f.readDouble();
+                    fullTrainAcc+=f.readDouble();
+                    intervalTrainAcc+=f.readDouble();
                     double a=f.readDouble();
                     fullTestAcc+=a;
-                    fullTestSS+=a*a;
                     double b=f.readDouble();
                     intervalTestAcc+=b;
-                    intervalTestSS+=b*b;
                     diff[j]=a-b;
                 }
-                start/=reps;end/=reps;trainAcc/=reps;fullTestAcc/=reps;intervalTestAcc/=reps;
-                fullResults.writeString(name+","+start+","+end+","+trainAcc+","+fullTestAcc+","+fullTestSS+","+intervalTestAcc+","+intervalTestSS+",,");
+                start/=reps;end/=reps;fullTrainAcc/=reps;intervalTrainAcc/=reps;intervalTestAcc/=reps;fullTestAcc/=reps;
+                fullResults.writeString(name+","+start+","+end+","+fullTrainAcc+","+intervalTrainAcc+","+fullTestAcc+","+intervalTestAcc+",,");
                 for(double d:diff)
                     fullResults.writeString(d+",");
                 fullResults.writeString("\n");
@@ -227,11 +321,16 @@ public class IntervalBasedClassification {
             destination.writeLine(f.readLine());
         }
     }
+    public static String VERSION="V1";
+    
     public static void main(String[] args){
-        allSpectral();
-//        combineResults("C:\\Users\\ajb\\Dropbox\\Results\\IntervalBasedDTW\\",DataSets.spectral,"ED",100);
+        VERSION="V3";
+combineResults("C:\\Users\\ajb\\Dropbox\\Results\\IntervalBasedDTW\\",DataSets.spectral,"ED",100);
         System.exit(0);
         clusterRun(args);
+        allSpectral();
+//        
+
         
     }
 }
