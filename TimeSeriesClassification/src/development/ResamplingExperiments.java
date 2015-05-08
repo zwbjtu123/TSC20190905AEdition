@@ -6,27 +6,15 @@
 package development;
 
 import AaronTest.LocalInfo;
-import static development.TimeSeriesClassification.path;
 import java.io.File;
-import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.Arrays;
 import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import java.util.Random;
-import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import utilities.InstanceTools;
 import weka.classifiers.meta.timeseriesensembles.WeightedEnsemble;
-import weka.core.Instance;
 import weka.core.Instances;
 import weka.core.shapelet.QualityMeasures;
-import weka.filters.Filter;
-import weka.filters.supervised.instance.Resample;
-import weka.filters.supervised.instance.StratifiedRemoveFolds;
 import weka.filters.timeseries.shapelet_transforms.*;
 
 /**
@@ -71,8 +59,8 @@ public class ResamplingExperiments {
         
         String fileExtension = File.separator + smallDatasets[index] + File.separator + smallDatasets[index];
 
-        //FullShapeletTransform transform = new FullShapeletTransform();
-        BinarisedShapeletTransform transform = new BinarisedShapeletTransform();
+        FullShapeletTransform transform = new FullShapeletTransform();
+        //BinarisedShapeletTransform transform = new BinarisedShapeletTransform();
 
         //get the loadLocation of the resampled files.
         String classifierDir = File.separator + transform.getClass().getSimpleName() + fileExtension;
@@ -81,10 +69,10 @@ public class ResamplingExperiments {
         String transformPath    = transformLocation + classifierDir;
         String accuracyPath     = accuraciesLocation   + classifierDir;
 
-        createShapeletsOnResample(samplePath, transformPath, fold, transform);            
+        //createShapeletsOnResample(samplePath, transformPath, fold, transform);            
         
         //save path in this instance is where the transformed data is.
-        //createWeightedEnsembleAccuracies(transformPath, accuracyPath, fold);
+        createWeightedEnsembleAccuracies(transformPath, accuracyPath, fold);
     }
 
     //where does the train and test set come from, where do you want to save the resample versions.

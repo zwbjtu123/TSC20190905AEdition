@@ -18,6 +18,8 @@ import weka.core.shapelet.OrderLineObj;
 import weka.core.shapelet.QualityBound;
 import weka.core.shapelet.QualityMeasures;
 import weka.core.shapelet.Shapelet;
+import weka.filters.timeseries.shapelet_transforms.subsequenceDist.OnlineSubSeqDistance;
+import static weka.filters.timeseries.shapelet_transforms.subsequenceDist.SubSeqDistance.ROUNDING_ERROR_CORRECTION;
 
 /**
  * An optimised filter to transform a dataset by k shapelets.
@@ -349,8 +351,7 @@ public class ShapeletTransform extends FullShapeletTransform
      * @param sum2
      * @return a z-normalised version of input
      */
-    protected static double[] optimizedZNormalise(double[] input, boolean classValOn, DoubleWrapper sum, DoubleWrapper sum2)
-    {
+    protected static double[] optimizedZNormalise(double[] input, boolean classValOn, DoubleWrapper sum, DoubleWrapper sum2) {
         double mean;
         double stdv;
 
@@ -360,14 +361,12 @@ public class ShapeletTransform extends FullShapeletTransform
         double seriesTotal = 0;
         double seriesTotal2 = 0;
 
-        for (int i = 0; i < input.length - classValPenalty; i++)
-        {
+        for (int i = 0; i < input.length - classValPenalty; i++) {
             seriesTotal += input[i];
             seriesTotal2 += (input[i] * input[i]);
         }
 
-        if (sum != null && sum2 != null)
-        {
+        if (sum != null && sum2 != null) {
             sum.set(seriesTotal);
             sum2.set(seriesTotal2);
         }
@@ -376,16 +375,14 @@ public class ShapeletTransform extends FullShapeletTransform
         double num = (seriesTotal2 - (mean * mean * (input.length - classValPenalty))) / (input.length - classValPenalty);
         stdv = (num <= ROUNDING_ERROR_CORRECTION) ? 0.0 : Math.sqrt(num);
 
-        for (int i = 0; i < input.length - classValPenalty; i++)
-        {
+        for (int i = 0; i < input.length - classValPenalty; i++) {
             output[i] = (stdv == 0.0) ? 0.0 : (input[i] - mean) / stdv;
         }
 
-        if (classValOn)
-        {
+        if (classValOn) {
             output[output.length - 1] = input[input.length - 1];
         }
-
+        
         return output;
     }
 

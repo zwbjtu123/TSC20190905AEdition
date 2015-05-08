@@ -28,6 +28,7 @@ import static utilities.InstanceTools.createClassDistributions;
 import weka.core.*;
 import weka.core.shapelet.*;
 import weka.filters.SimpleBatchFilter;
+import weka.filters.timeseries.shapelet_transforms.classValue.BinarisedClassValue;
 import weka.filters.timeseries.shapelet_transforms.classValue.NormalClassValue;
 import weka.filters.timeseries.shapelet_transforms.subsequenceDist.CachedSubSeqDistance;
 import weka.filters.timeseries.shapelet_transforms.subsequenceDist.ImprovedOnlineSubSeqDistance;
@@ -105,8 +106,8 @@ public class ModularShapeletTransform extends FullShapeletTransform
     protected boolean useSeparationGap = false;
     protected boolean useRoundRobin = false;
 
-    protected SubSeqDistance   subseqDistance;
-    protected NormalClassValue          classValue;
+    protected SubSeqDistance    subseqDistance;
+    protected NormalClassValue  classValue;
     
     public void setSubSeqDistance(SubSeqDistance ssd)
     {
@@ -202,9 +203,11 @@ public class ModularShapeletTransform extends FullShapeletTransform
         setQualityMeasure(qualityChoice);
         //this.subseqDistance = new CachedSubSeqDistance();
         //this.subseqDistance = new SubSeqDistance();
-        this.subseqDistance = new OnlineSubSeqDistance();
-        //this.subseqDistance = new ImprovedOnlineSubSeqDistance();
-        this.classValue     = new NormalClassValue();
+        //this.subseqDistance = new OnlineSubSeqDistance();
+        this.subseqDistance = new ImprovedOnlineSubSeqDistance();
+        //this.classValue     = new NormalClassValue();
+        
+        this.classValue       = new BinarisedClassValue();
     }
 
     /**

@@ -23,7 +23,7 @@ public class BinarisedClassValue extends NormalClassValue{
     {
         //this inits the classDistributions.
         super.init(inst);
-        binaryClassDistribution = createBinaryDistributions(classDistributions);
+        binaryClassDistribution = createBinaryDistributions();
     }
     
     @Override
@@ -37,19 +37,19 @@ public class BinarisedClassValue extends NormalClassValue{
     }
     
     
-    private Map<Double, Map<Double, Integer>> createBinaryDistributions(Map<Double, Integer> classDistributions)
+    private Map<Double, Map<Double, Integer>> createBinaryDistributions()
     {
         Map<Double, Map<Double, Integer>> binaryMapping = new TreeMap<>();
         
         //for each classVal build a binary distribution map.
         for(Double cVal : classDistributions.keySet())
         {
-            binaryMapping.put(cVal, binariseDistributions(classDistributions, cVal));
+            binaryMapping.put(cVal, binariseDistributions(cVal));
         }
         return binaryMapping;
     }
     
-    private static Map<Double, Integer> binariseDistributions(Map<Double, Integer> classDistributions, double shapeletClassVal)
+    private Map<Double, Integer> binariseDistributions(double shapeletClassVal)
     {
         Map<Double, Integer> binaryDistribution = new TreeMap<>();
 
