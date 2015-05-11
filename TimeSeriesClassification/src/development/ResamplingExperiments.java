@@ -7,10 +7,16 @@ package development;
 
 import AaronTest.LocalInfo;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Random;
+import java.util.Scanner;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import utilities.InstanceTools;
 import weka.classifiers.meta.timeseriesensembles.WeightedEnsemble;
 import weka.core.Instances;
@@ -34,6 +40,7 @@ public class ResamplingExperiments {
         final String resampleLocation    = dotdotSlash + dotdotSlash + "resampled data sets";
         final String transformLocation   = dotdotSlash + dotdotSlash + "resampled transforms";
         final String accuraciesLocation  = dotdotSlash + dotdotSlash + "resampled accuracies";
+        final String resultsLocation     = dotdotSlash + dotdotSlash + "resampled results";
         
         /*File fDir = new File(ucrLocation);
         final File[] ds = fDir.listFiles();
@@ -55,24 +62,27 @@ public class ResamplingExperiments {
         int fold = inputVal % sampleSize;
 
         String[] smallDatasets = DataSets.ucrSmall;
-        System.out.println("creating resample for " + smallDatasets[index] + " for fold: " + fold);
+        //System.out.println("creating resample for " + smallDatasets[index] + " for fold: " + fold);
         
         String fileExtension = File.separator + smallDatasets[index] + File.separator + smallDatasets[index];
-
-        FullShapeletTransform transform = new FullShapeletTransform();
-        //BinarisedShapeletTransform transform = new BinarisedShapeletTransform();
+        
+        //FullShapeletTransform transform = new FullShapeletTransform();
+        BinarisedShapeletTransform transform = new BinarisedShapeletTransform();
 
         //get the loadLocation of the resampled files.
-        String classifierDir = File.separator + transform.getClass().getSimpleName() + fileExtension;
+        String classifierDir = File.separator + transform.getClass().getSimpleName() ;//+ fileExtension;
 
-        String samplePath       = resampleLocation + fileExtension;
+        //String samplePath       = resampleLocation + fileExtension;
         String transformPath    = transformLocation + classifierDir;
         String accuracyPath     = accuraciesLocation   + classifierDir;
-
+        String resultsPath      = resultsLocation   + classifierDir;
+        
         //createShapeletsOnResample(samplePath, transformPath, fold, transform);            
         
         //save path in this instance is where the transformed data is.
-        createWeightedEnsembleAccuracies(transformPath, accuracyPath, fold);
+        //createWeightedEnsembleAccuracies(transformPath, accuracyPath, fold);
+        
+        //createAccuracies(accuracyPath, resultsPath);
     }
 
     //where does the train and test set come from, where do you want to save the resample versions.
@@ -166,6 +176,45 @@ public class ResamplingExperiments {
             }
         } catch (Exception ex) {
             System.out.println("Classifier exception: " + ex);
+        }
+    }
+    
+    public static void createAccuracies(String filePath, String savePath)
+    {
+        System.out.println(filePath);
+        System.out.println(savePath);
+        
+        File load = new File(filePath);
+
+        Scanner sc;
+        PrintWriter pw;
+        File save;
+        
+        for(File dataSetDir : load.listFiles())
+        {          
+
+            try {
+                save = new File(savePath+File.separator+dataSetDir.getName()+".csv");
+                save.getParentFile().mkdirs();
+                save.createNewFile();
+                            
+                pw = new PrintWriter(save);
+                pw.printf("%s,%s\n", "sample","accuracy");
+                for(File resampleCSV : dataSetDir.listFiles())
+                {
+                    sc = new Scanner(resampleCSV);
+                    //Extract the resample number, 
+                    pw.printf("%s,%s\n", resampleCSV.getName().substring(dataSetDir.getName().length(), resampleCSV.getName().length() - 4), sc.next());
+                }
+              
+            pw.close();
+            
+            } catch (FileNotFoundException ex) {
+                System.out.println("Exception : "+ ex);
+            } catch (IOException ex) {
+                System.out.println("Exception : "+ ex);
+            }
+            
         }
     }
 

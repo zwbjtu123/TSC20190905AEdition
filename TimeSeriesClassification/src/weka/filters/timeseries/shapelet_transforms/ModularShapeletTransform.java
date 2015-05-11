@@ -19,20 +19,14 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.ListIterator;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.TreeMap;
-import utilities.InstanceTools;
-import static utilities.InstanceTools.createClassDistributions;
 import weka.core.*;
 import weka.core.shapelet.*;
-import weka.filters.SimpleBatchFilter;
 import weka.filters.timeseries.shapelet_transforms.classValue.BinarisedClassValue;
 import weka.filters.timeseries.shapelet_transforms.classValue.NormalClassValue;
-import weka.filters.timeseries.shapelet_transforms.subsequenceDist.CachedSubSeqDistance;
 import weka.filters.timeseries.shapelet_transforms.subsequenceDist.ImprovedOnlineSubSeqDistance;
-import weka.filters.timeseries.shapelet_transforms.subsequenceDist.OnlineSubSeqDistance;
 import weka.filters.timeseries.shapelet_transforms.subsequenceDist.SubSeqDistance;
 
 /**
