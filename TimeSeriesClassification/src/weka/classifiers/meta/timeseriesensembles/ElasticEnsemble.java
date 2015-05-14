@@ -289,6 +289,15 @@ public class ElasticEnsemble implements Classifier{
         }
     }
     
+    public boolean removeAllClassifiersFromEnsemble() throws Exception{
+        if(classifierBuilt){
+            throw new Exception("Error: Classifier has already been built. Unable to change classifiers within ensemble.");
+        }
+        this.classifiersToUse = new TreeSet<ClassifierVariants>();
+        
+        return true;
+    }
+    
     public void setEnsembleType(EnsembleType ensembleType){
         this.ensembleType = ensembleType;
     }
