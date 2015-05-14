@@ -53,8 +53,9 @@ public class ResamplingExperiments {
        */
 
         //create all the shapelets sets for the small resamples.
-        int inputVal = Integer.parseInt(args[0]) - 1;
-        int sampleSize = Integer.parseInt(args[1]);
+        int inputVal    = Integer.parseInt(args[0]) - 1;
+        int sampleSize  = Integer.parseInt(args[1]);
+        int binarise    = Integer.parseInt(args[2]);
 
         //1565 / 100 = 15
         //1565 % 100 = 65
@@ -62,25 +63,24 @@ public class ResamplingExperiments {
         int fold = inputVal % sampleSize;
 
         String[] smallDatasets = DataSets.ucrSmall;
-        //System.out.println("creating resample for " + smallDatasets[index] + " for fold: " + fold);
+        System.out.println("creating resample for " + smallDatasets[index] + " for fold: " + fold);
         
         String fileExtension = File.separator + smallDatasets[index] + File.separator + smallDatasets[index];
         
-        //FullShapeletTransform transform = new FullShapeletTransform();
-        BinarisedShapeletTransform transform = new BinarisedShapeletTransform();
+        FullShapeletTransform transform = binarise == 0 ? new FullShapeletTransform() : new BinarisedShapeletTransform();
 
         //get the loadLocation of the resampled files.
         String classifierDir = File.separator + transform.getClass().getSimpleName() ;//+ fileExtension;
 
-        //String samplePath       = resampleLocation + fileExtension;
+        String samplePath       = resampleLocation + fileExtension;
         String transformPath    = transformLocation + classifierDir;
         String accuracyPath     = accuraciesLocation   + classifierDir;
         String resultsPath      = resultsLocation   + classifierDir;
         
-        //createShapeletsOnResample(samplePath, transformPath, fold, transform);            
+        createShapeletsOnResample(samplePath, transformPath, fold, transform);            
         
         //save path in this instance is where the transformed data is.
-        //createWeightedEnsembleAccuracies(transformPath, accuracyPath, fold);
+        createWeightedEnsembleAccuracies(transformPath, accuracyPath, fold);
         
         //createAccuracies(accuracyPath, resultsPath);
     }
@@ -134,23 +134,18 @@ public class ResamplingExperiments {
         test = utilities.ClassifierTools.loadData(filePath + fold + "_TEST");
         train = utilities.ClassifierTools.loadData(filePath + fold + "_TRAIN");
 
-        try {
-            //estimate min max of shapelet.
-            minAndMax = ShapeletTransformFactory.estimateMinAndMax(train, transform.getClass().newInstance());
+        //estimate min max of shapelet.
+        minAndMax = ShapeletTransformFactory.estimateMinAndMax(train, transform);
 
-            //construct shapelet classifiers.
-            //transform = new FullShapeletTransform(train.numInstances()*10,minAndMax[0], minAndMax[1], QualityMeasures.ShapeletQualityChoice.INFORMATION_GAIN);
-            transform.setNumberOfShapelets(train.numInstances() * 10);
-            transform.setShapeletMinAndMax(minAndMax[0], minAndMax[1]);
-            transform.setQualityMeasure(QualityMeasures.ShapeletQualityChoice.INFORMATION_GAIN);
-            transform.turnOffLog();
+        //construct shapelet classifiers.
+        transform.setNumberOfShapelets(train.numInstances() * 10);
+        transform.setShapeletMinAndMax(minAndMax[0], minAndMax[1]);
+        transform.setQualityMeasure(QualityMeasures.ShapeletQualityChoice.INFORMATION_GAIN);
+        transform.turnOffLog();
 
-            //saveLocation/FullShapeletTransform/ItalyPowerDemand/ItalyPowerDemandi_TRAIN
-            LocalInfo.saveDataset(transform.process(train), savePath + fold + "_TRAIN");
-            LocalInfo.saveDataset(transform.process(test), savePath + fold + "_TEST");
-        } catch (InstantiationException | IllegalAccessException ex) {
-            System.out.println("Error: " + ex);
-        }
+        //saveLocation/FullShapeletTransform/ItalyPowerDemand/ItalyPowerDemandi_TRAIN
+        LocalInfo.saveDataset(transform.process(train), savePath + fold + "_TRAIN");
+        LocalInfo.saveDataset(transform.process(test), savePath + fold + "_TEST");
     }
 
     public static void createWeightedEnsembleAccuracies(String filePath, String savePath, int fold) {

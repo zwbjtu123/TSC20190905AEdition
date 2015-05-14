@@ -217,8 +217,8 @@ public class IntervalBasedClassification{
             Random r = new Random(fold);
             Instances all = new Instances(train);
             all.addAll(test);
-            Map<Double, Integer> trainDistribution = InstanceTools.getClassDistributions(train);
-            Map<Double, Instances> classBins = InstanceTools.getClassInstancesMap(all);
+            Map<Double, Integer> trainDistribution = InstanceTools.createClassDistributions(train);
+            Map<Double, Instances> classBins = InstanceTools.createClassInstancesMap(all);
             //empty instances.
             Instances tr = new Instances(all, 0);
             Instances te = new Instances(all, 0);
