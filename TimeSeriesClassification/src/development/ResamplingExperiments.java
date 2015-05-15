@@ -67,12 +67,19 @@ public class ResamplingExperiments {
         System.out.println("creating resample for " + smallDatasets[index] + " for fold: " + fold);
         
         String fileExtension = File.separator + smallDatasets[index] + File.separator + smallDatasets[index];
-        
-        FullShapeletTransform transform =  new FullShapeletTransform();
-        
-        if(binarise != 0)
-            transform.setClassValue(new BinarisedClassValue());
 
+        FullShapeletTransform transform;
+        
+        if(binarise ==0)
+        {
+            transform = new FullShapeletTransform();
+        }
+        else
+        {
+            transform = new BalancedClassShapeletTransform();
+            transform.setClassValue(new BinarisedClassValue());
+        }
+        
         //get the loadLocation of the resampled files.
         String classifierDir = File.separator + transform.getClass().getSimpleName() ;//+ fileExtension;
 
@@ -216,5 +223,4 @@ public class ResamplingExperiments {
             
         }
     }
-
 }

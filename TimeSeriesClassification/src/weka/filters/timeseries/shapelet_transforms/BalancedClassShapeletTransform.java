@@ -114,8 +114,4 @@ public class BalancedClassShapeletTransform extends FullShapeletTransform
        }
        return kShapelets;
     }
-
-    public static void main(String[] args)
-    {
-    }
 }

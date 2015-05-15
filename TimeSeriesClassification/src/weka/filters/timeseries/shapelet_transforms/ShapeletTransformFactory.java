@@ -30,6 +30,20 @@ public class ShapeletTransformFactory
     public static final double MEM_CUTOFF = 0.5;
     public static final int MAX_NOS_SHAPELETS = 1000;
 
+    public FullShapeletTransform createCachedTransform()
+    {
+        FullShapeletTransform st = new FullShapeletTransform();
+        st.setSubSeqDistance(new CachedSubSeqDistance());
+        return st;
+    }
+    
+    public FullShapeletTransform createOnlineTransform()
+    {
+        FullShapeletTransform st = new FullShapeletTransform();
+        st.setSubSeqDistance(new OnlineSubSeqDistance());
+        return st;
+    }
+    
     public FullShapeletTransform createTransform(Instances train)
     {
         //Memory in bytes available        
