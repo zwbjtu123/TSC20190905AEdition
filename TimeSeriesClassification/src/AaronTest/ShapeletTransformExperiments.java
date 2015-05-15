@@ -17,12 +17,7 @@ import weka.classifiers.trees.shapelet_trees.ShapeletTreeClassifier;
 import weka.core.Instances;
 import weka.core.shapelet.QualityMeasures;
 import static weka.core.shapelet.QualityMeasures.ShapeletQualityChoice.*;
-import weka.filters.timeseries.shapelet_transforms.BalancedClassShapeletTransform;
-import weka.filters.timeseries.shapelet_transforms.BinarisedShapeletTransform;
 import weka.filters.timeseries.shapelet_transforms.FullShapeletTransform;
-import weka.filters.timeseries.shapelet_transforms.ModularShapeletTransform;
-import weka.filters.timeseries.shapelet_transforms.ShapeletTransform;
-import weka.filters.timeseries.shapelet_transforms.ShapeletTransformDistCaching;
 
 /**
  *
@@ -31,11 +26,6 @@ import weka.filters.timeseries.shapelet_transforms.ShapeletTransformDistCaching;
 public class ShapeletTransformExperiments
 {
     
-    //creates the shapelet transoform datasets.
-    static Class[] classList =
-    {
-      /* BalancedClassShapeletTransform.class,*/BinarisedShapeletTransform.class/*FullShapeletTransform.class /*, ShapeletTransformDistCaching.class, ShapeletTransformDistCaching2.class, ShapeletTransformDistCaching.class*/
-    };
 
     static QualityMeasures.ShapeletQualityChoice[] qualityMeasures =
     { 
@@ -80,12 +70,12 @@ public class ShapeletTransformExperiments
             testAndTrain[0] = s.process(train);
             LocalInfo.saveDataset(testAndTrain[0], outLogFileName + "_TRAIN");
 
-            System.out.println(s.getClass().getSimpleName() + " train opCount" + ShapeletTransform.subseqDistOpCount);
+            //System.out.println(s.getClass().getSimpleName() + " train opCount" + ShapeletTransform.subseqDistOpCount);
 
             testAndTrain[1] = s.process(test);
             LocalInfo.saveDataset(testAndTrain[1], outLogFileName + "_TEST");
             
-            System.out.println(s.getClass().getSimpleName() + " test opCount" + ShapeletTransform.subseqDistOpCount);
+            //System.out.println(s.getClass().getSimpleName() + " test opCount" + ShapeletTransform.subseqDistOpCount);
         }
         catch(IllegalAccessException | IllegalArgumentException | InstantiationException e)        
         {
@@ -146,13 +136,14 @@ public class ShapeletTransformExperiments
     public static void CreateData(File dataName, Instances[][][] dataSets)
     {
         //for each classifier pass in the class name and construct it generically in the sub function.
-        for (int i = 0; i < classList.length; i++)
+        //this needs to be fixed.
+        /*for (int i = 0; i < classList.length; i++)
         {
             for (int j = 0; j < qualityMeasures.length; j++)
             {
                dataSets[i][j] = extractShapelet(dataName, classList[i], qualityMeasures[j]);
             }
-        }
+        }*/
     }
 
     public static void trainAndTest(String dataName, Instances[][][] dataSets)
@@ -174,9 +165,9 @@ public class ShapeletTransformExperiments
                     
                     double average = utilities.ClassifierTools.accuracy(dataSets[i][j][1], c);
                 
-                    String name = classList[i].getSimpleName()+"_"+qualityMeasures[j];
+                    //String name = classList[i].getSimpleName()+"_"+qualityMeasures[j];
 
-                    results.put(name, average);
+                    //results.put(name, average);
                 }
                 catch (Exception ex)
                 {
@@ -192,16 +183,16 @@ public class ShapeletTransformExperiments
     public static void testDataSet(File dataName, boolean create)
     {
         //[transformType][qualityMeasure][TRAIN/TEST]
-        Instances[][][] dataSets = new Instances[classList.length][qualityMeasures.length][2];
+        //Instances[][][] dataSets = new Instances[classList.length][qualityMeasures.length][2];
 
         //either create or load it
         if(create)
         {
-            CreateData(dataName, dataSets);
+            //CreateData(dataName, dataSets);
         }
         else
         {
-            LocalInfo.LoadData(dataName.getName(),dataSets, classList, qualityMeasures);
+            //LocalInfo.LoadData(dataName.getName(),dataSets, classList, qualityMeasures);
         }
         
         //trainAndTest(dataName.getName(), dataSets);

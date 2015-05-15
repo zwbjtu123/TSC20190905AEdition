@@ -18,7 +18,6 @@ import weka.core.Instances;
 import weka.core.shapelet.QualityMeasures;
 import weka.filters.NormalizeCase;
 import weka.filters.timeseries.shapelet_transforms.FullShapeletTransform;
-import weka.filters.timeseries.shapelet_transforms.ShapeletTransformDistCaching;
 
 /**
  *

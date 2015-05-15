@@ -22,10 +22,13 @@ import java.util.Comparator;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.TreeMap;
-import utilities.InstanceTools;
 import weka.core.*;
 import weka.core.shapelet.*;
 import weka.filters.SimpleBatchFilter;
+import weka.filters.timeseries.shapelet_transforms.classValue.BinarisedClassValue;
+import weka.filters.timeseries.shapelet_transforms.classValue.NormalClassValue;
+import weka.filters.timeseries.shapelet_transforms.subsequenceDist.ImprovedOnlineSubSeqDistance;
+import weka.filters.timeseries.shapelet_transforms.subsequenceDist.SubSeqDistance;
 
 /**
  * A filter to transform a dataset by k shapelets. Once built on a training set,
@@ -37,16 +40,15 @@ import weka.filters.SimpleBatchFilter;
  * J., Davis, L., Hills, J., Bagnall, A.: A shapelet transform for time series
  * classification. In: Proc. 18th ACM SIGKDD (2012)</a>
  *
- * @author Jason Lines
+ * @author Aaron Bostrom
  */
 public class FullShapeletTransform extends SimpleBatchFilter
 {
 
-    protected boolean cacheDoubleArrays = false;
-    protected double[][] cachedDoubleArray;
     //Variables for experiments
     protected static long subseqDistOpCount;
-    protected Map<Double, Integer> classDistributions;
+    
+
     
     //logFile
     PrintWriter opLogFile = null;
@@ -99,6 +101,19 @@ public class FullShapeletTransform extends SimpleBatchFilter
     protected boolean useSeparationGap = false;
     protected boolean useRoundRobin = false;
 
+    protected SubSeqDistance    subseqDistance;
+    protected NormalClassValue  classValue;
+    
+    public void setSubSeqDistance(SubSeqDistance ssd)
+    {
+        subseqDistance = ssd;
+    }
+    
+    public void setClassValue(NormalClassValue cv)
+    {
+        classValue = cv;
+    }
+    
     public void setUseSeparationGap(boolean b)
     {
         useSeparationGap = b;
@@ -181,6 +196,8 @@ public class FullShapeletTransform extends SimpleBatchFilter
         this.qualityChoice = qualityChoice;
 
         setQualityMeasure(qualityChoice);
+        this.subseqDistance = new SubSeqDistance();
+        this.classValue     = new NormalClassValue();
     }
 
     /**
@@ -452,23 +469,19 @@ public class FullShapeletTransform extends SimpleBatchFilter
         //check the input data is correct and assess whether the filter has been setup correctly.
         inputCheck(data);
 
-        //instantiate the caching array here, so it gets refreshed if we're using a test set.
-        int dataSize = data.numInstances();
-
-        if (cacheDoubleArrays)
-        {
-            cachedDoubleArray = new double[dataSize][];
-        }
+        //setup classsValue
+        classValue.init(data);
+        //setup subseqDistance
+        subseqDistance.init(data);
 
         //checks if the shapelets haven't been found yet, finds them if it needs too.
         if (!shapeletsTrained)
         {
-            //initLogFiles();
             trainShapelets(data);
         }
         
         //build the transformed dataset with the shapelets we've found either on this data, or the previous training data
-        return buildTansformedDataset(data);
+        return buildTansformedDataset(data, shapelets);
     }
 
     private void initLogFiles()
@@ -532,23 +545,43 @@ public class FullShapeletTransform extends SimpleBatchFilter
         }
     }
 
-    protected Instances buildTansformedDataset(Instances data)
+    protected Instances buildTansformedDataset(Instances data, ArrayList<Shapelet> shapelets)
     {
+        //Reorder the training data and reset the shapelet indexes
         Instances output = determineOutputFormat(data);
+        
+        //reinit our data.
+        subseqDistance.init(data);
 
-        int dataSize = data.numInstances();
+        Shapelet s;
         // for each data, get distance to each shapelet and create new instance
-        for (int i = 0; i < dataSize; i++)
-        { // for each data
-            Instance toAdd = new DenseInstance(shapelets.size() + 1);
-            int shapeletNum = 0;
-            for (Shapelet s : shapelets)
+        int size = shapelets.size();
+        int dataSize = data.numInstances();
+
+        //create our data instances
+        for (int j = 0; j < dataSize; j++)
+        {
+            output.add(new DenseInstance(size + 1));
+        }
+
+        double dist;
+        for (int i = 0; i < size; i++)
+        {
+            s = shapelets.get(i);
+            
+            subseqDistance.setShapelet(s);
+            for (int j = 0; j < dataSize; j++)
             {
-                double dist = subsequenceDistance(s.content, getToDoubleArrayOfInstance(data, i));
-                toAdd.setValue(shapeletNum++, dist);
+                dist = subseqDistance.calculate(data.instance(j).toDoubleArray(), j);                
+                output.instance(j).setValue(i, dist);
             }
-            toAdd.setValue(shapelets.size(), data.instance(i).classValue());
-            output.add(toAdd);
+        }
+
+        //do the classValues.
+        for (int j = 0; j < dataSize; j++)
+        {
+            //we always want to write the true ClassValue here. Irrelevant of binarised or not.
+            output.instance(j).setValue(size, classValue.getUnAlteredClassValue(data.instance(j)));
         }
         return output;
     }
@@ -564,7 +597,6 @@ public class FullShapeletTransform extends SimpleBatchFilter
     {
         ArrayList<Shapelet> kShapelets = new ArrayList<>();
         ArrayList<Shapelet> seriesShapelets;                                    // temp store of all shapelets for each time series
-        classDistributions = InstanceTools.createClassDistributions(data);                       // used to calc info gain
 
         //for all time series
         outputPrint("Processing data: ");
@@ -575,10 +607,15 @@ public class FullShapeletTransform extends SimpleBatchFilter
         {
             outputPrint("data : " + i);
 
-            double[] wholeCandidate = getToDoubleArrayOfInstance(data, i);
+            double[] wholeCandidate = data.get(i).toDoubleArray();
 
             //changed to pass in the worst of the K-Shapelets.
             Shapelet worstKShapelet = kShapelets.size() == numShapelets ? kShapelets.get(numShapelets - 1) : null;
+            
+            //set the series we're working with.
+            subseqDistance.setSeries(i);
+            //set the clas value of the series we're working with.
+            classValue.setShapeletValue(data.get(i));
             
             seriesShapelets = findShapeletCandidates(data, i, wholeCandidate, worstKShapelet);
 
@@ -635,10 +672,10 @@ public class FullShapeletTransform extends SimpleBatchFilter
                 System.arraycopy(wholeCandidate, start, candidate, 0, length);
 
                 // znorm candidate here so it's only done once, rather than in each distance calculation
-                candidate = zNorm(candidate, false);
-
+                candidate = subseqDistance.zNormalise(candidate, false);
+                
                 //Initialize bounding algorithm for current candidate
-                QualityBound.ShapeletQualityBound qualityBound = initializeQualityBound(classDistributions);
+                QualityBound.ShapeletQualityBound qualityBound = initializeQualityBound(classValue.getClassDistributions());
 
                 //Set bound of the bounding algorithm
                 if (qualityBound != null && worstKShapelet != null)
@@ -649,7 +686,6 @@ public class FullShapeletTransform extends SimpleBatchFilter
                 //compare the shapelet candidate to the other time series.
                 Shapelet candidateShapelet = checkCandidate(candidate, data, i, start, qualityBound);
 
-                
                 if (candidateShapelet != null)
                 {
                     seriesShapelets.add(candidateShapelet);
@@ -801,22 +837,6 @@ public class FullShapeletTransform extends SimpleBatchFilter
         return null;
     }
 
-    //this is the caching system. 
-    protected double[] getToDoubleArrayOfInstance(Instances data, int pos)
-    {
-        if (!cacheDoubleArrays)
-        {
-            return data.get(pos).toDoubleArray();
-        }
-
-        if (cachedDoubleArray[pos] == null)
-        {
-            cachedDoubleArray[pos] = data.get(pos).toDoubleArray();
-        }
-
-        return cachedDoubleArray[pos];
-    }
-
     /**
      * protected method to remove self-similar shapelets from an ArrayList (i.e.
      * if they come from the same series and have overlapping indicies)
@@ -863,7 +883,7 @@ public class FullShapeletTransform extends SimpleBatchFilter
      * @param candidate the data from the candidate FullShapeletTransform
      * @param data the entire data set to compare the candidate to
      * @param seriesId series id from the dataset that the candidate came from
-     * @param startPos start position in the series where the candidate came
+     * @param startPos start position in the series where   candidate came
      * from
      * @param qualityBound
      * @return a fully-computed FullShapeletTransform, including the quality of
@@ -871,15 +891,14 @@ public class FullShapeletTransform extends SimpleBatchFilter
      */
     protected Shapelet checkCandidate(double[] candidate, Instances data, int seriesId, int startPos, QualityBound.ShapeletQualityBound qualityBound)
     {
-
         // create orderline by looping through data set and calculating the subsequence
         // distance from candidate to all data, inserting in order.
         ArrayList<OrderLineObj> orderline = new ArrayList<>();
-
-
         
         int dataSize = data.numInstances();
 
+        subseqDistance.setCandidate(candidate, startPos);
+        
         for (int i = 0; i < dataSize; i++)
         {
             //Check if it is possible to prune the candidate
@@ -892,10 +911,12 @@ public class FullShapeletTransform extends SimpleBatchFilter
             //don't compare the shapelet to the the time series it came from.
             if (i != seriesId)
             {
-                distance = subsequenceDistance(candidate, getToDoubleArrayOfInstance(data, i));
+                distance = subseqDistance.calculate(data.instance(i).toDoubleArray(), i);
             }
-
-            double classVal = data.instance(i).classValue();
+            
+            //this could be binarised or normal. 
+            double classVal = classValue.getClassValue(data.instance(i));
+            
             // without early abandon, it is faster to just add and sort at the end
             orderline.add(new OrderLineObj(distance, classVal));
 
@@ -912,10 +933,10 @@ public class FullShapeletTransform extends SimpleBatchFilter
 
 
         // create a shapelet object to store all necessary info, i.e.
-        
         Shapelet shapelet = new Shapelet(candidate, dataSourceIDs[seriesId], startPos, this.qualityMeasure);
-        shapelet.calculateQuality(orderline, classDistributions); 
-        shapelet.classValue =  data.instance(seriesId).classValue(); //set classValue of shapelet. (interesing to know).
+        //this class distribution could be binarised or normal.
+        shapelet.calculateQuality(orderline, classValue.getClassDistributions()); 
+        shapelet.classValue =  classValue.getShapeletValue(); //set classValue of shapelet. (interesing to know).
         return shapelet;
     }
 
@@ -923,8 +944,9 @@ public class FullShapeletTransform extends SimpleBatchFilter
     {
         double[] quals = new double[trans.numAttributes() - 1];
 
-        Map map = InstanceTools.createClassDistributions(trans);
-
+        NormalClassValue ncv = new NormalClassValue();
+        ncv.init(trans);
+        
         for (int i = 0; i < quals.length; i++)
         {
             ArrayList<OrderLineObj> orderline = new ArrayList<>();
@@ -932,156 +954,19 @@ public class FullShapeletTransform extends SimpleBatchFilter
 
             for (int j = 0; j < dists.length; j++)
             {
-
                 double distance = dists[j];
-                double classVal = trans.instance(j).classValue();
+                double classVal = ncv.getClassValue(trans.instance(j));
                 orderline.add(new OrderLineObj(distance, classVal));
-
             }
 
             QualityMeasures.InformationGain ig = new QualityMeasures.InformationGain();
-            double qual = ig.calculateQuality(orderline, map);
+            double qual = ig.calculateQuality(orderline, ncv.getClassDistributions());
             quals[i] = qual;
         }
 
         return quals;
     }
-
-    /**
-     * Calculate the distance between a candidate series and an Instance object
-     *
-     * @param candidate a double[] representation of a shapelet candidate
-     * @param timeSeriesIns an Instance object of a whole time series
-     * @return the distance between a candidate and a time series
-     *
-     */
-    protected double subseqDistance(double[] candidate, Instance timeSeriesIns)
-    {
-        return subsequenceDistance(candidate, timeSeriesIns.toDoubleArray());
-    }
-
-    /**
-     *
-     * @param candidate
-     * @param timeSeriesIns
-     * @return
-     */
-    public static double subsequenceDistance(double[] candidate, Instance timeSeriesIns)
-    {
-        return subsequenceDistance(candidate, timeSeriesIns.toDoubleArray());
-    }
-
-    /**
-     * Calculate the distance between a shapelet candidate and a full time
-     * series (both double[]).
-     *
-     * @param candidate a double[] representation of a shapelet candidate
-     * @param timeSeries a double[] representation of a whole time series (inc.
-     * class value)
-     * @return the distance between a candidate and a time series
-     */
-    public static double subsequenceDistance(double[] candidate, double[] timeSeries)
-    {
-
-        double bestSum = Double.MAX_VALUE;
-        double sum;
-        double[] subseq;
-        double temp;
-
-        // for all possible subsequences of two
-        for (int i = 0; i < timeSeries.length - candidate.length; i++)
-        {
-            sum = 0;
-            // get subsequence of two that is the same lengh as one
-            subseq = new double[candidate.length];
-            System.arraycopy(timeSeries, i, subseq, 0, candidate.length);
-
-            subseqDistOpCount += candidate.length;
-
-            subseq = zNormalise(subseq, false); // Z-NORM HERE
-
-            //Keep count of fundamental ops for experiment
-            subseqDistOpCount += 3 * subseq.length;
-
-            for (int j = 0; j < candidate.length; j++)
-            {
-                temp = (candidate[j] - subseq[j]);
-                sum += temp * temp;
-            }
-
-            subseqDistOpCount += candidate.length;
-
-            if (sum < bestSum)
-            {
-                bestSum = sum;
-            }
-        }
-        return (bestSum == 0.0) ? 0.0 : (1.0 / candidate.length * bestSum);
-    }
-
-    /**
-     *
-     * @param input
-     * @param classValOn
-     * @return
-     */
-    protected double[] zNorm(double[] input, boolean classValOn)
-    {
-        return FullShapeletTransform.zNormalise(input, classValOn);
-    }
-
-    /**
-     * Z-Normalise a time series
-     *
-     * @param input the input time series to be z-normalised
-     * @param classValOn specify whether the time series includes a class value
-     * (e.g. an full instance might, a candidate shapelet wouldn't)
-     * @return a z-normalised version of input
-     */
-    public static double[] zNormalise(double[] input, boolean classValOn)
-    {
-        double mean;
-        double stdv;
-
-        int classValPenalty = classValOn ? 1 : 0;
-        int inputLength = input.length - classValPenalty;
-
-        double[] output = new double[input.length];
-        double seriesTotal = 0;
-
-        for (int i = 0; i < inputLength; i++)
-        {
-            seriesTotal += input[i];
-        }
-
-        mean = seriesTotal / (double) inputLength;
-        stdv = 0;
-        double temp;
-        for (int i = 0; i < inputLength; i++)
-        {
-            temp = (input[i] - mean);
-            stdv += temp * temp;
-        }
-
-        stdv /= (double) inputLength;
-
-        // if the variance is less than the error correction, just set it to 0, else calc stdv.
-        stdv = (stdv < ROUNDING_ERROR_CORRECTION) ? 0.0 : Math.sqrt(stdv);
-
-        for (int i = 0; i < inputLength; i++)
-        {
-            //if the stdv is 0 then set to 0, else normalise.
-            output[i] = (stdv == 0.0) ? 0.0 : ((input[i] - mean) / stdv);
-        }
-
-        if (classValOn)
-        {
-            output[output.length - 1] = input[input.length - 1];
-        }
-
-        return output;
-    }
-
+    
     /**
      * Load a set of Instances from an ARFF
      *
@@ -1237,7 +1122,7 @@ public class FullShapeletTransform extends SimpleBatchFilter
                 contentArray[i] = content.get(i);
             }
 
-            contentArray = zNormalise(contentArray, false);
+            contentArray = sf.subseqDistance.zNormalise(contentArray, false);
 
             Shapelet s = new Shapelet(contentArray, qualVal, serID, starPos);
 
@@ -1336,8 +1221,11 @@ public class FullShapeletTransform extends SimpleBatchFilter
         TreeMap<Double, ArrayList<Instance>> instancesByClass = new TreeMap<>();
         TreeMap<Double, ArrayList<Integer>> positionsByClass = new TreeMap<>();
 
+        NormalClassValue ncv = new NormalClassValue();
+        ncv.init(data);
+                
         //Get class distributions 
-        Map<Double, Integer> classDistribution = InstanceTools.createClassDistributions(data);
+        Map<Double, Integer> classDistribution = ncv.getClassDistributions();
 
         //Allocate arrays for instances of every class
         for (Double key : classDistribution.keySet())
@@ -1352,8 +1240,8 @@ public class FullShapeletTransform extends SimpleBatchFilter
         for (int i = 0; i < dataSize; i++)
         {
             Instance inst = data.instance(i);
-            instancesByClass.get(inst.classValue()).add(inst);
-            positionsByClass.get(inst.classValue()).add(i);
+            instancesByClass.get(ncv.getClassValue(inst)).add(inst);
+            positionsByClass.get(ncv.getClassValue(inst)).add(i);
         }
 
         //Merge data into single list in round robin order
@@ -1423,35 +1311,8 @@ public class FullShapeletTransform extends SimpleBatchFilter
      * instances to transform
      */
     public static void main(String[] args)
-    {
-        try
-        {
-            // mandatory requirements:  numShapelets (k), min shapelet length, max shapelet length, input data
-            // additional information:  log output dir
-
-            // example filter, k = 10, minLength = 20, maxLength = 40, data = , output = exampleOutput.txt
-            int k = 10;
-            int minLength = 10;
-            int maxLength = 20;
-//            Instances data= FullShapeletTransform2.loadData("ItalyPowerDemand_TRAIN.arff"); // for example
-            Instances data = FullShapeletTransform.loadData(args[0]);
-
-            FullShapeletTransform sf = new FullShapeletTransform(k, minLength, maxLength);
-            sf.setQualityMeasure(QualityMeasures.ShapeletQualityChoice.INFORMATION_GAIN);
-            sf.setLogOutputFile("exampleOutput.txt"); // log file stores shapelet output
-
-            // Note: sf.process returns a transformed set of Instances. The first time that
-            //      thisFilter.process(data) is called, shapelet extraction occurs. Subsequent calls to process
-            //      uses the previously extracted shapelets to transform the data. For example:
-            //
-            //      Instances transformedTrain = sf.process(trainingData); -> extracts shapelets and can be used to transform training data
-            //      Instances transformedTest = sf.process(testData); -> uses shapelets extracted from trainingData to transform testData
-            Instances transformed = sf.process(data);
-        }
-        catch (IllegalArgumentException e)
-        {
-            System.out.println("IllegalArgumentException: "+ e);
-        }
+    {      
+        
     }
 
 }

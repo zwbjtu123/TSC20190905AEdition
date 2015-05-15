@@ -21,8 +21,8 @@ import weka.core.shapelet.QualityMeasures;
 import weka.core.shapelet.Shapelet;
 import weka.filters.timeseries.shapelet_transforms.ApproximateShapeletTransform;
 import weka.filters.timeseries.shapelet_transforms.FullShapeletTransform;
-import weka.filters.timeseries.shapelet_transforms.ShapeletTransformDistCaching;
-import weka.filters.timeseries.shapelet_transforms.ShapeletTransform;
+import weka.filters.timeseries.shapelet_transforms.subsequenceDist.CachedSubSeqDistance;
+import weka.filters.timeseries.shapelet_transforms.subsequenceDist.OnlineSubSeqDistance;
 
 /**
  *
@@ -401,7 +401,8 @@ public class MCompProjectExperiments {
         // Initialise filters required for this experiment
         FullShapeletTransform[] transforms = new FullShapeletTransform[2];
         transforms[0] = new FullShapeletTransform();
-        transforms[1] = new ShapeletTransform();
+        transforms[1] = new FullShapeletTransform();
+        transforms[1].setSubSeqDistance(new OnlineSubSeqDistance());
 
         transforms[0].turnOffLog();
         transforms[0].supressOutput();
@@ -565,8 +566,10 @@ public class MCompProjectExperiments {
     private static FullShapeletTransform[] initExactTransformExperimentTransforms(){
         FullShapeletTransform[] transforms = new FullShapeletTransform[3];
         transforms[0] = new FullShapeletTransform();
-        transforms[1] = new ShapeletTransform();
-        transforms[2] = new ShapeletTransformDistCaching();
+        transforms[1] = new FullShapeletTransform();
+        transforms[1].setSubSeqDistance(new OnlineSubSeqDistance());
+        transforms[2] = new FullShapeletTransform();
+        transforms[2].setSubSeqDistance(new CachedSubSeqDistance());
         
         transforms[0].turnOffLog();
         transforms[0].supressOutput();
@@ -584,8 +587,10 @@ public class MCompProjectExperiments {
     private static FullShapeletTransform[] initCandidatePruningExperimentTransforms(QualityMeasures.ShapeletQualityChoice qualityChoice){
         // Initialise transforms required for this experiment
         FullShapeletTransform[] transforms = new FullShapeletTransform[2];
-        transforms[0] = new ShapeletTransformDistCaching();
-        transforms[1] = new ShapeletTransformDistCaching();
+        transforms[0] = new FullShapeletTransform();
+        transforms[0].setSubSeqDistance(new CachedSubSeqDistance());
+        transforms[1] = new FullShapeletTransform();
+        transforms[1].setSubSeqDistance(new CachedSubSeqDistance());
         
         transforms[0].turnOffLog();
         transforms[0].supressOutput();
@@ -609,7 +614,8 @@ public class MCompProjectExperiments {
         int numOfTransforms = ((PERCENT_END - PERCENT_START) / PERCENT_INCREMENT) + 2;
         
         FullShapeletTransform[] transforms = new FullShapeletTransform[numOfTransforms];
-        transforms[0] = new ShapeletTransformDistCaching();
+        transforms[0] = new FullShapeletTransform();
+        transforms[0].setSubSeqDistance(new CachedSubSeqDistance());
         transforms[0].turnOffLog();
         transforms[0].supressOutput();
             
@@ -674,7 +680,8 @@ public class MCompProjectExperiments {
     // Method to estimate min/max shapelet lenght for a given data
     private static int[] estimateMinAndMax(Instances data){
         ArrayList<Shapelet> shapelets = new ArrayList<Shapelet>();
-        FullShapeletTransform st = new ShapeletTransformDistCaching();
+        FullShapeletTransform st = new FullShapeletTransform();
+        st.setSubSeqDistance(new CachedSubSeqDistance());
         st.supressOutput();
         st.turnOffLog();
           

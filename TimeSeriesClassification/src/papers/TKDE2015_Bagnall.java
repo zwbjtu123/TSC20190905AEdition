@@ -37,6 +37,7 @@ import weka.filters.timeseries.ARMA;
 import weka.filters.timeseries.PACF;
 import weka.filters.timeseries.PowerSpectrum;
 import weka.filters.timeseries.shapelet_transforms.*;
+import weka.filters.timeseries.shapelet_transforms.subsequenceDist.CachedSubSeqDistance;
 import weka.filters.unsupervised.attribute.RemoveUseless;
 
 /**
@@ -291,8 +292,8 @@ and test file. So ItalyPowerDemand is in the
         System.out.println("Transformed PS");
         
         //Shapelet
-        ShapeletTransformDistCaching s2=new ShapeletTransformDistCaching();
-        
+        FullShapeletTransform s2 = new FullShapeletTransform();
+        s2.setSubSeqDistance(new CachedSubSeqDistance());
         s2.setNumberOfShapelets(train.numInstances()*10);
         s2.setShapeletMinAndMax(3, train.numAttributes()-1);
         s2.setDebug(false);

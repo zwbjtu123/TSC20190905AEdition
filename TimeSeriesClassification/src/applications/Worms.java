@@ -18,6 +18,7 @@ import weka.core.shapelet.QualityMeasures;
 import weka.filters.NormalizeCase;
 import weka.filters.timeseries.SummaryStats;
 import weka.filters.timeseries.shapelet_transforms.*;
+import weka.filters.timeseries.shapelet_transforms.subsequenceDist.OnlineSubSeqDistance;
 
 /**
  *
@@ -156,7 +157,8 @@ public class Worms {
             Logger.getLogger(Worms.class.getName()).log(Level.SEVERE, null, ex);
         }
         int nosShapelets=2000;
-        FullShapeletTransform st=new ShapeletTransform();
+        FullShapeletTransform st = new FullShapeletTransform();
+        st.setSubSeqDistance(new OnlineSubSeqDistance());
         st.setNumberOfShapelets(nosShapelets);
         int minLength=4;
         int maxLength=200;

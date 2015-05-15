@@ -18,9 +18,8 @@ import static utilities.InstanceTools.createClassDistributions;
 import weka.classifiers.meta.timeseriesensembles.WeightedEnsemble;
 import weka.core.Instances;
 import weka.core.shapelet.QualityMeasures;
-import weka.filters.timeseries.shapelet_transforms.BinarisedShapeletTransform;
 import weka.filters.timeseries.shapelet_transforms.FullShapeletTransform;
-import weka.filters.timeseries.shapelet_transforms.ShapeletTransform;
+import weka.filters.timeseries.shapelet_transforms.classValue.BinarisedClassValue;
 
 /**
  *
@@ -42,7 +41,7 @@ public class DaWaK2015
         s.turnOffLog();
     }
 
-    public static void extractShapelet(dataParams dm, ShapeletTransform transform)
+    public static void extractShapelet(dataParams dm, FullShapeletTransform transform)
     {
         Instances test = null;
         Instances train;
@@ -74,13 +73,13 @@ public class DaWaK2015
             LocalInfo.saveDataset(testAndTrain[0], outLogFileName + "_TRAIN");
 
             
-            long opCount = ShapeletTransform.subseqDistOpCount;
-            System.out.println(transform.getClass().getSimpleName() + " train opCount\t" + ShapeletTransform.subseqDistOpCount);
+            //long opCount = ShapeletTransform.subseqDistOpCount;
+            //System.out.println(transform.getClass().getSimpleName() + " train opCount\t" + ShapeletTransform.subseqDistOpCount);
             
             testAndTrain[1] = transform.process(test);
             LocalInfo.saveDataset(testAndTrain[1], outLogFileName + "_TEST");
             
-            System.out.println(transform.getClass().getSimpleName() + " test opCount\t" + (ShapeletTransform.subseqDistOpCount-opCount));
+            //System.out.println(transform.getClass().getSimpleName() + " test opCount\t" + (ShapeletTransform.subseqDistOpCount-opCount));
             
             
         }
@@ -107,7 +106,10 @@ public class DaWaK2015
         ArrayList<dataParams> data = buildParamsArray();
         
         //create our classifier timing experiments are embedded
-        extractShapelet(data.get(i), new BinarisedShapeletTransform());  
+        FullShapeletTransform st = new FullShapeletTransform();
+        st.setClassValue(new BinarisedClassValue());
+        
+        extractShapelet(data.get(i), st);  
         //extractShapelet(data.get(i), new ShapeletTransform());  
     }
     

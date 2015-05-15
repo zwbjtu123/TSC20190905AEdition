@@ -18,7 +18,7 @@ import weka.core.shapelet.Shapelet;
  *
  * @author raj09hxu
  */
-public class BalancedClassShapeletTransform extends ModularShapeletTransform
+public class BalancedClassShapeletTransform extends FullShapeletTransform
 {
 
     /**
@@ -56,7 +56,7 @@ public class BalancedClassShapeletTransform extends ModularShapeletTransform
             //get the Shapelets list based on the classValue of our current time series.
             kShapelets = kShapeletsMap.get(data.get(i).classValue());
 
-            double[] wholeCandidate = getToDoubleArrayOfInstance(data, i);
+            double[] wholeCandidate = data.get(i).toDoubleArray();
             
             //we only want to pass in the worstKShapelet if we've found K shapelets. but we only care about this class values worst one.
             //this is due to the way we represent each classes shapelets in the map.

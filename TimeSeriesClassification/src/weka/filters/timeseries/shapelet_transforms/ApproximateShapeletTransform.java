@@ -21,7 +21,7 @@ import weka.filters.unsupervised.instance.Resample;
  * 
  * @author Edgaras Baranauskas
  */
-public class ApproximateShapeletTransform extends ShapeletTransformDistCaching{
+public class ApproximateShapeletTransform extends FullShapeletTransform{
     /**
      * Size of the subsample, as a percentage of the original set 
      */
@@ -137,53 +137,9 @@ public class ApproximateShapeletTransform extends ShapeletTransformDistCaching{
             if(!supressOutput){
                 System.out.println(shapelets.size()+" Shapelets have been generated");
             }
-        }else{
-            stats = null;
-            data = null;
         }
-        
-        Instances output = determineOutputFormat(dataInst); 
-        
-        if(data != null){
-            stats = new Stats();
-            //Normalise all time series for furhter processing
-            data = new double[dataInst.numInstances()][];
-            for(int i = 0; i < dataInst.numInstances(); i++){
-                data[i] = FullShapeletTransform.zNormalise(dataInst.instance(i).toDoubleArray(), true);
-            }
-        }
-                
-        for(int i = 0; i < shapelets.size() + 1; i++){
-            Shapelet s = null;
-            if(i < shapelets.size()){
-                s = shapelets.get(i);
-                if(data != null && stats != null){
-                    stats.computeStats(s.getSeriesId(), data);
-                }
-            }
-            
-           for(int j = 0; j < dataInst.numInstances(); j++){
-               if(i < shapelets.size()){
-                   double dist;
-                   if(data != null && stats != null){
-                        stats.setCurrentY(j);
-                        dist = cachedSubsequenceDistance(s.getStartPos(), s.getContent().length, data[j].length, stats);
-                   }else{
-                        dist = subseqDistance(s.getContent(), dataInst.instance(j));
-                   }
 
-                    if(i == 0){
-                         output.add(new DenseInstance(this.shapelets.size() + 1));
-                         output.instance(j).setValue(i, dist);
-                    }else{
-                         output.instance(j).setValue(i, dist); 
-                    }
-               }else{
-                   output.instance(j).setValue(i, dataInst.instance(j).classValue());
-               }
-           }
-        }
-        return output;
+        return this.buildTansformedDataset(dataInst, shapelets);
     }
     
     //Method to apprimiate the training data
@@ -284,7 +240,7 @@ public class ApproximateShapeletTransform extends ShapeletTransformDistCaching{
                 
                 //Normalise series
                 double[] series = currentInstance.toDoubleArray();
-                series = FullShapeletTransform.zNormalise(series, true);
+                series = this.subseqDistance.zNormalise(series, true);
                 
                 double[] paaSublists = new double[paaSize];
                 int[] paaSublistsSizes = new int[paaSize];
@@ -437,8 +393,6 @@ public class ApproximateShapeletTransform extends ShapeletTransformDistCaching{
         }
         
         System.out.println("Even Test: ");
-        ShapeletTransform.printSeries(dataEven);
-        ShapeletTransform.printSeries(out);
     }
     
 }

@@ -22,6 +22,7 @@ import weka.classifiers.meta.timeseriesensembles.WeightedEnsemble;
 import weka.core.Instances;
 import weka.core.shapelet.QualityMeasures;
 import weka.filters.timeseries.shapelet_transforms.*;
+import weka.filters.timeseries.shapelet_transforms.classValue.BinarisedClassValue;
 
 /**
  *
@@ -67,7 +68,10 @@ public class ResamplingExperiments {
         
         String fileExtension = File.separator + smallDatasets[index] + File.separator + smallDatasets[index];
         
-        FullShapeletTransform transform = binarise == 0 ? new FullShapeletTransform() : new BinarisedShapeletTransform();
+        FullShapeletTransform transform =  new FullShapeletTransform();
+        
+        if(binarise != 0)
+            transform.setClassValue(new BinarisedClassValue());
 
         //get the loadLocation of the resampled files.
         String classifierDir = File.separator + transform.getClass().getSimpleName() ;//+ fileExtension;

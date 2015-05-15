@@ -28,8 +28,7 @@ import weka.classifiers.trees.RandomForest;
 import weka.core.Instances;
 import weka.filters.NormalizeCase;
 import weka.filters.timeseries.shapelet_transforms.FullShapeletTransform;
-import weka.filters.timeseries.shapelet_transforms.ShapeletTransform;
-import weka.filters.timeseries.shapelet_transforms.ShapeletTransformDistCaching;
+import weka.filters.timeseries.shapelet_transforms.subsequenceDist.CachedSubSeqDistance;
 
 /**
  *
@@ -113,7 +112,8 @@ public class CrossValidateShapelets extends Thread {
     
     public void run(){
 //Perform cached on online 
-        FullShapeletTransform st=new ShapeletTransformDistCaching();
+        FullShapeletTransform st = new FullShapeletTransform();
+        st.setSubSeqDistance(new CachedSubSeqDistance());
         st.useCandidatePruning(10);
 //        if(train.numInstances()>=500 || train.numAttributes()>500)
 //            st = new ShapeletTransform();
@@ -583,7 +583,8 @@ public class CrossValidateShapelets extends Thread {
         
         Instances train = ClassifierTools.loadData(clusterPath+fileName+"_TRAIN"+(foldNum+1));
         Instances test = ClassifierTools.loadData(clusterPath+fileName+"_TEST"+(foldNum+1));
-        FullShapeletTransform st=new ShapeletTransformDistCaching();
+        FullShapeletTransform st = new FullShapeletTransform();
+        st.setSubSeqDistance(new CachedSubSeqDistance());
 //        if(train.numInstances()>=500 || train.numAttributes()>500)
 //            st = new ShapeletTransform();
         st.supressOutput();

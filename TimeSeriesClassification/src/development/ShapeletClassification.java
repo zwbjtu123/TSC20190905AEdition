@@ -30,6 +30,8 @@ import weka.classifiers.trees.RandomForest;
 import weka.core.shapelet.QualityMeasures;
 import weka.filters.*;
 import weka.filters.timeseries.shapelet_transforms.*;
+import weka.filters.timeseries.shapelet_transforms.subsequenceDist.CachedSubSeqDistance;
+import weka.filters.timeseries.shapelet_transforms.subsequenceDist.OnlineSubSeqDistance;
 /**
  *
  * @author ajb
@@ -113,8 +115,10 @@ public static String path="C:\\Users\\ajb\\Dropbox\\TSC Problems\\";
     public static void earlyAbandonDebug(){
 //For some reason, synthetic control and lightning 7 take forever with EA. 
         Instances train=ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\TSC Problems\\SyntheticControl\\SyntheticControl_TRAIN");
-        FullShapeletTransform s1= new ShapeletTransformDistCaching();
-        FullShapeletTransform s2= new ShapeletTransformDistCaching();
+        FullShapeletTransform s1=new FullShapeletTransform();
+        s1.setSubSeqDistance(new OnlineSubSeqDistance());
+        FullShapeletTransform s2=new FullShapeletTransform();
+        s2.setSubSeqDistance(new OnlineSubSeqDistance());
 //        ShapeletExamples.initializeShapelet(s1, train);
         //        {20, 56},   // SyntheticControl
         s1.setShapeletMinAndMax(20, 56);
@@ -347,7 +351,8 @@ All included except Cricket. There are three criket problems and they are not
         FullShapeletTransform st2=new FullShapeletTransform();
         st2.setUseRoundRobin(true);
         st2.supressOutput();
-        FullShapeletTransform st3=new ShapeletTransform();
+        FullShapeletTransform st3=new FullShapeletTransform();
+        st3.setSubSeqDistance(new OnlineSubSeqDistance());
          try {
              Instances train2=st.process(train);
              Instances train3=st2.process(train);
@@ -376,13 +381,16 @@ All included except Cricket. There are three criket problems and they are not
         String problem="ItalyPowerDemand";
         Instances train=ClassifierTools.loadData(path+problem+"\\"+problem+"_TRAIN");
         Instances test=ClassifierTools.loadData(path+problem+"\\"+problem+"_TEST");
-        ShapeletTransform st=new ShapeletTransform();
+        FullShapeletTransform st=new FullShapeletTransform();
+        st.setSubSeqDistance(new OnlineSubSeqDistance());
         st.setUseRoundRobin(false);
         st.supressOutput();
-        ShapeletTransform st2=new ShapeletTransform();
+        FullShapeletTransform st2=new FullShapeletTransform();
+        st2.setSubSeqDistance(new OnlineSubSeqDistance());
         st2.setUseRoundRobin(true);
         st2.supressOutput();
-        ShapeletTransformDistCaching st3=new ShapeletTransformDistCaching();
+        FullShapeletTransform st3=new FullShapeletTransform();
+        st3.setSubSeqDistance(new CachedSubSeqDistance());
         st3.setUseRoundRobin(true);
          try {
              Instances train2=st.process(train);
@@ -665,7 +673,8 @@ All included except Cricket. There are three criket problems and they are not
             }
 public static void generateShapeletFile(Instances train, OutFile dest) throws Exception{
             //Shapelet
-        ShapeletTransform s2=new ShapeletTransform();
+        FullShapeletTransform s2=new FullShapeletTransform();
+        s2.setSubSeqDistance(new OnlineSubSeqDistance());
         s2.setNumberOfShapelets(train.numInstances()*10);
         s2.setShapeletMinAndMax(3, train.numAttributes()-1);
         s2.setDebug(false);

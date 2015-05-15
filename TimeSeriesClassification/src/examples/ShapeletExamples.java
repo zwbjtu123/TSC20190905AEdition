@@ -49,10 +49,9 @@ import weka.filters.timeseries.shapelet_transforms.*;
  * 4x tree classifiers based on the alternative distance measures in class 
  * QualityMeasures.
  */
-import weka.classifiers.trees.shapelet_trees.*;
 import weka.core.*;
-import weka.filters.Filter;
-import weka.filters.SimpleBatchFilter;
+import weka.filters.timeseries.shapelet_transforms.subsequenceDist.CachedSubSeqDistance;
+import weka.filters.timeseries.shapelet_transforms.subsequenceDist.OnlineSubSeqDistance;
 public class ShapeletExamples {
 
     public static FullShapeletTransform st;
@@ -60,7 +59,8 @@ public class ShapeletExamples {
  /*Class to demonstrate the usage of the FullShapeletTransform. Returns the 
   * transformed set of instances  
   */
-        st =new ShapeletTransform();
+        st =new FullShapeletTransform();
+        st.setSubSeqDistance(new OnlineSubSeqDistance());
 /*The number of shapelets defaults to 100. we recommend setting it to a large
 value, since there will be many duplicates and there is little overhead in 
 * keeping a lot (although the shapelet early abandon becomes less efficient).
@@ -148,9 +148,11 @@ value, since there will be many duplicates and there is little overhead in
         Instances shapeletT=null;
         FullShapeletTransform s1=new FullShapeletTransform();
         initializeShapelet(s1,train);
-        ShapeletTransform s2=new ShapeletTransform();
+        FullShapeletTransform s2=new FullShapeletTransform();
+        s2.setSubSeqDistance(new OnlineSubSeqDistance());
         initializeShapelet(s2,train);
-        ShapeletTransformDistCaching s3=new ShapeletTransformDistCaching();
+        FullShapeletTransform s3=new FullShapeletTransform();
+        s2.setSubSeqDistance(new CachedSubSeqDistance());
         initializeShapelet(s3,train);
         DecimalFormat df =new DecimalFormat("###.####");
         long t1=0;
@@ -189,8 +191,10 @@ value, since there will be many duplicates and there is little overhead in
         FullShapeletTransform[] s=new FullShapeletTransform[4];
         FullShapeletTransform[] pruned=new FullShapeletTransform[4];
         for(int i=0;i<s.length;i++){
-            s[i]=new ShapeletTransformDistCaching();
-            pruned[i]=new ShapeletTransformDistCaching();
+            s[i]=new FullShapeletTransform();
+            s[i].setSubSeqDistance(new CachedSubSeqDistance());
+            pruned[i]=new FullShapeletTransform();
+            pruned[i].setSubSeqDistance(new CachedSubSeqDistance());
         }
         for(FullShapeletTransform s1:s){
             initializeShapelet(s1,train);
