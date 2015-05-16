@@ -25,9 +25,7 @@ import java.util.TreeMap;
 import weka.core.*;
 import weka.core.shapelet.*;
 import weka.filters.SimpleBatchFilter;
-import weka.filters.timeseries.shapelet_transforms.classValue.BinarisedClassValue;
 import weka.filters.timeseries.shapelet_transforms.classValue.NormalClassValue;
-import weka.filters.timeseries.shapelet_transforms.subsequenceDist.ImprovedOnlineSubSeqDistance;
 import weka.filters.timeseries.shapelet_transforms.subsequenceDist.SubSeqDistance;
 
 /**
@@ -629,7 +627,7 @@ public class FullShapeletTransform extends SimpleBatchFilter
 
         this.numShapelets = kShapelets.size();
 
-        recordShapelets(kShapelets);
+        recordShapelets(kShapelets, this.ouputFileLocation);
         printShapelets(kShapelets);
 
         return kShapelets;
@@ -713,28 +711,26 @@ public class FullShapeletTransform extends SimpleBatchFilter
         return (double) (finishTime - startTime) / 1000000000.0;
     }
 
-    protected void recordShapelets(ArrayList<Shapelet> kShapelets)
+    protected void recordShapelets(ArrayList<Shapelet> kShapelets, String saveLocation)
     {
-        if (!this.recordShapelets)
-        {
+        if (!this.recordShapelets){
             return;
         }
 
-        try
-        {
+        try{
             //just in case the file doesn't exist or the directories.
-            File file = new File(this.ouputFileLocation);
-            file.getParentFile().mkdirs();
+            File file = new File(saveLocation);
+            if(file.getParentFile() != null)
+                file.getParentFile().mkdirs();
+            
             FileWriter out = new FileWriter(file);
 
-            for (Shapelet kShapelet : kShapelets)
-            {
+            for (Shapelet kShapelet : kShapelets){
                 out.append(kShapelet.qualityValue + "," + kShapelet.seriesId + "," + kShapelet.startPos + "\n");
                 double[] shapeletContent = kShapelet.content;
+                
                 for (int j = 0; j < shapeletContent.length; j++)
-                {
                     out.append(shapeletContent[j] + ",");
-                }
                 out.append("\n");
             }
             out.close();
@@ -1302,17 +1298,6 @@ public class FullShapeletTransform extends SimpleBatchFilter
         subseqDistOpCount = 0;
         findBestKShapeletsCache(1, data, minShapeletLength, maxShapeletLength);
         return subseqDistOpCount;
-    }
-
-    /**
-     * An example use of a FullShapeletTransform
-     *
-     * @param args command line args. arg[0] should spcify a set of training
-     * instances to transform
-     */
-    public static void main(String[] args)
-    {      
-        
     }
 
 }

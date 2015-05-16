@@ -84,7 +84,7 @@ public class BalancedClassShapeletTransform extends FullShapeletTransform
         
         this.numShapelets = kShapelets.size();
 
-        recordShapelets(kShapelets);
+        recordShapelets(kShapelets, this.ouputFileLocation);
         printShapelets(kShapelets);
 
         return kShapelets;
