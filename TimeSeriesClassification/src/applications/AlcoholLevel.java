@@ -135,6 +135,7 @@ public class AlcoholLevel {
     
     public static void euclideanClassification(String inputFileName, boolean standardWhiteOnly) throws Exception{
         Instances input = utilities.ClassifierTools.loadData(PATH+inputFileName);
+//        Instances input = utilities.ClassifierTools.loadData(inputFileName);
         DecimalFormat df = new DecimalFormat("#.###");
         // if only looking at white standard, remove bottles that are irregular or non-clear
         if(standardWhiteOnly){
@@ -175,6 +176,8 @@ public class AlcoholLevel {
                 prediction = ee.classifyInstance(test.instance(i));
                 if(prediction==test.instance(i).classValue()){
                     correct++;
+                }else{
+//                    System.out.println("Wrong: "+testBottle);
                 }
             }
             
@@ -185,8 +188,6 @@ public class AlcoholLevel {
     }
     
     public static void main(String[] args) throws Exception{
-        
-      
         
         System.out.println("Summary Stats and Euclidean 1NN");
         System.out.println("Two Class, all bottles:");
@@ -212,10 +213,7 @@ public class AlcoholLevel {
         summaryClassification("AlcoholLevelClassification/FiveClassV1",true);
         euclideanClassification("AlcoholLevelClassification/FiveClassV1",true);
         System.out.println("=============================================\n");
-    
-
-        
-        
+   
         
     }
 }

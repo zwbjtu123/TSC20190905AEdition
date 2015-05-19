@@ -45,6 +45,12 @@ public class ClassifierTools {
  * @return Instances from path
  */
 	public static Instances loadData(String fullPath){
+            
+                // added by JL, saves having to manually trim .arff from filename if it's read in from somewhere/using old code
+                if(fullPath.substring(fullPath.length()-5, fullPath.length()).equalsIgnoreCase(".ARFF")){
+                    fullPath = fullPath.substring(0, fullPath.length()-5);
+                }
+            
 		Instances d=null;
 		FileReader r;
 		try{		
