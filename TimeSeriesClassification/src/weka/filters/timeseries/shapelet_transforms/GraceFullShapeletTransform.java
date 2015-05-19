@@ -122,8 +122,6 @@ public class GraceFullShapeletTransform extends FullShapeletTransform {
 
         this.numShapelets = kShapelets.size();
 
-
-
         recordShapelets(kShapelets, getSubShapeletFileName(currentSeries));
         printShapelets(kShapelets);
 
@@ -144,7 +142,7 @@ public class GraceFullShapeletTransform extends FullShapeletTransform {
         ArrayList<Shapelet> kShapelets = new ArrayList<>();
         ArrayList<Shapelet> seriesShapelets;
 
-        for (int i = 1; i < train.numInstances()+1; i++) {
+        for (int i = 0; i < train.numInstances(); i++) {
             try {
                 seriesShapelets = readShapeletsFromFile(getSubShapeletFileName(i));
 
@@ -205,7 +203,7 @@ public class GraceFullShapeletTransform extends FullShapeletTransform {
             try (PrintWriter pw = new PrintWriter(f)) {
                 pw.println("#!/bin/csh");
                 pw.println("#BSUB -q " + queue);
-                pw.println("#BSUB -J " + jobName + "[1-" + (arraySize + 1) + "]"); //+1 because we have to start at 1.
+                pw.println("#BSUB -J " + jobName + "[1-" + arraySize + "]"); //+1 because we have to start at 1.
                 pw.println("#BSUB -cwd /gpfs/sys/" + userName + "/" + jarPath);
                 pw.println("#BSUB -oo " + jobName + "_%I.out");
                 pw.println("#BSUB -R \"rusage[mem=" + memUsage + "]\"");
@@ -220,7 +218,7 @@ public class GraceFullShapeletTransform extends FullShapeletTransform {
     }
 
     public static void main(String[] args) {
-        final String ucrLocation = "../../time-series-datasets\\TSC Problems";
+        final String ucrLocation = "../../time-series-datasets/TSC Problems";
         final String transformLocation = "../../";
 
         String fileExtension = File.separator + DataSets.ucrSmall[0] + File.separator + DataSets.ucrSmall[0];
@@ -229,16 +227,17 @@ public class GraceFullShapeletTransform extends FullShapeletTransform {
         Instances test = utilities.ClassifierTools.loadData(ucrLocation + fileExtension + "_TEST");
 
         //first run: build the BSUB.
-        //GraceFullShapeletTransform.buildGraceBSUB("../../"+DataSets.ucrSmall[0], train.numInstances(), "raj09hxu", "SamplingExperiments/dist", "samplingExperiments", "long", 8000);
+        //GraceFullShapeletTransform.buildGraceBSUB("../../"+DataSets.ucrSmall[0], train.numInstances(), "raj09hxu", "SamplingExperiments/dist", "samplingExperiments", "long", 1000);
         
 
         GraceFullShapeletTransform st = new GraceFullShapeletTransform();
+        st.setNumberOfShapelets(train.numInstances()*10);
         st.setLogOutputFile(DataSets.ucrSmall[0] + ".csv");
 
         //set the params for your transform. length, shapelets etc.
         
         //second run: using the BSUB. for the cluster
-        //st.setSeries(Integer.parseInt(args[0]));
+        //st.setSeries(Integer.parseInt(args[0])-1);
         //st.process(train);
         
 

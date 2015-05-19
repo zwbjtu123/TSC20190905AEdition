@@ -648,6 +648,10 @@ public class FullShapeletTransform extends SimpleBatchFilter
         this.numShapelets = numShapelets;
         this.minShapeletLength = minShapeletLength;
         this.maxShapeletLength = maxShapeletLength;
+        //setup classsValue
+        classValue.init(data);
+        //setup subseqDistance
+        subseqDistance.init(data);
         initDataSouce(data);
         return findBestKShapeletsCache(data);
     }

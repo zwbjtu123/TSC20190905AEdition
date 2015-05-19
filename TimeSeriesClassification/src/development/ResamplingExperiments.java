@@ -152,7 +152,10 @@ public class ResamplingExperiments {
         transform.setNumberOfShapelets(train.numInstances() * 10);
         transform.setShapeletMinAndMax(minAndMax[0], minAndMax[1]);
         transform.setQualityMeasure(QualityMeasures.ShapeletQualityChoice.INFORMATION_GAIN);
-        transform.turnOffLog();
+        transform.setLogOutputFile(savePath+fold+".csv");
+        //transform.turnOffLog();
+        
+        
 
         //saveLocation/FullShapeletTransform/ItalyPowerDemand/ItalyPowerDemandi_TRAIN
         LocalInfo.saveDataset(transform.process(train), savePath + fold + "_TRAIN");
