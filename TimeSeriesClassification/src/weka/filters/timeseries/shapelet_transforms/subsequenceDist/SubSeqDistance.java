@@ -11,7 +11,7 @@ import weka.core.shapelet.Shapelet;
 
 /**
  *
- * @author raj09hxu
+ * @author Aaron
  */
 public class SubSeqDistance{
 

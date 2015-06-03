@@ -17,6 +17,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Map;
@@ -45,8 +46,6 @@ public class FullShapeletTransform extends SimpleBatchFilter
 
     //Variables for experiments
     protected static long subseqDistOpCount;
-    
-
     
     //logFile
     PrintWriter opLogFile = null;
@@ -566,8 +565,8 @@ public class FullShapeletTransform extends SimpleBatchFilter
         for (int i = 0; i < size; i++)
         {
             s = shapelets.get(i);
-            
             subseqDistance.setShapelet(s);
+            
             for (int j = 0; j < dataSize; j++)
             {
                 dist = subseqDistance.calculate(data.instance(j).toDoubleArray(), j);                
@@ -1103,7 +1102,6 @@ public class FullShapeletTransform extends SimpleBatchFilter
             //End of shapelet stats
 
             lineScan = new Scanner(shapeletContentString);
-//            System.out.println(shapeletContentString);
             lineScan.useDelimiter(",");
 
             content = new ArrayList<>();

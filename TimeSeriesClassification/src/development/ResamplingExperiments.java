@@ -18,6 +18,7 @@ import java.util.Scanner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import utilities.InstanceTools;
+import weka.classifiers.lazy.kNN;
 import weka.classifiers.meta.timeseriesensembles.WeightedEnsemble;
 import weka.core.Instances;
 import weka.core.shapelet.QualityMeasures;
@@ -69,8 +70,9 @@ public class ResamplingExperiments {
         String fileExtension = File.separator + smallDatasets[index] + File.separator + smallDatasets[index];
 
         FullShapeletTransform transform;
+        weka.filters.timeseries.shapelet_transforms.old.FullShapeletTransform old_transform;
         
-        if(binarise ==0)
+        if(binarise == 0)
         {
             transform = new FullShapeletTransform();
         }
@@ -80,8 +82,10 @@ public class ResamplingExperiments {
             transform.setClassValue(new BinarisedClassValue());
         }
         
+        transform.supressOutput();
+        
         //get the loadLocation of the resampled files.
-        String classifierDir = File.separator + transform.getClass().getSimpleName() ;//+ fileExtension;
+        String classifierDir = File.separator + transform.getClass().getSimpleName() + fileExtension;
 
         String samplePath       = resampleLocation + fileExtension;
         String transformPath    = transformLocation + classifierDir;
@@ -140,26 +144,19 @@ public class ResamplingExperiments {
 
     public static void createShapeletsOnResample(String filePath, String savePath, int fold, FullShapeletTransform transform) {
         Instances test, train;
-        int[] minAndMax = null;
-
         test = utilities.ClassifierTools.loadData(filePath + fold + "_TEST");
         train = utilities.ClassifierTools.loadData(filePath + fold + "_TRAIN");
-
-        //estimate min max of shapelet.
-        minAndMax = ShapeletTransformFactory.estimateMinAndMax(train, transform);
-
+        
         //construct shapelet classifiers.
         transform.setNumberOfShapelets(train.numInstances() * 10);
-        transform.setShapeletMinAndMax(minAndMax[0], minAndMax[1]);
+        transform.setShapeletMinAndMax(3, train.numAttributes() - 1);
         transform.setQualityMeasure(QualityMeasures.ShapeletQualityChoice.INFORMATION_GAIN);
-        transform.setLogOutputFile(savePath+fold+".csv");
-        //transform.turnOffLog();
-        
-        
+        transform.setLogOutputFile(savePath+fold+"_shapelets.csv");
 
         //saveLocation/FullShapeletTransform/ItalyPowerDemand/ItalyPowerDemandi_TRAIN
         LocalInfo.saveDataset(transform.process(train), savePath + fold + "_TRAIN");
         LocalInfo.saveDataset(transform.process(test), savePath + fold + "_TEST");
+
     }
 
     public static void createWeightedEnsembleAccuracies(String filePath, String savePath, int fold) {

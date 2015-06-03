@@ -13,6 +13,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Random;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import weka.core.Instances;
 import weka.core.shapelet.*;
 import weka.filters.timeseries.shapelet_transforms.classValue.BinarisedClassValue;
@@ -29,6 +31,28 @@ public class ShapeletTransformFactory
 
     public static final double MEM_CUTOFF = 0.5;
     public static final int MAX_NOS_SHAPELETS = 1000;
+
+    public static int[] estimateMinAndMaxOld(Instances train, weka.filters.timeseries.shapelet_transforms.old.FullShapeletTransform st) {;
+        
+        ArrayList<Shapelet> shapelets = new ArrayList<>();
+        st.supressOutput();
+        st.turnOffLog();
+
+        Instances randData = new Instances(train);
+        Instances randSubset;
+
+        for (int i = 0; i < 10; i++)
+        {
+            randData.randomize(new Random());
+            randSubset = new Instances(randData, 0, 10);
+            shapelets.addAll(st.findBestKShapeletsCache(10, randSubset, 1, randSubset.numAttributes() - 1));
+        }
+
+        Collections.sort(shapelets, new ShapeletLengthComparator());
+        int min = shapelets.get(24).getContent().length;
+        int max = shapelets.get(74).getContent().length;
+
+        return new int[]{min,max};}
 
     public FullShapeletTransform createCachedTransform()
     {
@@ -114,6 +138,21 @@ public class ShapeletTransformFactory
     // Method to estimate min/max shapelet lenght for a given data
     public static int[] estimateMinAndMax(Instances data, FullShapeletTransform st)
     {
+        FullShapeletTransform st1 = null;
+        try {
+            //we need to clone the FST.
+            st1 = st.getClass().newInstance();
+            st1.setClassValue(st.classValue.getClass().newInstance());
+            st1.setSubSeqDistance(st.subseqDistance.getClass().newInstance());
+        } catch (InstantiationException | IllegalAccessException ex) {
+            System.out.println("Exception: ");
+        }
+        
+        if(st1 == null)
+            st1 = new FullShapeletTransform();
+        
+        st1.supressOutput();
+        
         ArrayList<Shapelet> shapelets = new ArrayList<>();
         st.supressOutput();
         st.turnOffLog();
@@ -125,7 +164,7 @@ public class ShapeletTransformFactory
         {
             randData.randomize(new Random());
             randSubset = new Instances(randData, 0, 10);
-            shapelets.addAll(st.findBestKShapeletsCache(10, randSubset, 1, randSubset.numAttributes() - 1));
+            shapelets.addAll(st1.findBestKShapeletsCache(10, randSubset, 1, randSubset.numAttributes() - 1));
         }
 
         Collections.sort(shapelets, new ShapeletLengthComparator());
