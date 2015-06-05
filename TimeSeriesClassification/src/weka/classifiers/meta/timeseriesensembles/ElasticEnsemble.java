@@ -28,6 +28,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import weka.classifiers.Classifier;
 import weka.core.EuclideanDistance;
+import utilities.ClassifierTools;
 
 public class ElasticEnsemble implements Classifier{
     double[] predictions;
@@ -65,7 +66,7 @@ public class ElasticEnsemble implements Classifier{
         Signif
     }
 
-    private static double[] msmParms = {
+    protected static double[] msmParms = {
         // <editor-fold defaultstate="collapsed" desc="hidden for space">
         0.01,
         0.01375,
@@ -169,7 +170,7 @@ public class ElasticEnsemble implements Classifier{
         100// </editor-fold>
     };
 
-    private static double[] twe_nuParams = {
+    protected static double[] twe_nuParams = {
         // <editor-fold defaultstate="collapsed" desc="hidden for space">
         0.00001,
         0.0001,
@@ -183,7 +184,7 @@ public class ElasticEnsemble implements Classifier{
         1,// </editor-fold>
     };
 
-    private static double[] twe_lamdaParams = {
+    protected static double[] twe_lamdaParams = {
         // <editor-fold defaultstate="collapsed" desc="hidden for space">
         0,
         0.011111111,
@@ -201,33 +202,36 @@ public class ElasticEnsemble implements Classifier{
     // Once classifier is built, the classifier choices are locked in by creating an array of ClassifierVariants. This is done for two reasons; firstly, the index of the array matches
     // the other arrays, such as cvAccs and cvPreds. Secondly, this seperates the classifier selection before and after building the classifier, ensuring that unexpected behaviour isn't caused
     // by carrying out abnormal opperations (i.e. adding classifiers to the ensemble after training has occured). 
-    private TreeSet<ClassifierVariants> classifiersToUse;
-    private ClassifierVariants[] finalClassifiers;
+    protected TreeSet<ClassifierVariants> classifiersToUse;
+    protected ClassifierVariants[] finalClassifiers;
     
 
-    private double[] cvAccs;
-    private double[][] cvPreds;
-    private double[] trainActualClassVals;
+    protected double[] cvAccs;
+    protected double[][] cvPreds;
+    protected double[] trainActualClassVals;
 
-    private EnsembleType ensembleType;
-    private double[][] bestParams;
-    private boolean fileWriting;
+    protected EnsembleType ensembleType;
+    protected double[][] bestParams;
+    protected boolean fileWriting;
     
-    private String outpurDirLocation;
-    private String datasetName;
+    protected String outpurDirLocation;
+    protected String datasetName;
     
-    private Instances fullTrainingData;
-    private boolean[] mcNemarsInclusion;
+    protected Instances fullTrainingData;
+    protected boolean[] mcNemarsInclusion;
 
-    private boolean classifierBuilt;
-    private boolean verbose;
+    protected boolean classifierBuilt;
+    protected boolean verbose;
     
     private boolean parallel;
 
     public double[] getCVAccs(){ return cvAccs;}
+    public double[][] getbestParams(){ return bestParams;}
+    
+    
     public ElasticEnsemble(){
         setEnsembleType(ElasticEnsemble.EnsembleType.Prop);
-        this.classifiersToUse = new TreeSet<ClassifierVariants>();
+        this.classifiersToUse = new TreeSet<>();
         classifiersToUse.addAll(Arrays.asList(ClassifierVariants.values()));
 
         this.finalClassifiers = null;
@@ -639,7 +643,7 @@ public class ElasticEnsemble implements Classifier{
         return output;
     }
 
-    private static kNN getInternalClassifier(ClassifierVariants classifierType, double[] params, Instances instances) throws Exception{
+    protected static kNN getInternalClassifier(ClassifierVariants classifierType, double[] params, Instances instances) throws Exception{
         
         EuclideanDistance distanceMeasure = null;
         kNN knn;
@@ -682,6 +686,41 @@ public class ElasticEnsemble implements Classifier{
         return knn;
     }
     
+    protected static double[] getParamsFromParamId(ClassifierVariants classifierType, int paramId, Instances trainingData) throws Exception{
+        double[] out;
+        switch(classifierType){
+            case Euclidean_1NN:
+            case DTW_R1_1NN:
+            case DDTW_R1_1NN:
+                return null;
+            case DTW_Rn_1NN:
+            case DDTW_Rn_1NN:
+            case WDTW_1NN:
+            case WDDTW_1NN:
+                out = new double[1];
+                out[0] =((double)paramId)/100;
+                return out;
+            case LCSS_1NN:
+                double stdTrain = LCSSDistance.stdv_p(trainingData);
+                double stdFloor = stdTrain*0.2;
+                double[] epsilons = LCSSDistance.getInclusive10(stdFloor, stdTrain);
+                int[] deltas = LCSSDistance.getInclusive10(0, (trainingData.numAttributes()-1)/4);
+                return new double[]{deltas[paramId/10], epsilons[paramId%10]};
+            case MSM_1NN:
+                return new double[]{msmParms[paramId]};
+            case TWE_1NN:
+                return new double[]{twe_nuParams[paramId/10],twe_lamdaParams[paramId%10]};
+            case ERP_1NN:
+                double[] windowSizes = ERPDistance.getInclusive10(0, 0.25);
+                double stdv = ERPDistance.stdv_p(trainingData);
+                double[] gValues = ERPDistance.getInclusive10(0.2*stdv, stdv);
+                
+                return new double[]{gValues[paramId/10], windowSizes[paramId%10]};
+            default:
+                throw new Exception("Error: "+classifierType+" is not a supported classifier type. Please update code to use this in the ensemble");
+        }
+    }
+    
     @Override
     public double classifyInstance(Instance instance) throws Exception{
         if(!classifierBuilt){
@@ -696,7 +735,7 @@ public class ElasticEnsemble implements Classifier{
         }
 
         int numProcessors = Runtime.getRuntime().availableProcessors();
-        int numThreads = (numProcessors > this.finalClassifiers.length) ? this.finalClassifiers.length:numProcessors;
+//        int numThreads = (numProcessors > this.finalClassifiers.length) ? this.finalClassifiers.length:numProcessors;
         ExecutorService service = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
         ArrayList<Future<IndividualClassificationOutput>> futures = new ArrayList<Future<IndividualClassificationOutput>>();
         predictions = new double[this.finalClassifiers.length];
@@ -936,20 +975,7 @@ public class ElasticEnsemble implements Classifier{
         }
     }
 
-    public static Instances loadData(String fileName){
-        Instances data = null;
-        try{
-            FileReader r;
-            r = new FileReader(fileName);
-            data = new Instances(r);
-
-            data.setClassIndex(data.numAttributes() - 1);
-        } catch(Exception e){
-            System.out.println(" Error =" + e + " in method loadData");
-            e.printStackTrace();
-        }
-        return data;
-    }
+    
 
     public boolean[] getMcNemarsInclusion(){
         // find the best classifier according to cvAccuracies - random selection of best where ties are equal
@@ -1027,7 +1053,7 @@ public class ElasticEnsemble implements Classifier{
         return output;
     }
     
-    private static class CvOutput{
+    protected static class CvOutput{
         private double accuracy;
         private double[] predictions;
         private double[] params;
@@ -1064,7 +1090,7 @@ public class ElasticEnsemble implements Classifier{
         return this.classifiersToUse.toString();
     }
 
-    public static void main(String[] args) {
+    public static void mainExample(String[] args) {
         
 
         try{
@@ -1079,8 +1105,8 @@ public class ElasticEnsemble implements Classifier{
                 throw new Exception("Error: Specified data directory does not exist: "+dataDir);
             }
             
-            Instances train = loadData(dataDir+"/"+datasetName+"/"+datasetName+"_TRAIN.arff");
-            Instances test = loadData(dataDir+"/"+datasetName+"/"+datasetName+"_TEST.arff");
+            Instances train = ClassifierTools.loadData(dataDir+"/"+datasetName+"/"+datasetName+"_TRAIN.arff");
+            Instances test = ClassifierTools.loadData(dataDir+"/"+datasetName+"/"+datasetName+"_TEST.arff");
 
             // see method for annotations
             demonstrateEnsembles_SettingsFromSDM(train, test, "demonstration", datasetName);
