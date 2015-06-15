@@ -139,7 +139,7 @@ public class ElasticEnsembleCluster extends ElasticEnsemble{
      * @param paramId int. A reference to the job number for deriving which parameter options to use with this classifier
      * @throws Exception
      */
-    private static void writeCvResultsForCluster(Instances instances, String outputNameIdentifier, ClassifierVariants measureType, int instanceId, int paramId) throws Exception{
+    public static void writeCvResultsForCluster(Instances instances, String outputNameIdentifier, ClassifierVariants measureType, int instanceId, int paramId) throws Exception{
         Instances train;
         if(measureType.equals(ClassifierVariants.DDTW_R1_1NN)||measureType.equals(ClassifierVariants.DDTW_Rn_1NN)||measureType.equals(ClassifierVariants.WDDTW_1NN)){
             DerivativeFilter d = new DerivativeFilter();
@@ -426,6 +426,31 @@ public class ElasticEnsembleCluster extends ElasticEnsemble{
         return knn;
     }
     
+    public static void clusterMaster(String[] args) throws Exception{
+        if(args[0].equalsIgnoreCase("start")){
+//            clusterMaster(args[1], args[2]);
+        }else if(args[0].equalsIgnoreCase("cvClassification")){
+            
+            String outputIdentifier = args[1];
+            String instancesAddress = args[2];
+            int paramId = Integer.parseInt(args[3].trim())-1;
+            ElasticEnsembleCluster.ClassifierVariants classifier = ElasticEnsembleCluster.ClassifierVariants.valueOf(args[4]);
+            
+            Instances train = ClassifierTools.loadData(instancesAddress);
+            for(int i = 0; i < train.numInstances(); i++){
+                ElasticEnsembleCluster.writeCvResultsForCluster(train, outputIdentifier, classifier, i, paramId);
+            }
+        }else if(args[0].equalsIgnoreCase("parseResults")){
+            
+            String outputIdentifier = args[1];
+            ElasticEnsembleCluster.ClassifierVariants classifier = ElasticEnsembleCluster.ClassifierVariants.valueOf(args[2]);
+            ElasticEnsembleCluster.writeBestParamFile(outputIdentifier, classifier, true);
+            
+        }else{
+            System.out.println("You shouldn't be here?!");
+        }
+    }
+    
     /**
      * Main method
      * 
@@ -433,7 +458,7 @@ public class ElasticEnsembleCluster extends ElasticEnsemble{
      * @throws Exception
      */
     public static void main(String[] args) throws Exception{
-        exampleUseCase("C:/temp/Dropbox/TSC Problems/");
+        clusterMaster(args);
     }
     
 }
