@@ -32,28 +32,6 @@ public class ShapeletTransformFactory
     public static final double MEM_CUTOFF = 0.5;
     public static final int MAX_NOS_SHAPELETS = 1000;
 
-    public static int[] estimateMinAndMaxOld(Instances train, weka.filters.timeseries.shapelet_transforms.old.FullShapeletTransform st) {;
-        
-        ArrayList<Shapelet> shapelets = new ArrayList<>();
-        st.supressOutput();
-        st.turnOffLog();
-
-        Instances randData = new Instances(train);
-        Instances randSubset;
-
-        for (int i = 0; i < 10; i++)
-        {
-            randData.randomize(new Random());
-            randSubset = new Instances(randData, 0, 10);
-            shapelets.addAll(st.findBestKShapeletsCache(10, randSubset, 1, randSubset.numAttributes() - 1));
-        }
-
-        Collections.sort(shapelets, new ShapeletLengthComparator());
-        int min = shapelets.get(24).getContent().length;
-        int max = shapelets.get(74).getContent().length;
-
-        return new int[]{min,max};}
-
     public FullShapeletTransform createCachedTransform()
     {
         FullShapeletTransform st = new FullShapeletTransform();

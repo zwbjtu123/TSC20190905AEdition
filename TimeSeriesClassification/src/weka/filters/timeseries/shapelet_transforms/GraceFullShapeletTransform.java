@@ -15,6 +15,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Scanner;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import weka.core.Instances;
 import weka.core.shapelet.Shapelet;
 import static weka.filters.timeseries.shapelet_transforms.FullShapeletTransform.removeSelfSimilar;
@@ -141,17 +143,13 @@ public class GraceFullShapeletTransform extends FullShapeletTransform {
 
         ArrayList<Shapelet> kShapelets = new ArrayList<>();
         ArrayList<Shapelet> seriesShapelets;
-
-        for (int i = 0; i < train.numInstances(); i++) {
-            try {
-                seriesShapelets = readShapeletsFromFile(getSubShapeletFileName(i));
-
-                kShapelets = combine(numShapelets, kShapelets, seriesShapelets);
-
-            } catch (FileNotFoundException ex) {
-                System.out.println("Exception: " + ex);
-            }
+        int i=0;
+        while(true) {
+            seriesShapelets = readShapeletsFromFile(getSubShapeletFileName(i++));
+            if(seriesShapelets == null) break; //we've reached the end of the files.
+            kShapelets = combine(numShapelets, kShapelets, seriesShapelets);
         }
+        
         numShapelets = kShapelets.size();
         shapelets = kShapelets;
         shapeletsTrained = true;
@@ -159,41 +157,46 @@ public class GraceFullShapeletTransform extends FullShapeletTransform {
         return buildTansformedDataset(train, shapelets);
     }
 
-    public static ArrayList<Shapelet> readShapeletsFromFile(String shapeletLocation) throws FileNotFoundException {
-        ArrayList<Shapelet> shapelets = new ArrayList<>();
-
-        File f = new File(shapeletLocation);
-
-        Scanner sc = new Scanner(f);
-
-        String[] lineData;
-        double[] timeSeries;
-        double qualityValue;
-        int seriesId,startPos, i;
-        Shapelet s;
-        while (sc.hasNextLine()) {
-            lineData = sc.nextLine().split(",");
-
-            qualityValue = lineData.length >= 1 ? Double.parseDouble(lineData[0]) : 0.0;
-            seriesId = lineData.length >= 2 ? Integer.parseInt(lineData[1]) : 0;
-            startPos = lineData.length >= 3 ? Integer.parseInt(lineData[2]) : 0;
-
-            //first three elements of the data have been accounted, next line is the contents of the shapelet.     
-            lineData = sc.nextLine().split(",");
+    public static ArrayList<Shapelet> readShapeletsFromFile(String shapeletLocation){
+        try {
+            ArrayList<Shapelet> shapelets = new ArrayList<>();
+            File f = new File(shapeletLocation);
             
-            timeSeries = new double[lineData.length];
-            for (i = 0; i < timeSeries.length; ++i) {
-                timeSeries[i] = Double.parseDouble(lineData[i]);
+            Scanner sc = new Scanner(f);
+            String[] lineData;
+            double[] timeSeries;
+            double qualityValue;
+            int seriesId,startPos, i;
+            Shapelet s;
+            
+            while (sc.hasNextLine()) {
+                lineData = sc.nextLine().split(",");
+                
+                qualityValue = lineData.length >= 1 ? Double.parseDouble(lineData[0]) : 0.0;
+                seriesId = lineData.length >= 2 ? Integer.parseInt(lineData[1]) : 0;
+                startPos = lineData.length >= 3 ? Integer.parseInt(lineData[2]) : 0;
+                
+                //first three elements of the data have been accounted, next line is the contents of the shapelet.
+                lineData = sc.nextLine().split(",");
+                
+                timeSeries = new double[lineData.length];
+                for (i = 0; i < timeSeries.length; ++i) {
+                    timeSeries[i] = Double.parseDouble(lineData[i]);
+                }
+                
+                shapelets.add(new Shapelet(timeSeries, qualityValue, seriesId, startPos));
             }
             
-            shapelets.add(new Shapelet(timeSeries, qualityValue, seriesId, startPos));
+            return shapelets;
+            
+        } catch (FileNotFoundException ex) {
+            System.out.println("File Not Found");
+            return null;
         }
-
-        return shapelets;
     }
 
     //memUsage is in MB.
-    public static void buildGraceBSUB(String savePath, int arraySize, String userName, String jarPath, String jobName, String queue, int memUsage) {
+    public static void buildGraceBSUB(String filePath, String savePath, int arraySize, String userName, String jarPath, String jobName, String queue, int memUsage) {
         try {
             //create the directory and the files.
             File f = new File(savePath + ".bsub");
@@ -210,7 +213,19 @@ public class GraceFullShapeletTransform extends FullShapeletTransform {
                 pw.println("#BSUB -M " + (memUsage * 1.2)); //give ourselves a 20% wiggle room.
                 pw.println(". /etc/profile");
                 pw.println("module add java/jdk/1.7.0_13");
-                pw.println("java -jar -Xmx" + memUsage + "m TimeSeriesClassification.jar $LSB_JOBINDEX");//should look like -Xmx8000m 
+                pw.println("java -jar -Xmx" + memUsage + "m TimeSeriesClassification.jar search $LSB_JOBINDEX " + filePath + " " + savePath);
+
+                pw.println();
+                pw.println();
+                pw.println("#BSUB -q " + queue);
+                pw.println("#BSUB -J " + jobName); //+1 because we have to start at 1.
+                pw.println("#BSUB -cwd /gpfs/sys/" + userName + "/" + jarPath);
+                pw.println("#BSUB -oo " + jobName + "_%I.out");
+                pw.println("#BSUB -R \"rusage[mem=" + memUsage + "]\"");
+                pw.println("#BSUB -M " + (memUsage * 1.2)); //give ourselves a 20% wiggle room.
+                pw.println(". /etc/profile");
+                pw.println("module add java/jdk/1.7.0_13");
+                pw.println("java -jar -Xmx" + memUsage + "m TimeSeriesClassification.jar combine " + filePath + " " + savePath);
             }
         } catch (IOException ex) {
             System.out.println("Failed to create file " + ex);
@@ -218,6 +233,43 @@ public class GraceFullShapeletTransform extends FullShapeletTransform {
     }
 
     public static void main(String[] args) {
+        
+        //we assume at the file path you have two files which have _TRAIN and _TEST attached to them.
+        // .jar search 1 ../../Time-Series-Datasets/Adiac/Adiac
+
+        //.jar combine  ../../Time-Series-Datasets/Adiac/Adiac ../../Time-Series-transforms/Adiac/Adiac
+        GraceFullShapeletTransform st = new GraceFullShapeletTransform();
+
+        if(args[0].equalsIgnoreCase("search"))
+        {
+            int number = Integer.parseInt(args[1]);
+            Instances train = utilities.ClassifierTools.loadData(args[2]+"_TRAIN");
+        
+            //set the params for your transform. length, shapelets etc.
+            st.setLogOutputFile(args[2] + ".csv");
+            st.setNumberOfShapelets(train.numInstances()*10);
+
+            //partial training.
+            st.setSeries(number-1);
+            st.process(train);
+        }
+        
+        else if(args[0].equalsIgnoreCase("combine"))
+        {
+            st.setLogOutputFile(args[1] + ".csv");
+     
+            Instances train = utilities.ClassifierTools.loadData(args[1]+"_TRAIN");
+            Instances test = utilities.ClassifierTools.loadData(args[1]+"_TEST");
+            
+            LocalInfo.saveDataset(st.processFromSubFile(train), args[2] + "_TRAIN");
+            LocalInfo.saveDataset(st.process(test), args[2] + "_TEST");
+        
+        }
+        
+    }
+    
+    public static void test()
+    {
         final String ucrLocation = "../../time-series-datasets/TSC Problems";
         final String transformLocation = "../../";
 

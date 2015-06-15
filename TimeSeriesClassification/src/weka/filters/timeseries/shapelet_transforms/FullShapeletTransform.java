@@ -787,7 +787,7 @@ public class FullShapeletTransform extends SimpleBatchFilter
      */
     //NOTE: could be more efficient here
     protected ArrayList<Shapelet> combine(int k, ArrayList<Shapelet> kBestSoFar, ArrayList<Shapelet> timeSeriesShapelets)
-    {
+    {        
         kBestSoFar.addAll(timeSeriesShapelets);
 
         Comparator comp = useSeparationGap ? new Shapelet.ReverseSeparationGap() : new Shapelet.ReverseOrder();

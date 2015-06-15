@@ -70,7 +70,6 @@ public class ResamplingExperiments {
         String fileExtension = File.separator + smallDatasets[index] + File.separator + smallDatasets[index];
 
         FullShapeletTransform transform;
-        weka.filters.timeseries.shapelet_transforms.old.FullShapeletTransform old_transform;
         
         if(binarise == 0)
         {
@@ -92,12 +91,49 @@ public class ResamplingExperiments {
         String accuracyPath     = accuraciesLocation   + classifierDir;
         String resultsPath      = resultsLocation   + classifierDir;
         
-        createShapeletsOnResample(samplePath, transformPath, fold, transform);            
+        System.out.println(samplePath);
+        
+        //createShapeletsOnResample(samplePath, transformPath, fold, transform);            
         
         //save path in this instance is where the transformed data is.
-        createWeightedEnsembleAccuracies(transformPath, accuracyPath, fold);
+        //createWeightedEnsembleAccuracies(transformPath, accuracyPath, fold);
         
+        createAndWriteAccuracies(transformPath, resultsPath, sampleSize);
         //createAccuracies(accuracyPath, resultsPath);
+    }
+    
+    
+    public static void createAndWriteAccuracies(String transformPath, String resultsPath, int totalFolds) {
+        try {
+            //create our accuracy file.
+            File f = new File(resultsPath+".csv");
+            f.getParentFile().mkdirs();
+            f.createNewFile();
+            PrintWriter pw = new PrintWriter(f);
+            pw.printf("%s,%s\n","fold","accuracy");
+            
+            for(int fold=0; fold<totalFolds; fold++)
+            {
+            //get the train and test instances for each dataset.
+                Instances test = utilities.ClassifierTools.loadData(transformPath + fold + "_TEST");
+                Instances train = utilities.ClassifierTools.loadData(transformPath + fold + "_TRAIN");
+
+                //build the elastic Ensemble on our training data.
+                WeightedEnsemble we = new WeightedEnsemble();
+                we.setWeightType(WeightedEnsemble.WeightType.EQUAL);
+                we.buildClassifier(train);
+                double accuracy = utilities.ClassifierTools.accuracy(test, we);
+
+                pw.printf("%d,%f\n",fold,accuracy);
+
+                System.out.println(accuracy);
+            }
+            
+            pw.close();
+            
+        } catch (Exception ex) {
+            System.out.println("Classifier exception: " + ex);
+        }
     }
 
     //where does the train and test set come from, where do you want to save the resample versions.
@@ -168,6 +204,7 @@ public class ResamplingExperiments {
 
             //build the elastic Ensemble on our training data.
             WeightedEnsemble we = new WeightedEnsemble();
+            we.setWeightType(WeightedEnsemble.WeightType.EQUAL);
             we.buildClassifier(train);
             double accuracy = utilities.ClassifierTools.accuracy(test, we);
             

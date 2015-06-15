@@ -235,7 +235,7 @@ public class Shapelet implements Comparable<Shapelet>
 
     @Override
     public int compareTo(Shapelet shapelet) {
-        //compare by quality, if they're quality is equal we sort by the shorter shapelets.
+        //compare by quality, if there quality is equal we sort by the shorter shapelets.
         int compare1 = Double.compare(qualityValue, shapelet.qualityValue);
         int compare2 = Double.compare(content.length, shapelet.content.length);
         return compare1 != 0 ? compare1 : compare2;
@@ -287,37 +287,17 @@ public class Shapelet implements Comparable<Shapelet>
 
     public static class SeparationGap implements Comparator<Shapelet>
     {
-
         @Override
         public int compare(Shapelet s1, Shapelet s2)
         {
-
-            if (s1.qualityValue > s2.qualityValue)
-            {
-                return 1;
-            }
-            if (s1.qualityValue < s2.qualityValue)
-            {
-                return -1;
-            }
-            if (s1.separationGap > s2.separationGap)
-            {
-                return 1;
-            }
-            if (s1.separationGap < s2.separationGap)
-            {
-                return -1;
-            }
-            if (s1.length > s2.length)
-            {
-                return 1;
-            }
-            if (s1.content.length > s2.content.length)
-            {
-                return -1;
-            }
-            return 0;
-
+            int compare1 = Double.compare(s1.qualityValue, s2.qualityValue);
+            if(compare1 != 0) return compare1;
+            
+            int compare2 = Double.compare(s1.separationGap, s2.separationGap);
+            if(compare2 != 0) return compare2;
+            
+            int compare3 = Double.compare(s1.length, s2.length);
+            return compare3;
         }
 
     }
