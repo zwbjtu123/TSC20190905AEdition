@@ -196,30 +196,39 @@ public class GraceFullShapeletTransform extends FullShapeletTransform {
     }
 
     //memUsage is in MB.
-    public static void buildGraceBSUB(String filePath, String savePath, int arraySize, String userName, String jarPath, String jobName, String queue, int memUsage) {
+    public static void buildGraceBSUB(String filePath, String savePath, String jobName, String queue, int memUsage) {
         try {
-            //create the directory and the files.
-            File f = new File(savePath + ".bsub");
-            f.getParentFile().mkdirs();
-            f.createNewFile();
 
-            try (PrintWriter pw = new PrintWriter(f)) {
+            //create the directory and the files.
+            File f1 = new File("graceArray.bsub");
+            f1.createNewFile();
+            
+            File f2 = new File("graceCombiner.bsub");
+            f2.createNewFile();
+            
+            File f3 = new File("submitGrace.sh");
+            f3.createNewFile();
+            
+            Instances train = utilities.ClassifierTools.loadData(filePath+"_TRAIN");
+
+            //write the bsubs
+            try (PrintWriter pw = new PrintWriter(f1)) {
                 pw.println("#!/bin/csh");
                 pw.println("#BSUB -q " + queue);
-                pw.println("#BSUB -J " + jobName + "[1-" + arraySize + "]"); //+1 because we have to start at 1.
-                pw.println("#BSUB -cwd /gpfs/sys/" + userName + "/" + jarPath);
+                pw.println("#BSUB -J " + jobName + "[1-" + train.numInstances() + "]"); //+1 because we have to start at 1.
                 pw.println("#BSUB -oo " + jobName + "_%I.out");
                 pw.println("#BSUB -R \"rusage[mem=" + memUsage + "]\"");
                 pw.println("#BSUB -M " + (memUsage * 1.2)); //give ourselves a 20% wiggle room.
                 pw.println(". /etc/profile");
                 pw.println("module add java/jdk/1.7.0_13");
                 pw.println("java -jar -Xmx" + memUsage + "m TimeSeriesClassification.jar search $LSB_JOBINDEX " + filePath + " " + savePath);
-
-                pw.println();
-                pw.println();
+            }
+            
+            try (PrintWriter pw = new PrintWriter(f2)) {
+                pw.println("#!/bin/csh");
                 pw.println("#BSUB -q " + queue);
-                pw.println("#BSUB -J " + jobName); //+1 because we have to start at 1.
-                pw.println("#BSUB -cwd /gpfs/sys/" + userName + "/" + jarPath);
+                pw.println("#BSUB -J " + jobName+"Combiner"); //+1 because we have to start at 1.
+                pw.println("#BSUB -w \"done(" + jobName + "[1-" + train.numInstances() + "])\"");
                 pw.println("#BSUB -oo " + jobName + "_%I.out");
                 pw.println("#BSUB -R \"rusage[mem=" + memUsage + "]\"");
                 pw.println("#BSUB -M " + (memUsage * 1.2)); //give ourselves a 20% wiggle room.
@@ -227,20 +236,30 @@ public class GraceFullShapeletTransform extends FullShapeletTransform {
                 pw.println("module add java/jdk/1.7.0_13");
                 pw.println("java -jar -Xmx" + memUsage + "m TimeSeriesClassification.jar combine " + filePath + " " + savePath);
             }
+            
+            //write the bash file which will submit both.
+            try (PrintWriter pw = new PrintWriter(f3)) {
+                pw.println("#!/bin/csh");
+                pw.println("bsub < " + f1.getName());
+                pw.println("bsub < " + f2.getName());
+            }
+            
         } catch (IOException ex) {
             System.out.println("Failed to create file " + ex);
         }
     }
 
     public static void main(String[] args) {
-        
         //we assume at the file path you have two files which have _TRAIN and _TEST attached to them.
         // .jar search 1 ../../Time-Series-Datasets/Adiac/Adiac
 
         //.jar combine  ../../Time-Series-Datasets/Adiac/Adiac ../../Time-Series-transforms/Adiac/Adiac
         GraceFullShapeletTransform st = new GraceFullShapeletTransform();
-
-        if(args[0].equalsIgnoreCase("search"))
+        if(args[0].equalsIgnoreCase("BSUB"))
+        {
+            GraceFullShapeletTransform.buildGraceBSUB(args[1],args[2],"samplingExperiments", "medium", 2000);
+        }
+        else if(args[0].equalsIgnoreCase("search"))
         {
             int number = Integer.parseInt(args[1]);
             Instances train = utilities.ClassifierTools.loadData(args[2]+"_TRAIN");
@@ -263,7 +282,6 @@ public class GraceFullShapeletTransform extends FullShapeletTransform {
             
             LocalInfo.saveDataset(st.processFromSubFile(train), args[2] + "_TRAIN");
             LocalInfo.saveDataset(st.process(test), args[2] + "_TEST");
-        
         }
         
     }
