@@ -10,7 +10,7 @@ import java.util.List;
  * A class offering statistical utility functions like the average and the
  * standard deviations
  *
- * @author josif
+ * @author aaron
  */
 public class StatisticalUtilities {
 
