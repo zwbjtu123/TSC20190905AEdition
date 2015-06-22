@@ -11,6 +11,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Random;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import utilities.ClassifierTools;
 import weka.core.Instance;
 import weka.core.Instances;
 
@@ -180,60 +183,24 @@ public class GrabockaReproduction {
         //class value at the end of the series.
         Normalize2D(O, true);
         
-        LearnShapeletsGeneralized lsg = new LearnShapeletsGeneralized();
-        // initialize the sizes of data structures
-        lsg.ITrain = train.numInstances();
-        lsg.ITest = test.numInstances();
-        lsg.Q = train.numAttributes();
-        // set the time series and labels
-        lsg.T = T;
-        lsg.Y = O;
-
-        //{L,R, lambdaW};
-        // set the learn rate and the number of iterations
-        lsg.maxIter = 1000;
-        // set the number of patterns. our subseries size. 10%/20% of the time series
-        lsg.L_min = (int) (params[0] * train.numAttributes());
-        lsg.R = (int) params[1];
-        // set the regularization parameter
+        LearnShapelets lsg = new LearnShapelets();
+        //{PercentageOfSeriesLength,shapeletLengthScale, weights}; 
+        lsg.percentageOfSeriesLength = (int) params[0];
+        lsg.shapeletLengthScale = (int) params[1];
         lsg.lambdaW = params[2];
-        lsg.eta = 0.1;
-        lsg.alpha = -30;
+        double accuracy = 0;
+        try {
+            lsg.buildClassifier(train);
+            accuracy = ClassifierTools.accuracy(test, lsg);
         
-        //get all our class values.
-        lsg.nominalLabels = ReadNominalTargets(train);
-
-        // learn the local convolutions
-        errorRate = lsg.Learn();
-
-        return errorRate;
-    }
-    
-    public static ArrayList<Double> ReadNominalTargets(Instances instances)
-    {
-        if (instances.size() <= 0)  return null;
-        
-        ArrayList<Double> nominalLabels = new ArrayList<>();
-        
-        for (Instance ins : instances) {
-            boolean alreadyAdded = false;
-
-            for (Double nominalLabel : nominalLabels) {
-                if (nominalLabel == ins.classValue()) {
-                    alreadyAdded = true;
-                    break;
-                }
-            }
-
-            if (!alreadyAdded) {
-                nominalLabels.add(ins.classValue());
-            }
+        } catch (Exception ex) {
+            System.out.println("Error");
         }
 
-        Collections.sort(nominalLabels);
-
-        return nominalLabels;
+        //return error rate
+        return 1-accuracy;
     }
+    
 
     public static Instances loadData(String fullPath) {
         Instances d = null;

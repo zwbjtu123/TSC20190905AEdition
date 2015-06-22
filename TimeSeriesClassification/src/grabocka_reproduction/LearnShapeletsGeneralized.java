@@ -8,8 +8,6 @@ import java.util.Random;
 import utilities.StatisticalUtilities;
 import utilities.InstanceTools;
 import static utilities.StatisticalUtilities.CalculateSigmoid;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import weka.clusterers.SimpleKMeans;
 import weka.core.Instances;
 
@@ -380,6 +378,8 @@ public class LearnShapeletsGeneralized {
     public void LearnF() {
         // parallel implementation of the learning, one thread per instance
         // up to as much threads as JVM allows
+        
+        //instanceIdxs is a random reordering of the trin set.
         for (Integer i : instanceIdxs) {
             double regWConst = ((double) 2.0 * lambdaW) / ((double) ITrain);
 
