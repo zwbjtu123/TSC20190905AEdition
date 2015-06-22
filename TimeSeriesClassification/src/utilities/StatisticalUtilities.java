@@ -15,51 +15,30 @@ import java.util.List;
 public class StatisticalUtilities {
 
     // the mean of a list of values
-    public static double Mean(List<Integer> values) {
+    public static double Mean(double[] values, boolean classVal) {
         double sum = 0;
+        
+        int offset = classVal ? 1 : 0;
 
-        for (Integer value : values) {
-            sum += value;
-        }
-
-        return sum / (double) values.size();
-    }
-
-    // the mean of a list of values
-    public static double Mean(double[] values) {
-        double sum = 0;
-
-        for (int i = 0; i < values.length; i++) {
+        for (int i = 0; i < values.length - offset; i++) {
             sum += values[i];
         }
 
         return sum / (double) values.length;
     }
 
-    public static double StandardDeviation(double[] values) {
-        double mean = Mean(values);
+    public static double StandardDeviation(double[] values, boolean classVal) {
+        double mean = Mean(values, classVal);
         double sumSquaresDiffs = 0;
+        int offset = classVal ? 1 : 0;
 
-        for (int i = 0; i < values.length; i++) {
+        for (int i = 0; i < values.length - offset; i++) {
             double diff = values[i] - mean;
 
             sumSquaresDiffs += diff * diff;
         }
 
         return Math.sqrt(sumSquaresDiffs / (values.length - 1));
-    }
-
-    // computes the standard deviation of a list of numbers
-    public static double StandardDeviation(List<Integer> values) {
-        double mean = Mean(values);
-        double sumSquaresDiffs = 0;
-
-        for (Integer value : values) {
-            double diff = value - mean;
-            sumSquaresDiffs += diff * diff;
-        }
-
-        return Math.sqrt(sumSquaresDiffs / (values.size() - 1));
     }
 
     public static double Power(double val, int pow) {
@@ -83,9 +62,9 @@ public class StatisticalUtilities {
     }
 
     // normalize the vector to mean 0 and std 1
-    public static double[] Normalize(double[] vector) {
-        double mean = Mean(vector);
-        double std = StandardDeviation(vector);
+    public static double[] Normalize(double[] vector, boolean classVal) {
+        double mean = Mean(vector, classVal);
+        double std = StandardDeviation(vector, classVal);
 
         double[] normalizedVector = new double[vector.length];
 
@@ -97,16 +76,23 @@ public class StatisticalUtilities {
 
         return normalizedVector;
     }
-
     
-    public static void Normalize2D(double[][] data)
+    public static double[] Normalize(double[] vector) {
+        return Normalize(vector, false);
+    }
+    
+    public static void Normalize2D(double[][] data, boolean classVal)
     {
+        int offset = classVal ? 1 : 0;
+        
         //normalise each series.
         for (double[] series : data) {
             //TODO: could make mean and STD better.
-            double mean = Mean(series);
-            double std = StandardDeviation(series);
-            for (int j = 0; j < series.length; j++) {
+            double mean = Mean(series, classVal);
+            double std = StandardDeviation(series, classVal);
+            
+            //class value at the end of the series.
+            for (int j = 0; j < series.length - offset; j++) { 
                 if (std != 0) {
                     series[j] = (series[j] - mean) / std;
                 }

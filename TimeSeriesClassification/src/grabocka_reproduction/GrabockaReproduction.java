@@ -171,12 +171,14 @@ public class GrabockaReproduction {
         //predictor variables T
         double[][] T = create2DMatrixFromInstances(train,test);
         //normalise all the series in the matrix.
-        Normalize2D(T);
+        //class value at the end of the series.
+        Normalize2D(T, true);
         
         //outcome variable O
         double [][] O = create2DMatrixFromInstances(train,test);
         //normalise all the series in the matrix.
-        Normalize2D(O);
+        //class value at the end of the series.
+        Normalize2D(O, true);
         
         LearnShapeletsGeneralized lsg = new LearnShapeletsGeneralized();
         // initialize the sizes of data structures

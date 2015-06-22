@@ -175,9 +175,7 @@ public class InstanceTools {
             for(int j=0; j<train.numAttributes(); j++)
             {
                 data[i][j] = train.get(i).value(j);
-                System.out.print(data[i][j] + ",");
             }
-            System.out.println();
         }
         
         int index=0;

@@ -93,12 +93,12 @@ public class ResamplingExperiments {
         
         System.out.println(samplePath);
         
-        //createShapeletsOnResample(samplePath, transformPath, fold, transform);            
+        createShapeletsOnResample(samplePath, transformPath, fold, transform);            
         
         //save path in this instance is where the transformed data is.
         //createWeightedEnsembleAccuracies(transformPath, accuracyPath, fold);
         
-        createAndWriteAccuracies(transformPath, resultsPath, sampleSize);
+        //createAndWriteAccuracies(transformPath, resultsPath, sampleSize);
         //createAccuracies(accuracyPath, resultsPath);
     }
     

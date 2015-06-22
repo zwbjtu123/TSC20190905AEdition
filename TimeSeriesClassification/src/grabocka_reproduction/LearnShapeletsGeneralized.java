@@ -177,9 +177,8 @@ public class LearnShapeletsGeneralized {
             }
 
             // then set the real label index to 1
-            int indexLabel = nominalLabels.indexOf(Y[i][0]);
-            System.out.println(Y[i][0]);
-            System.out.println(nominalLabels);
+            //the label is at the end of the series. not the beginning.
+            int indexLabel = nominalLabels.indexOf(Y[i][Y[i].length-1]);
             Y_b[i][indexLabel] = 1.0;
         }
 
