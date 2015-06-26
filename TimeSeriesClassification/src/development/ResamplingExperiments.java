@@ -6,6 +6,8 @@
 package development;
 
 import AaronTest.LocalInfo;
+import static grabocka_reproduction.GrabockaReproduction.createLearnShapeletsGeneralized;
+import grabocka_reproduction.LearnShapelets;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -17,6 +19,7 @@ import java.util.Random;
 import java.util.Scanner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import utilities.ClassifierTools;
 import utilities.InstanceTools;
 import weka.classifiers.lazy.kNN;
 import weka.classifiers.meta.timeseriesensembles.WeightedEnsemble;
@@ -57,7 +60,7 @@ public class ResamplingExperiments {
         //create all the shapelets sets for the small resamples.
         int inputVal    = Integer.parseInt(args[0]) - 1;
         int sampleSize  = Integer.parseInt(args[1]);
-        int binarise    = Integer.parseInt(args[2]);
+        int classifier    = Integer.parseInt(args[2]);
 
         //1565 / 100 = 15
         //1565 % 100 = 65
@@ -69,23 +72,30 @@ public class ResamplingExperiments {
         
         String fileExtension = File.separator + smallDatasets[index] + File.separator + smallDatasets[index];
 
-        FullShapeletTransform transform;
+        FullShapeletTransform transform = null;
+        LearnShapelets ls = null;
         
-        if(binarise == 0)
+        Object classObj;
+        
+        if(classifier == 0)
         {
             transform = new FullShapeletTransform();
+            classObj = transform;
         }
-        else
+        else if(classifier == 1)
         {
             transform = new BalancedClassShapeletTransform();
             transform.setClassValue(new BinarisedClassValue());
+            classObj = transform;
+        }
+        else
+        {
+            ls = new LearnShapelets();
+            classObj = ls;
         }
         
-        transform.supressOutput();
-        
         //get the loadLocation of the resampled files.
-        String classifierDir = File.separator + transform.getClass().getSimpleName() + fileExtension;
-
+        String classifierDir = File.separator + classObj.getClass().getSimpleName() + fileExtension;
         String samplePath       = resampleLocation + fileExtension;
         String transformPath    = transformLocation + classifierDir;
         String accuracyPath     = accuraciesLocation   + classifierDir;
@@ -93,13 +103,51 @@ public class ResamplingExperiments {
         
         System.out.println(samplePath);
         
-        createShapeletsOnResample(samplePath, transformPath, fold, transform);            
+        //for shapelets.
+        /*if(classifier != 2)
+        {
+            createShapeletsOnResample(samplePath, transformPath, fold, transform); 
+
+            //save path in this instance is where the transformed data is.
+            //createWeightedEnsembleAccuracies(transformPath, accuracyPath, fold);
+        }
+        //for grabocka.
+        else
+        {
+            createLearnShapeleteAccuracies(samplePath, resultsPath, fold);
+        }*/
         
-        //save path in this instance is where the transformed data is.
-        //createWeightedEnsembleAccuracies(transformPath, accuracyPath, fold);
-        
-        //createAndWriteAccuracies(transformPath, resultsPath, sampleSize);
+        //fileVerifier(transformLocation, classObj);
+        createAndWriteAccuracies(transformPath, resultsPath, sampleSize);
         //createAccuracies(accuracyPath, resultsPath);
+    
+    }
+    
+    public static void fileVerifier(String transformLocation, Object classObj)
+    {
+        String list ="";
+        
+        String[] smallDatasets = DataSets.ucrSmall;
+        int sampleSize = 100;
+        
+        for(int i=1; i < smallDatasets.length * sampleSize; i++)
+        {
+            int index = i / sampleSize;
+            int fold = i % sampleSize;
+            
+            String fileExtension = File.separator + smallDatasets[index] + File.separator + smallDatasets[index];
+            String transformPath = transformLocation + File.separator + classObj.getClass().getSimpleName() + fileExtension;
+            
+            
+            File f = new File(transformPath + fold + "_TRAIN.arff");
+            System.out.println(f);
+            if(!f.exists())
+            {
+                list += i + ",";
+            }
+        }
+        
+        System.out.println(list); 
     }
     
     
@@ -180,6 +228,9 @@ public class ResamplingExperiments {
 
     public static void createShapeletsOnResample(String filePath, String savePath, int fold, FullShapeletTransform transform) {
         Instances test, train;
+        
+        //Wheat/Wheat_TRAIN
+        //Wheat/Wheat_TEST
         test = utilities.ClassifierTools.loadData(filePath + fold + "_TEST");
         train = utilities.ClassifierTools.loadData(filePath + fold + "_TRAIN");
         
@@ -193,6 +244,67 @@ public class ResamplingExperiments {
         LocalInfo.saveDataset(transform.process(train), savePath + fold + "_TRAIN");
         LocalInfo.saveDataset(transform.process(test), savePath + fold + "_TEST");
 
+    }
+    
+    public static void createLearnShapeleteAccuracies(String filePath, String savePath, int fold) {
+
+        try {
+            //get the train and test instances for each dataset.
+            Instances test = utilities.ClassifierTools.loadData(filePath + fold + "_TEST");
+            Instances train = utilities.ClassifierTools.loadData(filePath + fold + "_TRAIN");
+
+            //create our accuracy file.
+            File f = new File(savePath + fold + ".csv");
+            f.getParentFile().mkdirs();
+            f.createNewFile();
+            PrintWriter pw = new PrintWriter(f);
+            pw.printf("%s,%s,%s,%s\n", "percentageOfSeriesLength", "shapeletLengthScale","lambdaW", "accuracy");
+            
+            double[] lambdaW = {0.01, 0.1};
+            double[] percentageOfSeriesLength = {0.1, 0.2};
+            int[] shapeletLengthScale = {2, 3};
+            
+            int noFolds = 3;
+            
+            double accuracy = 0;
+            LearnShapelets ls;
+            for(int i=0; i< lambdaW.length; i++)
+            {
+                for(int j=0; j<percentageOfSeriesLength.length; j++)
+                {
+                    for(int k=0; k<shapeletLengthScale.length; k++)
+                    {
+                        double sumAccuracy=0;
+                        //build our test and train sets. for cross-validation.
+                        for (int l = 0; l < noFolds; l++) {
+                            Instances trainCV = train.trainCV(noFolds, l);
+                            Instances testCV = train.testCV(noFolds, l);
+                            //build the elastic Ensemble on our training data.
+                            ls = new LearnShapelets();
+                            //{PercentageOfSeriesLength,shapeletLengthScale, weights}; 
+                            ls.percentageOfSeriesLength = percentageOfSeriesLength[j];
+                            ls.shapeletLengthScale = shapeletLengthScale[k];
+                            ls.lambdaW = lambdaW[i];
+                            ls.buildClassifier(trainCV);
+                            accuracy = ClassifierTools.accuracy(testCV, ls);
+                            sumAccuracy += accuracy;
+                            
+                            System.out.println(accuracy);
+                            pw.printf("%f,%d,%f,%f\n", percentageOfSeriesLength[j],shapeletLengthScale[k],lambdaW[i],accuracy);
+                        }
+                        
+                        pw.printf("%f,%d,%f,%f\n", percentageOfSeriesLength[j],shapeletLengthScale[k],lambdaW[i],sumAccuracy/noFolds);
+
+                        //line space after each set of params.
+                        pw.println();
+                    }
+                }
+            }
+            
+            pw.close();
+        } catch (Exception ex) {
+            System.out.println("Classifier exception: " + ex);
+        }
     }
 
     public static void createWeightedEnsembleAccuracies(String filePath, String savePath, int fold) {

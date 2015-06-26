@@ -1,7 +1,5 @@
 package grabocka_reproduction;
 
-import static utilities.InstanceTools.create2DMatrixFromInstances;
-import static utilities.StatisticalUtilities.Normalize2D;
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -9,22 +7,18 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Random;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import utilities.ClassifierTools;
-import weka.core.Instance;
 import weka.core.Instances;
 
 public class GrabockaReproduction {
 
     @SuppressWarnings("empty-statement")
-    public static void main(String[] args) {
-        experiment1(args);
+    public static void main(String[] args) throws Exception {
+        experiment1(new String[]{"53"});
     }
 
-    public static void experiment1(String[] args) {
+    public static void experiment1(String[] args) throws Exception {
         String dir = "75 Data sets for Elastic Ensemble DAMI Paper";
 
         File fDir = new File(dir);
@@ -42,7 +36,7 @@ public class GrabockaReproduction {
         }
     }
 
-    public static void runAlgorithm(File f, PrintWriter outFile) {
+    public static void runAlgorithm(File f, PrintWriter outFile) throws Exception {
         String temp = f.toString() + File.separator + f.getName();
         String trainSetPath = temp + "_TRAIN";
         String testSetPath = temp + "_TEST";
@@ -89,7 +83,7 @@ public class GrabockaReproduction {
                 //time our experiment
                 startTime = System.currentTimeMillis();
 
-                sumError += createLearnShapeletsGeneralized(trainCV, testCV, dsName, params, outFile);
+                sumError += createLearnShapeletsGeneralized(trainCV, testCV, params);
 
                 endTime = System.currentTimeMillis();
 
@@ -127,7 +121,7 @@ public class GrabockaReproduction {
 
         //time our experiment
         startTime = System.currentTimeMillis();
-        errorRate = createLearnShapeletsGeneralized(train, test, dsName, combinations.get(pos), outFile);
+        errorRate = createLearnShapeletsGeneralized(train, test,combinations.get(pos));
         endTime = System.currentTimeMillis();
 
         String p = Arrays.toString(combinations.get(pos));
@@ -167,38 +161,25 @@ public class GrabockaReproduction {
     }
 
     //params come in the order = {K,lambdaW,maxEpochs,alpha,eta,L,R};
-    public static double createLearnShapeletsGeneralized(Instances train, Instances test, String dsName, double[] params, PrintWriter outFile) {
-
-        double errorRate = 0;
+    public static double createLearnShapeletsGeneralized(Instances train, Instances test, double[] params) throws Exception {
         
-        //predictor variables T
-        double[][] T = create2DMatrixFromInstances(train,test);
-        //normalise all the series in the matrix.
-        //class value at the end of the series.
-        Normalize2D(T, true);
-        
-        //outcome variable O
-        double [][] O = create2DMatrixFromInstances(train,test);
-        //normalise all the series in the matrix.
-        //class value at the end of the series.
-        Normalize2D(O, true);
-        
-        LearnShapelets lsg = new LearnShapelets();
+        LearnShapelets ls = new LearnShapelets();
         //{PercentageOfSeriesLength,shapeletLengthScale, weights}; 
-        lsg.percentageOfSeriesLength = (int) params[0];
-        lsg.shapeletLengthScale = (int) params[1];
-        lsg.lambdaW = params[2];
+        ls.percentageOfSeriesLength = params[0];
+        ls.shapeletLengthScale = (int) params[1];
+        ls.lambdaW = params[2];
         double accuracy = 0;
         try {
-            lsg.buildClassifier(train);
-            accuracy = ClassifierTools.accuracy(test, lsg);
+            ls.buildClassifier(train);
+            accuracy = ClassifierTools.accuracy(test, ls);
+            System.out.println("accuracy: " + accuracy);
         
         } catch (Exception ex) {
-            System.out.println("Error");
+            System.out.println("Error " + ex);
         }
 
         //return error rate
-        return 1-accuracy;
+        return accuracy;
     }
     
 

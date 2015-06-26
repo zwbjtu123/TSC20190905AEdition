@@ -1,6 +1,7 @@
 package grabocka_reproduction;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
@@ -23,7 +24,7 @@ public class LearnShapelets implements Classifier{
     public int seriesLength;
     // length of shapelet
     public int L[];
-    public int percentageOfSeriesLength;
+    public double percentageOfSeriesLength;
     // number of latent patterns
     public int numLatentPatterns;
     // scales of the shapelet length
@@ -83,7 +84,7 @@ public class LearnShapelets implements Classifier{
     }
 
     // initialize the data structures
-    public void Initialize() {
+    public void Initialize() throws Exception {
         
         // avoid K=0 
         if (numLatentPatterns == 0) {
@@ -102,7 +103,7 @@ public class LearnShapelets implements Classifier{
         // at each scale r
         int totalSegments = 0;
         for (int r = 0; r < shapeletLengthScale; r++) {
-            L[r] = (r + 1) * percentageOfSeriesLength * trainSet.numAttributes();
+            L[r] = (int) ((r + 1) * percentageOfSeriesLength * seriesLength);
             J[r] = seriesLength - L[r];
 
             totalSegments += train.length * J[r];
@@ -118,12 +119,9 @@ public class LearnShapelets implements Classifier{
             rIdxs.add(r);
         }
 
-        try {
-            // initialize shapelets
-            InitializeShapeletsKMeans();
-        } catch (Exception ex) {
-            System.out.println("Exception initialising KMeans: " + ex);
-        }
+        // initialize shapelets
+        InitializeShapeletsKMeans();
+
 
         // initialize the terms for pre-computation
         D_train = new double[train.length][shapeletLengthScale][numLatentPatterns][];
@@ -208,6 +206,7 @@ public class LearnShapelets implements Classifier{
                 for (int j = 0; j < J[r]; j++) {
                     for (int l = 0; l < L[r]; l++) {
                         segmentsR[i * J[r] + j][l] = train[i][j + l];
+                        
                     }
                 }
             }
@@ -219,6 +218,8 @@ public class LearnShapelets implements Classifier{
                 }
             }
 
+            
+            
             //cluster the shapelets.
             Instances ins = InstanceTools.ToWekaInstances(segmentsR);
 
@@ -228,7 +229,6 @@ public class LearnShapelets implements Classifier{
             skm.setSeed((int) (Math.random() * 1000));
             skm.setInitializeUsingKMeansPlusPlusMethod(true);
             skm.buildClusterer(ins);
-
             Instances centroidsWeka = skm.getClusterCentroids();
 
             Shapelets[r] = InstanceTools.FromWekaInstances(centroidsWeka);
@@ -254,14 +254,16 @@ public class LearnShapelets implements Classifier{
 
     // precompute terms
     public void PreCompute(double[][][] D, double[][][] E, double[][] Psi, double[][] M, double[] sigY, double[] series) {
-        // precompute terms
+        
+        // precompute terms     
         for (int r = 0; r < shapeletLengthScale; r++) {
-            for (int k = 0; k < numLatentPatterns; k++) {
+            //in most cases Shapelets[r].length == numLatentPatterns, this is not always true.
+            for (int k = 0; k < Shapelets[r].length; k++) { 
                 for (int j = 0; j < J[r]; j++) {
                     // precompute D
                     D[r][k][j] = 0;
                     double err = 0;
-
+                    
                     for (int l = 0; l < L[r]; l++) {
                         err = series[j + l] - Shapelets[r][k][l];
                         D[r][k][j] += err * err;
@@ -346,7 +348,7 @@ public class LearnShapelets implements Classifier{
         for (Integer i : instanceIdxs) {
             double regWConst = ((double) 2.0 * lambdaW) / ((double) train.length);
 
-            double tmp2 = 0, tmp1 = 0, dLdY = 0, dMdS = 0;
+            double tmp2, tmp1, dLdY, dMdS;
 
             PreCompute(D_train[i], E_train[i], Psi_train[i], M_train[i], sigY_train[i], train[i]);
 
@@ -354,7 +356,8 @@ public class LearnShapelets implements Classifier{
                 dLdY = -(classValuePredictions[i][c] - sigY_train[i][c]);
 
                 for (int r = 0; r < shapeletLengthScale; r++) {
-                    for (int k = 0; k < numLatentPatterns; k++) {
+                    //in most cases Shapelets[r].length == numLatentPatterns, this is not always true.
+                    for (int k = 0; k < Shapelets[r].length; k++) {
                         W[c][r][k] -= eta * (dLdY * M_train[i][r][k] + regWConst * W[c][r][k]);
 
                         tmp1 = (2.0 / ((double) L[r] * Psi_train[i][r][k]));
@@ -405,7 +408,7 @@ public class LearnShapelets implements Classifier{
         
         trainSet = data;
         
-        seriesLength = trainSet.numAttributes();
+        seriesLength = trainSet.numAttributes() - 1; //so we don't include the classLabel at the end.
 
         nominalLabels = ReadNominalTargets(trainSet);
         
@@ -458,6 +461,7 @@ public class LearnShapelets implements Classifier{
         testSet = instance;
         
         test = testSet.toDoubleArray();
+        
         test = Normalize(test, true);
         
         // initialize the terms for pre-computation
