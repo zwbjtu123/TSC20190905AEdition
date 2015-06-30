@@ -1,6 +1,8 @@
 package grabocka_reproduction;
 
-import java.io.File;
+//import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
+
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -14,9 +16,9 @@ import weka.core.Instances;
 public class ScalableShapeletDiscovery implements Classifier{
 
     // series data and labels
-    public double[][] trainSeriesData, trainSeriesLabels;
-
-    public double[][] testSeriesData, testSeriesLabels;
+    public double[][] trainSeriesData;
+    public double[] trainSeriesLabels, testSeriesData;
+    public double testSeriesLabel;
 
     public int numTrainInstances;
     int seriesLength;
@@ -33,15 +35,15 @@ public class ScalableShapeletDiscovery implements Classifier{
     public int percentile;
 
     // list of accepted and rejected words
-    List<double[]> acceptedList = new ArrayList<double[]>();
-    List<double[]> rejectedList = new ArrayList<double[]>();
+    List<double[]> acceptedList = new ArrayList<>();
+    List<double[]> rejectedList = new ArrayList<>();
 
     public String trainSetPath, testSetPath;
     // the paa ratio, i.e. 0.25 reduces the length of series by 1/4
     public double paaRatio;
 
     // the histogram contains lists of frequency columns
-    List< double[]> distancesShapelets = new ArrayList<double[]>();
+    List<double[]> distancesShapelets = new ArrayList<>();
     // the current classification error of the frequencies histogram
     double currentTrainError = Double.MAX_VALUE;
 
@@ -54,7 +56,7 @@ public class ScalableShapeletDiscovery implements Classifier{
 
     public boolean normalizeData;
 
-    // random number generator
+    // random number generator. TODO: need a seed for this...
     Random rand = new Random();
 
     public ScalableShapeletDiscovery() {
@@ -63,17 +65,24 @@ public class ScalableShapeletDiscovery implements Classifier{
 
     @Override
     public void buildClassifier(Instances train) {
-        // load train data
-        LoadTrainData();
 
         trainSeriesData = FromWekaInstances(train);
         Normalize2D(trainSeriesData, true);
         
+        //might need to SAX this data.
+
         numAcceptedShapelets = numRejectedShapelets = numRefusedShapelets = 0;
         // num train instances
         numTrainInstances = train.numInstances();
-        // set the length of series
-        seriesLength = train.numAttributes();
+        
+        //Aaron: Last attribtute is class value.
+        seriesLength = train.numAttributes() - 1;
+        
+        //setup the training labels.
+        trainSeriesLabels = new double[numTrainInstances];
+        for(int i=0; i < numTrainInstances; i++)
+            trainSeriesLabels[i] = train.get(i).classValue();
+        
 
         // check 20%,40%, 60% shapelet lengths
         shapeletLengths = new int[3];
@@ -85,8 +94,10 @@ public class ScalableShapeletDiscovery implements Classifier{
 
         //System.out.println(epsilon); 
         // set distances matrix to 0.0
-        seriesDistancesMatrix = new double[numTrainInstances][numTrainInstances];
+        seriesDistancesMatrix = new double[numTrainInstances][];
         for (int i = 0; i < numTrainInstances; i++) {
+            //Aaron. I changed the array allocation because it was wastfeul.
+            seriesDistancesMatrix[i] = new double[numTrainInstances - i + 1];
             for (int j = i + 1; j < numTrainInstances; j++) {
                 seriesDistancesMatrix[i][j] = 0.0;
             }
@@ -110,32 +121,7 @@ public class ScalableShapeletDiscovery implements Classifier{
             }
 
             EvaluateShapelet(candidateShapelet);
-
-			//Logging.println(candidateShapelet); 
-            //Logging.println(candidateIdx + "," + currentTrainError + "," + numAcceptedShapelets + "," + numRejectedShapelets + "," + numRefusedShapelets);
         }
-
-        /*
-         Logging.println("Considered Candidates:");
-         for(double [] acceptedShapelet : acceptedList)
-         Logging.println(acceptedShapelet);
-         for(double [] rejectedShapelet : rejectedList) 
-         Logging.println(rejectedShapelet);
-    	
-    	
-    	
-         Logging.println("Train Shapelet-Transformed Data:");
-         for(int i = 0; i < numTrainInstances; i++)
-         {
-         System.out.print( trainSeriesLabels.get(i) + " "); 
-    		
-         for(int shpltIdx = 0; shpltIdx < acceptedList.size(); shpltIdx++)
-         {
-         System.out.print( distancesShapelets.get(shpltIdx)[i] + " " );
-         }
-         System.out.println("");
-         }
-         */
     }
 
     // consider a word whether it is part of the accept list of reject list
@@ -188,7 +174,7 @@ public class ScalableShapeletDiscovery implements Classifier{
     private double[] ComputeDistances(double[] candidate) {
         double[] distancesCandidate = new double[numTrainInstances];
 
-        double diff = 0, distanceToSegment = 0, minDistanceSoFar = Double.MAX_VALUE;
+        double diff, distanceToSegment, minDistanceSoFar;
 
         int shapeletLength = candidate.length;
 
@@ -224,13 +210,13 @@ public class ScalableShapeletDiscovery implements Classifier{
     // from the distances matrix
     public double ComputeTrainError() {
         int numMissClassifications = 0;
-        double realLabel = -1;
-        double nearestLabel = -1;
-        double nearestDistance = Double.MAX_VALUE;
+        double realLabel;
+        double nearestLabel;
+        double nearestDistance;
 
         // for every test instance 
         for (int i = 0; i < numTrainInstances; i++) {
-            realLabel = trainSeriesLabels.get(i);
+            realLabel = trainSeriesLabels[i];
 
             nearestLabel = -1;
             nearestDistance = Double.MAX_VALUE;
@@ -246,7 +232,7 @@ public class ScalableShapeletDiscovery implements Classifier{
 
                 if (distance < nearestDistance) {
                     nearestDistance = distance;
-                    nearestLabel = trainSeriesLabels.get(j);
+                    nearestLabel = trainSeriesLabels[j];
                 }
             }
 
@@ -260,7 +246,7 @@ public class ScalableShapeletDiscovery implements Classifier{
     }
 
     public void AddCandidateDistancesToDistancesMatrix(double[] candidateDistances) {
-        double diff = 0;
+        double diff;
 
         for (int i = 0; i < numTrainInstances; i++) {
             for (int j = i + 1; j < numTrainInstances; j++) {
@@ -271,7 +257,7 @@ public class ScalableShapeletDiscovery implements Classifier{
     }
 
     public void RemoveCandidateDistancesToDistancesMatrix(double[] candidateDistances) {
-        double diff = 0;
+        double diff;
 
         for (int i = 0; i < numTrainInstances; i++) {
             for (int j = i + 1; j < numTrainInstances; j++) {
@@ -281,87 +267,71 @@ public class ScalableShapeletDiscovery implements Classifier{
         }
     }
 
-    // compute the error of the current histogram
-    public double ComputeTestError() {
-        LoadTestData();
 
-        // classify test data
-        int numMissClassifications = 0;
+    @Override
+    public double classifyInstance(Instance instance) throws Exception {
+        
+        testSeriesData = instance.toDoubleArray();
+        
+        int shapeletLength;
 
-        int numTestInstances = testSeriesData.getDimRows();
+        double minDistanceSoFar, distanceToSegment, diff,  nearestLabel = 0, nearestDistance = Double.MAX_VALUE;
+
         int numShapelets = distancesShapelets.size();
-
-        int shapeletLength = 0;
-
-        double minDistanceSoFar = Double.MAX_VALUE;
-        double distanceToSegment = Double.MAX_VALUE;
-        double diff = Double.MAX_VALUE;
-
+        
         double[] distTestInstanceToShapelets = new double[numShapelets];
 
-        // for every test instance 
-        for (int i = 0; i < numTestInstances; i++) {
-            double realLabel = testSeriesLabels.get(i);
+        // compute the distances of the test instance to the shapelets
+        for (int shapeletIndex = 0; shapeletIndex < numShapelets; shapeletIndex++) {
+            minDistanceSoFar = Double.MAX_VALUE;
+            // read the shapelet length
+            shapeletLength = acceptedList.get(shapeletIndex).length;
 
-            double nearestLabel = 0;
-            double nearestDistance = Double.MAX_VALUE;
+            for (int j = 0; j < seriesLength - shapeletLength + 1; j++) {
+                distanceToSegment = 0;
 
-            // compute the distances of the test instance to the shapelets
-            for (int shapeletIndex = 0; shapeletIndex < numShapelets; shapeletIndex++) {
-                minDistanceSoFar = Double.MAX_VALUE;
-                // read the shapelet length
-                shapeletLength = acceptedList.get(shapeletIndex).length;
+                for (int k = 0; k < shapeletLength; k++) {
+                    diff = acceptedList.get(shapeletIndex)[k] - testSeriesData[j + k];
+                    distanceToSegment += diff * diff;
 
-                for (int j = 0; j < seriesLength - shapeletLength + 1; j++) {
-                    distanceToSegment = 0;
-
-                    for (int k = 0; k < shapeletLength; k++) {
-                        diff = acceptedList.get(shapeletIndex)[k] - testSeriesData.get(i, j + k);
-                        distanceToSegment += diff * diff;
-
-                        // if the distance of the candidate to this segment is more than the best so far
-                        // at point k, skip the remaining points
-                        if (distanceToSegment > minDistanceSoFar) {
-                            break;
-                        }
-                    }
-
-                    if (distanceToSegment < minDistanceSoFar) {
-                        minDistanceSoFar = distanceToSegment;
+                    // if the distance of the candidate to this segment is more than the best so far
+                    // at point k, skip the remaining points
+                    if (distanceToSegment > minDistanceSoFar) {
+                        break;
                     }
                 }
 
-                distTestInstanceToShapelets[shapeletIndex] = minDistanceSoFar;
-            }
-
-            // iterate through training instances and find the closest neighbours
-            for (int j = 0; j < numTrainInstances; j++) {
-                double distance = 0;
-
-                for (int k = 0; k < numShapelets; k++) {
-                    double error = distTestInstanceToShapelets[k] - distancesShapelets.get(k)[j];
-                    distance += error * error;
-                }
-
-                // if there are less then required candidates then add it as a candidate directly
-                if (distance < nearestDistance) {
-                    nearestDistance = distance;
-                    nearestLabel = trainSeriesLabels.get(j);
+                if (distanceToSegment < minDistanceSoFar) {
+                    minDistanceSoFar = distanceToSegment;
                 }
             }
 
-            if (realLabel != nearestLabel) {
-                numMissClassifications += 1.0;
-            }
-
+            distTestInstanceToShapelets[shapeletIndex] = minDistanceSoFar;
         }
 
-        return (double) numMissClassifications / (double) numTestInstances;
+        // iterate through training instances and find the closest neighbours
+        for (int j = 0; j < numTrainInstances; j++) {
+            double distance = 0;
+
+            for (int k = 0; k < numShapelets; k++) {
+                double error = distTestInstanceToShapelets[k] - distancesShapelets.get(k)[j];
+                distance += error * error;
+            }
+
+            // if there are less then required candidates then add it as a candidate directly
+            if (distance < nearestDistance) {
+                nearestDistance = distance;
+                nearestLabel = trainSeriesLabels[j];
+            }
+        }
+        
+        return nearestLabel;
     }
+    
 
     // is a candidate found in the accepted list of rejected list 
     public boolean FoundInList(double[] candidate, List<double[]> list) {
-        double diff = 0, distance = 0;
+        double diff, distance;
         int shapeletLength = candidate.length;
 
         for (double[] shapelet : list) {
@@ -391,170 +361,46 @@ public class ScalableShapeletDiscovery implements Classifier{
     }
 
     // estimate the pruning distance
+    //TODO: FIX!!
     public double EstimateEpsilon() {
         // return 0 epsilon if no pruning is requested, i.e. percentile=0
         if (percentile == 0) {
             return 0;
         }
 
-        int numPairs = trainSeriesData.getDimRows() * trainSeriesData.getDimColumns();
+        int numPairs = numTrainInstances * seriesLength;
 
         double[] distances = new double[numPairs];
 
-        int seriesIndex1 = -1, pointIndex1 = -1, seriesIndex2 = -1, pointIndex2 = -1;
-        double pairDistance = 0, diff = 0;
-        int shapeletLength = 0;
+        int seriesIndex1, pointIndex1, seriesIndex2, pointIndex2, shapeletLength;
+        double pairDistance, diff;
 
-        DescriptiveStatistics stat = new DescriptiveStatistics();
+        //DescriptiveStatistics stat = new DescriptiveStatistics();
 
         for (int i = 0; i < numPairs; i++) {
             shapeletLength = shapeletLengths[rand.nextInt(shapeletLengths.length)];
 
-            seriesIndex1 = rand.nextInt(trainSeriesData.getDimRows());
+            seriesIndex1 = rand.nextInt(numTrainInstances);
             pointIndex1 = rand.nextInt(seriesLength - shapeletLength + 1);
 
-            seriesIndex2 = rand.nextInt(trainSeriesData.getDimRows());
+            seriesIndex2 = rand.nextInt(numTrainInstances);
             pointIndex2 = rand.nextInt(seriesLength - shapeletLength + 1);
 
             pairDistance = 0;
             for (int k = 0; k < shapeletLength; k++) {
-                diff = trainSeriesData.get(seriesIndex1, pointIndex1 + k) - trainSeriesData.get(seriesIndex2, pointIndex2 + k);
+                diff = trainSeriesData[seriesIndex1][pointIndex1 + k] - trainSeriesData[seriesIndex2][pointIndex2 + k];
                 pairDistance += diff * diff;
             }
 
             distances[i] = pairDistance / (double) shapeletLength;
 
-            stat.addValue(distances[i]);
+            //stat.addValue(distances[i]);
 
         }
 
-        return stat.getPercentile(percentile);
+        return 0;//stat.getPercentile(percentile);
     }
-
-    public void LoadTrainData() {
-        DataSet trainSet = new DataSet();
-        trainSet.LoadDataSetFile(new File(trainSetPath));
-
-        if (normalizeData) {
-            trainSet.NormalizeDatasetInstances();
-        }
-
-        trainSeriesLabels = new Matrix();
-        trainSeriesLabels.LoadDatasetLabels(trainSet, false);
-
-        // if 0< paaRatio < 1 then reduce the data dimensionality otherwise not
-        if (paaRatio > 0.0 && paaRatio < 1.0) {
-            SAXRepresentation sr = new SAXRepresentation();
-            trainSeriesData = sr.generatePAAToMatrix(trainSet, paaRatio);
-        } else {
-            trainSeriesData = new Matrix();
-            trainSeriesData.LoadDatasetFeatures(trainSet, false);
-        }
-    }
-
-    public void LoadTestData() {
-        DataSet testSet = new DataSet();
-        testSet.LoadDataSetFile(new File(testSetPath));
-
-        if (normalizeData) {
-            testSet.NormalizeDatasetInstances();
-        }
-
-        testSeriesLabels = new Matrix();
-        testSeriesLabels.LoadDatasetLabels(testSet, false);
-
-        // if 0< paaRatio < 1 then reduce the data dimensionality otherwise not
-        if (paaRatio > 0.0 && paaRatio < 1.0) {
-            SAXRepresentation sr = new SAXRepresentation();
-            testSeriesData = sr.generatePAAToMatrix(testSet, paaRatio);
-        } else {
-            testSeriesData = new Matrix();
-            testSeriesData.LoadDatasetFeatures(testSet, false);
-        }
-    }
-
-    // the main function
-    public static void main(String[] args) {
-        String sp = File.separator;
-
-        if (args.length == 0) {
-            args = new String[]{
-                "dir=E:\\Data\\classification\\timeseries\\",
-                "ds=NonInvasiveFatalECGThorax2",
-                "paaRatio=0.125",
-                "percentile=25",
-                "numTrials=5"
-            };
-        }
-
-        // initialize variables
-        String dir = "", ds = "";
-        int percentile = 0, numTrials = 1;
-        double paaRatio = 0.0;
-
-        // parse command line arguments
-        for (String arg : args) {
-            String[] argTokens = arg.split("=");
-
-            if (argTokens[0].compareTo("dir") == 0) {
-                dir = argTokens[1];
-            } else if (argTokens[0].compareTo("ds") == 0) {
-                ds = argTokens[1];
-            } else if (argTokens[0].compareTo("paaRatio") == 0) {
-                paaRatio = Double.parseDouble(argTokens[1]);
-            } else if (argTokens[0].compareTo("percentile") == 0) {
-                percentile = Integer.parseInt(argTokens[1]);
-            } else if (argTokens[0].compareTo("numTrials") == 0) {
-                numTrials = Integer.parseInt(argTokens[1]);
-            }
-        }
-
-        // set the paths of the train and test files
-        String trainSetPath = dir + ds + sp + "folds" + sp + "default" + sp + ds + "_TRAIN";
-        String testSetPath = dir + ds + sp + "folds" + sp + "default" + sp + ds + "_TEST";
-
-        // run the algorithm a number of times times
-        double[] errorRates = new double[numTrials];
-        double[] trainTimes = new double[numTrials];
-        double[] totalTimes = new double[numTrials];
-        double[] numAccepted = new double[numTrials];
-
-        for (int trial = 0; trial < numTrials; trial++) {
-            long startMethodTime = System.currentTimeMillis();
-
-            ScalableShapeletDiscovery ssd = new ScalableShapeletDiscovery();
-            ssd.trainSetPath = trainSetPath;
-            ssd.testSetPath = testSetPath;
-            ssd.percentile = percentile;
-            ssd.paaRatio = paaRatio;
-            ssd.normalizeData = false;
-            ssd.Search();
-
-            double elapsedMethodTime = System.currentTimeMillis() - startMethodTime;
-
-            double errorRate = ssd.ComputeTestError();
-
-            double testTime = System.currentTimeMillis() - startMethodTime;
-
-            errorRates[trial] = errorRate;
-            trainTimes[trial] = elapsedMethodTime / 1000; // in second
-            totalTimes[trial] = testTime / 1000; // in second
-            numAccepted[trial] = ssd.numAcceptedShapelets;
-
-        }
-
-    }
-
-    @Override
-    public void buildClassifier(Instances data) throws Exception {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-
-    @Override
-    public double classifyInstance(Instance instance) throws Exception {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-
+    
     @Override
     public double[] distributionForInstance(Instance instance) throws Exception {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.

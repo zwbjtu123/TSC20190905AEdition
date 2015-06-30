@@ -36,7 +36,8 @@ public class ResamplingExperiments {
 
 
     private static final String dotdotSlash = ".." + File.separator;
-
+    private static String[] smallDatasets = DataSets.ucrSmall;
+    
 
     public static final int noSamples = 100;
 
@@ -104,7 +105,7 @@ public class ResamplingExperiments {
         System.out.println(samplePath);
         
         //for shapelets.
-        /*if(classifier != 2)
+        if(classifier != 2)
         {
             createShapeletsOnResample(samplePath, transformPath, fold, transform); 
 
@@ -115,19 +116,79 @@ public class ResamplingExperiments {
         else
         {
             createLearnShapeleteAccuracies(samplePath, resultsPath, fold);
-        }*/
+        }
         
         //fileVerifier(transformLocation, classObj);
-        createAndWriteAccuracies(transformPath, resultsPath, sampleSize);
+        //createAndWriteAccuracies(transformPath, resultsPath, sampleSize);
         //createAccuracies(accuracyPath, resultsPath);
+        
+        /*try {
+            collateData(resultsLocation, classObj);
+        } catch (IOException ex) {
+            System.out.println("IOError");
+        }*/
+    }
     
+    public static void collateData(String resultsLocation, Object classObj) throws IOException
+    {
+        String resultsPath;
+        
+        String classifierDir = File.separator + classObj.getClass().getSimpleName();
+        
+        //create the file.
+        File output = new File(resultsLocation  + classifierDir +"results.csv");
+        output.createNewFile();
+        
+        try (PrintWriter pw = new PrintWriter(output)) {
+            pw.printf("dataset,accuracy\n");
+            
+            for (String smallDataset : smallDatasets) {
+                String fileExtension = File.separator + smallDataset + File.separator + smallDataset;
+                resultsPath = resultsLocation  + classifierDir + fileExtension;
+                
+                File f = new File(resultsPath+".csv");
+                
+
+                //if the file doesn't exist skip it.
+                if(!f.exists()) continue;
+
+                System.out.println(f);
+                
+                Scanner sc  = new Scanner(f);
+                
+                double avg = 0;
+                int i=0;
+                
+                //skip the header.
+                if(!sc.hasNextLine())
+                   continue;
+                 
+                sc.nextLine();
+                
+                while(sc.hasNextLine())
+                {
+                    String line = sc.nextLine();
+                    //should be size 2.
+                    String[] split = line.split(",");
+                    
+                    double value = Double.parseDouble(split[1]);
+                    avg += value;
+                    i++;
+                }
+                
+                if(avg != 0 || i != 0)
+                    avg /= i;
+                
+                //write the average and the file to the csv.
+                pw.printf("%s,%f\n", smallDataset, avg);
+            }
+        }
     }
     
     public static void fileVerifier(String transformLocation, Object classObj)
     {
         String list ="";
         
-        String[] smallDatasets = DataSets.ucrSmall;
         int sampleSize = 100;
         
         for(int i=1; i < smallDatasets.length * sampleSize; i++)
