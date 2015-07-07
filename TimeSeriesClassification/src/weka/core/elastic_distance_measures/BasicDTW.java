@@ -128,13 +128,23 @@ public class BasicDTW extends EuclideanDistance{
             this.distances[i][0] = this.distances[i-1][0]+((first[i]-second[0])*(first[i]-second[0]));
         }
         
+        
+        boolean overFlow = true;
+        
         //warp rest
         double minDistance;
         for(int i = 1; i<first.length; i++){
+            overFlow = true;
             for(int j = 1; j<second.length; j++){
                 //calculate distances
                 minDistance = Math.min(this.distances[i][j-1], Math.min(this.distances[i-1][j], this.distances[i-1][j-1]));
                 this.distances[i][j] = minDistance+((first[i]-second[j])*(first[i]-second[j]));
+                if(overFlow && this.distances[i][j] < cutOffValue){
+                    overFlow = false;
+                }
+            }
+            if(overFlow){ // i.e. none of the valid directions for the warping path are less than the passed cut-off
+                return Double.MAX_VALUE;
             }
         }
         return Math.sqrt(this.distances[first.length-1][second.length-1]);
