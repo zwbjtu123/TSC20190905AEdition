@@ -101,18 +101,28 @@ public class SakoeChibaDTW extends BasicDTW {
 
         //warp rest
         double minDistance;
+        
+        // edited by Jay (07/07/15) - cutoff wasn't being used, so added overFlow etc to use early abandon
+        
+        boolean overFlow;
         for (int i = 1; i < first.length; i++) {
+            overFlow = true;
             for (int j = 1; j < second.length; j++) {
                 //Checks if i and j are within the band window
                 if (i < j + bandSize && j < i + bandSize) {
                     minDistance = Math.min(this.distances[i][j - 1], Math.min(this.distances[i - 1][j], this.distances[i - 1][j - 1]));
                     //Assign distance
-                        this.distances[i][j] = minDistance + ((first[i] - second[j]) * (first[i] - second[j]));
+                    this.distances[i][j] = minDistance + ((first[i] - second[j]) * (first[i] - second[j]));
                 } else {
                     this.distances[i][j] = Double.MAX_VALUE;
                 }
+                if(overFlow && this.distances[i][j] < cutOffValue){
+                    overFlow=false;
+                }
             }
-
+            if(overFlow){
+                return Double.MAX_VALUE;
+            }
         }
         
         return this.distances[first.length - 1][second.length - 1];

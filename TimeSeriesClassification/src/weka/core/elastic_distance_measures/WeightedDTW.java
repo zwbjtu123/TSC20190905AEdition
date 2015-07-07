@@ -181,13 +181,18 @@ public class WeightedDTW extends BasicDTW{
             for(int j = 1; j<second.length; j++){
                 //calculate distances
                 minDistance = Math.min(this.distances[i][j-1], Math.min(this.distances[i-1][j], this.distances[i-1][j-1]));
+                this.distances[i][j] = minDistance+this.weightVector[Math.abs(i-j)] *(first[i]-second[j])*(first[i]-second[j]); //edited by Jay
                 
-                if(minDistance > cutOffValue && this.isEarlyAbandon){
-                    this.distances[i][j] = Double.MAX_VALUE;
-                }else{
-                    this.distances[i][j] = minDistance+this.weightVector[Math.abs(i-j)] *(first[i]-second[j])*(first[i]-second[j]); //edited by Jay
-                    overflow = false;
+                if(overflow && this.distances[i][j] < cutOffValue){
+                    overflow = false; // because there's evidence that the path can continue
                 }
+//                    
+//                if(minDistance > cutOffValue && this.isEarlyAbandon){
+//                    this.distances[i][j] = Double.MAX_VALUE;
+//                }else{
+//                    this.distances[i][j] = minDistance+this.weightVector[Math.abs(i-j)] *(first[i]-second[j])*(first[i]-second[j]); //edited by Jay
+//                    overflow = false;
+//                }
             }
             
             //early abandon
