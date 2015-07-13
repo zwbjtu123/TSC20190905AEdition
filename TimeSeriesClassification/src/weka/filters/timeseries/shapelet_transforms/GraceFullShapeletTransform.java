@@ -115,8 +115,7 @@ public class GraceFullShapeletTransform extends FullShapeletTransform {
 
         seriesShapelets = findShapeletCandidates(data, currentSeries, wholeCandidate, worstKShapelet);
 
-        Comparator comp = useSeparationGap ? new Shapelet.ReverseSeparationGap() : new Shapelet.ReverseOrder();
-        Collections.sort(seriesShapelets, comp);
+        Collections.sort(seriesShapelets, shapeletComparator);
 
         seriesShapelets = removeSelfSimilar(seriesShapelets);
 

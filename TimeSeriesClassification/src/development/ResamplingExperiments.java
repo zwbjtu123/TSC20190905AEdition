@@ -6,22 +6,18 @@
 package development;
 
 import AaronTest.LocalInfo;
-import static grabocka_reproduction.GrabockaReproduction.createLearnShapeletsGeneralized;
 import grabocka_reproduction.LearnShapelets;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Random;
 import java.util.Scanner;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import utilities.ClassifierTools;
 import utilities.InstanceTools;
-import weka.classifiers.lazy.kNN;
 import weka.classifiers.meta.timeseriesensembles.WeightedEnsemble;
 import weka.core.Instances;
 import weka.core.shapelet.QualityMeasures;
@@ -36,12 +32,16 @@ public class ResamplingExperiments {
 
 
     private static final String dotdotSlash = ".." + File.separator;
-    private static String[] smallDatasets = DataSets.ucrSmall;
+    private static String[] datasets;
     
-
     public static final int noSamples = 100;
 
     public static void main(String args[]) {
+        
+        //ive already 
+        //datasets = removeSubArray(DataSets.ucrNames, DataSets.ucrSmall);
+        datasets = DataSets.ucrSmall;
+
         final String ucrLocation         = dotdotSlash + dotdotSlash + "75 Data sets for Elastic Ensemble DAMI Paper";
         final String resampleLocation    = dotdotSlash + dotdotSlash + "resampled data sets";
         final String transformLocation   = dotdotSlash + dotdotSlash + "resampled transforms";
@@ -68,10 +68,9 @@ public class ResamplingExperiments {
         int index = inputVal / sampleSize;
         int fold = inputVal % sampleSize;
 
-        String[] smallDatasets = DataSets.ucrSmall;
-        System.out.println("creating resample for " + smallDatasets[index] + " for fold: " + fold);
+        System.out.println("creating resample for " + datasets[index] + " for fold: " + fold);
         
-        String fileExtension = File.separator + smallDatasets[index] + File.separator + smallDatasets[index];
+        String fileExtension = File.separator + datasets[index] + File.separator + datasets[index];
 
         FullShapeletTransform transform = null;
         LearnShapelets ls = null;
@@ -105,7 +104,7 @@ public class ResamplingExperiments {
         System.out.println(samplePath);
         
         //for shapelets.
-        if(classifier != 2)
+        /*if(classifier != 2)
         {
             createShapeletsOnResample(samplePath, transformPath, fold, transform); 
 
@@ -116,9 +115,9 @@ public class ResamplingExperiments {
         else
         {
             createLearnShapeleteAccuracies(samplePath, resultsPath, fold);
-        }
+        }*/
         
-        //fileVerifier(transformLocation, classObj);
+        fileVerifier(transformLocation, classObj);
         //createAndWriteAccuracies(transformPath, resultsPath, sampleSize);
         //createAccuracies(accuracyPath, resultsPath);
         
@@ -127,6 +126,29 @@ public class ResamplingExperiments {
         } catch (IOException ex) {
             System.out.println("IOError");
         }*/
+    }
+    
+    public static String[] removeSubArray(String[] datasets, String[] subDatasets)
+    {
+        ArrayList<String> list = new ArrayList<>();
+        
+        
+        for(String data : datasets)
+        {
+            boolean match = false;
+            for(String data1 : subDatasets)
+            {
+                if(data.equalsIgnoreCase(data1))
+                {
+                    match = true;
+                    break;
+                }
+            }
+            if(!match)
+                list.add(data);
+        }
+        
+        return list.toArray(new String[list.size()]);
     }
     
     public static void collateData(String resultsLocation, Object classObj) throws IOException
@@ -142,7 +164,7 @@ public class ResamplingExperiments {
         try (PrintWriter pw = new PrintWriter(output)) {
             pw.printf("dataset,accuracy\n");
             
-            for (String smallDataset : smallDatasets) {
+            for (String smallDataset : datasets) {
                 String fileExtension = File.separator + smallDataset + File.separator + smallDataset;
                 resultsPath = resultsLocation  + classifierDir + fileExtension;
                 
@@ -191,12 +213,12 @@ public class ResamplingExperiments {
         
         int sampleSize = 100;
         
-        for(int i=1; i < smallDatasets.length * sampleSize; i++)
+        for(int i=1; i < datasets.length * sampleSize; i++)
         {
             int index = i / sampleSize;
             int fold = i % sampleSize;
             
-            String fileExtension = File.separator + smallDatasets[index] + File.separator + smallDatasets[index];
+            String fileExtension = File.separator + datasets[index] + File.separator + datasets[index];
             String transformPath = transformLocation + File.separator + classObj.getClass().getSimpleName() + fileExtension;
             
             
@@ -204,7 +226,7 @@ public class ResamplingExperiments {
             System.out.println(f);
             if(!f.exists())
             {
-                list += i + ",";
+                list += (i+1) + ",";
             }
         }
         

@@ -13,8 +13,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Random;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import weka.core.Instances;
 import weka.core.shapelet.*;
 import weka.filters.timeseries.shapelet_transforms.classValue.BinarisedClassValue;

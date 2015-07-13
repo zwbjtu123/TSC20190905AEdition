@@ -255,23 +255,8 @@ public class Shapelet implements Comparable<Shapelet>
         @Override
         public int compare(Shapelet s1, Shapelet s2)
         {
-            if (s1.qualityValue < s2.qualityValue)
-            {
-                return 1;
-            }
-            if (s1.qualityValue > s2.qualityValue)
-            {
-                return -1;
-            }
-            if (s1.length > s2.length)
-            {
-                return 1;
-            }
-            if (s1.content.length > s2.content.length)
-            {
-                return 1;
-            }
-            return 0;
+            //invert our compare.
+            return -s1.compareTo(s2);
         }
     }
 

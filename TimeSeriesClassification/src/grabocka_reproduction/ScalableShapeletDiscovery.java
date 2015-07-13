@@ -65,11 +65,11 @@ public class ScalableShapeletDiscovery implements Classifier{
 
     @Override
     public void buildClassifier(Instances train) {
-
+        
         trainSeriesData = FromWekaInstances(train);
         Normalize2D(trainSeriesData, true);
         
-        //might need to SAX this data.
+        //TODO: SAX this data baased on the PAA ratio.
 
         numAcceptedShapelets = numRejectedShapelets = numRefusedShapelets = 0;
         // num train instances

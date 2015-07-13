@@ -95,8 +95,9 @@ public class FullShapeletTransform extends SimpleBatchFilter
     protected QualityMeasures.ShapeletQualityMeasure qualityMeasure;
     protected QualityMeasures.ShapeletQualityChoice qualityChoice;
     protected boolean useCandidatePruning;
-    protected boolean useSeparationGap = false;
     protected boolean useRoundRobin = false;
+    
+    protected Comparator shapeletComparator = new Shapelet.ReverseOrder();
 
     protected SubSeqDistance    subseqDistance;
     protected NormalClassValue  classValue;
@@ -111,9 +112,9 @@ public class FullShapeletTransform extends SimpleBatchFilter
         classValue = cv;
     }
     
-    public void setUseSeparationGap(boolean b)
+    public void useSeparationGap()
     {
-        useSeparationGap = b;
+        shapeletComparator = new Shapelet.ReverseSeparationGap();
     }
 
     public void setUseRoundRobin(boolean b)
@@ -616,8 +617,7 @@ public class FullShapeletTransform extends SimpleBatchFilter
             
             seriesShapelets = findShapeletCandidates(data, i, wholeCandidate, worstKShapelet);
 
-            Comparator comp = useSeparationGap ? new Shapelet.ReverseSeparationGap() : new Shapelet.ReverseOrder();
-            Collections.sort(seriesShapelets, comp);
+            Collections.sort(seriesShapelets, shapeletComparator);
 
             seriesShapelets = removeSelfSimilar(seriesShapelets);
 
@@ -790,8 +790,7 @@ public class FullShapeletTransform extends SimpleBatchFilter
     {        
         kBestSoFar.addAll(timeSeriesShapelets);
 
-        Comparator comp = useSeparationGap ? new Shapelet.ReverseSeparationGap() : new Shapelet.ReverseOrder();
-        Collections.sort(kBestSoFar, comp);
+        Collections.sort(kBestSoFar, shapeletComparator);
 
         if (kBestSoFar.size() < k)
         { // no need to return up to k, as there are not k shapelets yet

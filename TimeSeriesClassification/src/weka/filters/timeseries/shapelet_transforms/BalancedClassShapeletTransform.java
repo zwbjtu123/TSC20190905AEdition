@@ -69,8 +69,7 @@ public class BalancedClassShapeletTransform extends FullShapeletTransform
             
             seriesShapelets = findShapeletCandidates(data, i, wholeCandidate, kWorst);
 
-            Comparator comp = useSeparationGap ? new Shapelet.ReverseSeparationGap() : new Shapelet.ReverseOrder();
-            Collections.sort(seriesShapelets, comp);
+            Collections.sort(seriesShapelets, shapeletComparator);
 
             seriesShapelets = removeSelfSimilar(seriesShapelets);
 
