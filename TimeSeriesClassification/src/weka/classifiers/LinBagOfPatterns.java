@@ -1,11 +1,3 @@
-//TODO
-// WHATS THE CORRECT WAY TO HANDLE THE CLASS ATTRIBUTE
-//      -ADDING INTO ON TO THE TRAINING MATRIX
-//      -DOES THE TEST DATA NEED SPACE FOR A CLASS ATRRIBUTE?
-//      etcetc
-//  is any of this remotely decent
-
-
 package weka.classifiers;
 
 import utilities.ClassifierTools;
