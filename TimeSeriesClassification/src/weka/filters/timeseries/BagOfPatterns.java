@@ -31,9 +31,9 @@ public class BagOfPatterns extends SimpleBatchFilter {
     public HashMap<String, Integer> dictionaryIndices; 
     public FastVector dictionaryAttributes;
     
-    private int windowSize = 100;
-    private int numIntervals = 6;
-    private int alphabetSize = 3;
+    private final int windowSize;
+    private final int numIntervals;
+    private final int alphabetSize;
     private boolean useRealAttributes = true;
     private FastVector alphabet = null;
     
@@ -45,8 +45,9 @@ public class BagOfPatterns extends SimpleBatchFilter {
         this.windowSize = windowSize;
         
         alphabet = SAX.getAlphabet(SAX_alphabetSize);
+        
+        buildDictionary();
     }
-    
     
     public int getWindowSize() {
         return numIntervals;
@@ -58,18 +59,6 @@ public class BagOfPatterns extends SimpleBatchFilter {
 
     public int getAlphabetSize() {
         return alphabetSize;
-    }
-    
-    public void setWindowSize(int size) {
-        windowSize = size;
-    }
-    
-    public void setNumIntervals(int intervals) {
-        numIntervals = intervals;
-    }
-    
-    public void setAlphabetSize(int alphasize) {
-        alphabetSize = alphasize;
     }
     
     public void useRealValuedAttributes(boolean b){
@@ -236,8 +225,6 @@ public class BagOfPatterns extends SimpleBatchFilter {
                 }
             }
         }
-        
-        buildDictionary();
 
         if (inputFormat.classIndex() >= 0) {	//Classification set, set class 
             //Get the class values as a fast vector			
