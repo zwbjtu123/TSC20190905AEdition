@@ -154,6 +154,13 @@ public class PAA extends SimpleBatchFilter {
         
         return intervals;
     }
+    
+    public static double[] convertInstance(double[] data, int numIntervals) throws Exception {
+        PAA paa = new PAA();
+        paa.setNumIntervals(numIntervals);
+        
+        return paa.convertInstance(data);
+    }
 
     public String getRevision() {
         // TODO Auto-generated method stub

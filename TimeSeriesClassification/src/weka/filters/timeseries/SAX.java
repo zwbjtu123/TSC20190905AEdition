@@ -42,6 +42,16 @@ public class SAX extends SimpleBatchFilter {
     }
     
     public FastVector getAlphabet() {
+        if (alphabet == null) 
+            generateAlphabet();
+        return alphabet;
+    }
+    
+    public static FastVector getAlphabet(int alphabetSize) {
+        FastVector alphabet = new FastVector();
+        for (int i = 0; i < alphabetSize; ++i)
+            alphabet.addElement(alphabetSymbols[i]);
+        
         return alphabet;
     }
     
@@ -175,7 +185,7 @@ public class SAX extends SimpleBatchFilter {
                 data=temp;
             }
             
-            double[] intervals = convertSequence(data);
+            convertSequence(data);
             
             //Now in SAX form, extract out the terms and set the attributes of new instance
             Instance newInstance;
@@ -185,7 +195,7 @@ public class SAX extends SimpleBatchFilter {
                 newInstance = new DenseInstance(numIntervals);
 
             for (int j = 0; j < numIntervals; j++) {
-                newInstance.setValue(j, intervals[j]);
+                newInstance.setValue(j, data[j]);
                 
                 
                 //from doc:
@@ -209,7 +219,7 @@ public class SAX extends SimpleBatchFilter {
         return output;
     }
     
-    public double[] convertSequence(double[] data) 
+    private void convertSequence(double[] data) 
             throws Exception {
         double[] gaussianBreakpoints = generateBreakpoints(alphabetSize);
         
@@ -222,8 +232,26 @@ public class SAX extends SimpleBatchFilter {
                     break;
                 }
         }
+    }
+    
+    /**
+     * Will perform a PAA -> SAX transformation on a single data series passed as a double[]
+     * 
+     * @param data
+     * @param alphabetSize size of SAX alphabet
+     * @param numIntervals size of resulting word
+     * @throws Exception 
+     */
+    public static double[] convertSequence(double[] data, int alphabetSize, int numIntervals) throws Exception {
+        SAX sax = new SAX();
+        sax.setNumIntervals(numIntervals);
+        sax.setAlphabetSize(alphabetSize);     
+        sax.useRealValuedAttributes(true);
         
-        return data;
+        double[] d = PAA.convertInstance(data, numIntervals);
+        sax.convertSequence(d);
+        
+        return d;
     }
 
     public String getRevision() {
