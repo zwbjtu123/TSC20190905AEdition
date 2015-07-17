@@ -15,7 +15,10 @@ import weka.filters.timeseries.SAX;
 import weka.filters.unsupervised.instance.Randomize;
 
 /**
- * Converts instances into Bag Of Patterns form, then applies 1NN 
+ * Classifier using SAX and Vector Space Model.
+ * 
+ * In training, generates class weighting matrix for SAX patterns found in the series,
+ * in testing uses cosine similarity to find most similar class 
  * 
  * @author James
  */
@@ -78,21 +81,53 @@ public class SAXVSM implements Classifier {
         for (int i = 0; i < numClasses; ++i) {
             classWeights[i] = new double[numTerms];
             for (int j = 0; j < numTerms; ++j)
-                classWeights[i][j] = 0; //cant remember whether java default inits doubles to 0, meh
+                classWeights[i][j] = 0; //cant remember whether java defaults doubles to 0, meh
         }
 
         //build class bags
         for (int i = 0; i < numInstances; ++i)
             for (int j = 0; j < numTerms; ++j)
                 classWeights[(int)classValues[i]][j] += bopmatrix[i][j];
+
+               
+//DEBUG
+//        
+//        System.out.println("numClasses: " + numClasses);
+//        System.out.println("numTerms: " + numTerms);
+//        System.out.println("numInsts: " + numInstances);
+//        System.out.print("classvalues:");
+//        for (int i = 0; i < numInstances; ++i) 
+//            System.out.print(classValues[i] + " ");
+//        System.out.println("\n");
+//        
+//        double origSize = 0.0;
+//        for (int i = 0; i < numInstances; ++i) 
+//            for (int j = 0; j < numTerms; ++j)
+//                origSize += bopmatrix[i][j];
+//        
+//        double afterSize = 0.0;
+//        for (int i = 0; i < numClasses; ++i) 
+//            for (int j = 0; j < numTerms; ++j)
+//                afterSize += classWeights[i][j];
+//        
+//        System.out.println("should be equal: " + origSize + " " + afterSize);
+//        
+//        for (int i = 0; i < numClasses; ++i) {
+//            double classSize = 0.0;
+//            for (int j = 0; j < numTerms; ++j)
+//                classSize += classWeights[i][j];
+//            
+//            System.out.println("class" + i + ": " + classSize);
+//        }
+//
+//        System.out.println("\n\npre weighting");
+//        for (int i = 0; i < numClasses; ++i) {
+//            for (int j = 0; j < numTerms; ++j)
+//                System.out.print(classWeights[i][j] +" ");
+//            System.out.println("");
+//        }
+ //ENDDEBUG
         
-        System.out.println("\n\npre weighting");
-        for (int i = 0; i < numClasses; ++i) {
-            for (int j = 0; j < numTerms; ++j)
-                System.out.print(classWeights[i][j] +" ");
-            System.out.println("");
-        }
-                
         //apply tf x idf
         for (int i = 0; i < numTerms; ++i) { //for each term
             double df = 0; //document frequency
@@ -119,13 +154,15 @@ public class SAXVSM implements Classifier {
             }
                 
         }
-        
-        System.out.println("\n\npost weighting");
-        for (int i = 0; i < numClasses; ++i) {
-            for (int j = 0; j < numTerms; ++j)
-                System.out.print(classWeights[i][j] +" ");
-            System.out.println("");
-        }
+ 
+ //DEBUG
+//        System.out.println("\n\npost weighting");
+//        for (int i = 0; i < numClasses; ++i) {
+//            for (int j = 0; j < numTerms; ++j)
+//                System.out.print(classWeights[i][j] +" ");
+//            System.out.println("");
+//        }
+ //ENDDEBUG
         
         //this code tried using instance.mergeinstance, KEEPING EVERYTHING SPARSE
         //'merge' actually just adds on the values of the second onto the first
@@ -167,12 +204,9 @@ public class SAXVSM implements Classifier {
     /**
      * Takes two vectors of equal length, and computes the cosine similarity between them.
      * 
-     * i.e
-     * cosine(theta) = A . B / ||A|| ||B||
-     * 
      * @param a
      * @param b
-     * @return 
+     * @return  a.b / ( |a|*|b| )
      */
     public double cosineSimilarity(double[] a, double[] b) throws Exception {
         if (a.length != b.length)
@@ -187,13 +221,29 @@ public class SAXVSM implements Classifier {
             bMag += b[i]*b[i];
         }
         
-        if (aMag == 0 || bMag == 0)
+        if (aMag == 0 || bMag == 0 || dotProd == 0)
             return 0;
         
-        aMag = Math.sqrt(aMag);
-        bMag = Math.sqrt(bMag);
+        return dotProd / (Math.sqrt(aMag) * Math.sqrt(bMag));
+    }
+    
+    
+    private void intervalNorm(double[] r) {
+        //copied from NormalizeCase and altered to work on a single double array 
+        //rather than full instances
+
+        double max=Double.MIN_VALUE, min=Double.MAX_VALUE;
         
-        return dotProd / (aMag * bMag);
+        for(int j = 0 ; j < r.length ; j++) {
+            if(r[j]>max)
+                max=r[j];
+            if(r[j]<min)
+                min=r[j];
+        }
+        
+        for(int j = 0; j < r.length; j++)
+            r[j] = (r[j] - min) / (max - min);
+        
     }
     
     @Override
@@ -220,24 +270,28 @@ public class SAXVSM implements Classifier {
         double[] termFreqs = bop.buildBag(instance);
         double[] similarities = new double[numClasses];
         
-        System.out.println("SIMILARITIES");
+//        System.out.println("SIMILARITIES");
         double sum = 0.0;
         for (int i = 0; i < numClasses; ++i) {
             similarities[i] = cosineSimilarity(classWeights[i], termFreqs);
             sum+=similarities[i];
-            System.out.println(similarities[i]);
+//            System.out.println(similarities[i]);
         }
-        System.out.println("");
+//        System.out.println("");
         
+        
+//        System.out.println("DISTRIBUTIIONS");
         if (sum != 0) {
-            //should normalise to range -1,1, scale/translate to 0,1 
-            //again check this lazy stuff works
-            NormalizeCase.standardNorm(similarities);
+            //you moron, want all to sum to 1, not just all in range 0 to 1
+            //PROBABILITY that case is in each class
+            //intervalNorm(similarities);
+            
             for (int i = 0; i < numClasses; ++i) {
-                similarities[i] *= 0.5;
-                similarities[i] += 1;
+                similarities[i] /= sum;
+//                System.out.println(similarities[i]);
             }
         }
+//        System.out.println("");
         
         return similarities;
     }
@@ -255,8 +309,12 @@ public class SAXVSM implements Classifier {
             
             //very small dataset for testing by eye
 //            Instances all = ClassifierTools.loadData("C:\\\\Temp\\\\TESTDATA\\\\Sheet2_Train2.arff");
-//            Instances all = ClassifierTools.loadData("C:\\\\Temp\\\\TESTDATA\\\\TwoClassV1.arff");
-            Instances all = ClassifierTools.loadData("C:\\\\Temp\\\\TESTDATA\\\\FiveClassV1.arff");
+            
+            //two class, decent size
+            Instances all = ClassifierTools.loadData("C:\\\\Temp\\\\TESTDATA\\\\TwoClassV1.arff");
+            
+            //five class, large size
+//            Instances all = ClassifierTools.loadData("C:\\\\Temp\\\\TESTDATA\\\\FiveClassV1.arff");
             all.deleteAttributeAt(0); //just name of bottle        
             
             Randomize rand = new Randomize();
@@ -277,24 +335,64 @@ public class SAXVSM implements Classifier {
             for (int i = 0; i < testNum; ++i) 
                 test.add(rand.output());
             
-            System.out.println(all.numInstances());
-            System.out.println(train.numInstances());
-            System.out.println(test.numInstances());
+            
+            double bestAcc = 0.0;
+            int bestAlpha = 0, bestInter = 0, bestWindowSize = 0;
+            int numTests = 5;
+            
+            
+            for (int alphaSize = 2; alphaSize <= 4; alphaSize++) {
+                for (int interSize = 2; interSize <= 6; interSize++) {
+                    for (int winSize = 10; winSize <= 100; winSize+=10) {
+                        System.out.println("alphasize:"+alphaSize);
+                        System.out.println("interSize:"+interSize);
+                        System.out.println("winSize:"+winSize);
+
+                        double thisAcc = 0, totalAcc = 0;
+
+                        for (int testno = 0; testno < numTests; testno++) {
+                            Instances[] datasets = InstanceTools.resampleTrainAndTestInstances(train, test, testno);
+                            System.out.print(all.numInstances() + " " + train.numInstances() + " " + test.numInstances());
+
+                            SAXVSM vsm = new SAXVSM(interSize,alphaSize,winSize);
+                            vsm.buildClassifier(datasets[0]);
+
+                            thisAcc = ClassifierTools.accuracy(datasets[1], vsm);
+                            totalAcc += thisAcc;
+                            System.out.println("accuracytest" + testno + ": " + thisAcc);
+                        }
+                        
+                        totalAcc /= numTests;
+                        if (totalAcc > bestAcc) {
+                            bestAcc = totalAcc;
+                            bestAlpha = alphaSize;
+                            bestInter = interSize;
+                            bestWindowSize = winSize;
+                        }
+                        
+                        System.out.println("avg accuracy: " + totalAcc + "\n");
+                    }
+                }
+            }
+
+            System.out.println("\n\nbest average accuracy: " + bestAcc);
+            System.out.println("best alphabet size: " + bestAlpha);
+            System.out.println("best num intervals: " + bestInter);
+            System.out.println("best window size: " + bestWindowSize);
             
 //            Instances train = new Instances(all, 0, trainNum);
 //            Instances test = new Instances(all, trainNum, testNum);
             
-            SAXVSM vsm = new SAXVSM(6,3,100);
-            vsm.buildClassifier(train);
+//            SAXVSM vsm = new SAXVSM(6,3,100);
+//            vsm.buildClassifier(train);
             
 //            System.out.println("");
 //            for (int i = 0; i < test.numInstances(); i++) {
-//                System.out.println("bleh" + vsm.classifyInstance(test.get(i)));
+//                System.out.println(vsm.classifyInstance(test.get(i)));
 //            }
             
-            System.out.println("\nACCURACY TEST");
-            System.out.println(ClassifierTools.accuracy(test, vsm));
-
+            
+            
             
         }
         catch (Exception e) {
