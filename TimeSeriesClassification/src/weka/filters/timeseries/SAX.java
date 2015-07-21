@@ -27,6 +27,7 @@ public class SAX extends SimpleBatchFilter {
     private boolean useRealAttributes = false;
     private FastVector alphabet = null;
     
+    private Instances inputFormat;
     
     private static final long serialVersionUID = 1L;
     
@@ -165,20 +166,22 @@ public class SAX extends SimpleBatchFilter {
     public Instances process(Instances input) 
             throws Exception {
         
+        inputFormat = new Instances(input, 0);
+        Instances inputCopy = new Instances(input);
         Instances output = determineOutputFormat(input);
         
         //Convert input to PAA format
         PAA paa = new PAA();
         paa.setNumIntervals(numIntervals);
-        input = paa.process(input);
+        inputCopy = paa.process(inputCopy);
         
         //Now convert PAA -> SAX
-        for (int i = 0; i < input.numInstances(); i++) {
-            double[] data = input.instance(i).toDoubleArray();
+        for (int i = 0; i < inputCopy.numInstances(); i++) {
+            double[] data = inputCopy.instance(i).toDoubleArray();
             
             //remove class attribute if needed
             double[] temp;
-            int c = input.classIndex();
+            int c = inputCopy.classIndex();
             if(c >= 0) {
                 temp=new double[data.length-1];
                 System.arraycopy(data,0,temp,0,c); //assumes class attribute is in last index
@@ -210,8 +213,8 @@ public class SAX extends SimpleBatchFilter {
                 //determineOutputFormat
             }
                 
-            if (input.classIndex() >= 0)
-                newInstance.setValue(output.classIndex(), input.instance(i).classValue());
+            if (inputCopy.classIndex() >= 0)
+                newInstance.setValue(output.classIndex(), inputCopy.instance(i).classValue());
 
             output.add(newInstance);
         }
@@ -252,6 +255,27 @@ public class SAX extends SimpleBatchFilter {
         sax.convertSequence(d);
         
         return d;
+    }
+    
+    /**
+     * Will perform a PAA -> SAX transformation on a single data series passed as a double[]
+     * BuildClassifier must have been called beforehand. Generally to be used 
+     * in the SAX_1NN classifier (essentially a wrapper classifier that just feeds SAX-filtered
+     * data to a 1NN classifier) to filter individual instances during testing
+     * 
+     * @param data
+     * @param alphabetSize size of SAX alphabet
+     * @param numIntervals size of resulting word
+     * @throws Exception 
+     */
+    public Instance convertInstance(Instance inst, int alphabetSize, int numIntervals) throws Exception {
+
+        Instances newInsts = new Instances(inputFormat, 1);
+        newInsts.add(inst);
+        
+        newInsts = process(newInsts);
+        
+        return newInsts.firstInstance();
     }
 
     public String getRevision() {

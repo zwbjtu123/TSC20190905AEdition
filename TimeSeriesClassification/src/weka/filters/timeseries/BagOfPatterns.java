@@ -2,6 +2,8 @@ package weka.filters.timeseries;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.TreeSet;
+import javax.swing.InputVerifier;
 import utilities.ClassifierTools;
 import weka.core.Attribute;
 import weka.core.FastVector;
@@ -28,8 +30,7 @@ import weka.filters.SimpleBatchFilter;
  */
 public class BagOfPatterns extends SimpleBatchFilter {
 
-    public HashMap<String, Integer> dictionaryIndices; 
-    public FastVector dictionaryAttributes;
+    public TreeSet<String> dictionary;
     
     private final int windowSize;
     private final int numIntervals;
@@ -45,8 +46,6 @@ public class BagOfPatterns extends SimpleBatchFilter {
         this.windowSize = windowSize;
         
         alphabet = SAX.getAlphabet(SAX_alphabetSize);
-        
-        buildDictionary();
     }
     
     public int getWindowSize() {
@@ -65,34 +64,9 @@ public class BagOfPatterns extends SimpleBatchFilter {
         useRealAttributes = b;
     }
     
-    private void buildDictionary() { 
+    private HashMap<String, Integer> buildHistogram(double[][] patterns) {
         
-        //'If the initial capacity is greater than the maximum number 
-        //of entries divided by the load factor, no rehash operations will ever occur.'
-        float loadFactor = 0.75f;
-        int dictionarySize = (int)Math.pow(alphabetSize, numIntervals);
-        int initialCapacity =  (int)(dictionarySize / loadFactor) + 1;
-        
-        dictionaryIndices = new HashMap<>(initialCapacity, loadFactor);
-        dictionaryAttributes = new FastVector(dictionarySize);
-        
-        findPermutations(numIntervals, "");
-    }
-    
-    private void findPermutations(int level, String prefix) {
-        if (level == 0) {
-            dictionaryIndices.put(prefix, dictionaryIndices.size());
-            dictionaryAttributes.add(new Attribute(prefix));
-            return;
-        }
-        for (int i = 0; i < alphabetSize; ++i)
-            findPermutations(level-1, prefix + alphabet.get(i));
-    }
-    
-    private double[] buildHistogram(double[][] patterns) {
-        
-        
-        double[] counts = new double[dictionaryIndices.size()]; 
+        HashMap<String, Integer> hist = new HashMap<>();
 
         for (int i = 0; i < patterns.length; ++i) {   
             //convert to string                
@@ -100,13 +74,18 @@ public class BagOfPatterns extends SimpleBatchFilter {
             for (int j = 0; j < patterns[i].length; ++j)
                 word += (String) alphabet.get((int)patterns[i][j]);
 
-            ++counts[dictionaryIndices.get(word)];
+            
+            Integer val = hist.get(word);
+            if (val == null)
+                val = 0;
+            
+            hist.put(word, val+1);
         }
         
-        return counts;
+        return hist;
     }
     
-    public double[] buildBag(Instance series) throws Exception {
+    public HashMap<String, Integer> buildBag(Instance series) throws Exception {
         double[] data = series.toDoubleArray();
 
         //remove class attribute if needed
@@ -158,7 +137,16 @@ public class BagOfPatterns extends SimpleBatchFilter {
         
         for (int i = 0; i < patterns.length; ++i) {
             //CHECK make sure standardnorm does what I think it does
-            NormalizeCase.standardNorm(patterns[i]);
+            try {
+                NormalizeCase.standardNorm(patterns[i]);
+            } catch(Exception e) {
+                //throws exception if zero variance
+                //if zero variance, all values in window the same 
+                //'normalised' version should essentially be all 0s? 
+                //check
+                for (int j = 0; j < patterns[i].length; ++j)
+                    patterns[i][j] = 0;
+            }
             patterns[i] = SAX.convertSequence(patterns[i], alphabetSize, numIntervals);
         }
        
@@ -226,6 +214,12 @@ public class BagOfPatterns extends SimpleBatchFilter {
             }
         }
 
+        FastVector attributes = new FastVector();
+        for (String word : dictionary) 
+            attributes.add(new Attribute(word));
+        
+        Instances result = new Instances("BagOfPatterns_" + inputFormat.relationName(), attributes, inputFormat.numInstances());
+        
         if (inputFormat.classIndex() >= 0) {	//Classification set, set class 
             //Get the class values as a fast vector			
             Attribute target = inputFormat.attribute(inputFormat.classIndex());
@@ -234,13 +228,11 @@ public class BagOfPatterns extends SimpleBatchFilter {
             for (int i = 0; i < target.numValues(); i++) {
                 vals.addElement(target.value(i));
             }
-            dictionaryAttributes.addElement(new Attribute(inputFormat.attribute(inputFormat.classIndex()).name(), vals));
-        }
-        
-        Instances result = new Instances("BagOfPatterns_" + inputFormat.relationName(), dictionaryAttributes, inputFormat.numInstances());
-        if (inputFormat.classIndex() >= 0) {
+            
+            result.insertAttributeAt(new Attribute(inputFormat.attribute(inputFormat.classIndex()).name(), vals), result.numAttributes());
             result.setClassIndex(result.numAttributes() - 1);
         }
+ 
         return result;
     }
 
@@ -253,19 +245,42 @@ public class BagOfPatterns extends SimpleBatchFilter {
     public Instances process(Instances input) 
             throws Exception {
         
-        Instances output = determineOutputFormat(input);
+        Instances inputCopy = new Instances(input);
         
-        for (int i = 0; i < input.numInstances(); i++) {
-            double[] hist = buildBag(input.get(i));
+        
+        ArrayList< HashMap<String, Integer> > bags = new ArrayList<>(inputCopy.numInstances());
+        dictionary = new TreeSet<>();
+        
+        for (int i = 0; i < inputCopy.numInstances(); i++) {
+            bags.add(buildBag(inputCopy.get(i)));
+            dictionary.addAll(bags.get(i).keySet());
+        }
+        
+        Instances output = determineOutputFormat(inputCopy); //now that dictionary is known, set up output
+        
+        for (int i = 0; i < inputCopy.numInstances(); ++i) {
+            double[] bag = bagToArray(bags.get(i));
             
-            output.add(new SparseInstance(1.0, hist));
-            output.get(i).setClassValue(input.get(i).classValue()); 
-            //ask again about this, seems so dumb, deep copying data again jsut to set class value
+            output.add(new SparseInstance(1.0, bag));
+            output.get(i).setClassValue(inputCopy.get(i).classValue()); 
         }
         
         return output;
     }
 
+    public double[] bagToArray(HashMap<String, Integer> bag) {
+        double[] res = new double[dictionary.size()];
+            
+        int j = 0;
+        for (String word : dictionary) {
+            Integer val = bag.get(word);
+            if (val != null)
+                res[j] += val;
+            ++j;
+        }
+
+        return res;
+    }
 
     public String getRevision() {
         // TODO Auto-generated method stub
@@ -274,7 +289,7 @@ public class BagOfPatterns extends SimpleBatchFilter {
 
     public static void main(String[] args) {
         System.out.println("BoPtest\n\n");
-        
+
         try {
             Instances test = ClassifierTools.loadData("C:\\\\Temp\\\\TESTDATA\\\\TwoClassV1.arff");
             test.deleteAttributeAt(0); //just name of bottle

@@ -54,7 +54,7 @@ public class LinBagOfPatterns implements Classifier {
     @Override
     public void buildClassifier(Instances data) throws Exception {
         
-        
+        Instances dataCopy = new Instances(data);
         matrix = bop.process(data);
         
 //        Instances localCopy = new Instances(data); 
@@ -79,7 +79,7 @@ public class LinBagOfPatterns implements Classifier {
     @Override
     public double classifyInstance(Instance instance) throws Exception {
         //convert to proper form
-        double[] hist = bop.buildBag(instance);
+        double[] hist = bop.bagToArray(bop.buildBag(instance));
         
         Instances newInsts = new Instances(matrix, 1); //copy attribute data
         newInsts.add(new SparseInstance(1.0, hist));
@@ -91,7 +91,7 @@ public class LinBagOfPatterns implements Classifier {
     @Override
     public double[] distributionForInstance(Instance instance) throws Exception {
         //convert to proper form
-        double[] hist = bop.buildBag(instance);
+        double[] hist = bop.bagToArray(bop.buildBag(instance));
         
         Instances newInsts = new Instances(matrix, 1); //copy attribute data
         newInsts.add(new SparseInstance(1.0, hist));
@@ -173,4 +173,75 @@ public class LinBagOfPatterns implements Classifier {
         }
         
     }
+    
+    @Override
+    public String toString() { 
+        return "BagOfPatterns";
+    }
+    
+    /**
+     * Returns a list of optimal parameters (winSize, intervals, alphabetSize) for a SUBSET OF the UCR datasets as given 
+     * in the Lin paper, if dataset properties not found, returns default 50, 6, 4.
+     * 
+     * @param dataset 
+     * @return array size 3 { winSize, intervals, alphabetSize }
+     */
+    public static int[] getUCRParameters(String dataset) {
+        for (int i = 0; i < UCRnames.length; ++i)
+            if (UCRnames[i].equals(dataset))
+                return UCRparameters[i];
+        
+        return new int[] { 50, 6, 4 };
+    }
+    
+    //parameters for winsize/intervals/alphabet for each ucr dataset copied from
+    //'Rotation-invarient similarity in time series using bag-of-patterns representation' Lin etal 2012
+    //[0] = windowsize
+    //[1] = intervals 
+    //[2] = alphabetsize
+    public static int[][] UCRparameters = {
+        { 24, 4, 3 },
+        { 32, 4, 9 }, 
+        { 32, 4, 4 },
+        { 32, 8, 3 },
+        { 64, 4, 4 },
+        { 40, 8, 4 },
+        { 80, 8, 3 },
+        { 48, 4, 4 },
+        { 32, 4, 4 },
+        { 32, 8, 5 },
+        { 64, 4, 4 },
+        { 128, 8, 4 }, 
+        { 64, 8, 4 },
+        { 32, 8, 4 },
+        { 32, 8, 9 },
+        { 80, 4, 9 },
+        { 128, 8, 7 },
+        { 80, 4, 2 },
+        { 48, 4, 3 },
+        { 160, 4, 6 }
+    };
+    
+    public static String[] UCRnames = {
+        "SyntheticControl",
+        "GunPoint",
+        "CBF",
+        "FaceAll",
+        "OSULeaf",
+        "SwedishLeaf",
+        "fiftywords",
+        "Trace",
+        "TwoPatterns",
+        "wafer",
+        "FaceFour",
+        "Lightning2",
+        "Lightning7",
+        "ECGFiveDays",
+        "Adiac",
+        "yoga",
+        "fish",
+        "Beef",
+        "Coffee",
+        "OliveOil"
+    };
 }
