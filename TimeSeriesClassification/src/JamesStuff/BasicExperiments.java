@@ -92,7 +92,7 @@ public class BasicExperiments {
             //[0] = train, [1] = test
             Instances[] datasets = loadDatasets(UCRnames[i]);
             tableData[i] = getDataInfo(datasets);
-                
+            
             int[] params = LinBagOfPatterns.getUCRParameters(UCRnames[i]);
             
             kNN knn = new kNN();
@@ -102,7 +102,7 @@ public class BasicExperiments {
             LinBagOfPatterns bop = new LinBagOfPatterns(params[1], params[2], params[0]);
             
             
-            Classifier[] cs = { knn, sax1nn, bop, saxvsm };
+            Classifier[] cs = { knn, sax1nn, saxvsm, bop };
 
             for (int c = 0; c < cs.length; ++c)
                 tableData[i][c+4] = 1 - testAccuracy(cs[c], datasets); // 1- to get error rate

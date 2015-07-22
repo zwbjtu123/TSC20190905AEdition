@@ -24,7 +24,7 @@ import weka.filters.SimpleBatchFilter;
  *
  * default sliding window size = 100
  * default paainterval size = 6
- * dfault saxalphabetsize = 3
+ * default saxalphabetsize = 3
  * 
  * @author James
  */
@@ -36,6 +36,7 @@ public class BagOfPatterns extends SimpleBatchFilter {
     private final int numIntervals;
     private final int alphabetSize;
     private boolean useRealAttributes = true;
+    private boolean numerosityReduction = false;
     private FastVector alphabet = null;
     
     private static final long serialVersionUID = 1L;
@@ -62,6 +63,10 @@ public class BagOfPatterns extends SimpleBatchFilter {
     
     public void useRealValuedAttributes(boolean b){
         useRealAttributes = b;
+    }
+    
+    public void performNumerosityReduction(boolean b){
+        numerosityReduction = b;
     }
     
     private HashMap<String, Integer> buildHistogram(double[][] patterns) {
@@ -150,7 +155,8 @@ public class BagOfPatterns extends SimpleBatchFilter {
             patterns[i] = SAX.convertSequence(patterns[i], alphabetSize, numIntervals);
         }
        
-        patterns = removeTrivialMatches(patterns);
+        if (numerosityReduction)    
+            patterns = removeTrivialMatches(patterns);
         
 //        System.out.println("REDUCED");
 //        for(int i = 0; i < patterns.length; ++i) {
@@ -176,8 +182,8 @@ public class BagOfPatterns extends SimpleBatchFilter {
         return subSequences;
     }
     
-    private double[][] removeTrivialMatches(double[][] patterns) {
-        ArrayList<Integer> toKeep = new ArrayList<>();
+    public double[][] removeTrivialMatches(double[][] patterns) {
+        ArrayList<Integer> toKeep = new ArrayList<>(patterns.length);
         
         toKeep.add(0); 
         
@@ -254,6 +260,8 @@ public class BagOfPatterns extends SimpleBatchFilter {
         for (int i = 0; i < inputCopy.numInstances(); i++) {
             bags.add(buildBag(inputCopy.get(i)));
             dictionary.addAll(bags.get(i).keySet());
+            
+            System.out.println(dictionary.size());
         }
         
         Instances output = determineOutputFormat(inputCopy); //now that dictionary is known, set up output
@@ -290,20 +298,27 @@ public class BagOfPatterns extends SimpleBatchFilter {
     public static void main(String[] args) {
         System.out.println("BoPtest\n\n");
 
-        try {
-            Instances test = ClassifierTools.loadData("C:\\\\Temp\\\\TESTDATA\\\\TwoClassV1.arff");
-            test.deleteAttributeAt(0); //just name of bottle
-          
-            BagOfPatterns bop = new BagOfPatterns(6,3,100);  
-            bop.useRealValuedAttributes(false);
-            Instances result = bop.process(test);
-            
-            System.out.println(result);
-        }
-        catch (Exception e) {
-            System.out.println(e);
-            e.printStackTrace();
-        }
+//        try {
+//            Instances test = ClassifierTools.loadData("C:\\\\Temp\\\\TESTDATA\\\\TwoClassV1.arff");
+//            test.deleteAttributeAt(0); //just name of bottle
+//          
+//            BagOfPatterns bop = new BagOfPatterns(6,3,100);  
+//            bop.useRealValuedAttributes(false);
+//            Instances result = bop.process(test);
+//            
+//            System.out.println(result);
+//        }
+//        catch (Exception e) {
+//            System.out.println(e);
+//            e.printStackTrace();
+//        }
+//        
+//        BagOfPatterns bop = new BagOfPatterns(6,3,100);  
+//        double[][] boop = { {1.0}, {2.0}, {2.0}, {2.0}, {1.0}, {3.0}, {3.0}, {3.0}, {3.0}, {2.0}, {1.0} };
+//        
+//        double[][] boop2 = bop.removeTrivialMatches(boop);
+//        for
+        
     }
 
 }

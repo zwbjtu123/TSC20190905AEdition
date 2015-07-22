@@ -73,6 +73,8 @@ public class LinBagOfPatterns implements Classifier {
 //            //ask again about this, seems so dumb, deep copying data again jsut to set class value
 //        }
         
+        System.out.println("\t" + bop.dictionary.size());
+        
         knn.buildClassifier(matrix);
     }
 
@@ -186,12 +188,12 @@ public class LinBagOfPatterns implements Classifier {
      * @param dataset 
      * @return array size 3 { winSize, intervals, alphabetSize }
      */
-    public static int[] getUCRParameters(String dataset) {
+    public static int[] getUCRParameters(String dataset) throws Exception {
         for (int i = 0; i < UCRnames.length; ++i)
             if (UCRnames[i].equals(dataset))
                 return UCRparameters[i];
         
-        return new int[] { 50, 6, 4 };
+        throw new Exception("No parameter info for UCR dataset \'" + dataset + "\'");
     }
     
     //parameters for winsize/intervals/alphabet for each ucr dataset copied from
