@@ -117,8 +117,8 @@ public class ResamplingExperiments {
             createLearnShapeleteAccuracies(samplePath, resultsPath, fold);
         }*/
         
-        fileVerifier(transformLocation, classObj);
-        //createAndWriteAccuracies(transformPath, resultsPath, sampleSize);
+        //fileVerifier(transformLocation, classObj);
+        createAndWriteAccuracies(transformPath, resultsPath, sampleSize);
         //createAccuracies(accuracyPath, resultsPath);
         
         /*try {

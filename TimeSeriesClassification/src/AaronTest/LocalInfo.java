@@ -6,13 +6,10 @@
 package AaronTest;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import weka.core.Instances;
 import weka.core.converters.ArffSaver;
 import weka.core.shapelet.QualityMeasures;

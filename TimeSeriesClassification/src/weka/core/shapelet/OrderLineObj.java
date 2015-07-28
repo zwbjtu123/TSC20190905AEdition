@@ -67,5 +67,11 @@ package weka.core.shapelet;
             }
             return 1;
         }
+        
+        @Override
+        public String toString()
+        {
+            return distance + "," + classVal;
+        }
     }
 
