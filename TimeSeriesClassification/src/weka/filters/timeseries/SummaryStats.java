@@ -25,7 +25,7 @@ public class SummaryStats extends SimpleBatchFilter {
 	for(int i=0;i<inputFormat.numAttributes();i++)
 		if(inputFormat.classIndex()!=i)
 			if(!inputFormat.attribute(i).isNumeric())
-				throw new Exception("Non numeric attribute not allowed in Moments");
+				throw new Exception("Non numeric attribute not allowed in SummaryStats");
 	//Set up instances size and format. 
 	FastVector atts=new FastVector();
 	String name;
