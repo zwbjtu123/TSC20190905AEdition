@@ -147,7 +147,8 @@ public class BasicDTW extends EuclideanDistance{
                 return Double.MAX_VALUE;
             }
         }
-        return Math.sqrt(this.distances[first.length-1][second.length-1]);
+//        return Math.sqrt(this.distances[first.length-1][second.length-1]);
+        return (this.distances[first.length-1][second.length-1]);
     }
 
     /**
