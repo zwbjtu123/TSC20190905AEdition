@@ -144,7 +144,7 @@ public class BagOfPatterns extends SimpleBatchFilter {
             //CHECK make sure standardnorm does what I think it does
             try {
                 NormalizeCase.standardNorm(patterns[i]);
-            } catch(Exception e) {
+            } catch(Exception e) { //TONY COMMENT: Adapt this so catches a specific exception (ArithmeticException)?
                 //throws exception if zero variance
                 //if zero variance, all values in window the same 
                 //'normalised' version should essentially be all 0s? 

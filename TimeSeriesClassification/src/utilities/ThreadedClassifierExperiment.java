@@ -6,6 +6,7 @@
 
 package utilities;
 
+import bakeOffExperiments.BasicClassifiers;
 import weka.classifiers.Classifier;
 import weka.classifiers.Evaluation;
 import weka.core.Instances;
@@ -15,18 +16,21 @@ import weka.filters.SimpleBatchFilter;
  *
  * @author ajb
  */
-public class ThreadedClassifierExperiment implements Runnable{
+public class ThreadedClassifierExperiment extends Thread{
     Instances train;
     Instances test;
     Classifier c;
     double testAccuracy;
     SimpleBatchFilter filter;
+    String name;
+    int resamples=100;
     
-    public ThreadedClassifierExperiment(Instances tr, Instances te, Classifier cl){
+    public ThreadedClassifierExperiment(Instances tr, Instances te, Classifier cl,String n){
         train=tr;
         test=te;
         c=cl;
         filter=null;
+        name=n;
     }
     public void setTransform(SimpleBatchFilter t){
         filter=t;
@@ -34,29 +38,26 @@ public class ThreadedClassifierExperiment implements Runnable{
     public double getTestAccuracy(){ 
         return testAccuracy;
     }
-    @Override
-    public void run() {
-		//Perform a simple experiment,
+    public void singleExperiment(){
         testAccuracy=0;
         double act;
         double pred;
         try{
-                if(filter!=null){
-                    train=filter.process(train);
-                    test=filter.process(test);
-                }
-                    
-                c.buildClassifier(train);
-                for(int i=0;i<test.numInstances();i++)
-                {
-                        act=test.instance(i).classValue();
-                        pred=c.classifyInstance(test.instance(i));
+            if(filter!=null){
+                train=filter.process(train);
+                test=filter.process(test);
+            }
+
+            c.buildClassifier(train);
+            for(int i=0;i<test.numInstances();i++)
+            {
+                    act=test.instance(i).classValue();
+                    pred=c.classifyInstance(test.instance(i));
 //				System.out.println(" Actual = "+act+" predicted = "+d[i]);
-                        if(act==pred)
-                                testAccuracy++;
-                }
-                testAccuracy/=test.numInstances();
-                System.out.println("ACCURACY = "+testAccuracy);
+                    if(act==pred)
+                            testAccuracy++;
+            }
+            testAccuracy/=test.numInstances();
 
         }catch(Exception e)
         {
@@ -67,6 +68,60 @@ public class ThreadedClassifierExperiment implements Runnable{
                 
                 System.exit(0);
         }
+    }
+    
+    public void resampleExperiment(){
+        double[] foldAcc=new double[resamples];
+        for(int i=0;i<resamples;i++){
+            Instances[] data=InstanceTools.resampleTrainAndTestInstances(train, test, i);
+            double act,pred;
+            try{              
+                if(filter!=null){
+                    data[0]=filter.process(data[0]);
+                    data[1]=filter.process(data[1]);
+                }
+                c.buildClassifier(data[0]);
+                foldAcc[i]=0;
+                for(int j=0;j<data[1].numInstances();j++)
+                {
+                    act=data[1].instance(j).classValue();
+                    pred=c.classifyInstance(data[1].instance(j));
+                    if(act==pred)
+                        foldAcc[i]++;
+                }
+                foldAcc[i]/=data[1].numInstances();
+
+            }catch(Exception e)
+            {
+                    System.out.println(" Error ="+e+" in method simpleExperiment"+e);
+                    e.printStackTrace();
+                    System.out.println(" TRAIN "+train.relationName()+" has "+train.numAttributes()+" attributes and "+train.numInstances()+" instances");
+                    System.out.println(" TEST "+test.relationName()+" has "+test.numAttributes()+" attributes"+test.numInstances()+" instances");
+
+                    System.exit(0);
+            }
+                
+            }
+        
+            synchronized(BasicClassifiers.out){
+                System.out.println(" finished ="+name);
+
+                BasicClassifiers.out.writeString(name+",");
+                for(int i=0;i<resamples;i++)
+                    BasicClassifiers.out.writeString(foldAcc[i]+",");
+                BasicClassifiers.out.writeString("\n");
+            
+        }
+    }
+    
+    @Override
+    public void run() {
+		//Perform a simple experiment,
+        if(resamples==1){
+            singleExperiment();
+        }
+        else
+            resampleExperiment();
     }
     
 }

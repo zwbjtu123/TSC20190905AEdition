@@ -27,7 +27,11 @@ import weka.filters.timeseries.*;
 
 /**
 Combines DTW distance/DTW distance between derivatives with DTW distance
-between transforms of time series: cosine, sine and Hilbert transform. Forms  a weighted sum of two distances, finding weights by some form of pairwise optimization which might be like the SMO/SVM technique, although this is not that clear, as it then describes setting alpha through cross validation.
+between transforms of time series: cosine, sine and Hilbert transform. 
+* Forms  a weighted sum of two distances, finding weights by some form of 
+* pairwise optimization which might be like the SMO/SVM technique, 
+* although this is not that clear, as it then describes setting alpha through 
+* cross validation.
 
 Add three new BasicFilters in weka.filters.timeseries:  Sin, Cosine and Hilbert
  */
@@ -109,11 +113,10 @@ public class Gorecki14nonisometric {
                     double[] dtwsDist=new double[train.numInstances()];
                     double[] dtwhDist=new double[train.numInstances()];
 //Find distances between element i and the rest                    
-                    for(int j=0;j<train.numInstances();j++){
+//                    for(int j=0;j<train.numInstances();j++){
 //                        if(i!=j){
 //                            dtwDist[j]=dist;
-                        
-                    }
+//                    }
                 }
                 
             } catch (Exception ex) {

@@ -4,13 +4,10 @@
     <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group>
-            <file>file:/D:/time-series-classification/TimeSeriesClassification/src/weka/filters/timeseries/shapelet_transforms/BinarisedShapeletTransform.java</file>
-            <file>file:/D:/time-series-classification/TimeSeriesClassification/src/papers/DaWaK2015.java</file>
-            <file>file:/D:/time-series-classification/TimeSeriesClassification/src/AaronTest/ShapeletTransformExperiments.java</file>
-            <file>file:/D:/time-series-classification/TimeSeriesClassification/src/weka/filters/timeseries/shapelet_transforms/FullShapeletTransform.java</file>
-            <file>file:/D:/time-series-classification/TimeSeriesClassification/src/AaronTest/LocalInfo.java</file>
-            <file>file:/D:/time-series-classification/TimeSeriesClassification/src/development/ResamplingExperiments.java</file>
-            <file>file:/D:/time-series-classification/TimeSeriesClassification/src/utilities/ClassifierTools.java</file>
+            <file>file:/C:/Users/ajb/Dropbox/Code/time-series-classification/TimeSeriesClassification/src/utilities/ThreadedClassifierExperiment.java</file>
+            <file>file:/C:/Users/ajb/Dropbox/Code/time-series-classification/TimeSeriesClassification/src/bakeOffExperiments/BasicClassifiers.java</file>
+            <file>file:/C:/Users/ajb/Dropbox/Code/time-series-classification/TimeSeriesClassification/src/utilities/InstanceTools.java</file>
+            <file>file:/C:/Users/ajb/Dropbox/Code/time-series-classification/TimeSeriesClassification/src/development/IntervalBasedClassification.java</file>
         </group>
     </open-files>
 </project-private>

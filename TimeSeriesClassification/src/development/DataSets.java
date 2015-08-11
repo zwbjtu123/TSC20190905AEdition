@@ -25,7 +25,7 @@ public class DataSets {
     
     public static String clusterPath="/gpfs/home/ajb/";
     
-    public static String dropboxPath="C:\\Users\\ajb\\Dropbox\\TSC Problems\\";
+    public static String dropboxPath="C:/Users/ajb/Dropbox/TSC Problems/";
     public static String resultsPath="C:\\Users\\ajb\\Dropbox\\Results\\";
     public static String uciPath="C:\\Users\\ajb\\Dropbox\\UCI Classification Problems\\";
     public static String ucrPath="C:\\Users\\ajb\\Dropbox\\UCRArff\\";
@@ -53,6 +53,8 @@ public class DataSets {
 			"DistalPhalanxOutlineAgeGroup", // 400,139,80,3
 			"DistalPhalanxTW", // 400,139,80,6
 			"Earthquakes", // 322,139,512,2
+                        "ECG200",
+//                      "ECG5000",
 			"ECGFiveDays", // 23,861,136,2
 			"ElectricDevices", // 8926,7711,96,7
 			"FaceAll", // 560,1690,131,14
@@ -68,6 +70,7 @@ public class DataSets {
 			"Haptics", // 155,308,1092,5
 			"Herring", // 64,64,512,2
 			"InlineSkate", // 100,550,1882,7
+//                      "InsectWingbeatSound",
 			"ItalyPowerDemand", // 67,1029,24,2
 			"LargeKitchenAppliances", // 375,375,720,3
 			"Lightning2", // 60,61,637,2
@@ -84,6 +87,7 @@ public class DataSets {
 			"OliveOil", // 30,30,570,4
 			"OSULeaf", // 200,242,427,6
 			"PhalangesOutlinesCorrect", // 1800,858,80,2
+//                      "Phoneme",
 			"Plane", // 105,105,144,7
 			"ProximalPhalanxOutlineCorrect", // 600,291,80,2
 			"ProximalPhalanxOutlineAgeGroup", // 400,205,80,3
@@ -112,6 +116,7 @@ public class DataSets {
 			"wafer", // 1000,6164,152,2
 			"Wine",
                         "WordSynonyms", // 267,638,270,25
+//Must be duplicate     "WordsSynonyms",
 			"Worms",
                         "WormsTwoClass",
                         "yoga" // 300,3000,426,2
@@ -515,7 +520,7 @@ tiianic
     };   
       //</editor-fold>    
   
-static String[] notNormalised={"ArrowHead","Beef","BeetleFly","BirdChicken","Coffee","Computers","Cricket_X","Cricket_Y","Cricket_Z","DistalPhalanxOutlineAgeGroup","DistalPhalanxOutlineCorrect","DistalPhalanxTW","Earthquakes","ElectricDevices","FordA","FordB","Ham","Herring","ItalyPowerDemand","LargeKitchenAppliances","Meat","MiddlePhalanxOutlineAgeGroup","MiddlePhalanxOutlineCorrect","MiddlePhalanxTW","OliveOil","PhalangesOutlinesCorrect","Plane","ProximalPhalanxOutlineAgeGroup","ProximalPhalanxOutlineCorrect","ProximalPhalanxTW","RefrigerationDevices","ScreenType","ShapeletSim","ShapesAll","SmallKitchenAppliances","Strawberry","ToeSegmentation1","ToeSegmentation2","UWaveGestureLibraryAll","UWaveGestureLibrary_Z","Wine","Worms","WormsTwoClass","fish"};
+String[] notNormalised={"ArrowHead","Beef","BeetleFly","BirdChicken","Coffee","Computers","Cricket_X","Cricket_Y","Cricket_Z","DistalPhalanxOutlineAgeGroup","DistalPhalanxOutlineCorrect","DistalPhalanxTW","ECG200","Earthquakes","ElectricDevices","fish","FordA","FordB","Ham","Herring","ItalyPowerDemand","LargeKitchenAppliances","Meat","MiddlePhalanxOutlineAgeGroup","MiddlePhalanxOutlineCorrect","MiddlePhalanxTW","OliveOil","PhalangesOutlinesCorrect","Plane","ProximalPhalanxOutlineAgeGroup","ProximalPhalanxOutlineCorrect","ProximalPhalanxTW","RefrigerationDevices","ScreenType","ShapeletSim","ShapesAll","SmallKitchenAppliances","Strawberry","ToeSegmentation1","ToeSegmentation2","UWaveGestureLibraryAll","UWaveGestureLibrary_Z","Wine","Worms","WormsTwoClass"};
 
   public static void processUCRData(){
       String ucrPath="C:\\Users\\ajb\\Dropbox\\Data\\UCR Data\\";
@@ -694,8 +699,8 @@ public static void dataDescription(String[] fileNames){
 
 public static void main(String[] args) throws Exception{
     dataDescription(fileNames);
-    System.exit(0);
     listNotNormalisedList();  
+    System.exit(0);
     processUCRData();
             Instances train = ClassifierTools.loadData(DataSets.ucrPath+"wafer\\wafer_TRAIN");
             Instances test = ClassifierTools.loadData(DataSets.ucrPath+"wafer\\wafer_TEST");
