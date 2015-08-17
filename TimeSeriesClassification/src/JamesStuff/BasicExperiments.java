@@ -14,7 +14,11 @@ import weka.core.Instances;
 import weka.filters.unsupervised.instance.Randomize;
 
 /**
- *
+ * Mostly just a playground, can't remember if there's a currently useful output,
+ * but probably useful code in places
+ * 
+ * Originally used to compare SAXy classifiers on the UCR datasets, but TestTools has the more proper methods for this now
+ * 
  * @author James
  */
 public class BasicExperiments {
@@ -46,10 +50,25 @@ public class BasicExperiments {
         "OliveOil"
     };
    
+    public static String[] UCRvsmdata = {
+        "Car",
+        "GunPoint",
+        "CBF",
+        "ChlorineConcentration",
+        "Coffee",
+        "FaceAll",
+        "FaceFour",
+        "fish",
+        "Haptics",
+        "InlineSkate",
+        "OliveOil",
+        "wafer"
+    };
+    
     public static void main(String[] args) throws Exception{
         
         //CURRENTLY SKIPPING DTW
-        //annoyingly long time to run, can copy run time from elsewhere anyways
+        //annoyingly long time to run, can copy results from elsewhere anyways
         
         //UCRdata x 10 matrix
         //columns = num classes, train size, test size, series length, 1nn acc, dtw acc, sax1nn acc, bop acc, saxvsm acc
@@ -90,7 +109,7 @@ public class BasicExperiments {
         
         for (int i = 0; i < UCRnames.length; ++i) {
             //[0] = train, [1] = test
-            Instances[] datasets = loadDatasets(UCRnames[i]);
+            Instances[] datasets = loadTestTrainsets(UCRnames[i]);
             tableData[i] = getDataInfo(datasets);
             
             int[] params = LinBagOfPatterns.getUCRParameters(UCRnames[i]);
@@ -105,7 +124,7 @@ public class BasicExperiments {
             Classifier[] cs = { knn, sax1nn, saxvsm, bop };
 
             for (int c = 0; c < cs.length; ++c)
-                tableData[i][c+4] = 1 - testAccuracy(cs[c], datasets); // 1- to get error rate
+                tableData[i][c+4] = 1 - testAccuracy(cs[c], datasets, 0); // 1- to get error rate
         }
         
         OutFile out = new OutFile("saxishClassifierTests.csv");
@@ -126,14 +145,7 @@ public class BasicExperiments {
         out.closeFile();
     }
     
-    private static Instances[] loadDatasets(String name) throws Exception {
-        String arffPath="C:\\Temp\\TESTDATA\\TSC Problems\\";
-        
-        Instances train = ClassifierTools.loadData(arffPath+name+"\\"+name+"_TRAIN");
-        Instances test = ClassifierTools.loadData(arffPath+name+"\\"+name+"_TEST");
-        
-        return new Instances[] { train, test };
-    }
+
     
     private static double[] getDataInfo(Instances[] data) {
         double[] result = new double[8];
@@ -146,21 +158,96 @@ public class BasicExperiments {
         return result;
     }
     
-    private static double testAccuracy(Classifier classifier, Instances[] data) throws Exception {
+    
+    
+    
+    
+    
+    
+    
+    /**
+     * Returns train [0] and test [1] Instances for the given dataset
+     * 
+     * @param name name of TSC Problems dataset
+     * @return { trainset, testset }
+     * @throws Exception 
+     */
+    public static Instances[] loadTestTrainsets(String name) throws Exception {
+        String arffPath="C:\\Temp\\TESTDATA\\TSC Problems\\";
         
-        int numTests = 1;
+        Instances train = ClassifierTools.loadData(arffPath+name+"\\"+name+"_TRAIN");
+        Instances test = ClassifierTools.loadData(arffPath+name+"\\"+name+"_TEST");
+        
+        return new Instances[] { train, test };
+    }
+    
+    /**
+     * 
+     * @param classifier to test, ready to go
+     * @param data = { trainset, testset }
+     * @param resamples if 0, will just test accuracy on train/test sets as they come (deterministic), if > 0, will repeat tests, 
+     *                     randomly resampling test/train sets (while maintaining class distribution)
+     * @return average(if resamples>1) accuracy of classifier on given dataset
+     * @throws Exception 
+     */
+    public static double testAccuracy(Classifier classifier, Instances[] data, int resamples) throws Exception {
+        if (resamples == 0) { 
+            classifier.buildClassifier(data[0]);
+            return ClassifierTools.accuracy(data[1], classifier);
+        }
+        
         double thisAcc = 0, totalAcc = 0;
-
-        for (int testno = 0; testno < numTests; testno++) {
-            //data = InstanceTools.resampleTrainAndTestInstances(data[0], data[1], testno);
+        for (int testno = 0; testno < resamples; testno++) {
+            data = InstanceTools.resampleTrainAndTestInstances(data[0], data[1], testno);
 
             classifier.buildClassifier(data[0]);
 
             thisAcc = ClassifierTools.accuracy(data[1], classifier);
             totalAcc += thisAcc;
         }
-
-        return totalAcc / numTests;
+        return totalAcc / resamples;
     }
+
+    /**
+     * Performs ClassifierTools.accuracy tests on each classifier for each dataset, and outputs
+     * error rates for each to the provided output CSV file
+     * 
+     * @param classifiers array of ready-to-use classifiers (i.e any needed parameters are set)
+     * @param classifierNames parallel array of names/labels for each classifier
+     * @param datasetNames names(NOT full paths) of datasets to be loaded from TSCProblems datasets, e.g ("GunPoint")
+     * @param fullOutputFile full path directory and name of the CSV file to write results to, e.g ("C:\\path\\file.csv")
+     * @param resamples if 0, will just test accuracy on train/test sets as they come (deterministic), if > 0, will repeat tests, 
+     *                     randomly resampling test/train sets (while maintaining class distribution)
+     * @throws Exception
+     */
+    public static void testClassifiers(Classifier[] classifiers, String[] classifierNames, String[] datasetNames, String fullOutputFile, int resamples) 
+            throws Exception {
+        OutFile out = new OutFile(fullOutputFile);
+        
+        //header info
+        out.writeString("Dataset, NumClasses, TrainsetSize, TestsetSize, SeriesLength");
+        for (int i = 0; i < classifierNames.length; ++i)
+            out.writeString(", " + classifierNames[i]);
+        out.newLine();
+        
+        for (int i = 0; i < datasetNames.length; ++i) {
+            //[0] = train, [1] = test
+            Instances[] datasets = loadTestTrainsets(datasetNames[i]);
+
+            //dataset info
+            out.writeString(datasetNames[i] + ", " + 
+                    datasets[0].numClasses() + ", " + 
+                    datasets[0].numInstances() + ", " + 
+                    datasets[1].numInstances() + ", " + 
+                    (datasets[0].numAttributes()-1));
+
+            //class accuracies on this dataset
+            for (int j = 0; j < classifiers.length; ++j)
+                out.writeString(", " + (1.0 - testAccuracy(classifiers[j], datasets, resamples))); // 1- to get error rate
+            out.newLine();
+            
+        } 
+    }
+    
     
 }

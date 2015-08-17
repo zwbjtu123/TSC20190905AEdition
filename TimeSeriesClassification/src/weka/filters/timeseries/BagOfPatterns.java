@@ -36,7 +36,10 @@ public class BagOfPatterns extends SimpleBatchFilter {
     private final int numIntervals;
     private final int alphabetSize;
     private boolean useRealAttributes = true;
-    private boolean numerosityReduction = false;
+    
+    private boolean numerosityReduction = false; //can expand to different types of nr
+    //like those in senin implementation later, if wanted
+    
     private FastVector alphabet = null;
     
     private static final long serialVersionUID = 1L;
@@ -113,24 +116,20 @@ public class BagOfPatterns extends SimpleBatchFilter {
 //            
 //            System.out.println("");
 //        }
-//        
-//        for (int i = 0; i < patterns.length; ++i) {
-//            NormalizeCase.standardNorm(patterns[i]);
-//        }
-//        
-//        System.out.println("NORMALISED");
-//        for(int i = 0; i < patterns.length; ++i) {
-//            System.out.print("pattern" + i + ":\t");
-//            for (int j = 0; j < patterns[i].length; ++j) 
-//                System.out.print(patterns[i][j] + " ");
-//            
-//            System.out.println("");
-//        }
-//        
-//        for (int i = 0; i < patterns.length; ++i) {
-//            patterns[i] = SAX.convertSequence(patterns[i], SAX_alphabetSize, PAA_intervalsPerWindow);
-//        }
-
+        
+        for (int i = 0; i < patterns.length; ++i) {
+            try {
+                NormalizeCase.standardNorm(patterns[i]);
+            } catch(Exception e) {
+                //throws exception if zero variance
+                //if zero variance, all values in window the same 
+                //'normalised' version should essentially be all 0s? 
+                for (int j = 0; j < patterns[i].length; ++j)
+                    patterns[i][j] = 0;
+            }
+            patterns[i] = SAX.convertSequence(patterns[i], alphabetSize, numIntervals);
+        }
+       
 //        System.out.println("SAXD");
 //        for(int i = 0; i < patterns.length; ++i) {
 //            System.out.print("pattern" + i + ":\t");
@@ -140,21 +139,6 @@ public class BagOfPatterns extends SimpleBatchFilter {
 //            System.out.println("");
 //        }
         
-        for (int i = 0; i < patterns.length; ++i) {
-            //CHECK make sure standardnorm does what I think it does
-            try {
-                NormalizeCase.standardNorm(patterns[i]);
-            } catch(Exception e) {
-                //throws exception if zero variance
-                //if zero variance, all values in window the same 
-                //'normalised' version should essentially be all 0s? 
-                //check
-                for (int j = 0; j < patterns[i].length; ++j)
-                    patterns[i][j] = 0;
-            }
-            patterns[i] = SAX.convertSequence(patterns[i], alphabetSize, numIntervals);
-        }
-       
         if (numerosityReduction)    
             patterns = removeTrivialMatches(patterns);
         
@@ -260,8 +244,6 @@ public class BagOfPatterns extends SimpleBatchFilter {
         for (int i = 0; i < inputCopy.numInstances(); i++) {
             bags.add(buildBag(inputCopy.get(i)));
             dictionary.addAll(bags.get(i).keySet());
-            
-            System.out.println(dictionary.size());
         }
         
         Instances output = determineOutputFormat(inputCopy); //now that dictionary is known, set up output
@@ -312,13 +294,5 @@ public class BagOfPatterns extends SimpleBatchFilter {
 //            System.out.println(e);
 //            e.printStackTrace();
 //        }
-//        
-//        BagOfPatterns bop = new BagOfPatterns(6,3,100);  
-//        double[][] boop = { {1.0}, {2.0}, {2.0}, {2.0}, {1.0}, {3.0}, {3.0}, {3.0}, {3.0}, {2.0}, {1.0} };
-//        
-//        double[][] boop2 = bop.removeTrivialMatches(boop);
-//        for
-        
     }
-
 }

@@ -1,19 +1,16 @@
 package weka.classifiers;
 
-import java.util.Random;
+import static JamesStuff.BasicExperiments.UCRvsmdata;
+import fileIO.OutFile;
 import utilities.ClassifierTools;
-import utilities.InstanceTools;
 import weka.classifiers.lazy.kNN;
-import weka.core.Attribute;
 import weka.core.Capabilities;
 import weka.core.FastVector;
 import weka.core.Instance;
 import weka.core.Instances;
 import weka.core.SparseInstance;
-import weka.filters.NormalizeCase;
 import weka.filters.timeseries.BagOfPatterns;
 import weka.filters.timeseries.SAX;
-import weka.filters.unsupervised.instance.Randomize;
 
 /**
  * Classifier using SAX and Vector Space Model.
@@ -30,11 +27,50 @@ public class SAXVSM implements Classifier {
     public kNN knn;
     
     private BagOfPatterns bop;
-    private final int PAA_intervalsPerWindow;
-    private final int SAX_alphabetSize;
-    private final int windowSize;
+    private int PAA_intervalsPerWindow;
+    private int SAX_alphabetSize;
+    private int windowSize;
     
-    private final FastVector alphabet;
+    private FastVector alphabet;
+    
+    private final boolean useParamSearch; //does user want parameter search to be performed
+    
+    public static String[] SAXVSMPaperDatasets = {     
+        "Adiac",
+        "Beef",
+        "CBF",
+        "Coffee",
+        "ECG200",
+        "FaceAll",
+        "FaceFour",
+        "fish",
+        "GunPoint",
+        "Lightning2",
+        "Lightning7",
+        "OliveOil",
+        "OSULeaf",
+        "SyntheticControl",
+        "SwedishLeaf",
+        "Trace",
+        "TwoPatterns",
+        "wafer",
+        "yoga"
+    };
+    
+    public static double[] SAXVSMPaperErrors = {     
+        0.381, 0.033, 0.002, 0.0, 0.140, 0.207, 0.0, 0.017, 0.007, 
+        0.196, 0.301, 0.100, 0.107, 0.010, 0.251, 0.0, 0.004, 0.0006, 0.164
+    };
+    
+    public SAXVSM() {
+        this.PAA_intervalsPerWindow = -1;
+        this.SAX_alphabetSize = -1;
+        this.windowSize = -1;
+      
+        knn = new kNN(); //default to 1NN, Euclidean distance
+
+        useParamSearch = true;
+    }
     
     public SAXVSM(int PAA_intervalsPerWindow, int SAX_alphabetSize, int windowSize) {
         this.PAA_intervalsPerWindow = PAA_intervalsPerWindow;
@@ -42,10 +78,10 @@ public class SAXVSM implements Classifier {
         this.windowSize = windowSize;
         
         bop = new BagOfPatterns(PAA_intervalsPerWindow, SAX_alphabetSize, windowSize);
-  
         knn = new kNN(); //default to 1NN, Euclidean distance
-        
         alphabet = SAX.getAlphabet(SAX_alphabetSize);
+        
+        useParamSearch = false;
     }
     
     public int getPAA_intervalsPerWindow() {
@@ -60,13 +96,90 @@ public class SAXVSM implements Classifier {
         return windowSize;
     }
     
+    /**
+     * Performs cross validation on given data for varying parameter values, returns 
+     * parameter set which yielded greatest accuracy
+     * 
+     * @param data Data to perform cross validation testing on
+     * @return { numIntervals, alphabetSize, slidingWindowSize } 
+     */
+    public static int[] parameterSearch(Instances data) {
+//        System.out.println("SAXVSM_ParamSearch\n\n");
+  
+        double bestAcc = 0.0;
+        int bestAlpha = 0, bestWord = 0, bestWindowSize = 0;
+        int numTests = 5;
+
+        int minWinSize = (int)((data.numAttributes()-1) / 10.0);
+        int maxWinSize = (int)((data.numAttributes()-1) / 2.0);
+        int winInc = (int)((maxWinSize - minWinSize) / 10.0); 
+
+//        System.out.println("serieslength:"+(data.numAttributes()-1)+"    max:"+maxWinSize+"   min:"+minWinSize+"    inc:"+winInc);
+        
+        for (int alphaSize = 2; alphaSize <= 10; alphaSize++) {
+            for (int winSize = minWinSize; winSize <= maxWinSize; winSize+=winInc) {
+                for (int wordSize = 2; wordSize <= winSize/2; wordSize*=2) { //lin BoP suggestion
+//                for (int interSize = 2; interSize <= 10; interSize++) { //arbitrary, minimizing dictionary size suggestion
+                
+                    SAXVSM vsm = new SAXVSM(wordSize,alphaSize,winSize);
+                    double acc = ClassifierTools.crossValidationWithStats(vsm, data, data.numInstances())[0][0];//leave-one-out cv
+//                    double acc = ClassifierTools.crossValidationWithStats(vsm, data, 2)[0][0];//2-fold
+                    
+//                    System.out.println("i/a/w/acc : "+wordSize+"/"+alphaSize+"/"+winSize+"/"+acc);
+              
+                    if (acc > bestAcc) {
+                        bestAcc = acc;
+                        bestAlpha = alphaSize;
+                        bestWord = wordSize;
+                        bestWindowSize = winSize;
+                    }
+                }
+            }
+        }
+
+//        System.out.println("\n\nbest accuracy: " + bestAcc);
+//        System.out.println("best alphabet size: " + bestAlpha);
+//        System.out.println("best num intervals: " + bestWord);
+//        System.out.println("best window size: " + bestWindowSize);  
+        
+//        System.out.println(data.relationName() + " params: i/a/w/acc = "+bestWord+"/"+bestAlpha+"/"+bestWindowSize+"/"+bestAcc);
+        
+        return new int[] { bestWord, bestAlpha, bestWindowSize};
+    }
+    
     @Override
     public void buildClassifier(Instances data) throws Exception {
         if (data.classIndex() != data.numAttributes()-1)
             throw new Exception("SAXVSM_BuildClassifier: Class attribute not set as last attribute in dataset");
         
-        data = bop.process(data);
+        if (useParamSearch) {
+            int[] params = parameterSearch(data);
+            
+            this.PAA_intervalsPerWindow = params[0];
+            this.SAX_alphabetSize = params[1];
+            this.windowSize = params[2];
+            
+            bop = new BagOfPatterns(PAA_intervalsPerWindow, SAX_alphabetSize, windowSize);
+            alphabet = SAX.getAlphabet(SAX_alphabetSize);
+        }
         
+        if (PAA_intervalsPerWindow<0)
+            throw new Exception("SAXVSM_BuildClassifier: Invalid PAA word size: " + PAA_intervalsPerWindow);
+        if (PAA_intervalsPerWindow>windowSize)
+            throw new Exception("SAXVSM_BuildClassifier: Invalid PAA word size, bigger than sliding window size: "
+                    + PAA_intervalsPerWindow + "," + windowSize);
+        if (SAX_alphabetSize<0 || SAX_alphabetSize>10)
+            throw new Exception("SAXVSM_BuildClassifier: Invalid SAX alphabet size (valid=2-10): " + SAX_alphabetSize);
+        if (windowSize<0 || windowSize>data.numAttributes()-1)
+            throw new Exception("SAXVSM_BuildClassifier: Invalid sliding window size: " 
+                    + windowSize + " (series length "+ (data.numAttributes()-1) + ")");
+        
+        data = bop.process(data);
+//        
+//        System.out.println("\n\nBOP");
+//        System.out.println(data);
+//        System.out.println("\n\n");
+//        
         int numClasses = data.numClasses();
         int numInstances = data.numInstances();
         int numTerms = bop.dictionary.size();
@@ -77,13 +190,26 @@ public class SAXVSM implements Classifier {
         for (int i = 0; i < numClasses; ++i) {
             classWeights[i] = new double[numTerms];
             for (int j = 0; j < numTerms; ++j)
-                classWeights[i][j] = 0; //cant remember whether java defaults doubles to 0, meh
+                classWeights[i][j] = 0; //cant remember whether java defaults array elements to 0, to be absolutely sure
         }
 
         //build class bags
         for (int i = 0; i < numInstances; ++i)
             for (int j = 0; j < numTerms; ++j)
                 classWeights[(int)classValues[i]][j] += data.get(i).value(j);
+        
+        
+//        //TESTING TO SEE IF THIS MAKES A DIFFERENCE
+//        for (int i = 0; i < numClasses; ++i) 
+//            intervalNorm(classWeights[i]);
+//        
+        
+//        System.out.println("\n\npre weighting");
+//        for (int i = 0; i < numClasses; ++i) {
+//            for (int j = 0; j < numTerms; ++j)
+//                System.out.print(classWeights[i][j] +" ");
+//            System.out.println("");
+//        }
         
         //apply tf x idf
         for (int i = 0; i < numTerms; ++i) { //for each term
@@ -111,9 +237,25 @@ public class SAXVSM implements Classifier {
             }
         }
         
+//        System.out.println("\n\npost weighting");
+//        for (int i = 0; i < numClasses; ++i) {
+//            for (int j = 0; j < numTerms; ++j)
+//                System.out.print(String.format("%3f ", classWeights[i][j]));
+//            System.out.println("");
+//        }
+        
+        
+//        //        //TESTING TO SEE IF THIS MAKES A DIFFERENCE
+//        for (int i = 0; i < numClasses; ++i) 
+//            intervalNorm(classWeights[i]);
+//        
+        
+        
         corpus = new Instances(data, numClasses);
         for (int i = 0; i < numClasses; ++i)
             corpus.add(new SparseInstance(1.0, classWeights[i]));
+        
+        knn.buildClassifier(corpus);
     }
     
 //    @Override
@@ -359,15 +501,23 @@ public class SAXVSM implements Classifier {
         int numClasses = corpus.numInstances();
         
         double[] termFreqs = bop.bagToArray(bop.buildBag(instance));
+        intervalNorm(termFreqs);
+        
+//        return knn.distributionForInstance(instance);
+        
         double[] similarities = new double[numClasses];
         
-//        System.out.println("SIMILARITIES");
+//        for (int i = 0; i < termFreqs.length; ++i) 
+//            System.out.print(termFreqs[i] + " ");
+//        System.out.println("");
+        
+//        System.out.print("SIMILARITIES ");
         double sum = 0.0;
         for (int i = 0; i < numClasses; ++i) {
             //similarities[i] = cosineSimilarity(classWeights[i], termFreqs); 
             similarities[i] = cosineSimilarity(corpus.get(i).toDoubleArray(), termFreqs, termFreqs.length); 
             sum+=similarities[i];
-//            System.out.println(similarities[i]);
+//            System.out.print(similarities[i] + " ");
         }
 //        System.out.println("");
         
@@ -397,36 +547,49 @@ public class SAXVSM implements Classifier {
         System.out.println("SAXVSM");
         
         try {  
+            //aaa();
+            //paramSearchTest();
+            //crossValidationTest();
+            fullTest();
+            
             //very small dataset for testing by eye
-//            Instances all = ClassifierTools.loadData("C:\\\\Temp\\\\TESTDATA\\\\Sheet2_Train2.arff");
+//            Instances all = ClassifierTools.loadData("C:\\\\Temp\\\\TESTDATA\\\\Sheet2_3.arff");
             
             //two class, decent size
 //            Instances all = ClassifierTools.loadData("C:\\\\Temp\\\\TESTDATA\\\\TwoClassV1.arff");
             
             //five class, large size
-            Instances all = ClassifierTools.loadData("C:\\\\Temp\\\\TESTDATA\\\\FiveClassV1.arff");
-            all.deleteAttributeAt(0); //just name of bottle        
+//            Instances all = ClassifierTools.loadData("C:\\\\Temp\\\\TESTDATA\\\\FiveClassV1.arff");
+//            all.deleteAttributeAt(0); //just name of bottle        
+//            
+//            int trainNum = (int) (all.numInstances() * 0.7);
+//            int testNum = all.numInstances() - trainNum;
+//            
+//            Instances train = new Instances(all, 0, trainNum);
+//            Instances test = new Instances(all, trainNum, testNum);
             
-            Randomize rand = new Randomize();
-            rand.setInputFormat(all);
-            for (int i = 0; i < all.numInstances(); ++i) {
-                rand.input(all.get(i));
-            }
-            rand.batchFinished();
             
-            int trainNum = (int) (all.numInstances() * 0.7);
-            int testNum = all.numInstances() - trainNum;
             
-            Instances train = new Instances(all, trainNum);
-            for (int i = 0; i < trainNum; ++i) 
-                train.add(rand.output());
-            
-            Instances test = new Instances(all, testNum);
-            for (int i = 0; i < testNum; ++i) 
-                test.add(rand.output());
+//            Randomize rand = new Randomize();
+//            rand.setInputFormat(all);
+//            for (int i = 0; i < all.numInstances(); ++i) {
+//                rand.input(all.get(i));
+//            }
+//            rand.batchFinished();
+//            
+//            int trainNum = (int) (all.numInstances() * 0.7);
+//            int testNum = all.numInstances() - trainNum;
+//            
+//            Instances train = new Instances(all, trainNum);
+//            for (int i = 0; i < trainNum; ++i) 
+//                train.add(rand.output());
+//            
+//            Instances test = new Instances(all, testNum);
+//            for (int i = 0; i < testNum; ++i) 
+//                test.add(rand.output());
                   
-            //basicTest(train, test);
-            fullTest(train, test);
+//            basicTest(train, test);
+//            fullTest(train, test);
         }
         catch (Exception e) {
             System.out.println(e);
@@ -435,63 +598,130 @@ public class SAXVSM implements Classifier {
         
     }
     
-    public static void basicTest(Instances train, Instances test) throws Exception {
-        
-        System.out.println("SAXVSMtest\n\n");
-        
-        SAXVSM vsm = new SAXVSM(6,3,100);
+    public static void paramSearchTest() throws Exception {
+        Instances all = ClassifierTools.loadData("C:\\\\Temp\\\\TESTDATA\\\\FiveClassV1.arff");
+        all.deleteAttributeAt(0); //just name of bottle        
+
+        int trainNum = (int) (all.numInstances() * 0.7);
+        int testNum = all.numInstances() - trainNum;
+
+        Instances train = new Instances(all, 0, trainNum);
+        Instances test = new Instances(all, trainNum, testNum);
+
+        int[] params = parameterSearch(train);
+
+        SAXVSM vsm = new SAXVSM(params[0],params[1],params[2]);
         vsm.buildClassifier(train);
 
-        System.out.println("ACCURACY " + ClassifierTools.accuracy(test, vsm));
+        System.out.println(ClassifierTools.accuracy(test, vsm));
     }
     
-    public static void fullTest(Instances train, Instances test) throws Exception {
-        System.out.println("SAXVSM_FullTest\n\n");
-  
-        double bestAcc = 0.0;
-        int bestAlpha = 0, bestInter = 0, bestWindowSize = 0;
-        int numTests = 5;
-
-        Random r = new Random();
-
-        for (int alphaSize = 2; alphaSize <= 5; alphaSize++) {
-            for (int interSize = 2; interSize <= 10; interSize++) {
-                for (int winSize = 10; winSize <= 200; winSize+=10) {
-                    System.out.println("alphasize:"+alphaSize);
-                    System.out.println("interSize:"+interSize);
-                    System.out.println("winSize:"+winSize);
-
-                    double thisAcc = 0, totalAcc = 0;
-
-                    for (int testno = 0; testno < numTests; testno++) {
-                        Instances[] datasets = InstanceTools.resampleTrainAndTestInstances(train, test, r.nextInt());
-                        
-                        SAXVSM vsm = new SAXVSM(interSize,alphaSize,winSize);
-                        vsm.buildClassifier(datasets[0]);
-
-                        thisAcc = ClassifierTools.accuracy(datasets[1], vsm);
-                        totalAcc += thisAcc;
-                        System.out.println("accuracytest" + testno + ": " + thisAcc);
-                    }
-
-                    totalAcc /= numTests;
-                    if (totalAcc > bestAcc) {
-                        bestAcc = totalAcc;
-                        bestAlpha = alphaSize;
-                        bestInter = interSize;
-                        bestWindowSize = winSize;
-                    }
-
-                    System.out.println("avg accuracy: " + totalAcc + "\n");
-                }
+    public static void crossValidationTest() throws Exception {
+        //five class, large size
+        Instances all = ClassifierTools.loadData("C:\\\\Temp\\\\TESTDATA\\\\FiveClassV1.arff");
+        all.deleteAttributeAt(0); //just name of bottle     
+        
+        SAXVSM vsm = new SAXVSM(8,4,50);
+        
+        double[][] cv = ClassifierTools.crossValidationWithStats(vsm, all, 10);
+        
+        for (int i = 0; i < cv.length; i++) {
+            for (int j = 0; j < cv[i].length; j++) {
+                System.out.print(cv[i][j] + " ");
             }
+            System.out.println("");
+        }
+                
+    }
+    
+    public static void basicTest(Instances train, Instances test) throws Exception {
+        
+//        System.out.println("SAXVSMtest\n\n");
+//        
+//        System.out.println("PRE");
+//        System.out.println("train");
+//        System.out.println(train);
+//        System.out.println("\ntest");
+//        System.out.println(test);
+        
+        SAXVSM vsm = new SAXVSM(8,4,100);
+        vsm.buildClassifier(train);
+//
+//        System.out.println("\nCORPUS");
+//        System.out.println(vsm.corpus);
+//        System.out.println("\n\n");
+//        
+        System.out.println("\n\nACCURACY " + ClassifierTools.accuracy(test, vsm));
+    }
+    
+    public static void fullTest() throws Exception {
+        System.out.println("SAXVSM_FullTest\n\n");
+
+        String path="C:\\Temp\\TESTDATA\\TSC Problems\\";
+        
+        OutFile out = new OutFile("SAXVSMpapertests.csv");  
+        out.writeLine("data, paramSearchError, paperError, , wordlen, alphasize, winsize");
+     
+        int i =0;
+        for (String fname : SAXVSMPaperDatasets) {
+            Instances train = ClassifierTools.loadData(path+fname+"\\"+fname+"_TRAIN");
+            Instances test = ClassifierTools.loadData(path+fname+"\\"+fname+"_TEST");
+
+            SAXVSM vsm = new SAXVSM(); //user param search
+            vsm.buildClassifier(train);
+
+            double err = 1.0-ClassifierTools.accuracy(test, vsm);
+            
+            out.writeLine(fname + ", " + err + ", " + SAXVSMPaperErrors[i] + ", , " + vsm.getPAA_intervalsPerWindow() + ", " + vsm.getSAX_alphabetSize() + ", " + vsm.getWindowSize());
+            System.out.println(fname + ", " + err + ", " + SAXVSMPaperErrors[i++] + ", " + vsm.getPAA_intervalsPerWindow() + ", " + vsm.getSAX_alphabetSize() + ", " + vsm.getWindowSize());
+        }
+        
+        out.closeFile();
+    }
+    
+    public static void aaa() throws Exception {
+//        Instances train = ClassifierTools.loadData("C:\\\\Temp\\\\TESTDATA\\\\TSC Problems\\\\Car\\\\Car_TRAIN.arff");
+//        Instances test = ClassifierTools.loadData("C:\\\\Temp\\\\TESTDATA\\\\TSC Problems\\\\Car\\\\Car_TEST.arff");
+        
+//        Instances train = ClassifierTools.loadData("C:\\\\Temp\\\\TESTDATA\\\\TSC Problems\\\\GunPoint\\\\GunPoint_TRAIN.arff");
+//        Instances test = ClassifierTools.loadData("C:\\\\Temp\\\\TESTDATA\\\\TSC Problems\\\\GunPoint\\\\GunPoint_TEST.arff");
+        
+//        Instances train = ClassifierTools.loadData("C:\\\\Temp\\\\TESTDATA\\\\TSC Problems\\\\CBF\\\\CBF_TRAIN.arff");
+//        Instances test = ClassifierTools.loadData("C:\\\\Temp\\\\TESTDATA\\\\TSC Problems\\\\CBF\\\\CBF_TEST.arff");
+        
+//        Instances train = ClassifierTools.loadData("C:\\\\Temp\\\\TESTDATA\\\\TSC Problems\\\\ChlorineConcentration\\\\ChlorineConcentration_TRAIN.arff");
+//        Instances test = ClassifierTools.loadData("C:\\\\Temp\\\\TESTDATA\\\\TSC Problems\\\\ChlorineConcentration\\\\ChlorineConcentration_TEST.arff");
+        
+        String path="C:\\Temp\\TESTDATA\\TSC Problems\\";
+        
+//        OutFile out = new OutFile("MYsaxvsmtests.csv");
+//   
+//        out.writeLine("data, accuracy, error");
+     
+        for (String fname : UCRvsmdata) {
+            System.out.println("DATA: " + fname);
+            
+            Instances train = ClassifierTools.loadData(path+fname+"\\"+fname+"_TRAIN");
+            Instances test = ClassifierTools.loadData(path+fname+"\\"+fname+"_TEST");
+
+            SAXVSM vsm = new SAXVSM(8,4,100); //fixed params
+//            SAXVSM vsm = new SAXVSM(); //user param search
+            vsm.buildClassifier(train);
+
+            double acc = ClassifierTools.accuracy(test, vsm);
+            double err= 1.0-acc;
+            
+//            out.writeLine(fname + ", " + acc + ", " + err);
+            
+            
+            System.out.println("ACCURACY " + acc);
+            System.out.println("ERROR " + err + "\n");
         }
 
-        System.out.println("\n\nbest average accuracy: " + bestAcc);
-        System.out.println("best alphabet size: " + bestAlpha);
-        System.out.println("best num intervals: " + bestInter);
-        System.out.println("best window size: " + bestWindowSize);     
+//        out.closeFile();
     }
+    
+
     
     @Override
     public String toString() { 
