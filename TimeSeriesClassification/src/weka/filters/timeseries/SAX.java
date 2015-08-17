@@ -7,22 +7,23 @@ import weka.core.FastVector;
 import weka.core.Instance;
 import weka.core.Instances;
 import weka.filters.Filter;
+import weka.filters.NormalizeCase;
 import weka.filters.SimpleBatchFilter;
 import weka.filters.unsupervised.attribute.Normalize;
 
 /**
  * Filter to reduce dimensionality of and discretise a normalised time series into SAX form. 
  * 
- * Attributes can be in two forms - discrete alphabet or real values 0 to alphabetsize-1
+ * Output attributes can be in two forms - discrete alphabet or real values 0 to alphabetsize-1
  * 
- * Default num of intervals = 10
+ * Default num of intervals = 6
  * Default alphabet size = 3
  *
  * @author James
  */
 public class SAX extends SimpleBatchFilter {
 
-    private int numIntervals = 10;
+    private int numIntervals = 6;
     private int alphabetSize = 3;
     private boolean useRealAttributes = false;
     private FastVector alphabet = null;
@@ -94,7 +95,7 @@ public class SAX extends SimpleBatchFilter {
             case 7: {  breakpoints = new double[]{-1.07, -0.57, -0.18, 0.18, 0.57, 1.07, maxVal }; break; }
             case 8: {  breakpoints = new double[]{-1.15, -0.67, -0.32, 0, 0.32, 0.67, 1.15, maxVal}; break; }
             case 9: {  breakpoints = new double[]{-1.22, -0.76, -0.43, -0.14, 0.14, 0.43, 0.76, 1.22, maxVal}; break; }
-            case 10: { breakpoints = new double[]{-1.28 -0.84 -0.52 -0.25, 0.0, 0.25, 0.52, 0.84, 1.28, maxVal}; break; }
+            case 10: { breakpoints = new double[]{-1.28, -0.84, -0.52, -0.25, 0.0, 0.25, 0.52, 0.84, 1.28, maxVal}; break; }
             
             default: { 
                 throw new Exception("No breakpoints stored for alphabet size " + alphabetSize); 
@@ -117,7 +118,6 @@ public class SAX extends SimpleBatchFilter {
             }
         }
         
-        //Set up instances size and format. 
         FastVector attributes = new FastVector();
         
         //If the alphabet is to be considered as discrete values (i.e non real), 
@@ -287,22 +287,17 @@ public class SAX extends SimpleBatchFilter {
         System.out.println("SAXtest\n\n");
         
         try {
-            Instances test = ClassifierTools.loadData("C:\\\\Temp\\\\TESTDATA\\\\TwoClassV1.arff");
-            test.deleteAttributeAt(0); //just name of bottle
+            Instances test = ClassifierTools.loadData("C:\\\\Temp\\\\TESTDATA\\\\Sheet2_Train2.arff");
             
-            Normalize norm = new Normalize();
-            norm.setScale(2.0);
-            norm.setTranslation(-1.0);
-            norm.setInputFormat(test);
-            Instances normTest = Filter.useFilter(test, norm);
+            new NormalizeCase().standardNorm(test);
             
             SAX sax = new SAX();
-            sax.setNumIntervals(50);
+            sax.setNumIntervals(2);
             sax.setAlphabetSize(3);     
             sax.useRealValuedAttributes(false);
-            Instances result = sax.process(normTest);
+            Instances result = sax.process(test);
             
-            System.out.println(normTest);
+            System.out.println(test);
             System.out.println("\n\n\nResults:\n\n");
             System.out.println(result);
         }
