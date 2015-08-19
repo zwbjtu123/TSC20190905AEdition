@@ -5,10 +5,14 @@
  */
 package utilities;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Random;
+import java.util.Scanner;
 import java.util.TreeMap;
 import weka.core.Attribute;
 import weka.core.DenseInstance;
@@ -189,4 +193,71 @@ public class InstanceTools {
         
         return data;
     }
+    
+    
+    // utility method for creating ARFF from UCR file without writing output, just returns Instances
+    public static Instances convertFromUCRtoARFF(String inputFilePath) throws Exception{
+        return convertFromUCRtoARFF(inputFilePath, null, null);
+    }
+    
+    // writes output and returns Instances too
+    public static Instances convertFromUCRtoARFF(String inputFilePath, String outputRelationName, String fullOutputPath) throws Exception{
+        File input = new File(inputFilePath);
+        if(!input.exists()){
+            throw new Exception("Error converting to ARFF - input file not found: "+input.getAbsolutePath());
+        }
+
+        // get instance length
+        Scanner scan = new Scanner(input);
+        scan.useDelimiter("\n");
+        String firstIns = scan.next();
+        int numAtts = firstIns.split(",").length;
+        
+        // create attribute list
+        ArrayList<Attribute> attList = new ArrayList<>();
+        for(int i = 0; i < numAtts-1; i++){
+            attList.add(new Attribute("att"+i));
+        }
+        attList.add(new Attribute("classVal"));
+        
+        // create Instances object
+        Instances output;
+        if(outputRelationName==null){
+            output = new Instances("temp", attList, numAtts);
+        }else{
+            output = new Instances(outputRelationName, attList, numAtts);
+        }
+        output.setClassIndex(numAtts-1);
+        
+        // populate Instances
+        String[] nextIns;
+        DenseInstance d;
+        scan = new Scanner(input);
+        scan.useDelimiter("\n");
+        while(scan.hasNext()){
+            nextIns = scan.next().split(",");
+            d = new DenseInstance(numAtts);
+            for(int a = 0; a < numAtts-1; a++){
+                d.setValue(a, Double.parseDouble(nextIns[a+1]));
+            }
+            d.setValue(numAtts-1, Double.parseDouble(nextIns[0]));
+            output.add(d);
+        }
+        
+        // if null, don't write. Else, write output ARFF here
+        if(fullOutputPath!=null){
+            System.out.println(fullOutputPath.substring(fullOutputPath.length()-5, fullOutputPath.length()));
+            if(!fullOutputPath.substring(fullOutputPath.length()-5, fullOutputPath.length()).equalsIgnoreCase(".ARFF")){
+                fullOutputPath += ".ARFF";
+            }
+            
+            new File(fullOutputPath).getParentFile().mkdirs();
+            FileWriter out = new FileWriter(fullOutputPath);
+            out.append(output.toString());
+            out.close();
+        }
+        
+        return output;
+    }
+    
 }
