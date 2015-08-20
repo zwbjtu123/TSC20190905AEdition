@@ -168,22 +168,20 @@ public class QualityBound{
             
                 for(int totalCycles = perms.keySet().size(); totalCycles > 1; totalCycles--){
                     for(int cycle = 0; cycle < totalCycles; cycle++){
-                        int start = 0;
-                        int count = 0;
+                        int start = 0, count = 0;
                         for(Double key : perms.keySet()){
+                            Boolean val = Boolean.TRUE;
                             if(cycle == start){
-                                perms.put(key, Boolean.FALSE);
-                                if(totalCycles <  perms.keySet().size() && count < (perms.keySet().size() - totalCycles)){
+                                val = Boolean.FALSE;
+                                int size = perms.keySet().size();
+                                if(totalCycles <  size && count < (size - totalCycles)){
                                     count++;
                                     start--;
                                 }
-                            }else{
-                                perms.put(key, Boolean.TRUE);
                             }
-
+                            perms.put(key, val);
                             start++;
                         }
-
                         //Check quality of current permutation
                         double currentGain = computeIG(perms);
 
@@ -240,6 +238,29 @@ public class QualityBound{
                     greaterClasses.put(j, parentClassDist.get(j));
                     countOfGreaterClasses += greaterClasses.get(j);
                 }
+                
+                
+                /*
+                //TODO: Aaron, refactored the above code. Need to confirm its the same.
+                int lessVal =0;
+                int greaterVal = parentClassDist.get(j);
+                
+                if(perm != null){
+                    if(perm.get(j) != null && perm.get(j)){
+                        lessVal = parentClassDist.get(j) - orderLineClassDist.get(j);
+                        greaterVal = orderLineClassDist.get(j);
+                    }
+                    countOfLessClasses += lessClasses.get(j);
+                
+               //Assign everything to the right for fast bound
+                }else{
+                    isShifted.put(j, Boolean.FALSE);
+                }
+                
+                lessClasses.put(j, lessVal)
+                greaterClasses.put(j, greaterVal);
+                countOfGreaterClasses += greaterClasses.get(j);
+                */
                 
                 countOfAllClasses += parentClassDist.get(j);
             }

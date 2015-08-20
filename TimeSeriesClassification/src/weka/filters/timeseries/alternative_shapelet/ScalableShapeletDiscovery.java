@@ -1,4 +1,4 @@
-package grabocka_reproduction;
+package weka.filters.timeseries.alternative_shapelet;
 
 //import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 

@@ -6,10 +6,11 @@
 package development;
 
 import AaronTest.LocalInfo;
-import grabocka_reproduction.LearnShapelets;
+import weka.filters.timeseries.alternative_shapelet.LearnShapelets;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -31,8 +32,19 @@ import weka.filters.timeseries.shapelet_transforms.classValue.BinarisedClassValu
 public class ResamplingExperiments {
 
 
-    private static final String dotdotSlash = ".." + File.separator;
+    private static final String dotdotSlash = ".." + File.separator;     
+    private static final String ucrLocation         = dotdotSlash + dotdotSlash + "75 Data sets for Elastic Ensemble DAMI Paper";
+    private static final String resampleLocation    = dotdotSlash + dotdotSlash + "resampled data sets";
+    private static final String transformLocation   = dotdotSlash + dotdotSlash + "resampled transforms";
+    private static final String accuraciesLocation  = dotdotSlash + dotdotSlash + "resampled accuracies";
+    private static final String resultsLocation     = dotdotSlash + dotdotSlash + "resampled results";
+    
     private static String[] datasets;
+    
+    private static String classifierName;
+    private static int classifier;
+    
+    private static String currentDataSet;
     
     public static final int noSamples = 100;
 
@@ -40,93 +52,103 @@ public class ResamplingExperiments {
         
         //ive already 
         //datasets = removeSubArray(DataSets.ucrNames, DataSets.ucrSmall);
-        datasets = DataSets.ucrSmall;
-
-        final String ucrLocation         = dotdotSlash + dotdotSlash + "75 Data sets for Elastic Ensemble DAMI Paper";
-        final String resampleLocation    = dotdotSlash + dotdotSlash + "resampled data sets";
-        final String transformLocation   = dotdotSlash + dotdotSlash + "resampled transforms";
-        final String accuraciesLocation  = dotdotSlash + dotdotSlash + "resampled accuracies";
-        final String resultsLocation     = dotdotSlash + dotdotSlash + "resampled results";
+        //datasets = DataSets.ucrSmall;
         
-        /*File fDir = new File(ucrLocation);
+        //we assume certain file structure for cross platform use.
+        //arg0 is the dataset name. 
+        //arg1 is the fold number. 0-99.
+        //arg2 is the algorithm Full is 0 and Binary is 1.
+        
+        //We could opt to not have our arguments come from command line and instead run the folds and datasets and algorithms in 3 nested loops.
+        currentDataSet = args[0];
+        
+        classifier = Integer.parseInt(args[1]);
+        setClassifierName(classifier);
+        
+        //1-100. we want 0-99. Cluster thing.
+        int fold=0;
+        if(args.length >= 3)
+        {
+            fold   = Integer.parseInt(args[2]) - 1;
+        }
+        
+        
+        //createAllResamples();
+        createShapelets(fold);
+        //fileVerifier();
+        //createAndWriteAccuracies();
+        
+        
+        //createAccuracies();
+        //collateData(resultsLocation, simpleName);
+    }
+    public static void setClassifierName(int classifier)
+    {
+        switch(classifier)
+        {
+            case 0:
+            classifierName = FullShapeletTransform.class.getSimpleName();
+            break;
+        
+            case 1:
+            classifierName = BalancedClassShapeletTransform.class.getSimpleName();
+            break;
+        
+            case 2:
+            classifierName = LearnShapelets.class.getSimpleName();
+            break;
+        }
+    }
+    
+    
+    public static void createAllResamples()
+    {
+        File fDir = new File(ucrLocation);
         final File[] ds = fDir.listFiles();
 
         for (File d : ds) 
         {
             String fileExtension = File.separator + d.getName() + File.separator + d.getName();
-            createResmapleSets(ucrLocation + fileExtension, resampleLocation + fileExtension, );
+            createResmapleSets(ucrLocation + fileExtension, resampleLocation + fileExtension);
         }
-       */
-
-        //create all the shapelets sets for the small resamples.
-        int inputVal    = Integer.parseInt(args[0]) - 1;
-        int sampleSize  = Integer.parseInt(args[1]);
-        int classifier    = Integer.parseInt(args[2]);
-
-        //1565 / 100 = 15
-        //1565 % 100 = 65
-        int index = inputVal / sampleSize;
-        int fold = inputVal % sampleSize;
-
-        System.out.println("creating resample for " + datasets[index] + " for fold: " + fold);
-        
-        String fileExtension = File.separator + datasets[index] + File.separator + datasets[index];
-
+    }
+    
+    //rewrite
+    public static void createShapelets(int fold)
+    {
         FullShapeletTransform transform = null;
-        LearnShapelets ls = null;
-        
-        Object classObj;
         
         if(classifier == 0)
         {
             transform = new FullShapeletTransform();
-            classObj = transform;
         }
-        else if(classifier == 1)
+        else
         {
             transform = new BalancedClassShapeletTransform();
             transform.setClassValue(new BinarisedClassValue());
-            classObj = transform;
-        }
-        else
-        {
-            ls = new LearnShapelets();
-            classObj = ls;
         }
         
-        //get the loadLocation of the resampled files.
-        String classifierDir = File.separator + classObj.getClass().getSimpleName() + fileExtension;
-        String samplePath       = resampleLocation + fileExtension;
-        String transformPath    = transformLocation + classifierDir;
-        String accuracyPath     = accuraciesLocation   + classifierDir;
-        String resultsPath      = resultsLocation   + classifierDir;
+        String fileExtension = File.separator + currentDataSet + File.separator + currentDataSet;
+        String classifierDir = File.separator + classifierName + fileExtension;
+        String samplePath       = resampleLocation + fileExtension + fold;
+        String transformPath    = transformLocation + classifierDir + fold;
         
-        System.out.println(samplePath);
+        Instances test, train;
+        test = utilities.ClassifierTools.loadData(samplePath + "_TEST");
+        train = utilities.ClassifierTools.loadData(samplePath + "_TRAIN");
         
-        //for shapelets.
-        /*if(classifier != 2)
-        {
-            createShapeletsOnResample(samplePath, transformPath, fold, transform); 
+        //construct shapelet classifiers.
+        transform.setNumberOfShapelets(train.numInstances() * 10);
+        transform.setShapeletMinAndMax(3, train.numAttributes() - 1);
+        transform.setQualityMeasure(QualityMeasures.ShapeletQualityChoice.INFORMATION_GAIN);
+        transform.setLogOutputFile(transformPath+"_shapelets.csv");
+        //transform.useCandidatePruning(); //no candidate pruning at the moment.
 
-            //save path in this instance is where the transformed data is.
-            //createWeightedEnsembleAccuracies(transformPath, accuracyPath, fold);
-        }
-        //for grabocka.
-        else
-        {
-            createLearnShapeleteAccuracies(samplePath, resultsPath, fold);
-        }*/
-        
-        //fileVerifier(transformLocation, classObj);
-        createAndWriteAccuracies(transformPath, resultsPath, sampleSize);
-        //createAccuracies(accuracyPath, resultsPath);
-        
-        /*try {
-            collateData(resultsLocation, classObj);
-        } catch (IOException ex) {
-            System.out.println("IOError");
-        }*/
+        //saveLocation/FullShapeletTransform/ItalyPowerDemand/ItalyPowerDemandi_TRAIN
+        LocalInfo.saveDataset(transform.process(train), transformPath + "_TRAIN");
+        LocalInfo.saveDataset(transform.process(test), transformPath  + "_TEST");
     }
+    
     
     public static String[] removeSubArray(String[] datasets, String[] subDatasets)
     {
@@ -151,78 +173,75 @@ public class ResamplingExperiments {
         return list.toArray(new String[list.size()]);
     }
     
-    public static void collateData(String resultsLocation, Object classObj) throws IOException
+    public static void collateData(String resultsLocation, String simpleName)
     {
-        String resultsPath;
-        
-        String classifierDir = File.separator + classObj.getClass().getSimpleName();
-        
-        //create the file.
-        File output = new File(resultsLocation  + classifierDir +"results.csv");
-        output.createNewFile();
-        
-        try (PrintWriter pw = new PrintWriter(output)) {
-            pw.printf("dataset,accuracy\n");
+        try {
+            String resultsPath;
             
+            String classifierDir = File.separator + simpleName;
+            
+            //create the file.
+            File output = new File(resultsLocation  + classifierDir +"results.csv");
+            output.createNewFile();
+            
+            PrintWriter pw = new PrintWriter(output);
+            pw.printf("dataset,accuracy\n");
+
             for (String smallDataset : datasets) {
                 String fileExtension = File.separator + smallDataset + File.separator + smallDataset;
                 resultsPath = resultsLocation  + classifierDir + fileExtension;
-                
+
                 File f = new File(resultsPath+".csv");
-                
+
 
                 //if the file doesn't exist skip it.
                 if(!f.exists()) continue;
 
                 System.out.println(f);
-                
+
                 Scanner sc  = new Scanner(f);
-                
+
                 double avg = 0;
                 int i=0;
-                
+
                 //skip the header.
                 if(!sc.hasNextLine())
-                   continue;
-                 
+                    continue;
+
                 sc.nextLine();
-                
+
                 while(sc.hasNextLine())
                 {
                     String line = sc.nextLine();
                     //should be size 2.
                     String[] split = line.split(",");
-                    
+
                     double value = Double.parseDouble(split[1]);
                     avg += value;
                     i++;
                 }
-                
+
                 if(avg != 0 || i != 0)
                     avg /= i;
-                
+
                 //write the average and the file to the csv.
                 pw.printf("%s,%f\n", smallDataset, avg);
             }
+        } catch (IOException ex) {
+            System.out.println("Exception " + ex);
         }
     }
     
-    public static void fileVerifier(String transformLocation, Object classObj)
+    public static void fileVerifier()
     {
         String list ="";
         
-        int sampleSize = 100;
-        
-        for(int i=1; i < datasets.length * sampleSize; i++)
+        for(int i=0; i< noSamples; i++)
         {
-            int index = i / sampleSize;
-            int fold = i % sampleSize;
-            
-            String fileExtension = File.separator + datasets[index] + File.separator + datasets[index];
-            String transformPath = transformLocation + File.separator + classObj.getClass().getSimpleName() + fileExtension;
-            
-            
-            File f = new File(transformPath + fold + "_TRAIN.arff");
+            String fileExtension = File.separator + currentDataSet + File.separator + currentDataSet;
+            String transformPath = transformLocation + File.separator + classifierName + fileExtension;
+
+            File f = new File(transformPath + i + "_TRAIN.arff");
             System.out.println(f);
             if(!f.exists())
             {
@@ -234,16 +253,25 @@ public class ResamplingExperiments {
     }
     
     
-    public static void createAndWriteAccuracies(String transformPath, String resultsPath, int totalFolds) {
+    public static void createAndWriteAccuracies() {
+
+        String fileExtension = File.separator + currentDataSet + File.separator + currentDataSet;
+        
+        //get the loadLocation of the resampled files.
+        String classifierDir = File.separator + classifierName + fileExtension;
+        String transformPath    = transformLocation + classifierDir;
+        String resultsPath      = resultsLocation   + classifierDir;
+
         try {
             //create our accuracy file.
             File f = new File(resultsPath+".csv");
             f.getParentFile().mkdirs();
             f.createNewFile();
             PrintWriter pw = new PrintWriter(f);
+            
             pw.printf("%s,%s\n","fold","accuracy");
             
-            for(int fold=0; fold<totalFolds; fold++)
+            for(int fold=0; fold<noSamples; fold++)
             {
             //get the train and test instances for each dataset.
                 Instances test = utilities.ClassifierTools.loadData(transformPath + fold + "_TEST");
@@ -256,8 +284,7 @@ public class ResamplingExperiments {
                 double accuracy = utilities.ClassifierTools.accuracy(test, we);
 
                 pw.printf("%d,%f\n",fold,accuracy);
-
-                System.out.println(accuracy);
+                System.out.printf("%d,%f\n",fold,accuracy);
             }
             
             pw.close();
@@ -267,7 +294,7 @@ public class ResamplingExperiments {
         }
     }
 
-    //where does the train and test set come from, where do you want to save the resample versions.
+    //TODO: use the one utitilies.
     public static void createResmapleSets(String filePath, String savePath) {
         Instances test = utilities.ClassifierTools.loadData(filePath + "_TEST");
         Instances train = utilities.ClassifierTools.loadData(filePath + "_TRAIN");
@@ -308,27 +335,8 @@ public class ResamplingExperiments {
             LocalInfo.saveDataset(te, savePath + i + "_TEST");
         }
     }
-
-    public static void createShapeletsOnResample(String filePath, String savePath, int fold, FullShapeletTransform transform) {
-        Instances test, train;
-        
-        //Wheat/Wheat_TRAIN
-        //Wheat/Wheat_TEST
-        test = utilities.ClassifierTools.loadData(filePath + fold + "_TEST");
-        train = utilities.ClassifierTools.loadData(filePath + fold + "_TRAIN");
-        
-        //construct shapelet classifiers.
-        transform.setNumberOfShapelets(train.numInstances() * 10);
-        transform.setShapeletMinAndMax(3, train.numAttributes() - 1);
-        transform.setQualityMeasure(QualityMeasures.ShapeletQualityChoice.INFORMATION_GAIN);
-        transform.setLogOutputFile(savePath+fold+"_shapelets.csv");
-
-        //saveLocation/FullShapeletTransform/ItalyPowerDemand/ItalyPowerDemandi_TRAIN
-        LocalInfo.saveDataset(transform.process(train), savePath + fold + "_TRAIN");
-        LocalInfo.saveDataset(transform.process(test), savePath + fold + "_TEST");
-
-    }
     
+    //TODO tidy up.
     public static void createLearnShapeleteAccuracies(String filePath, String savePath, int fold) {
 
         try {
@@ -390,33 +398,6 @@ public class ResamplingExperiments {
         }
     }
 
-    public static void createWeightedEnsembleAccuracies(String filePath, String savePath, int fold) {
-
-        try {
-            //get the train and test instances for each dataset.
-            Instances test = utilities.ClassifierTools.loadData(filePath + fold + "_TEST");
-            Instances train = utilities.ClassifierTools.loadData(filePath + fold + "_TRAIN");
-
-            //build the elastic Ensemble on our training data.
-            WeightedEnsemble we = new WeightedEnsemble();
-            we.setWeightType(WeightedEnsemble.WeightType.EQUAL);
-            we.buildClassifier(train);
-            double accuracy = utilities.ClassifierTools.accuracy(test, we);
-            
-            System.out.println(accuracy);
-            
-            //create our accuracy file.
-            File f = new File(savePath + fold + ".csv");
-            f.getParentFile().mkdirs();
-            f.createNewFile();
-            try (PrintWriter pw = new PrintWriter(f)) {
-                pw.printf("%f", accuracy);
-            }
-        } catch (Exception ex) {
-            System.out.println("Classifier exception: " + ex);
-        }
-    }
-    
     public static void createAccuracies(String filePath, String savePath)
     {
         System.out.println(filePath);
