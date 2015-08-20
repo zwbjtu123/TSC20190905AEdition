@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.TreeMap;
@@ -779,28 +780,68 @@ public class FullShapeletTransform extends SimpleBatchFilter
      * @param k the maximum number of shapelets to be returned after combining
      * the two lists
      * @param kBestSoFar the (up to) k best shapelets that have been observed so
-     * far, passed in to combine with shapelets from a new series
+     * far, passed in to combine with shapelets from a new series (sorted)
      * @param timeSeriesShapelets the shapelets taken from a new series that are
      * to be merged in descending order of fitness with the kBestSoFar
-     * @return an ordered ArrayList of the best k (or less)
+     * @return an ordered ArrayList of the best k (or less) (sorted)
      * FullShapeletTransform objects from the union of the input ArrayLists
      */
-    //NOTE: could be more efficient here
     protected ArrayList<Shapelet> combine(int k, ArrayList<Shapelet> kBestSoFar, ArrayList<Shapelet> timeSeriesShapelets)
     {        
-        kBestSoFar.addAll(timeSeriesShapelets);
-
-        Collections.sort(kBestSoFar, shapeletComparator);
-
-        if (kBestSoFar.size() < k)
-        { // no need to return up to k, as there are not k shapelets yet
-            return kBestSoFar;
-        }
-
+        //both kBestSofar and timeSeries are sorted so we can explot this.
+        //maintain a pointer for each list.
         ArrayList<Shapelet> newBestSoFar = new ArrayList<>();
-        for (int i = 0; i < k; i++)
+        
+        //best so far pointer
+        int bsfPtr =0;
+        //new time seris pointer.
+        int tssPtr =0;
+        
+        Shapelet shapelet1 = null, shapelet2 = null;
+        
+        for(int i=0; i< k; i++)
         {
-            newBestSoFar.add(kBestSoFar.get(i));
+            if(bsfPtr < kBestSoFar.size())
+                shapelet1 = kBestSoFar.get(bsfPtr);
+            if(tssPtr < timeSeriesShapelets.size())
+                shapelet2 = timeSeriesShapelets.get(tssPtr);
+          
+            boolean shapelet1Null = shapelet1 == null;
+            boolean shapelet2Null = shapelet2 == null;
+            
+            //both lists have been explored, but we have less than K elements atm.
+            if(shapelet1Null && shapelet2Null)
+                break;
+            
+            //one list is expired keep adding the other list until we reach K.
+            if(shapelet1Null)
+            {
+                newBestSoFar.add(shapelet2);
+                tssPtr++;
+                continue;
+            }
+            
+            //one list is expired keep adding the other list until we reach K.
+            if(shapelet2Null)
+            {
+                newBestSoFar.add(shapelet1);
+                bsfPtr++;
+                continue;
+            }
+            
+            //if both lists are fine then we need to compare which one to use.
+            if(shapeletComparator.compare(shapelet1,shapelet2) == -1)
+            {
+                newBestSoFar.add(shapelet1);
+                bsfPtr++;
+                shapelet1 = null;
+            }
+            else
+            {
+                newBestSoFar.add(shapelet2);
+                tssPtr++;
+                shapelet2 = null;
+            }
         }
 
         return newBestSoFar;

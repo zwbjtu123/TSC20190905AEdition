@@ -1,5 +1,6 @@
-package grabocka_reproduction;
+package development;
 
+import weka.filters.timeseries.alternative_shapelet.LearnShapelets;
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -141,7 +142,6 @@ public class GrabockaReproduction {
         //base case
         if (pointer >= data.length) {
             //we've traversed through our Array of data.
-            //and we need to do something.
             combinations.add(currentArgs);
         } else {
             int currentArgsSize = (currentArgs != null) ? currentArgs.length : 0;

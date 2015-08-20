@@ -1,4 +1,4 @@
-package grabocka_reproduction;
+package weka.filters.timeseries.alternative_shapelet;
 
 import java.util.ArrayList;
 import java.util.Arrays;
