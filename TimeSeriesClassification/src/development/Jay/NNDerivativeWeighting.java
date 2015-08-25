@@ -384,9 +384,6 @@ public class NNDerivativeWeighting extends kNN{
             int k = a.length;
             int[] mistakes = new int[k];
 
-    //            // need to get the derivatives (MATLAB code uses internal diff function instead)
-    //            Instances dTrain = new GoreckiDerivativesDistance.GoreckiDerivativeFilter().process(train);
-
             double[] D;
             double[] L;
             double[] d;
@@ -411,9 +408,6 @@ public class NNDerivativeWeighting extends kNN{
                     }
 
                     individualDistances = this.getNonScaledDistances(train.instance(i), train.instance(j));
-                    // have to be a bit different here, since we can't vectorise in Java
-    //                    dist = distanceFunction.distance(train.instance(i), train.instance(j));
-    //                    dDist = distanceFunction.distance(dTrain.instance(i), dTrain.instance(j));
                     dist = individualDistances[0];
                     dDist = individualDistances[1];
 
@@ -634,10 +628,7 @@ public class NNDerivativeWeighting extends kNN{
             err = (1-acc)*100;
             System.out.print(df.format(err)+",");
 
-            // their alpha stuff is incorrect, use scaled a and b between 0:0.01:1 and 1:-0.01:0
-//          // DDED
-//            development.Jay.GoreckiDerivativesEuclideanDistance gdAB = new development.Jay.GoreckiDerivativesEuclideanDistance(train); 
-//            knn = new kNN(gdAB);
+            //DD_ED
             NNDerivativeWeighting dd_ed = new NNDerivativeWeighting(DistanceType.EUCLIDEAN);
             correct = getCorrect(dd_ed, train, test);
             acc = (double)correct/test.numInstances();
@@ -667,10 +658,6 @@ public class NNDerivativeWeighting extends kNN{
             err = (1-acc)*100;
             System.out.println(df.format(err));
         }
-
-//        outputFile = new FileWriter("goreckiResampleResults/seed_"+seed+".txt");
-//        outputFile.append(st);
-//        outputFile.close();
 
     }
 
