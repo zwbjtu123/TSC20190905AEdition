@@ -27,7 +27,6 @@ public class InFile{
         catch(FileNotFoundException exception)
         {
                 System.out.println("EXIT:: Exception in InFile constructor :"+exception.toString());
-                System.exit(0);
         }
     }
 
