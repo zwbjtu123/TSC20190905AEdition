@@ -3,9 +3,11 @@
  */
 package development;
 
+
 import fileIO.InFile;
 import fileIO.OutFile;
 import java.io.File;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -23,12 +25,14 @@ import weka.filters.timeseries.SummaryStats;
  */
 public class DataSets {
     
-    public static String clusterPath="/gpfs/home/ajb/";
+    public static final String clusterPath="/gpfs/home/ajb/";
+    public static final String dropboxPath="C:/Users/ajb/Dropbox/";    
     
-    public static String dropboxPath="C:/Users/ajb/Dropbox/TSC Problems/";
-    public static String resultsPath="C:\\Users\\ajb\\Dropbox\\Results\\";
-    public static String uciPath="C:\\Users\\ajb\\Dropbox\\UCI Classification Problems\\";
-    public static String ucrPath="C:\\Users\\ajb\\Dropbox\\UCRArff\\";
+    public static  final String path=dropboxPath;    
+    
+    public static String problemPath=path+"/TSC Problems/";
+    public static String resultsPath=path+"Results/";
+    public static String uciPath=path+"UCI Classification Problems/";
     
   //ALL of our TSC data sets  
     //<editor-fold defaultstate="collapsed" desc="fileNames: All Data sets">    
@@ -520,19 +524,17 @@ tiianic
     };   
       //</editor-fold>    
   
-String[] notNormalised={"ArrowHead","Beef","BeetleFly","BirdChicken","Coffee","Computers","Cricket_X","Cricket_Y","Cricket_Z","DistalPhalanxOutlineAgeGroup","DistalPhalanxOutlineCorrect","DistalPhalanxTW","ECG200","Earthquakes","ElectricDevices","fish","FordA","FordB","Ham","Herring","ItalyPowerDemand","LargeKitchenAppliances","Meat","MiddlePhalanxOutlineAgeGroup","MiddlePhalanxOutlineCorrect","MiddlePhalanxTW","OliveOil","PhalangesOutlinesCorrect","Plane","ProximalPhalanxOutlineAgeGroup","ProximalPhalanxOutlineCorrect","ProximalPhalanxTW","RefrigerationDevices","ScreenType","ShapeletSim","ShapesAll","SmallKitchenAppliances","Strawberry","ToeSegmentation1","ToeSegmentation2","UWaveGestureLibraryAll","UWaveGestureLibrary_Z","Wine","Worms","WormsTwoClass"};
+public static String[] notNormalised={"ArrowHead","Beef","BeetleFly","BirdChicken","Coffee","Computers","Cricket_X","Cricket_Y","Cricket_Z","DistalPhalanxOutlineAgeGroup","DistalPhalanxOutlineCorrect","DistalPhalanxTW","ECG200","Earthquakes","ElectricDevices","FordA","FordB","Ham","Herring","LargeKitchenAppliances","Meat","MiddlePhalanxOutlineAgeGroup","MiddlePhalanxOutlineCorrect","MiddlePhalanxTW","OliveOil","PhalangesOutlinesCorrect","Plane","ProximalPhalanxOutlineAgeGroup","ProximalPhalanxOutlineCorrect","ProximalPhalanxTW","RefrigerationDevices","ScreenType","ShapeletSim","ShapesAll","SmallKitchenAppliances","Strawberry","ToeSegmentation1","ToeSegmentation2","UWaveGestureLibraryAll","UWaveGestureLibrary_Z","Wine","Worms","WormsTwoClass","fish"};
 
   public static void processUCRData(){
-      String ucrPath="C:\\Users\\ajb\\Dropbox\\Data\\UCR Data\\";
-      String arffPath="C:\\Users\\ajb\\Dropbox\\TSC Problems\\";
       System.out.println(" nos files ="+ucrNames.length);
       String s;
       for(int str=39;str<43;str++){
           s=ucrNames[str];
-          InFile trainF= new InFile(ucrPath+s+"\\"+s+"_TRAIN");
-          InFile testF= new InFile(ucrPath+s+"\\"+s+"_TEST");
-          Instances train= ClassifierTools.loadData(arffPath+s+"\\"+s+"_TRAIN");
-          Instances test= ClassifierTools.loadData(arffPath+s+"\\"+s+"_TEST");
+          InFile trainF= new InFile(problemPath+s+"/"+s+"_TRAIN");
+          InFile testF= new InFile(problemPath+s+"/"+s+"_TEST");
+          Instances train= ClassifierTools.loadData(problemPath+s+"/"+s+"_TRAIN");
+          Instances test= ClassifierTools.loadData(problemPath+s+"/"+s+"_TEST");
           int trainSize=trainF.countLines();
           int testSize=testF.countLines();
           Attribute a=train.classAttribute();
@@ -543,21 +545,21 @@ String[] notNormalised={"ArrowHead","Beef","BeetleFly","BirdChicken","Coffee","C
               System.out.println(" ERROR MISMATCH SIZE TRAIN="+trainSize+","+train.numInstances()+" TEST ="+testSize+","+test.numInstances());
               System.exit(0);
           }
-          trainF= new InFile(ucrPath+s+"\\"+s+"_TRAIN");
-          testF= new InFile(ucrPath+s+"\\"+s+"_TEST");
-          File dir = new File("C:\\Users\\ajb\\Dropbox\\UCRArff\\"+s);
+          trainF= new InFile(problemPath+s+"/"+s+"_TRAIN");
+          testF= new InFile(problemPath+s+"/"+s+"_TEST");
+          File dir = new File(problemPath+s);
           if(!dir.exists()){
               dir.mkdir();
           }
-          OutFile newTrain = new OutFile("C:\\Users\\ajb\\Dropbox\\UCRArff\\"+s+"\\"+s+"_TRAIN.arff");
-          OutFile newTest = new OutFile("C:\\Users\\ajb\\Dropbox\\UCRArff\\"+s+"\\"+s+"_TEST.arff");
+          OutFile newTrain = new OutFile(problemPath+s+"/"+s+"_TRAIN.arff");
+          OutFile newTest = new OutFile(problemPath+s+"/"+s+"_TEST.arff");
           Instances header = new Instances(train,0);
           newTrain.writeLine(header.toString());
           newTest.writeLine(header.toString());
           for(int i=0;i<trainSize;i++){
                 String line=trainF.readLine();
                 line=line.trim();
-                String[] split=line.split("\\s+");
+                String[] split=line.split("/s+");
               try{
 //                System.out.println(split[0]+"First ="+split[1]+" last ="+split[split.length-1]+" length = "+split.length+" nos atts "+train.numAttributes());
                 double c=Double.valueOf(split[0]);
@@ -583,7 +585,7 @@ String[] notNormalised={"ArrowHead","Beef","BeetleFly","BirdChicken","Coffee","C
           for(int i=0;i<testSize;i++){
                 String line=testF.readLine();
                 line=line.trim();
-                String[] split=line.split("\\s+");
+                String[] split=line.split("/s+");
               try{
 //                System.out.println(split[0]+"First ="+split[1]+" last ="+split[split.length-1]+" length = "+split.length+" nos atts "+train.numAttributes());
                 double c=Double.valueOf(split[0]);
@@ -616,24 +618,30 @@ String[] notNormalised={"ArrowHead","Beef","BeetleFly","BirdChicken","Coffee","C
   
   public static void listNotNormalisedList() throws Exception{
     TreeSet<String> notNormed=new TreeSet<>();
+    DecimalFormat df = new DecimalFormat("###.######");
     for(String s:fileNames){
 //Load test train
-        Instances train=ClassifierTools.loadData(dropboxPath+s+"//"+s+"_TRAIN");
-        Instances test=ClassifierTools.loadData(dropboxPath+s+"//"+s+"_TEST");
+        Instances train=ClassifierTools.loadData(problemPath+s+"/"+s+"_TRAIN");
+        Instances test=ClassifierTools.loadData(problemPath+s+"/"+s+"_TEST");
 //Find summary 
         SummaryStats ss= new SummaryStats();
         train=ss.process(train);
         test=ss.process(test);
+        int i=1;
         for(Instance ins:train){
-            if(Math.abs(ins.value(0))>0.01 || Math.abs(1-ins.value(1))>0.01){
-                System.out.println(" Not normalised series ="+s+"::"+ins.value(0)+"::"+ins.value(1));
+            double stdev=ins.value(1)*ins.value(1);
+//            stdev*=train.numAttributes()-1/(train.numAttributes()-2);
+            if(Math.abs(ins.value(0))>0.01 || Math.abs(1-stdev)>0.01){
+                System.out.println(" Not normalised train series ="+s+" index "+i+" mean = "+df.format(ins.value(0))+" var ="+df.format(stdev));
                 notNormed.add(s);
                 break;
             }
         }
         for(Instance ins:test){
-            if(Math.abs(ins.value(0))>0.01 || Math.abs(1-ins.value(1))>0.01){
-                System.out.println(" Not normalised series ="+s+"::"+ins.value(0)+"::"+ins.value(1));
+            double stdev=ins.value(1)*ins.value(1);
+//            stdev*=train.numAttributes()-1/(train.numAttributes()-2);
+            if(Math.abs(ins.value(0))>0.01 || Math.abs(1-stdev)>0.01){
+                System.out.println(" Not normalised test series ="+s+" index "+i+" mean = "+df.format(ins.value(0))+" var ="+df.format(stdev));
                 notNormed.add(s);
                 break;
             }
@@ -658,13 +666,13 @@ public static void dataDescription(String[] fileNames){
 
         try{
             for(int i=0;i<fileNames.length;i++){
-                Instances test=ClassifierTools.loadData(dropboxPath+fileNames[i]+"\\"+fileNames[i]+"_TRAIN");
-                Instances train=ClassifierTools.loadData(dropboxPath+fileNames[i]+"\\"+fileNames[i]+"_TEST");			
+                Instances test=ClassifierTools.loadData(problemPath+fileNames[i]+"/"+fileNames[i]+"_TRAIN");
+                Instances train=ClassifierTools.loadData(problemPath+fileNames[i]+"/"+fileNames[i]+"_TEST");			
                 Instances allData =new Instances(test);
                 for(int j=0;j<train.numInstances();j++)
                     allData.add(train.instance(j));
                 allData.randomize(new Random());
-                OutFile combo=new OutFile(dropboxPath+fileNames[i]+"\\"+fileNames[i]+".arff");    
+                OutFile combo=new OutFile(problemPath+fileNames[i]+"/"+fileNames[i]+".arff");    
                 combo.writeString(allData.toString());
                 boolean normalised=true;
                 if(nm.contains(fileNames[i]))
@@ -702,8 +710,8 @@ public static void main(String[] args) throws Exception{
     listNotNormalisedList();  
     System.exit(0);
     processUCRData();
-            Instances train = ClassifierTools.loadData(DataSets.ucrPath+"wafer\\wafer_TRAIN");
-            Instances test = ClassifierTools.loadData(DataSets.ucrPath+"wafer\\wafer_TEST");
+    Instances train = ClassifierTools.loadData(problemPath+"wafer/wafer_TRAIN");
+    Instances test = ClassifierTools.loadData(problemPath+"wafer/wafer_TEST");
 
 
 //    dataDescription(uciFileNames);

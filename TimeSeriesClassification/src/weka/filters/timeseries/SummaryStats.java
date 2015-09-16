@@ -110,8 +110,8 @@ public Instances process(Instances inst) throws Exception {
                 totalSkew = totalSkew+ (d[j]-moments[0])*(d[j]-moments[0])*(d[j]-moments[0]);
                 totalKur = totalKur+ (d[j]-moments[0])*(d[j]-moments[0])*(d[j]-moments[0])*(d[j]-moments[0]);
             }
-
-            moments[1] = totalVar/d.length;
+            
+            moments[1] = totalVar/(d.length-1);
             double standardDeviation = Math.sqrt(moments[1]);
             moments[1]=standardDeviation;
             double skew = totalSkew/(standardDeviation*standardDeviation*standardDeviation);

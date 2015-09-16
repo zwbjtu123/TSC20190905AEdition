@@ -7,7 +7,7 @@
 package applications;
 
 import utilities.ClassifierTools;
-import utilities.ThreadedClassifierExperiment;
+import bakeOffExperiments.ThreadedClassifierExperiment;
 import weka.classifiers.Classifier;
 import weka.classifiers.functions.SMO;
 import weka.classifiers.functions.supportVector.PolyKernel;
@@ -73,7 +73,7 @@ public class FoodSpectrograms {
             s.setShapeletMinAndMax(minLength, maxLength);
             s.setQualityMeasure(QualityMeasures.ShapeletQualityChoice.F_STAT);
             s.turnOffLog();            
-            runs[i]=new ThreadedClassifierExperiment(train[i],test[i],c);
+            runs[i]=new ThreadedClassifierExperiment(train[i],test[i],c,"shapelet");
             runs[i].setTransform(s);
             threads[i]=new Thread(runs[i]);
         }
@@ -101,7 +101,7 @@ public class FoodSpectrograms {
             DTW_1NN c=new DTW_1NN();
             c.optimiseWindow(true);
                     
-            runs[i]=new ThreadedClassifierExperiment(train[i],test[i],c);
+            runs[i]=new ThreadedClassifierExperiment(train[i],test[i],c,"baseline");
             threads[i]=new Thread(runs[i]);
         }
         for(int i=0;i<nosExp;i++)

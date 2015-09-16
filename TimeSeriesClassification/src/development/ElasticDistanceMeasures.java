@@ -70,10 +70,10 @@ public class ElasticDistanceMeasures extends Thread{
     
 /** Run on the 46 UCR Data sets **/    
     public static void testUCR(EuclideanDistance dc) throws Exception{   //EuclideanDistance d
-        OutFile of=new OutFile(DataSets.ucrPath+"UCRResults"+dc.getClass().getName()+".csv");//d.getClass().getName()+
+        OutFile of=new OutFile(DataSets.problemPath+"UCRResults"+dc.getClass().getName()+".csv");//d.getClass().getName()+
        for(String s:DataSets.ucrNames){
-            Instances train = ClassifierTools.loadData(DataSets.ucrPath+s+"\\"+s+"_TRAIN");
-            Instances test = ClassifierTools.loadData(DataSets.ucrPath+s+"\\"+s+"_TEST");
+            Instances train = ClassifierTools.loadData(DataSets.problemPath+s+"\\"+s+"_TRAIN");
+            Instances test = ClassifierTools.loadData(DataSets.problemPath+s+"\\"+s+"_TEST");
             NormalizeCase nc = new NormalizeCase();
             train=nc.process(train);
             test=nc.process(test);
@@ -157,8 +157,8 @@ public class ElasticDistanceMeasures extends Thread{
     public void testBasicDTWCV() throws Exception{   //EuclideanDistance d
   //      OutFile of=new OutFile(DataSets.ucrPath+"UCRResultsDTWCVFull.csv");//d.getClass().getName()+
        for(String s:names){
-            Instances train = ClassifierTools.loadData(DataSets.ucrPath+s+"\\"+s+"_TRAIN");
-            Instances test = ClassifierTools.loadData(DataSets.ucrPath+s+"\\"+s+"_TEST");
+            Instances train = ClassifierTools.loadData(DataSets.problemPath+s+"/"+s+"_TRAIN");
+            Instances test = ClassifierTools.loadData(DataSets.problemPath+s+"/"+s+"_TEST");
 /*            NormalizeCase nc = new NormalizeCase();
             train=nc.process(train);
             test=nc.process(test);
@@ -183,8 +183,8 @@ public class ElasticDistanceMeasures extends Thread{
     public void testDTWCV() throws Exception{   //EuclideanDistance d
   //      OutFile of=new OutFile(DataSets.ucrPath+"UCRResultsDTWCVFull.csv");//d.getClass().getName()+
        for(String s:names){
-            Instances train = ClassifierTools.loadData(DataSets.ucrPath+s+"\\"+s+"_TRAIN");
-            Instances test = ClassifierTools.loadData(DataSets.ucrPath+s+"\\"+s+"_TEST");
+            Instances train = ClassifierTools.loadData(DataSets.problemPath+s+"/"+s+"_TRAIN");
+            Instances test = ClassifierTools.loadData(DataSets.problemPath+s+"/"+s+"_TEST");
 /*            NormalizeCase nc = new NormalizeCase();
             train=nc.process(train);
             test=nc.process(test);
@@ -205,8 +205,8 @@ public class ElasticDistanceMeasures extends Thread{
         }
     }
     public static void singleProblem(String s) throws Exception{   //EuclideanDistance d
-        Instances train = ClassifierTools.loadData(DataSets.ucrPath+s+"\\"+s+"_TRAIN");
-        Instances test = ClassifierTools.loadData(DataSets.ucrPath+s+"\\"+s+"_TEST");
+            Instances train = ClassifierTools.loadData(DataSets.problemPath+s+"/"+s+"_TRAIN");
+            Instances test = ClassifierTools.loadData(DataSets.problemPath+s+"/"+s+"_TEST");
 /*            NormalizeCase nc = new NormalizeCase();
         train=nc.process(train);
         test=nc.process(test);
@@ -349,8 +349,8 @@ public class ElasticDistanceMeasures extends Thread{
     
     public static void CBFTest() throws Exception{   //EuclideanDistance d
         String s="CBF";
-        Instances train = ClassifierTools.loadData(DataSets.ucrPath+s+"\\"+s+"_TRAIN");
-        Instances test = ClassifierTools.loadData(DataSets.ucrPath+s+"\\"+s+"_TEST");
+            Instances train = ClassifierTools.loadData(DataSets.problemPath+s+"/"+s+"_TRAIN");
+            Instances test = ClassifierTools.loadData(DataSets.problemPath+s+"/"+s+"_TEST");
 /*            NormalizeCase nc = new NormalizeCase();
         train=nc.process(train);
         test=nc.process(test);

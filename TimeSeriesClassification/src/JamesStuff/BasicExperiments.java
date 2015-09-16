@@ -5,7 +5,7 @@ import fileIO.OutFile;
 import utilities.ClassifierTools;
 import utilities.InstanceTools;
 import weka.classifiers.Classifier;
-import weka.classifiers.LinBagOfPatterns;
+import other_peoples_algorithms.LinBagOfPatterns;
 import weka.classifiers.SAXVSM;
 import weka.classifiers.SAX_1NN;
 import weka.classifiers.lazy.DTW_1NN;

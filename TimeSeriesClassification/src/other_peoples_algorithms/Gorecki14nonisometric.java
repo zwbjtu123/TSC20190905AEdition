@@ -41,8 +41,8 @@ public class Gorecki14nonisometric {
             String s="Beef";
             OutFile of1 = new OutFile("C:\\Users\\ajb\\Dropbox\\test\\BeefCosine_TRAIN.arff");
             OutFile of2 = new OutFile("C:\\Users\\ajb\\Dropbox\\test\\BeefCosine_TEST.arff");
-            Instances test=utilities.ClassifierTools.loadData(DataSets.ucrPath+s+"\\"+s+"_TEST");
-            Instances train=utilities.ClassifierTools.loadData(DataSets.ucrPath+s+"\\"+s+"_TRAIN");			
+            Instances test=utilities.ClassifierTools.loadData(DataSets.problemPath+s+"\\"+s+"_TEST");
+            Instances train=utilities.ClassifierTools.loadData(DataSets.problemPath+s+"\\"+s+"_TRAIN");			
             Cosine cosTransform= new Cosine();
             Sine sinTransform=new Sine();
             Hilbert hilbertTransform= new Hilbert();

@@ -39,7 +39,8 @@ import weka.filters.timeseries.SummaryStats;
  * @author ajb
  */
 public class Booze {
-    
+      static int nosDistilleries=46;
+  
 public static void generateHeader(){
     OutFile f = new OutFile("C:\\Data\\IFR Spirits\\Header.csv");
     f.writeString("@attribute distillery {");
@@ -61,7 +62,7 @@ public static void transformKateStyle(){
     
 //Standardise area under the curve    
 }
-static double splitProp=0.5;
+static double splitProp=0.7;
 
 /** this just does a random split, irrespective of distillery. Seems likely
  * that instance based classifiers will do well with it!
@@ -69,9 +70,7 @@ static double splitProp=0.5;
  * @param rep
  * @throws Exception 
  */
-public static void resampleExperimentBasic(Instances all,int rep,String resultPath) throws Exception{
-    OutFile of=new OutFile(resultPath+"booze"+rep+".csv");
-    ElasticEnsemble ee=new ElasticEnsemble();
+public static double resampleExperimentBasic(Instances all,int rep,String resultPath, Classifier c) throws Exception{
     all.randomize(new Random());
     Instances train = new Instances(all);
     Instances test= new Instances(all,0);
@@ -79,13 +78,15 @@ public static void resampleExperimentBasic(Instances all,int rep,String resultPa
     for(int i=0;i<testSize;i++)
         test.add(train.remove(0));
     System.out.println(" Train size ="+train.numInstances()+" test size ="+test.numInstances());
-    ee.buildClassifier(train);
+    c.buildClassifier(train);
     
-    double[] cvAcc=ee.getCVAccs();
-    double acc=ClassifierTools.accuracy(test, ee);
-    of.writeString(rep+","+acc+",");
-    for(int i=0;i<cvAcc.length;i++)
-        of.writeString(cvAcc[i]+",");
+ //   double[] cvAcc=c.getCVAccs();
+    double acc=ClassifierTools.accuracy(test, c);
+    System.out.println("acc ="+acc);
+    return acc;
+//    of.writeString(rep+","+acc+",");
+//    for(int i=0;i<cvAcc.length;i++)
+//        of.writeString(cvAcc[i]+",");
     
 }
 
@@ -95,7 +96,6 @@ public static void resampleExperimentBasic(Instances all,int rep,String resultPa
  * @throws Exception 
  */
 public static void resampleExperimentSplitByDistillery(Instances all,int rep,String resultPath) throws Exception{
-    int nosDistilleries=46;
     int nosPerDistillery=all.numClasses()*4;
     if(rep>=nosDistilleries) throw new Exception("Invalid distillery identifier");
     ElasticEnsemble ee=new ElasticEnsemble();
@@ -202,12 +202,12 @@ public static void classifyBySummaryStats() throws Exception{
 
 
 
-public static void classifyOnNormalizedRange() throws Exception{
+public static void classifyOnNormalizedRange(Instances all) throws Exception{
     String resultPath="C:\\Users\\ajb\\Dropbox\\Results\\IFR Spirits\\GlobalShape\\";
     String sourcePath="C:\\Users\\ajb\\Dropbox\\IFR Spirits\\";
-    Instances all=ClassifierTools.loadData(sourcePath+"AllSamplesFiveClass");
+//    =ClassifierTools.loadData(sourcePath+"AllSamplesFiveClass");
     
-    int nosBottles=46;
+    int nosBottles=44;
     int nosPerBottle=all.numClasses()*4;
     OutFile of=new OutFile(resultPath+"globalShapeFiveSampleDTW.csv");
 //    System.out.println(" All Size ="+all.numInstances()+" num attributes ="+all.numAttributes());
@@ -255,9 +255,7 @@ public static void classifyOnNormalizedRange() throws Exception{
 
 
 
-public static void tidyUp() throws Exception{
-    String path="C:\\Users\\ajb\\Dropbox\\IFR Spirits\\";
-            Instances all=ClassifierTools.loadData(path+"AllSamplesTwoClass");
+public static Instances tidyUp(Instances all) throws Exception{
 //Remove irrelevant features     
             //1: Distillery name
  //           all.deleteAttributeAt(0);
@@ -274,22 +272,21 @@ public static void tidyUp() throws Exception{
             if(att.isNominal())
                 System.out.println("Att "+att+" is Nominal ");
             NormalizeCase nc = new NormalizeCase();
-            all=nc.process(all);
+            Instances newInst=nc.process(all);
             System.out.println(" Number of attributes ="+all.numAttributes());
             System.out.println(" Number of instances ="+all.numInstances());
             System.out.println(" Number of classes ="+all.numClasses());
             System.out.println(" Class index ="+all.classIndex());
 //Save to file
-            OutFile of = new OutFile(path+"TwoClassV1.arff");
-            //for(int i=0;i<all.numAttributes();i++)
-                of.writeString(all+",");
+            return newInst;
             
          }
-public static void debugRun()throws Exception{
-    String path="Results/IFR/TwoClassDistillerySplits/";
-    String sourcePath="IFRProblems/";
-    Instances all=ClassifierTools.loadData(sourcePath+"FiveClassV1");
-    for(int i=0;i<46;i++)
+public static void debugRun(String path, String sourcePath, String filename)throws Exception{
+ //   String path="Results/IFR/TwoClassDistillerySplits/";
+ //   String sourcePath="IFRProblems/";
+    Instances all=ClassifierTools.loadData(sourcePath+filename);
+//"FiveClassV1"
+        for(int i=0;i<46;i++)
         resampleExperimentSplitByDistillery(all,i,path);    
     
 }
@@ -353,15 +350,16 @@ public static void mergeBoozeFiles(String path,int nosBottles){
           
    } 
 public static void main(String[] args) throws Exception{
-    mergeBoozeFiles("C:\\Users\\ajb\\Dropbox\\Results\\IFR Spirits\\GlobalShape\\ElasticEnsemble\\",46);
+ //   mergeBoozeFiles("C:\\Users\\ajb\\Dropbox\\Results\\IFR Spirits\\GlobalShape\\ElasticEnsemble\\",46);
+    Instances all=ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\IFR Spirits\\James Large\\Ethanol4Class");
+    all=tidyUp(all);
+    double a=resampleExperimentBasic(all,1,"C:\\Users\\ajb\\Dropbox\\IFR Spirits\\James Large\\Results", new kNN());
+    
     System.exit(0);
-    Instances all=ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\IFR Spirits\\2ClassProblem");
-    System.out.println(" all = "+all.toString());
     
     
 //    classifyBySummaryStats();
  //   classifyOnNormalizedRange();
-//   tidyUp();
  //  System.exit(0);
 //    debugRun();
  //   clusterRun(args);

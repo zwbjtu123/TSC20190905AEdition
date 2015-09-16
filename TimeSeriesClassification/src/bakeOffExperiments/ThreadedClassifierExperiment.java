@@ -4,9 +4,10 @@
  * and open the template in the editor.
  */
 
-package utilities;
+package bakeOffExperiments;
 
 import bakeOffExperiments.BasicClassifiers;
+import utilities.InstanceTools;
 import weka.classifiers.Classifier;
 import weka.classifiers.Evaluation;
 import weka.core.Instances;
