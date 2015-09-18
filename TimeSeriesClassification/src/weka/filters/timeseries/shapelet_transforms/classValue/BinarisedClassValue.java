@@ -5,8 +5,8 @@
  */
 package weka.filters.timeseries.shapelet_transforms.classValue;
 
-import java.util.Map;
-import java.util.TreeMap;
+import utilities.class_distributions.ClassDistribution;
+import utilities.class_distributions.TreeSetClassDistribution;
 import weka.core.Instance;
 import weka.core.Instances;
 
@@ -16,7 +16,8 @@ import weka.core.Instances;
  */
 public class BinarisedClassValue extends NormalClassValue{
 
-    Map<Double, Map<Double, Integer>> binaryClassDistribution;
+    
+    ClassDistribution[] binaryClassDistribution;
     
     @Override
     public void init(Instances inst)
@@ -27,8 +28,8 @@ public class BinarisedClassValue extends NormalClassValue{
     }
     
     @Override
-    public Map<Double, Integer> getClassDistributions() {
-        return binaryClassDistribution.get(shapeletValue);        
+    public ClassDistribution getClassDistributions() {
+        return binaryClassDistribution[(int)shapeletValue];        
     }
 
     @Override
@@ -37,29 +38,30 @@ public class BinarisedClassValue extends NormalClassValue{
     }
     
     
-    private Map<Double, Map<Double, Integer>> createBinaryDistributions()
+    private ClassDistribution[] createBinaryDistributions()
     {
-        Map<Double, Map<Double, Integer>> binaryMapping = new TreeMap<>();
+        ClassDistribution[] binaryMapping = new ClassDistribution[classDistributions.size()];
         
         //for each classVal build a binary distribution map.
-        for(Double cVal : classDistributions.keySet())
+        for(int i=0; i< classDistributions.size(); i++)
         {
-            binaryMapping.put(cVal, binariseDistributions(cVal));
+            binaryMapping[i] = binariseDistributions(i);
         }
         return binaryMapping;
     }
     
-    private Map<Double, Integer> binariseDistributions(double shapeletClassVal)
+    private ClassDistribution binariseDistributions(int shapeletClassVal)
     {
-        Map<Double, Integer> binaryDistribution = new TreeMap<>();
+        //binary distribution only needs to be size.
+        ClassDistribution binaryDistribution = new TreeSetClassDistribution(2);
 
         Integer shapeletClassCount = classDistributions.get(shapeletClassVal);
         binaryDistribution.put(0.0, shapeletClassCount);
         
         int sum = 0;
-        for(Integer count : classDistributions.values())
+        for(int i=0; i<classDistributions.size();i++)
         {
-            sum += count;
+            sum += classDistributions.get(i);
         }
         
         //remove the shapeletsClass count. Rest should be all the other classes.

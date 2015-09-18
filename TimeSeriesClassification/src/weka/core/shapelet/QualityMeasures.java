@@ -1,11 +1,11 @@
 package weka.core.shapelet;
 
+import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
-import java.util.Map;
 import java.util.TreeMap;
-import weka.filters.timeseries.shapelet_transforms.FullShapeletTransform;
+import utilities.class_distributions.ClassDistribution;
+import utilities.class_distributions.TreeSetClassDistribution;
 
 /**
  *      * copyright: Anthony Bagnall
@@ -27,7 +27,7 @@ import weka.filters.timeseries.shapelet_transforms.FullShapeletTransform;
  *
  * @author Jason Lines
  */
-public class QualityMeasures
+public class QualityMeasures implements Serializable
 {
 
     /**
@@ -62,10 +62,10 @@ public class QualityMeasures
         MOODS_MEDIAN
     }
 
-    public abstract static class ShapeletQualityMeasure
+    public abstract static class ShapeletQualityMeasure implements Serializable
     {
 
-        public abstract double calculateQuality(ArrayList<OrderLineObj> orderline, Map<Double, Integer> classDistribution);
+        public abstract double calculateQuality(ArrayList<OrderLineObj> orderline, ClassDistribution classDistribution);
     }
 
     /**
@@ -87,7 +87,7 @@ public class QualityMeasures
          * @return a measure of shapelet quality according to information gain
          */
         @Override
-        public double calculateQuality(ArrayList<OrderLineObj> orderline, Map<Double, Integer> classDistribution)
+        public double calculateQuality(ArrayList<OrderLineObj> orderline, ClassDistribution classDistribution)
         {
             Collections.sort(orderline);
             // for each split point, starting between 0 and 1, ending between end-1 and end
@@ -97,19 +97,20 @@ public class QualityMeasures
 
             double bsfGain = -1;
 
+            int numClasses = classDistribution.size();
+            
             // initialise class counts
-            TreeMap<Double, Integer> lessClasses = new TreeMap<Double, Integer>();
-            TreeMap<Double, Integer> greaterClasses = new TreeMap<Double, Integer>();
+            ClassDistribution lessClasses = new TreeSetClassDistribution(numClasses);
+            ClassDistribution greaterClasses = new TreeSetClassDistribution(numClasses);
 
             // parent entropy will always be the same, so calculate just once
             double parentEntropy = entropy(classDistribution);
 
             int sumOfAllClasses = 0;
-            for (double j : classDistribution.keySet())
+            for (int i=0; i< numClasses; i++)
             {
-                lessClasses.put(j, 0);
-                greaterClasses.put(j, classDistribution.get(j));
-                sumOfAllClasses += classDistribution.get(j);
+                greaterClasses.put(i, classDistribution.get(i));
+                sumOfAllClasses += classDistribution.get(i);
             }
             int sumOfLessClasses = 0;
             int sumOfGreaterClasses = sumOfAllClasses;
@@ -157,7 +158,7 @@ public class QualityMeasures
             return bsfGain;
         }
 
-        public static double entropy(Map<Double, Integer> classDistributions)
+        public static double entropy(ClassDistribution classDistributions)
         {
             if (classDistributions.size() == 1)
             {
@@ -167,23 +168,18 @@ public class QualityMeasures
             double thisPart;
             double toAdd;
             int total = 0;
-            //Aaron: should be simpler than iterating using the keySet.
-            //Values is backed by the Map so it doesn't need to be constructed.
-            Collection<Integer> values = classDistributions.values();
-            for (Integer d : values)
+            for (int i=0; i<classDistributions.size(); i++)
             {
-                total += d;
+                total += classDistributions.get(i);
             }
 
             // to avoid NaN calculations, the individual parts of the entropy are calculated and summed.
             // i.e. if there is 0 of a class, then that part would calculate as NaN, but this can be caught and
             // set to 0. 
-            //Aaron:  Instead of using the keyset to loop through, use the underlying Array to iterate through, ordering of calculations doesnt matter.
-            //just that we do them all. so i think previously it was n log n, now should be just n.
             double entropy = 0;
-            for (Integer d : values)
+            for (int i=0; i<classDistributions.size(); i++)
             {
-                thisPart = (double) d / total;
+                thisPart = (double) classDistributions.get(i) / total;
                 toAdd = -thisPart * Math.log10(thisPart) / Math.log10(2);
                 //Aaron: if its not NaN we can add it, if it was NaN we'd just add 0.
                 if (!Double.isNaN(toAdd))
@@ -196,7 +192,7 @@ public class QualityMeasures
         }
 
     }
-
+    
     /**
      * A class for calculating the F-Statistic of a shapelet, according to the
      * set of distances from the shapelet to a dataset.
@@ -216,7 +212,7 @@ public class QualityMeasures
          * @return a measure of shapelet quality according to f-stat
          */
         @Override
-        public double calculateQuality(ArrayList<OrderLineObj> orderline, Map<Double, Integer> classDistribution)
+        public double calculateQuality(ArrayList<OrderLineObj> orderline, ClassDistribution classDistribution)
         {
             Collections.sort(orderline);
             int numClasses = classDistribution.size();
@@ -363,7 +359,7 @@ public class QualityMeasures
          * @return a measure of shapelet quality according to Mood's Median
          */
         @Override
-        public double calculateQuality(ArrayList<OrderLineObj> orderline, Map<Double, Integer> classDistributions)
+        public double calculateQuality(ArrayList<OrderLineObj> orderline, ClassDistribution classDistributions)
         {
 
             //naive implementation as a benchmark for finding median - actually faster than manual quickSelect! Probably due to optimised java implementation
@@ -444,7 +440,7 @@ public class QualityMeasures
          * @return a measure of shapelet quality according to Kruskal-Wallis
          */
         @Override
-        public double calculateQuality(ArrayList<OrderLineObj> orderline, Map<Double, Integer> classDistribution)
+        public double calculateQuality(ArrayList<OrderLineObj> orderline, ClassDistribution classDistribution)
         {
             // sort
             Collections.sort(orderline);

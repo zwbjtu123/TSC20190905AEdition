@@ -14,6 +14,8 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Scanner;
 import java.util.TreeMap;
+import utilities.class_distributions.ClassDistribution;
+import utilities.class_distributions.TreeSetClassDistribution;
 import weka.core.Attribute;
 import weka.core.DenseInstance;
 import weka.core.FastVector;
@@ -25,11 +27,12 @@ import weka.core.Instances;
  * @author Aaron
  */
 public class InstanceTools {
-       
+      
     /**
-     * Private method to calculate the class distributions of a dataset. Main
-     * purpose is for computing shapelet qualities.
-     *
+     * NOTE: Try to avoid using this and see the ClassDistribution wrapper object!
+     * Public method to calculate the class distributions of a dataset. Main
+     * purpose is for computing shapelet qualities. 
+     * 
      * @param data the input data set that the class distributions are to be
      * derived from
      * @return a TreeMap<Double, Integer> in the form of <Class Value,
@@ -91,8 +94,8 @@ public class InstanceTools {
     public static Instances[] resampleTrainAndTestInstances(Instances train, Instances test, int seed){
         Instances all = new Instances(train);
         all.addAll(test);
-
-        Map<Double, Integer> trainDistribution = createClassDistributions(train);
+        ClassDistribution trainDistribution = new TreeSetClassDistribution(train);
+        
         Map<Double, Instances> classBins = createClassInstancesMap(all);
        
         Random r = new Random(seed);

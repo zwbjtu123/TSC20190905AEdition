@@ -19,7 +19,8 @@ import weka.core.shapelet.Shapelet;
  */
 public class BalancedClassShapeletTransform extends FullShapeletTransform
 {
-
+    protected Map<Double, ArrayList<Shapelet>> kShapeletsMap;
+    
     /**
      * protected method for extracting k shapelets.
      *
@@ -28,16 +29,17 @@ public class BalancedClassShapeletTransform extends FullShapeletTransform
      * fitness (by infoGain, seperationGap then shortest length)
      */
     @Override
-    public ArrayList<Shapelet> findBestKShapeletsCache(Instances data)
-    {
-                
-        ArrayList<Shapelet> kShapelets;
+    public ArrayList<Shapelet> findBestKShapeletsCache(Instances data){
+        
+        
         ArrayList<Shapelet> seriesShapelets;                                    // temp store of all shapelets for each time series
         //construct a map for our K-shapelets lists, on for each classVal.
-        Map<Double, ArrayList<Shapelet>> kShapeletsMap = new TreeMap();
-        for (int i=0; i < data.numClasses(); i++)
-        {
-            kShapeletsMap.put((double)i, new ArrayList<Shapelet>());
+        
+        if(kShapeletsMap == null){
+            kShapeletsMap = new TreeMap();
+            for (int i=0; i < data.numClasses(); i++){
+                kShapeletsMap.put((double)i, new ArrayList<Shapelet>());
+            }
         }
         
         //found out how many we want in each sub list.
@@ -48,25 +50,25 @@ public class BalancedClassShapeletTransform extends FullShapeletTransform
 
         int dataSize = data.numInstances();
         //for all possible time series.
-        for (int i = 0; i < dataSize; i++)
+        while(dataSet < dataSize)
         {
-            outputPrint("data : " + i);
+            outputPrint("data : " + dataSet);
             
             //get the Shapelets list based on the classValue of our current time series.
-            kShapelets = kShapeletsMap.get(data.get(i).classValue());
+            kShapelets = kShapeletsMap.get(data.get(dataSet).classValue());
 
-            double[] wholeCandidate = data.get(i).toDoubleArray();
+            double[] wholeCandidate = data.get(dataSet).toDoubleArray();
             
             //we only want to pass in the worstKShapelet if we've found K shapelets. but we only care about this class values worst one.
             //this is due to the way we represent each classes shapelets in the map.
             Shapelet kWorst = kShapelets.size() == proportion ? kShapelets.get(kShapelets.size()-1) : null;
 
             //set the series we're working with.
-            subseqDistance.setSeries(i);
+            subseqDistance.setSeries(dataSet);
             //set the clas value of the series we're working with.
-            classValue.setShapeletValue(data.get(i));
+            classValue.setShapeletValue(data.get(dataSet));
             
-            seriesShapelets = findShapeletCandidates(data, i, wholeCandidate, kWorst);
+            seriesShapelets = findShapeletCandidates(data, dataSet, wholeCandidate, kWorst);
 
             Collections.sort(seriesShapelets, shapeletComparator);
 
@@ -75,7 +77,11 @@ public class BalancedClassShapeletTransform extends FullShapeletTransform
             kShapelets = combine(proportion, kShapelets, seriesShapelets);
             
             //re-update the list because it's changed now. 
-            kShapeletsMap.put(data.get(i).classValue(), kShapelets);
+            kShapeletsMap.put(data.get(dataSet).classValue(), kShapelets);
+            
+            dataSet++;
+            
+            createSerialFile();
         }
 
         kShapelets = buildKShapeletsFromMap(kShapeletsMap);

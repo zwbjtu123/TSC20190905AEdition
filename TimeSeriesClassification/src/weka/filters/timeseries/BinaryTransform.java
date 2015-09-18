@@ -6,21 +6,17 @@ package weka.filters.timeseries;
 
 //import java.io.FileWriter;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
 import java.util.TreeMap;
-import static utilities.InstanceTools.createClassDistributions;
+import utilities.class_distributions.TreeSetClassDistribution;
 import weka.core.Attribute;
 import weka.core.DenseInstance;
 import weka.core.FastVector;
 import weka.core.Instance;
 import weka.core.Instances;
 import weka.core.shapelet.OrderLineObj;
-import weka.core.shapelet.QualityMeasures.ShapeletQualityChoice;
-import weka.core.shapelet.*;
 import weka.filters.SimpleBatchFilter;
-import weka.filters.timeseries.shapelet_transforms.FullShapeletTransform;
 
 /**
  *
@@ -117,11 +113,11 @@ public class BinaryTransform extends SimpleBatchFilter{
         for(int i=0;i<vals.length;i++)
             list.add(new OrderLineObj(vals[i],classes[i]));
         //Sort the vals
-        Map<Double,Integer> tree = createClassDistributions(data);
+        TreeSetClassDistribution tree = new TreeSetClassDistribution(data);
         Collections.sort(list);
         return infoGainThreshold(list,tree);
     }
-   private static double entropy(Map<Double, Integer> classDistributions){
+   private static double entropy(TreeSetClassDistribution classDistributions){
             if(classDistributions.size() == 1){
                 return 0;
             }
@@ -151,7 +147,7 @@ public class BinaryTransform extends SimpleBatchFilter{
             return entropy;
         }
 
-    public static double infoGainThreshold(ArrayList<OrderLineObj> orderline, Map<Double, Integer> classDistribution){
+    public static double infoGainThreshold(ArrayList<OrderLineObj> orderline, TreeSetClassDistribution classDistribution){
 // for each split point, starting between 0 and 1, ending between end-1 and end
 // addition: track the last threshold that was used, don't bother if it's the same as the last one
         double lastDist = orderline.get(0).getDistance(); // must be initialised as not visited(no point breaking before any data!)
@@ -168,8 +164,8 @@ public class BinaryTransform extends SimpleBatchFilter{
             if(i==1 || thisDist != lastDist){ // check that threshold has moved(no point in sampling identical thresholds)- special case - if 0 and 1 are the same dist
 
                 // count class instances below and above threshold
-                TreeMap<Double, Integer> lessClasses = new TreeMap<Double, Integer>();
-                TreeMap<Double, Integer> greaterClasses = new TreeMap<Double, Integer>();
+                TreeSetClassDistribution lessClasses = new TreeSetClassDistribution(0);
+                TreeSetClassDistribution greaterClasses = new TreeSetClassDistribution(0);
 
                 for(double j : classDistribution.keySet()){
                     lessClasses.put(j, 0);

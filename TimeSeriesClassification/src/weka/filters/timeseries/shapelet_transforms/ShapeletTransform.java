@@ -86,7 +86,7 @@ public class ShapeletTransform extends FullShapeletTransform {
     private double[][][] generateNormalisedSubSequences(Instances data, int length) {
         //create a 2D matrix of normalised series.
         //number of attributes in our series - length - 1 is the number of subsequences we'll have. -1 for class val.
-        double[][][] normalisedSubSeqs = new double[data.numInstances()][data.numAttributes() - length][];
+        double[][][] normalisedSubSeqs = new double[data.numInstances()][data.numAttributes() - length - 1][];
 
         //for all possible time series.
         for (int i = 0; i < normalisedSubSeqs.length; i++) {

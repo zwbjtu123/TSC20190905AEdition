@@ -5,8 +5,9 @@
  */
 package weka.filters.timeseries.shapelet_transforms.classValue;
 
-import java.util.Map;
-import utilities.InstanceTools;
+import java.io.Serializable;
+import utilities.class_distributions.ClassDistribution;
+import utilities.class_distributions.TreeSetClassDistribution;
 import weka.core.Instance;
 import weka.core.Instances;
 
@@ -14,17 +15,17 @@ import weka.core.Instances;
  *
  * @author raj09hxu
  */
-public class NormalClassValue {
+public class NormalClassValue implements Serializable{
     
     double shapeletValue;
-    Map<Double, Integer> classDistributions;
+    ClassDistribution classDistributions;
     
     public void init(Instances inst)
     {
-        classDistributions = InstanceTools.createClassDistributions(inst);
+        classDistributions = new TreeSetClassDistribution(inst);
     }
     
-    public Map<Double, Integer> getClassDistributions()
+    public ClassDistribution getClassDistributions()
     {
         return classDistributions;
     }
