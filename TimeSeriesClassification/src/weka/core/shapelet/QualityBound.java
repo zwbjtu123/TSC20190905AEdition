@@ -1,17 +1,20 @@
 package weka.core.shapelet;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.TreeMap;
+import utilities.class_distributions.ClassDistribution;
+import utilities.class_distributions.TreeSetClassDistribution;
 
 /**
  * A class to store shapelet quality measure bounding implementations.
  * 
  * @author Edgaras Baranauskas
  */
-public class QualityBound{
+public class QualityBound implements Serializable{
     
     /**
      * Abstract parent class for the shapelet quality measure bound implementations
@@ -30,11 +33,11 @@ public class QualityBound{
         /**
          * Class distribution of the observed distance, class pairs
          */
-        protected Map<Double, Integer> orderLineClassDist;
+        protected ClassDistribution orderLineClassDist;
         /**
          * Class distribution of the dataset, which currently being processed
          */
-        protected Map<Double, Integer> parentClassDist;
+        protected ClassDistribution parentClassDist;
         /**
          * Number of instances in the dataset, which is currently being processed
          */
@@ -50,19 +53,20 @@ public class QualityBound{
          * @param classDist
          * @param percentage
          */
-        protected void initParentFields(Map<Double, Integer> classDist, int percentage){
+        protected void initParentFields(ClassDistribution classDist, int percentage){
             //Initialize the fields
             bsfQuality = Double.MAX_VALUE;
             orderLine = new ArrayList<>();
-            orderLineClassDist = new TreeMap<>();
+            orderLineClassDist = new TreeSetClassDistribution(classDist);
             parentClassDist = classDist;
             this.percentage = percentage;
             
             //Initialize orderline class distribution
             numInstances = 0;
-            for(Double key : parentClassDist.keySet()){
-                orderLineClassDist.put(key, 0);
-                numInstances += parentClassDist.get(key);
+
+            for(int i=0; i < parentClassDist.size(); i++){
+                orderLineClassDist.put(i, 0);
+                numInstances += parentClassDist.get(i);
             }
         }
         
@@ -141,12 +145,12 @@ public class QualityBound{
          *
          * @param isExact
          * */
-        public InformationGainBound(Map<Double, Integer> classDist, int percentage, boolean isExact){
+        public InformationGainBound(ClassDistribution classDist, int percentage, boolean isExact){
             initParentFields(classDist, percentage);
             this.isExact = isExact;
             parentEntropy = QualityMeasures.InformationGain.entropy(parentClassDist);
         }
-        public InformationGainBound(Map<Double, Integer> classDist, int percentage){
+        public InformationGainBound(ClassDistribution classDist, int percentage){
             this(classDist,percentage,false);
         }
            
@@ -156,20 +160,20 @@ public class QualityBound{
          */
         @Override
         protected double calculateBestQuality(){
-            TreeMap<Double, Boolean> perms = new TreeMap<>();
+            TreeMap<Integer, Boolean> perms = new TreeMap<>();
             double bsfGain = -1;
                         
             //Cycle through all permutations
             if(isExact){
                 //Initialise perms
-                for(Double key : orderLineClassDist.keySet()){
-                    perms.put(key, Boolean.TRUE);
+                for(int i =0; i< orderLineClassDist.size(); i++){
+                    perms.put(i, Boolean.TRUE);
                 }
             
                 for(int totalCycles = perms.keySet().size(); totalCycles > 1; totalCycles--){
                     for(int cycle = 0; cycle < totalCycles; cycle++){
                         int start = 0, count = 0;
-                        for(Double key : perms.keySet()){
+                        for(Integer key : perms.keySet()){
                             Boolean val = Boolean.TRUE;
                             if(cycle == start){
                                 val = Boolean.FALSE;
@@ -207,41 +211,18 @@ public class QualityBound{
             return bsfGain;
         }
         
-        private double computeIG(Map<Double, Boolean> perm){
+        private double computeIG(Map<Integer, Boolean> perm){
             //Initialise class counts
-            TreeMap<Double, Integer> lessClasses = new TreeMap<>();
-            TreeMap<Double, Integer> greaterClasses = new TreeMap<>();
-            TreeMap<Double, Boolean> isShifted = new TreeMap<>();
+            ClassDistribution lessClasses = new TreeSetClassDistribution(parentClassDist.size());
+            ClassDistribution greaterClasses = new TreeSetClassDistribution(parentClassDist.size());
+            TreeMap<Integer, Boolean> isShifted = new TreeMap<>();
             
             int countOfAllClasses = 0;
             int countOfLessClasses = 0;
             int countOfGreaterClasses = 0;
             
-            for(double j : parentClassDist.keySet()){
+            for(int j =0; j < parentClassDist.size(); j++){
                 //Adjust counts according to current permutation if permuation is supplied, i.e. for optimal bound
-                if(perm != null){
-                    if(perm.get(j) != null && perm.get(j)){
-                        lessClasses.put(j, parentClassDist.get(j) - orderLineClassDist.get(j));
-                        greaterClasses.put(j, orderLineClassDist.get(j));
-                    }else{                 
-                        lessClasses.put(j, 0);
-                        greaterClasses.put(j, parentClassDist.get(j));
-                    }
-                    
-                    countOfLessClasses += lessClasses.get(j);
-                    countOfGreaterClasses += greaterClasses.get(j);
-                
-               //Assign everything to the right for fast bound
-                }else{
-                    isShifted.put(j, Boolean.FALSE);
-                    lessClasses.put(j, 0);
-                    greaterClasses.put(j, parentClassDist.get(j));
-                    countOfGreaterClasses += greaterClasses.get(j);
-                }
-                
-                
-                /*
-                //TODO: Aaron, refactored the above code. Need to confirm its the same.
                 int lessVal =0;
                 int greaterVal = parentClassDist.get(j);
                 
@@ -251,16 +232,15 @@ public class QualityBound{
                         greaterVal = orderLineClassDist.get(j);
                     }
                     countOfLessClasses += lessClasses.get(j);
-                
                //Assign everything to the right for fast bound
                 }else{
                     isShifted.put(j, Boolean.FALSE);
                 }
                 
-                lessClasses.put(j, lessVal)
+                lessClasses.put(j, lessVal);
                 greaterClasses.put(j, greaterVal);
                 countOfGreaterClasses += greaterClasses.get(j);
-                */
+                
                 
                 countOfAllClasses += parentClassDist.get(j);
             }
@@ -289,7 +269,7 @@ public class QualityBound{
                 //For fast bound dynamically shift the unassigned objects when majority side changes
                 if(!isExact){
                     //Check if shift has not already happened
-                    if(!isShifted.get(thisClassVal)){
+                    if(!isShifted.get((int)thisClassVal)){
                         int greaterCount = greaterClasses.get(thisClassVal) - (parentClassDist.get(thisClassVal) - orderLineClassDist.get(thisClassVal));
                         int lessCount = lessClasses.get(thisClassVal);
                         
@@ -299,7 +279,7 @@ public class QualityBound{
                             countOfGreaterClasses -= parentClassDist.get(thisClassVal) - orderLineClassDist.get(thisClassVal);
                             lessClasses.put(thisClassVal, lessClasses.get(thisClassVal) + (parentClassDist.get(thisClassVal) - orderLineClassDist.get(thisClassVal)));
                             countOfLessClasses += parentClassDist.get(thisClassVal) - orderLineClassDist.get(thisClassVal);
-                            isShifted.put(thisClassVal, Boolean.TRUE);
+                            isShifted.put((int)thisClassVal, Boolean.TRUE);
                         }
                     }
                 }
@@ -353,7 +333,7 @@ public class QualityBound{
          * @param percentage percentage of data required to be processed before
          *                   bounding mechanism is used.
          */
-        public MoodsMedianBound(Map<Double, Integer> classDist, int percentage){
+        public MoodsMedianBound(ClassDistribution classDist, int percentage){
             initParentFields(classDist, percentage);
         }
                 
@@ -395,13 +375,13 @@ public class QualityBound{
             }
             
             // Add count of predicted class distributions above and below the median
-            for(Double key : orderLineClassDist.keySet()){
+            for(int key =0; key < orderLineClassDist.size(); key++){
                 int predictedCount = parentClassDist.get(key) - orderLineClassDist.get(key);
-                if(classCountsBelowMedian[(int)key.doubleValue()] <= classCountsAboveMedian[(int)key.doubleValue()]){
-                    classCountsAboveMedian[(int)key.doubleValue()] += predictedCount;
+                if(classCountsBelowMedian[key] <= classCountsAboveMedian[key]){
+                    classCountsAboveMedian[key] += predictedCount;
                     countAbove += predictedCount;
                 }else{
-                    classCountsBelowMedian[(int)key.doubleValue()] += predictedCount;
+                    classCountsBelowMedian[key] += predictedCount;
                     countBelow += predictedCount;
                 }
                 totalCount += predictedCount;
@@ -454,7 +434,7 @@ public class QualityBound{
          * @param percentage percentage of data required to be processed before
          *                   bounding mechanism is used.
          */
-        public FStatBound(Map<Double, Integer> classDist, int percentage){
+        public FStatBound(ClassDistribution classDist, int percentage){
             initParentFields(classDist, percentage);
           
             int numClasses = parentClassDist.size();
@@ -516,31 +496,30 @@ public class QualityBound{
             
             //Find approximate minimum orderline objects
             OrderLineObj min = new OrderLineObj(-1.0, 0.0);
-            for(Double d : parentClassDist.keySet()){
-                int unassignedObjs = parentClassDist.get(d) - orderLineClassDist.get(d);
-                double distMin = (sums[(int)d.doubleValue()] + (unassignedObjs * minDistance)) / parentClassDist.get(d);
+            for(int i=0; i < parentClassDist.size(); i++){
+                int unassignedObjs = parentClassDist.get(i) - orderLineClassDist.get(i);
+                double distMin = (sums[i] + (unassignedObjs * minDistance)) / parentClassDist.get(i);
                 if(min.getDistance() == -1.0 || distMin < min.getDistance()){
                     min.setDistance(distMin);
-                    min.setClassVal(d);
+                    min.setClassVal(i);
                 }
             }
             
             //Find approximate maximum orderline objects
             OrderLineObj max = new OrderLineObj(-1.0, 0.0);
-            for(Double d : parentClassDist.keySet()){
-                int unassignedObjs = parentClassDist.get(d) - orderLineClassDist.get(d);
-                double distMax = (sums[(int)d.doubleValue()] + (unassignedObjs * maxDistance)) / parentClassDist.get(d); 
-                if(d != min.getClassVal() && (max.getDistance() == -1.0 || distMax > max.getDistance())){
+            for(int i=0; i< parentClassDist.size(); i++){
+                int unassignedObjs = parentClassDist.get(i) - orderLineClassDist.get(i);
+                double distMax = (sums[i] + (unassignedObjs * maxDistance)) / parentClassDist.get(i); 
+                if((double)i != min.getClassVal() && (max.getDistance() == -1.0 || distMax > max.getDistance())){
                     max.setDistance(distMax);
-                    max.setClassVal(d);
+                    max.setClassVal(i);
                 }
             }
             
             //Adjust running sums
             double increment = (max.getDistance() - min.getDistance()) / (numClasses-1);
             int multiplyer = 1;
-            for(int i = 0; i < meanDistOrderLine.size(); i++){
-                OrderLineObj currentObj = meanDistOrderLine.get(i);
+            for (OrderLineObj currentObj : meanDistOrderLine) {
                 double thisDist;
                 int unassignedObjs = parentClassDist.get(currentObj.getClassVal()) - orderLineClassDist.get(currentObj.getClassVal());
                 
@@ -634,7 +613,7 @@ public class QualityBound{
          * @param percentage percentage of data required to be processed before
          *                   bounding mechanism is used.
          */
-        public KruskalWallisBound(Map<Double, Integer> classDist, int percentage){
+        public KruskalWallisBound(ClassDistribution classDist, int percentage){
             initParentFields(classDist, percentage);
         }
                

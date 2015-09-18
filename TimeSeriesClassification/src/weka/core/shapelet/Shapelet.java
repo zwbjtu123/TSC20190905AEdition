@@ -7,16 +7,17 @@
  */
 package weka.core.shapelet;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.Map;
-import java.util.TreeMap;
+import utilities.class_distributions.ClassDistribution;
+import utilities.class_distributions.TreeSetClassDistribution;
 
 /**
  *
  * @author Jon Hills, j.hills@uea.ac.uk
  */
-public class Shapelet implements Comparable<Shapelet>
+public class Shapelet implements Comparable<Shapelet>, Serializable
 {
 
     public double separationGap;
@@ -114,13 +115,13 @@ public class Shapelet implements Comparable<Shapelet>
         this.hasContent = false;
     }
 
-    public void calculateQuality(ArrayList<OrderLineObj> orderline, Map<Double, Integer> classDistribution)
+    public void calculateQuality(ArrayList<OrderLineObj> orderline, ClassDistribution classDistribution)
     {
         this.qualityValue = this.qualityType.calculateQuality(orderline, classDistribution);
     }
 //This also calculates the the separation gap used in the sampling routine    
 
-    public void calcInfoGainAndThreshold(ArrayList<OrderLineObj> orderline, Map<Double, Integer> classDistribution)
+    public void calcInfoGainAndThreshold(ArrayList<OrderLineObj> orderline, ClassDistribution classDistribution)
     {
             // for each split point, starting between 0 and 1, ending between end-1 and end
         // addition: track the last threshold that was used, don't bother if it's the same as the last one
@@ -129,6 +130,8 @@ public class Shapelet implements Comparable<Shapelet>
 
         double bsfGain = -1;
         double threshold = -1;
+        
+        int numClasses = classDistribution.size();
 
         for (int i = 1; i < orderline.size(); i++)
         {
@@ -137,14 +140,10 @@ public class Shapelet implements Comparable<Shapelet>
             { // check that threshold has moved(no point in sampling identical thresholds)- special case - if 0 and 1 are the same dist
 
                 // count class instances below and above threshold
-                TreeMap<Double, Integer> lessClasses = new TreeMap<Double, Integer>();
-                TreeMap<Double, Integer> greaterClasses = new TreeMap<Double, Integer>();
-
-                for (double j : classDistribution.keySet())
-                {
-                    lessClasses.put(j, 0);
-                    greaterClasses.put(j, 0);
-                }
+                
+                
+                ClassDistribution lessClasses = new TreeSetClassDistribution(numClasses);
+                ClassDistribution greaterClasses = new TreeSetClassDistribution(numClasses);
 
                 int sumOfLessClasses = 0;
                 int sumOfGreaterClasses = 0;
@@ -197,40 +196,32 @@ public class Shapelet implements Comparable<Shapelet>
             this.separationGap = calculateSeparationGap(orderline, threshold);
         }
     }
+    
 
     private double calculateSeparationGap(ArrayList<OrderLineObj> orderline, double distanceThreshold)
     {
-
         double sumLeft = 0;
         double leftSize = 0;
         double sumRight = 0;
         double rightSize = 0;
 
-        for (int i = 0; i < orderline.size(); i++)
-        {
-            if (orderline.get(i).getDistance() < distanceThreshold)
-            {
-                sumLeft += orderline.get(i).getDistance();
+        for (OrderLineObj orderline1 : orderline) {
+            if (orderline1.getDistance() < distanceThreshold) {
+                sumLeft += orderline1.getDistance();
                 leftSize++;
-            }
-            else
-            {
-                sumRight += orderline.get(i).getDistance();
+            } else {
+                sumRight += orderline1.getDistance();
                 rightSize++;
             }
         }
-
-        double thisSeparationGap = 1 / rightSize * sumRight - 1 / leftSize * sumLeft; //!!!! they don't divide by 1 in orderLine::minGap(int j)
 
         if (rightSize == 0 || leftSize == 0)
         {
             return -1;
         }
-        else
-        {
-            return thisSeparationGap;
-        }
-
+        
+        double thisSeparationGap = 1 / rightSize * sumRight - 1 / leftSize * sumLeft; //!!!! they don't divide by 1 in orderLine::minGap(int j)
+        return thisSeparationGap;
     }
 
     @Override
@@ -249,7 +240,7 @@ public class Shapelet implements Comparable<Shapelet>
         return str;
     }
 
-    public static class ReverseOrder implements Comparator<Shapelet>
+    public static class ReverseOrder implements Comparator<Shapelet>, Serializable
     {
 
         @Override
@@ -260,7 +251,7 @@ public class Shapelet implements Comparable<Shapelet>
         }
     }
 
-    public static class ReverseSeparationGap implements Comparator<Shapelet>
+    public static class ReverseSeparationGap implements Comparator<Shapelet>, Serializable
     {
 
         @Override
@@ -270,7 +261,7 @@ public class Shapelet implements Comparable<Shapelet>
         }
     }
 
-    public static class SeparationGap implements Comparator<Shapelet>
+    public static class SeparationGap implements Comparator<Shapelet>, Serializable
     {
         @Override
         public int compare(Shapelet s1, Shapelet s2)

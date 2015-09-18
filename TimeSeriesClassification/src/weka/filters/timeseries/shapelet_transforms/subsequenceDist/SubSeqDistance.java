@@ -5,6 +5,7 @@
  */
 package weka.filters.timeseries.shapelet_transforms.subsequenceDist;
 
+import java.io.Serializable;
 import java.util.Arrays;
 import weka.core.Instances;
 import weka.core.shapelet.Shapelet;
@@ -13,7 +14,7 @@ import weka.core.shapelet.Shapelet;
  *
  * @author Aaron
  */
-public class SubSeqDistance{
+public class SubSeqDistance implements Serializable{
 
     public static final double ROUNDING_ERROR_CORRECTION = 0.000000000000001;
     

@@ -12,9 +12,9 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
-import java.util.Map;
 import java.util.Scanner;
-import static utilities.InstanceTools.createClassDistributions;
+import utilities.class_distributions.ClassDistribution;
+import utilities.class_distributions.TreeSetClassDistribution;
 import weka.classifiers.meta.timeseriesensembles.WeightedEnsemble;
 import weka.core.Instances;
 import weka.core.shapelet.QualityMeasures;
@@ -63,7 +63,7 @@ public class DaWaK2015
         String outLogFileName = transform.getClass().getSimpleName() + "_oldDist" + File.separator + dm.fileName + File.separator + dm.fileName;
         
         transform.useCandidatePruning();
-        transform.setLogFileName(outLogFileName);
+        //transform.setLogFileName(outLogFileName);
         
         try
         {
@@ -228,8 +228,8 @@ public class DaWaK2015
                 test = utilities.ClassifierTools.loadData(filePath + "_TEST");
                 train = utilities.ClassifierTools.loadData(filePath + "_TRAIN");
 
-                Map<Double, Integer> trainDist = createClassDistributions(train);
-                Map<Double, Integer> testDist = createClassDistributions(test);
+                ClassDistribution trainDist = new TreeSetClassDistribution(train);
+                ClassDistribution testDist = new TreeSetClassDistribution(test);
                 outFile.printf("%s,%s,%s\n", dataName.getName(), trainDist.toString().replace('{', '\0').replace('}', '\0'), testDist.toString().replace('{', '\0').replace('}', '\0'));
             }
         }
