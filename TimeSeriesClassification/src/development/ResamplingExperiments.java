@@ -32,7 +32,7 @@ import weka.filters.timeseries.shapelet_transforms.subsequenceDist.ImprovedOnlin
 public class ResamplingExperiments {
 
     private static final String dotdotSlash = ".." + File.separator;
-    private static final String ucrLocation = dotdotSlash + dotdotSlash + "Dropbox\\TSC Problems (1)";
+    private static final String ucrLocation = dotdotSlash + dotdotSlash + "Dropbox" + File.separator + "TSC Problems (1)";
     private static final String resampleLocation = dotdotSlash + dotdotSlash + "resampled data sets";
     private static final String transformLocation = dotdotSlash + dotdotSlash + "resampled transforms";
     private static final String accuraciesLocation = dotdotSlash + dotdotSlash + "resampled accuracies";
@@ -68,8 +68,8 @@ public class ResamplingExperiments {
             fold = Integer.parseInt(args[2]) - 1;
         }
 
-        createAllResamples();
-        //createShapelets(fold);
+        //createAllResamples();
+        createShapelets(fold);
         //fileVerifier();
         //createAndWriteAccuracies();
         //createAccuracyTable();
@@ -98,7 +98,7 @@ public class ResamplingExperiments {
         final File[] ds = fDir.listFiles();
 
         for (File d : ds) {
-            if(d.isHidden()) continue;
+            if(d.isHidden() || !d.isDirectory()) continue;
             
             System.out.println(d);
             
@@ -147,7 +147,6 @@ public class ResamplingExperiments {
         transform.setShapeletMinAndMax(3, train.numAttributes() - 1);
         transform.setQualityMeasure(QualityMeasures.ShapeletQualityChoice.INFORMATION_GAIN);
         transform.setLogOutputFile(transformPath + "_shapelets.csv");
-        //transform.useCandidatePruning(); //no candidate pruning at the moment.
 
         //saveLocation/FullShapeletTransform/ItalyPowerDemand/ItalyPowerDemandi_TRAIN
         LocalInfo.saveDataset(transform.process(train), transformPath + "_TRAIN");

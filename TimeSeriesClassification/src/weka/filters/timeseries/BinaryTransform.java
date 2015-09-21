@@ -164,8 +164,8 @@ public class BinaryTransform extends SimpleBatchFilter{
             if(i==1 || thisDist != lastDist){ // check that threshold has moved(no point in sampling identical thresholds)- special case - if 0 and 1 are the same dist
 
                 // count class instances below and above threshold
-                TreeSetClassDistribution lessClasses = new TreeSetClassDistribution(0);
-                TreeSetClassDistribution greaterClasses = new TreeSetClassDistribution(0);
+                TreeSetClassDistribution lessClasses = new TreeSetClassDistribution();
+                TreeSetClassDistribution greaterClasses = new TreeSetClassDistribution();
 
                 for(double j : classDistribution.keySet()){
                     lessClasses.put(j, 0);

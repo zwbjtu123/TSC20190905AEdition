@@ -5,6 +5,7 @@
  */
 package utilities.class_distributions;
 
+import java.util.Collection;
 import java.util.ListIterator;
 import java.util.Set;
 import java.util.TreeMap;
@@ -36,24 +37,25 @@ public class TreeSetClassDistribution extends ClassDistribution{
         }
     }
     
-    public TreeSetClassDistribution(int size) {
+    public TreeSetClassDistribution() {
         classDistribution = new TreeMap<>();
     }
     
-    //clones the object - TODO: need to fix this using a proper keyset.
     public TreeSetClassDistribution(ClassDistribution in){
         
-        /*//copy over the data.
+        //copy over the data.
         classDistribution = new TreeMap<>();
-        for(int i=0; i<in.size(); i++)
+        for(double val : in.keySet())
         {
-            classDistribution[i] = in.get(i);
-        }*/
+            classDistribution.put(val, in.get(val));
+        }
     }
+
 
     @Override
     public int get(double classValue) {
-        return classDistribution.get(classValue);
+        Integer val = classDistribution.get(classValue);
+        return val == null ? 0 : val;
     }
 
     @Override
@@ -71,9 +73,22 @@ public class TreeSetClassDistribution extends ClassDistribution{
         return classDistribution.get((double) accessValue);
     }
     
+    @Override
+    public void addTo(double classVal, int value)
+    {
+        put(classVal, get(classVal)+value);
+    }
+    
+    @Override
     public Set<Double> keySet()
     {
         return classDistribution.keySet();
+    }
+    
+    @Override
+    public Collection<Integer> values()
+    {
+        return classDistribution.values();
     }
     
 }

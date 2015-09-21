@@ -7,6 +7,7 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.TreeMap;
 import utilities.class_distributions.ClassDistribution;
+import utilities.class_distributions.SimpleClassDistribution;
 import utilities.class_distributions.TreeSetClassDistribution;
 
 /**
@@ -14,12 +15,12 @@ import utilities.class_distributions.TreeSetClassDistribution;
  * 
  * @author Edgaras Baranauskas
  */
-public class QualityBound implements Serializable{
+public class QualityBound{
     
     /**
      * Abstract parent class for the shapelet quality measure bound implementations
      */
-    public abstract static class ShapeletQualityBound{
+    public abstract static class ShapeletQualityBound implements Serializable{
 
         /**
          * Best quality observed so far, which is used for determining if the 
@@ -57,16 +58,15 @@ public class QualityBound implements Serializable{
             //Initialize the fields
             bsfQuality = Double.MAX_VALUE;
             orderLine = new ArrayList<>();
-            orderLineClassDist = new TreeSetClassDistribution(classDist);
+            orderLineClassDist = new TreeSetClassDistribution();
             parentClassDist = classDist;
             this.percentage = percentage;
             
             //Initialize orderline class distribution
             numInstances = 0;
-
-            for(int i=0; i < parentClassDist.size(); i++){
-                orderLineClassDist.put(i, 0);
-                numInstances += parentClassDist.get(i);
+            for(Double key : parentClassDist.keySet()){
+                orderLineClassDist.put(key, 0);
+                numInstances += parentClassDist.get(key);
             }
         }
         
@@ -160,20 +160,20 @@ public class QualityBound implements Serializable{
          */
         @Override
         protected double calculateBestQuality(){
-            TreeMap<Integer, Boolean> perms = new TreeMap<>();
+            TreeMap<Double, Boolean> perms = new TreeMap<>();
             double bsfGain = -1;
                         
             //Cycle through all permutations
             if(isExact){
                 //Initialise perms
-                for(int i =0; i< orderLineClassDist.size(); i++){
-                    perms.put(i, Boolean.TRUE);
+                for(Double key : orderLineClassDist.keySet()){
+                    perms.put(key, Boolean.TRUE);
                 }
             
                 for(int totalCycles = perms.keySet().size(); totalCycles > 1; totalCycles--){
                     for(int cycle = 0; cycle < totalCycles; cycle++){
                         int start = 0, count = 0;
-                        for(Integer key : perms.keySet()){
+                        for(Double key : perms.keySet()){
                             Boolean val = Boolean.TRUE;
                             if(cycle == start){
                                 val = Boolean.FALSE;
@@ -211,18 +211,17 @@ public class QualityBound implements Serializable{
             return bsfGain;
         }
         
-        private double computeIG(Map<Integer, Boolean> perm){
+        private double computeIG(Map<Double, Boolean> perm){
             //Initialise class counts
-            ClassDistribution lessClasses = new TreeSetClassDistribution(parentClassDist.size());
-            ClassDistribution greaterClasses = new TreeSetClassDistribution(parentClassDist.size());
-            TreeMap<Integer, Boolean> isShifted = new TreeMap<>();
+            TreeSetClassDistribution lessClasses = new TreeSetClassDistribution();
+            TreeSetClassDistribution greaterClasses = new TreeSetClassDistribution();
+            TreeMap<Double, Boolean> isShifted = new TreeMap<>();
             
             int countOfAllClasses = 0;
             int countOfLessClasses = 0;
             int countOfGreaterClasses = 0;
             
-            for(int j =0; j < parentClassDist.size(); j++){
-                //Adjust counts according to current permutation if permuation is supplied, i.e. for optimal bound
+            for(double j : parentClassDist.keySet()){
                 int lessVal =0;
                 int greaterVal = parentClassDist.get(j);
                 
@@ -232,6 +231,7 @@ public class QualityBound implements Serializable{
                         greaterVal = orderLineClassDist.get(j);
                     }
                     countOfLessClasses += lessClasses.get(j);
+                
                //Assign everything to the right for fast bound
                 }else{
                     isShifted.put(j, Boolean.FALSE);
@@ -269,7 +269,7 @@ public class QualityBound implements Serializable{
                 //For fast bound dynamically shift the unassigned objects when majority side changes
                 if(!isExact){
                     //Check if shift has not already happened
-                    if(!isShifted.get((int)thisClassVal)){
+                    if(!isShifted.get(thisClassVal)){
                         int greaterCount = greaterClasses.get(thisClassVal) - (parentClassDist.get(thisClassVal) - orderLineClassDist.get(thisClassVal));
                         int lessCount = lessClasses.get(thisClassVal);
                         
@@ -279,7 +279,7 @@ public class QualityBound implements Serializable{
                             countOfGreaterClasses -= parentClassDist.get(thisClassVal) - orderLineClassDist.get(thisClassVal);
                             lessClasses.put(thisClassVal, lessClasses.get(thisClassVal) + (parentClassDist.get(thisClassVal) - orderLineClassDist.get(thisClassVal)));
                             countOfLessClasses += parentClassDist.get(thisClassVal) - orderLineClassDist.get(thisClassVal);
-                            isShifted.put((int)thisClassVal, Boolean.TRUE);
+                            isShifted.put(thisClassVal, Boolean.TRUE);
                         }
                     }
                 }
@@ -355,46 +355,50 @@ public class QualityBound implements Serializable{
             int countBelow = 0;
             int countAbove = 0;
             int numClasses = parentClassDist.size();
-            int[] classCountsBelowMedian = new int[numClasses];
-            int[] classCountsAboveMedian = new int[numClasses];
+            
+            ClassDistribution classCountsBelowMedian = new SimpleClassDistribution(numClasses);
+            ClassDistribution classCountsAboveMedian = new SimpleClassDistribution(numClasses);
 
             double distance;
             double classVal;
             
             // Count observed class distributions above and below the median
-            for(int i = 0; i < orderLine.size(); i++){
-                distance = orderLine.get(i).getDistance();
-                classVal = orderLine.get(i).getClassVal();
+            for (OrderLineObj orderLine1 : orderLine) {
+                distance = orderLine1.getDistance();
+                classVal = orderLine1.getClassVal();
                 if(distance < median){
                     countBelow++;
-                    classCountsBelowMedian[(int)classVal]++;
+                    
+                    classCountsBelowMedian.addTo(classVal, 1); //increment by 1
                 }else{
                     countAbove++;
-                    classCountsAboveMedian[(int)classVal]++;
+                    classCountsAboveMedian.addTo(classVal, 1);
                 }
             }
             
             // Add count of predicted class distributions above and below the median
-            for(int key =0; key < orderLineClassDist.size(); key++){
+            for(double key : orderLineClassDist.keySet()){
                 int predictedCount = parentClassDist.get(key) - orderLineClassDist.get(key);
-                if(classCountsBelowMedian[key] <= classCountsAboveMedian[key]){
-                    classCountsAboveMedian[key] += predictedCount;
+                if(classCountsBelowMedian.get(key) <= classCountsAboveMedian.get(key)){
+                    classCountsAboveMedian.addTo(key, predictedCount);
                     countAbove += predictedCount;
                 }else{
-                    classCountsBelowMedian[key] += predictedCount;
+                    classCountsBelowMedian.addTo(key, predictedCount);
                     countBelow += predictedCount;
                 }
                 totalCount += predictedCount;
             }
             
             double chi = 0;
-            double expectedAbove, expectedBelow;
+            double expectedAbove = 0, expectedBelow;
             for(int i = 0; i < numClasses; i++){
                 expectedBelow = (double)(countBelow*parentClassDist.get((double)i))/totalCount;
-                chi += ((classCountsBelowMedian[i]-expectedBelow)*(classCountsBelowMedian[i]-expectedBelow))/expectedBelow;
+                double classCountsBelow = classCountsBelowMedian.get(i) - expectedBelow;
+                double classCountsAbove = classCountsAboveMedian.get(i) - expectedAbove;
+                chi += (classCountsBelow*classCountsBelow)/expectedBelow;
 
                 expectedAbove = (double)(countAbove*parentClassDist.get((double)i))/totalCount;
-                chi += ((classCountsAboveMedian[i]-expectedAbove))*(classCountsAboveMedian[i]-expectedAbove)/expectedAbove;
+                chi += (classCountsAbove*classCountsAbove)/expectedAbove;
             }
 
             if(Double.isNaN(chi)){
@@ -496,30 +500,31 @@ public class QualityBound implements Serializable{
             
             //Find approximate minimum orderline objects
             OrderLineObj min = new OrderLineObj(-1.0, 0.0);
-            for(int i=0; i < parentClassDist.size(); i++){
-                int unassignedObjs = parentClassDist.get(i) - orderLineClassDist.get(i);
-                double distMin = (sums[i] + (unassignedObjs * minDistance)) / parentClassDist.get(i);
+            for(Double d : parentClassDist.keySet()){
+                int unassignedObjs = parentClassDist.get(d) - orderLineClassDist.get(d);
+                double distMin = (sums[(int)d.doubleValue()] + (unassignedObjs * minDistance)) / parentClassDist.get(d);
                 if(min.getDistance() == -1.0 || distMin < min.getDistance()){
                     min.setDistance(distMin);
-                    min.setClassVal(i);
+                    min.setClassVal(d);
                 }
             }
             
             //Find approximate maximum orderline objects
             OrderLineObj max = new OrderLineObj(-1.0, 0.0);
-            for(int i=0; i< parentClassDist.size(); i++){
-                int unassignedObjs = parentClassDist.get(i) - orderLineClassDist.get(i);
-                double distMax = (sums[i] + (unassignedObjs * maxDistance)) / parentClassDist.get(i); 
-                if((double)i != min.getClassVal() && (max.getDistance() == -1.0 || distMax > max.getDistance())){
+            for(Double d : parentClassDist.keySet()){
+                int unassignedObjs = parentClassDist.get(d) - orderLineClassDist.get(d);
+                double distMax = (sums[(int)d.doubleValue()] + (unassignedObjs * maxDistance)) / parentClassDist.get(d); 
+                if(d != min.getClassVal() && (max.getDistance() == -1.0 || distMax > max.getDistance())){
                     max.setDistance(distMax);
-                    max.setClassVal(i);
+                    max.setClassVal(d);
                 }
             }
             
             //Adjust running sums
             double increment = (max.getDistance() - min.getDistance()) / (numClasses-1);
             int multiplyer = 1;
-            for (OrderLineObj currentObj : meanDistOrderLine) {
+            for(int i = 0; i < meanDistOrderLine.size(); i++){
+                OrderLineObj currentObj = meanDistOrderLine.get(i);
                 double thisDist;
                 int unassignedObjs = parentClassDist.get(currentObj.getClassVal()) - orderLineClassDist.get(currentObj.getClassVal());
                 

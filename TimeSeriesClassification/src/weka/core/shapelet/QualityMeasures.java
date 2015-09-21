@@ -2,10 +2,13 @@ package weka.core.shapelet;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.Map;
 import java.util.TreeMap;
 import utilities.class_distributions.ClassDistribution;
 import utilities.class_distributions.TreeSetClassDistribution;
+import weka.filters.timeseries.shapelet_transforms.FullShapeletTransform;
 
 /**
  *      * copyright: Anthony Bagnall
@@ -62,7 +65,7 @@ public class QualityMeasures implements Serializable
         MOODS_MEDIAN
     }
 
-    public abstract static class ShapeletQualityMeasure implements Serializable
+    public abstract static class ShapeletQualityMeasure  implements Serializable
     {
 
         public abstract double calculateQuality(ArrayList<OrderLineObj> orderline, ClassDistribution classDistribution);
@@ -72,7 +75,7 @@ public class QualityMeasures implements Serializable
      * A class for calculating the information gain of a shapelet, according to
      * the set of distances from the shapelet to a dataset.
      */
-    public static class InformationGain extends ShapeletQualityMeasure
+    public static class InformationGain extends ShapeletQualityMeasure 
     {
 
         /**
@@ -97,20 +100,19 @@ public class QualityMeasures implements Serializable
 
             double bsfGain = -1;
 
-            int numClasses = classDistribution.size();
-            
             // initialise class counts
-            ClassDistribution lessClasses = new TreeSetClassDistribution(numClasses);
-            ClassDistribution greaterClasses = new TreeSetClassDistribution(numClasses);
+            ClassDistribution lessClasses = new TreeSetClassDistribution();
+            ClassDistribution greaterClasses = new TreeSetClassDistribution();
 
             // parent entropy will always be the same, so calculate just once
             double parentEntropy = entropy(classDistribution);
 
             int sumOfAllClasses = 0;
-            for (int i=0; i< numClasses; i++)
+            for (double j : classDistribution.keySet())
             {
-                greaterClasses.put(i, classDistribution.get(i));
-                sumOfAllClasses += classDistribution.get(i);
+                lessClasses.put(j, 0);
+                greaterClasses.put(j, classDistribution.get(j));
+                sumOfAllClasses += classDistribution.get(j);
             }
             int sumOfLessClasses = 0;
             int sumOfGreaterClasses = sumOfAllClasses;
@@ -168,18 +170,23 @@ public class QualityMeasures implements Serializable
             double thisPart;
             double toAdd;
             int total = 0;
-            for (int i=0; i<classDistributions.size(); i++)
+            //Aaron: should be simpler than iterating using the keySet.
+            //Values is backed by the Map so it doesn't need to be constructed.
+            Collection<Integer> values = classDistributions.values();
+            for (Integer d : values)
             {
-                total += classDistributions.get(i);
+                total += d;
             }
 
             // to avoid NaN calculations, the individual parts of the entropy are calculated and summed.
             // i.e. if there is 0 of a class, then that part would calculate as NaN, but this can be caught and
             // set to 0. 
+            //Aaron:  Instead of using the keyset to loop through, use the underlying Array to iterate through, ordering of calculations doesnt matter.
+            //just that we do them all. so i think previously it was n log n, now should be just n.
             double entropy = 0;
-            for (int i=0; i<classDistributions.size(); i++)
+            for (Integer d : values)
             {
-                thisPart = (double) classDistributions.get(i) / total;
+                thisPart = (double) d / total;
                 toAdd = -thisPart * Math.log10(thisPart) / Math.log10(2);
                 //Aaron: if its not NaN we can add it, if it was NaN we'd just add 0.
                 if (!Double.isNaN(toAdd))
@@ -192,7 +199,7 @@ public class QualityMeasures implements Serializable
         }
 
     }
-    
+
     /**
      * A class for calculating the F-Statistic of a shapelet, according to the
      * set of distances from the shapelet to a dataset.

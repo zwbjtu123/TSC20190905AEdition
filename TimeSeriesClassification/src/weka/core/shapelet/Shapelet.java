@@ -142,8 +142,8 @@ public class Shapelet implements Comparable<Shapelet>, Serializable
                 // count class instances below and above threshold
                 
                 
-                ClassDistribution lessClasses = new TreeSetClassDistribution(numClasses);
-                ClassDistribution greaterClasses = new TreeSetClassDistribution(numClasses);
+                ClassDistribution lessClasses = new TreeSetClassDistribution();
+                ClassDistribution greaterClasses = new TreeSetClassDistribution();
 
                 int sumOfLessClasses = 0;
                 int sumOfGreaterClasses = 0;

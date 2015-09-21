@@ -6,7 +6,8 @@
 package utilities.class_distributions;
 
 import java.io.Serializable;
-import weka.core.Instances;
+import java.util.Collection;
+import java.util.Set;
 
 /**
  *
@@ -17,4 +18,7 @@ public abstract class ClassDistribution implements Serializable {
     public abstract int get(int accessValue);
     public abstract void put(double classValue, int value);
     public abstract int size();
+    public abstract Set<Double> keySet();
+    public abstract Collection<Integer> values();
+    public abstract void addTo(double classValue, int val);
 }

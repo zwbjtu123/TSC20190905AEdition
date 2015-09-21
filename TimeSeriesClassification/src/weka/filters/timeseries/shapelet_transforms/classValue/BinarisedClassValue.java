@@ -43,23 +43,24 @@ public class BinarisedClassValue extends NormalClassValue{
         ClassDistribution[] binaryMapping = new ClassDistribution[classDistributions.size()];
         
         //for each classVal build a binary distribution map.
-        for(int i=0; i< classDistributions.size(); i++)
+        int i=0;
+        for(double key : classDistributions.keySet())
         {
-            binaryMapping[i] = binariseDistributions(i);
+            binaryMapping[i++] = binariseDistributions(key);
         }
         return binaryMapping;
     }
     
-    private ClassDistribution binariseDistributions(int shapeletClassVal)
+    private ClassDistribution binariseDistributions(double shapeletClassVal)
     {
-        //binary distribution only needs to be size.
-        ClassDistribution binaryDistribution = new TreeSetClassDistribution(2);
+        //binary distribution only needs to be size 2.
+        ClassDistribution binaryDistribution = new TreeSetClassDistribution();
 
         Integer shapeletClassCount = classDistributions.get(shapeletClassVal);
         binaryDistribution.put(0.0, shapeletClassCount);
         
         int sum = 0;
-        for(int i=0; i<classDistributions.size();i++)
+        for(double i : classDistributions.keySet()) 
         {
             sum += classDistributions.get(i);
         }
