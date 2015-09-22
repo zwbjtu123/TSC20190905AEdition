@@ -12,6 +12,7 @@ import weka.classifiers.Classifier;
 import weka.classifiers.Evaluation;
 import weka.core.Instances;
 import weka.filters.SimpleBatchFilter;
+import weka.filters.unsupervised.attribute.RemoveUseless;
 
 /**
  *
@@ -25,6 +26,7 @@ public class ThreadedClassifierExperiment extends Thread{
     SimpleBatchFilter filter;
     String name;
     int resamples=100;
+    public static boolean removeUseless=true;
     
     public ThreadedClassifierExperiment(Instances tr, Instances te, Classifier cl,String n){
         train=tr;
@@ -81,6 +83,11 @@ public class ThreadedClassifierExperiment extends Thread{
                     data[0]=filter.process(data[0]);
                     data[1]=filter.process(data[1]);
                 }
+//Filter out attributes with all the same values in the train data. These break BayesNet discretisation
+                if(removeUseless){
+                    InstanceTools.removeConstantTrainAttributes(train,test);
+                }
+                
                 c.buildClassifier(data[0]);
                 foldAcc[i]=0;
                 for(int j=0;j<data[1].numInstances();j++)

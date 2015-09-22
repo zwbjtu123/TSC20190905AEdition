@@ -4,6 +4,7 @@ Default weka classifiers in the time domain.
 package bakeOffExperiments;
 
 import development.DataSets;
+import fileIO.InFile;
 import fileIO.OutFile;
 import java.io.File;
 import java.util.*;
@@ -12,6 +13,7 @@ import weka.classifiers.AbstractClassifier;
 import weka.classifiers.Classifier;
 import weka.classifiers.bayes.BayesNet;
 import weka.classifiers.bayes.NaiveBayes;
+import weka.classifiers.functions.Logistic;
 import weka.classifiers.functions.MultilayerPerceptron;
 import weka.classifiers.functions.SMO;
 import weka.classifiers.functions.supportVector.Kernel;
@@ -37,19 +39,13 @@ public class BasicClassifiers {
          
          List<String> notNormed=Arrays.asList(DataSets.notNormalised);
          NormalizeCase nc = new NormalizeCase();
-//         String[] files=DataSets.fileNames;
-         String[] files=DataSets.notNormalised;
+         String[] files=DataSets.fileNames;
          for(int i=0;i<files.length;i++){
 //Load train test
             String s=files[i];
             Classifier cls=AbstractClassifier.makeCopy(c);
             Instances train=ClassifierTools.loadData(str+"TSC Problems/"+s+"/"+s+"_TRAIN");
             Instances test=ClassifierTools.loadData(str+"TSC Problems/"+s+"/"+s+"_TEST");
-            if(notNormed.contains(s)){   //Need to normalise
-                train=nc.process(train);
-                test=nc.process(test);
-            }
-           
             thr[i]=new ThreadedClassifierExperiment(train,test,cls,files[i]);
             thr[i].start();
             System.out.println(" started ="+s);
@@ -89,39 +85,81 @@ public class BasicClassifiers {
         double[] folds=ClusterClassifierExperiment.resampleExperiment(train,test,c,100,of);
         of.writeString("\n");
     }
+    public static void formatResults(String path, String algo){
+        InFile inF=new InFile(path+algo+".csv");
+        OutFile out= new OutFile(path+algo+"Formatted.csv");
+        
+    }
+/* Takes a possibly partial list of results and format into the outfile */
+    public static class Results{
+        String name;
+        double[] accs;
+    }
+    public static void resultsParser(InFile f, OutFile of) throws Exception{
+        int lines= f.countLines();
+        ArrayList<String> allNames= new ArrayList<>();
+        for(String s: DataSets.fileNames){
+            allNames.add(s);
+        }
+        for(int i=0;i<lines;i++){
+            
+        } 
+    }
     public static void main(String[] args) throws Exception{
-        System.out.println("******** J48 **********");
         Classifier c;
+        String s="C:\\Users\\ajb\\Dropbox\\Big TSC Bake Off\\New Results\\Standard Classifiers\\";
+        OutFile res;
+        c = new SMO();
+        PolyKernel p=new PolyKernel();
+        p.setExponent(2);
+        ((SMO)c).setKernel(p);
+        res = new OutFile(s+"SVMQ.csv");
+        threadedSingleClassifier(c,res);
+ /*
+        res = new OutFile(s+"BayesNet.csv");
+        c= new BayesNet();
+        System.out.println("******** BayesNet **********");
+        threadedSingleClassifier(c,res);
+
+        /*        
+        res = new OutFile(s+"C45.csv");
         c= new J48();
-        OutFile res = new OutFile("C:\\Users\\ajb\\Dropbox\\Big TSC Bake Off\\New Results\\Working docs\\C45Norm.csv");
+        System.out.println("******** J48 **********");
         threadedSingleClassifier(c,res);
         System.out.println("******** Naive Bayes *******************");
         c= new NaiveBayes();
-        res = new OutFile("C:\\Users\\ajb\\Dropbox\\Big TSC Bake Off\\New Results\\Working docs\\NBNorm.csv");
+        res = new OutFile(s+"NB.csv");
         threadedSingleClassifier(c,res);
+        
         System.out.println("**************** SVML *************8**********");
         c = new SMO();
         PolyKernel p=new PolyKernel();
         p.setExponent(1);
         ((SMO)c).setKernel(p);
-        res = new OutFile("C:\\Users\\ajb\\Dropbox\\Big TSC Bake Off\\New Results\\Working docs\\SVMLNorm.csv");
+        res = new OutFile(s+"SVML.csv");
         threadedSingleClassifier(c,res);
         System.out.println("******** Random Forest ***************************");
         c= new RandomForest();
         ((RandomForest) c).setNumTrees(500);
-        res = new OutFile("C:\\Users\\ajb\\Dropbox\\Big TSC Bake Off\\New Results\\Working docs\\RandFNorm.csv");
+        res = new OutFile(s+"RandF.csv");
         threadedSingleClassifier(c,res);
-        c= new BayesNet();
-        res = new OutFile("C:\\Users\\ajb\\Dropbox\\Big TSC Bake Off\\New Results\\Working docs\\BayesNetNorm.csv");
+        c= new RotationForest();
+        ((RotationForest)c).setNumIterations(50);
+        res = new OutFile(s+"RotF.csv");
         threadedSingleClassifier(c,res);
-//        RotationForest c= new RotationForest();
-//        c.setNumIterations(50);
-//        SMO c = new SMO();
- //       PolyKernel p=new PolyKernel();
- //       p.setExponent(1);
- //       c.setKernel(p);
-
-
+        c = new SMO();
+        PolyKernel p=new PolyKernel();
+        p.setExponent(2);
+        ((SMO)c).setKernel(p);
+        res = new OutFile(s+"SVMQ.csv");
+        threadedSingleClassifier(c,res);
+        c= new MultilayerPerceptron();
+        res = new OutFile(s+"MLP.csv");
+        threadedSingleClassifier(c,res);
+        c= new Logistic();
+        res = new OutFile(s+"Logistic.csv");
+        threadedSingleClassifier(c,res);
+        */
 //        clusterSingleClassifier(args);
 //        System.exit(0);
         

@@ -262,5 +262,23 @@ public class InstanceTools {
         
         return output;
     }
+    public static void removeConstantTrainAttributes(Instances train, Instances test){
+        int i=0;
+        while(i<train.numAttributes()-1){ //Dont test class
+// Test if constant
+            int j=1;
+            while(j<train.numInstances() && train.instance(j-1).value(i)==train.instance(j).value(i))
+                j++;
+            if(j==train.numInstances()){
+    // Remove from train
+                train.deleteAttributeAt(i);
+                test.deleteAttributeAt(i);
+    // Remove from test            
+            }else{
+                i++;
+            }
+        }
+        
+    }
     
 }
