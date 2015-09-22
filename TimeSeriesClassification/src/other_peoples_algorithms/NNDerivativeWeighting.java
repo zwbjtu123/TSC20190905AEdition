@@ -1,4 +1,4 @@
-package development.Jay;
+package other_peoples_algorithms;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -612,7 +612,8 @@ public class NNDerivativeWeighting extends kNN{
             dTest = derFilter.process(test);
 
             // ED 
-            ed = new development.Jay.GoreckiDerivativesEuclideanDistance.GoreckiEuclideanDistance();
+//            ed = new GoreckiEuclideanDistance();
+            ed = new EuclideanDistance();
             ed.setDontNormalize(true);
             knn = new kNN(ed);
             correct = getCorrect(knn, train, test);
@@ -621,7 +622,7 @@ public class NNDerivativeWeighting extends kNN{
             System.out.print(df.format(err)+",");
 
             // DED
-            ed = new development.Jay.GoreckiDerivativesEuclideanDistance.GoreckiEuclideanDistance();
+            ed = new EuclideanDistance();
             knn = new kNN(ed);
             correct = getCorrect(knn, dTrain, dTest);
             acc = (double)correct/test.numInstances();

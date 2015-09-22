@@ -1,5 +1,5 @@
 
-package development.Jay;
+package other_peoples_algorithms;
 
 import java.text.DecimalFormat;
 import utilities.ClassifierTools;
