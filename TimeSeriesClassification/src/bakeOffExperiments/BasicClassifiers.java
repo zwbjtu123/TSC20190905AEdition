@@ -109,6 +109,12 @@ public class BasicClassifiers {
         Classifier c;
         String s="C:\\Users\\ajb\\Dropbox\\Big TSC Bake Off\\New Results\\Standard Classifiers\\";
         OutFile res;
+
+        res = new OutFile(s+"C45.csv");
+        c= new J48();
+        System.out.println("******** J48 **********");
+        threadedSingleClassifier(c,res);
+/*        
         c = new SMO();
         PolyKernel p=new PolyKernel();
         p.setExponent(2);
