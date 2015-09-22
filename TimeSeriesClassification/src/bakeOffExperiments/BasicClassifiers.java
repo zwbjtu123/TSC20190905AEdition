@@ -90,21 +90,65 @@ public class BasicClassifiers {
         OutFile out= new OutFile(path+algo+"Formatted.csv");
         
     }
+
 /* Takes a possibly partial list of results and format into the outfile */
     public static class Results{
         String name;
+        double mean;
+        double stdDev;
         double[] accs;
+        public boolean equals(Object o){
+            if( ((Results)o).name.equals(this.name))
+                return true;
+            return false;
+        }
     }
     public static void resultsParser(InFile f, OutFile of) throws Exception{
         int lines= f.countLines();
-        ArrayList<String> allNames= new ArrayList<>();
-        for(String s: DataSets.fileNames){
-            allNames.add(s);
-        }
+        f.reopen();
+        ArrayList<Results> res=new ArrayList<>();
+  //      System.out.println("Lines = "+lines);
+
+        
         for(int i=0;i<lines;i++){
-            
-        } 
+            String line=f.readLine();
+            String[] split=line.split(",");
+            Results r=new Results();
+            r.name=split[0];
+            r.accs=new double[split.length-1];
+//            System.out.println("length="+r.accs.length+"::::"+line);
+            for(int j=0;j<r.accs.length;j++){
+                try{
+                r.accs[j]=Double.parseDouble(split[j+1]);
+                r.mean+=r.accs[j];
+                }catch(Exception e){
+                    System.out.println("ERROR: "+split[j]+" giving error "+e);
+                    System.exit(0);
+                }
+            }
+            r.mean/=r.accs.length;
+            r.stdDev=0;
+            for(int j=0;j<r.accs.length;j++){
+                r.stdDev+=(r.accs[j]-r.mean)*(r.accs[j]-r.mean);
+            }
+            r.stdDev/=(r.accs.length-1);
+            res.add(r);
+        }
+        for(int i=0;i<DataSets.fileNames.length;i++){
+            of.writeString(DataSets.fileNames[i]+",");
+            int j=0; //Wasteful linear scan
+            while(j<res.size() && !DataSets.fileNames[i].equals(res.get(j).name))
+                j++;
+            System.out.println("J =: "+j+" "+res.size());
+            if(j<res.size()){
+                Results r=res.get(j);
+                of.writeLine(r.mean+","+r.stdDev+","+r.accs.length);
+            }
+            else
+                of.writeLine(",,");
+        }
     }
+    
     public static void main(String[] args) throws Exception{
         Classifier c;
         String s="C:\\Users\\ajb\\Dropbox\\Big TSC Bake Off\\New Results\\Standard Classifiers\\";

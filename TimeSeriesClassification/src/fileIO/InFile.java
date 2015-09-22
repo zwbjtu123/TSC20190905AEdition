@@ -4,7 +4,7 @@ import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 public class InFile{
-    private String name;
+    private String fileName;
     private FileReader fr;
     private BufferedReader in;
     private StreamTokenizer token;
@@ -13,7 +13,7 @@ public class InFile{
 //Standard File
     public InFile(String name){
         try{
-            this.name=name;
+            fileName=name;
             fr = new FileReader(name);
             in = new BufferedReader(fr,MAXBUFFERSIZE);
             token = new StreamTokenizer(in);
@@ -33,7 +33,7 @@ public class InFile{
 
     public InFile(String name, char sep){
         try{
-            this.name=name;
+            fileName=name;
             fr = new FileReader(name);
             in = new BufferedReader(fr,MAXBUFFERSIZE);
             token = new StreamTokenizer(in);
@@ -45,9 +45,29 @@ public class InFile{
                 System.out.println(" File "+ name+" Not found");
         }
     }
+//Reopenfile
+    public void reopen(){
+        try{
+            fr = new FileReader(fileName);
+            in = new BufferedReader(fr,MAXBUFFERSIZE);
+            token = new StreamTokenizer(in);
+            markerToken= new StreamTokenizer(in);
+            token.wordChars(' ',' ');
+            token.wordChars('_','_');
+            token.whitespaceChars(',',',');
+            token.slashStarComments(true);
+            markPoint(); //Mark start of file for rewind
+        }
+        catch(FileNotFoundException exception)
+        {
+                System.out.println("EXIT:: Exception in InFile constructor :"+exception.toString());
+        }
+    }
+    
 //CSV file
     public void openFile(String name) throws FileNotFoundException
     {
+        fileName=name;
         fr = new FileReader(name);
         in = new BufferedReader(fr,MAXBUFFERSIZE);
         token = new StreamTokenizer(in);

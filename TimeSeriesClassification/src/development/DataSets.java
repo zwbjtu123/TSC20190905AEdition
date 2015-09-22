@@ -65,7 +65,7 @@ public class DataSets {
 			"FaceAll", // 560,1690,131,14
 			"FaceFour", // 24,88,350,4
 			"FacesUCR", // 200,2050,131,14
-			"Fiftywords", // 450,455,270,50
+			"FiftyWords", // 450,455,270,50
 			"Fish", // 175,175,463,7
 			"FordA", // 3601,1320,500,2
 			"FordB", // 3636,810,500,2
