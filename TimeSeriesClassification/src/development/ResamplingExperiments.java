@@ -19,6 +19,7 @@ import java.util.Scanner;
 import utilities.ClassifierTools;
 import utilities.InstanceTools;
 import weka.classifiers.meta.timeseriesensembles.WeightedEnsemble;
+import weka.classifiers.trees.RandomForest;
 import weka.core.Instances;
 import weka.core.shapelet.QualityMeasures;
 import weka.filters.timeseries.shapelet_transforms.*;
@@ -69,7 +70,18 @@ public class ResamplingExperiments {
         }
 
         //createAllResamples();
-        createShapelets(fold);
+        //createShapelets(fold);
+        
+        File f = new File(transformLocation + File.separator + classifierName);
+        
+        for(File file : f.listFiles())
+        {
+            if(!f.isDirectory() || f.isHidden()) continue;
+            
+            currentDataSet = file.getName();
+            System.out.println(currentDataSet);
+            createRandomForestOnTransform();
+        }
         //fileVerifier();
         //createAndWriteAccuracies();
         //createAccuracyTable();
@@ -260,13 +272,9 @@ public class ResamplingExperiments {
 
         try {
             //create our accuracy file.
-            File f = new File(resultsPath + ".csv");
-            f.getParentFile().mkdirs();
-            f.createNewFile();
-            PrintWriter pw = new PrintWriter(f);
+            double[] accuracies = new double[noSamples];
 
-            pw.printf("%s,%s\n", "fold", "accuracy");
-
+            //create accuracies Array.
             for (int fold = 0; fold < noSamples; fold++) {
                 //get the train and test instances for each dataset.
                 Instances test = utilities.ClassifierTools.loadData(transformPath + fold + "_TEST");
@@ -276,13 +284,21 @@ public class ResamplingExperiments {
                 WeightedEnsemble we = new WeightedEnsemble();
                 we.setWeightType(WeightedEnsemble.WeightType.EQUAL);
                 we.buildClassifier(train);
-                double accuracy = utilities.ClassifierTools.accuracy(test, we);
+                accuracies[fold] = utilities.ClassifierTools.accuracy(test, we);
 
-                pw.printf("%d,%f\n", fold, accuracy);
-                System.out.printf("%d,%f\n", fold, accuracy);
+                System.out.printf("%d,%f\n", fold, accuracies[fold]);
             }
-
-            pw.close();
+            
+            //save Accuracies to File.
+            File f = new File(resultsPath + "_WE.csv");
+            f.getParentFile().mkdirs();
+            f.createNewFile();
+            try (PrintWriter pw = new PrintWriter(f)) {
+                pw.printf("%s,%s\n", "fold", "accuracy");
+                for (int fold = 0; fold < noSamples; fold++) {
+                    pw.printf("%d,%f\n", fold, accuracies[fold]);
+                }
+            }
 
         } catch (Exception ex) {
             System.out.println("Classifier exception: " + ex);
@@ -455,6 +471,49 @@ public class ResamplingExperiments {
             pw.close();
         } catch (IOException x) {
             System.out.println("IOException:  "+ x);
+        }
+    }
+
+    public static void createRandomForestOnTransform() {
+        String fileExtension = File.separator + currentDataSet + File.separator + currentDataSet;
+
+        //get the loadLocation of the resampled files.
+        String classifierDir = File.separator + classifierName + fileExtension;
+        String transformPath = transformLocation + classifierDir;
+        String resultsPath = resultsLocation + classifierDir;
+
+        try {
+            //create our accuracy file.
+            double[] accuracies = new double[noSamples];
+
+            //create accuracies Array.
+            for (int fold = 0; fold < noSamples; fold++) {
+                //get the train and test instances for each dataset.
+                Instances test = utilities.ClassifierTools.loadData(transformPath + fold + "_TEST");
+                Instances train = utilities.ClassifierTools.loadData(transformPath + fold + "_TRAIN");
+
+                //build the elastic Ensemble on our training data.
+                RandomForest rf = new RandomForest();
+                rf.setNumTrees(500);
+                rf.buildClassifier(train);
+                accuracies[fold] = utilities.ClassifierTools.accuracy(test, rf);
+
+                System.out.printf("%d,%f\n", fold, accuracies[fold]);
+            }
+            
+            //save Accuracies to File.
+            File f = new File(resultsPath + "_RF500.csv");
+            f.getParentFile().mkdirs();
+            f.createNewFile();
+            try (PrintWriter pw = new PrintWriter(f)) {
+                pw.printf("%s,%s\n", "fold", "accuracy");
+                for (int fold = 0; fold < noSamples; fold++) {
+                    pw.printf("%d,%f\n", fold, accuracies[fold]);
+                }
+            }
+
+        } catch (Exception ex) {
+            System.out.println("Classifier exception: " + ex);
         }
     }
 }
