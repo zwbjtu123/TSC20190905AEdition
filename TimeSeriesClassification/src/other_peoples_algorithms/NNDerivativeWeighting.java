@@ -152,7 +152,7 @@ public class NNDerivativeWeighting extends kNN{
         //</editor-fold>
     };
     
-    protected GoreckiDerivativesEuclideanDistance distanceFunciton;
+    protected GoreckiDerivativesEuclideanDistance distanceFunction;
     protected boolean paramsSet;
     
     public enum DistanceType{EUCLIDEAN, DTW};
@@ -160,7 +160,7 @@ public class NNDerivativeWeighting extends kNN{
     // defaults to Euclidean distance
     public NNDerivativeWeighting(){
         super();
-        this.distanceFunciton = new GoreckiDerivativesEuclideanDistance();
+        this.distanceFunction = new GoreckiDerivativesEuclideanDistance();
         this.paramsSet = false;
         
     }
@@ -168,26 +168,26 @@ public class NNDerivativeWeighting extends kNN{
     public NNDerivativeWeighting(DistanceType distType){
         super();
         if(distType==DistanceType.EUCLIDEAN){
-            this.distanceFunciton = new GoreckiDerivativesEuclideanDistance();
+            this.distanceFunction = new GoreckiDerivativesEuclideanDistance();
         }else{
-            this.distanceFunciton = new GoreckiDerivativesDTW();
+            this.distanceFunction = new GoreckiDerivativesDTW();
         }
         this.paramsSet = false;
     }
     
     public void setAandB(double a, double b){
-        this.distanceFunciton.a = a;
-        this.distanceFunciton.b = b;
+        this.distanceFunction.a = a;
+        this.distanceFunction.b = b;
         this.paramsSet = true;
     }
     
     @Override
     public void buildClassifier(Instances train){
         if(!paramsSet){
-            this.distanceFunciton.crossValidateForAandB(train);
+            this.distanceFunction.crossValidateForAandB(train);
             paramsSet=true;
         }
-        this.setDistanceFunction(this.distanceFunciton);
+        this.setDistanceFunction(this.distanceFunction);
         super.buildClassifier(train);
     }
     

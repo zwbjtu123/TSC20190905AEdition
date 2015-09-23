@@ -21,15 +21,37 @@ The distance measure CID(Q,C)=ED(Q,C) × CF(Q,C),
 where ED is the Eucidean distance and
 CF(Q,C) = max (CE(Q),CE(C))
           min (CE(Q),CE(C)) 
-ie the ratio of complexities. In thepaper, 
+ie the ratio of complexities. In the paper, 
 
 */
 package other_peoples_algorithms;
+
+import weka.classifiers.lazy.kNN;
+import weka.core.EuclideanDistance;
+import weka.core.elastic_distance_measures.DTW;
 
 /**
  *
  * @author ajb
  */
-public class BatistaCID {
+public class BatistaCID  extends kNN{
     
+        public NNDerivativeWeighting(){
+        super();
+        this.distanceFunciton = new GoreckiDerivativesEuclideanDistance();
+        this.paramsSet = false;
+        
+    }
+
+    
+    EuclideanDistance dist=new EuclideanDistance();
+    
+    public void useDTW(boolean b){
+        if(b)
+            dist=new DTW();
+        else
+            dist=new EuclideanDistance();
+    }
+    
+    public class CIDDistance 
 }

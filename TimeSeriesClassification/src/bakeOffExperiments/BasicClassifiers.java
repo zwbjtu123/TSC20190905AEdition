@@ -18,6 +18,7 @@ import weka.classifiers.functions.MultilayerPerceptron;
 import weka.classifiers.functions.SMO;
 import weka.classifiers.functions.supportVector.Kernel;
 import weka.classifiers.functions.supportVector.PolyKernel;
+import weka.classifiers.lazy.DTW_1NN;
 import weka.classifiers.lazy.kNN;
 import weka.classifiers.meta.RotationForest;
 import weka.classifiers.trees.J48;
@@ -37,8 +38,6 @@ public class BasicClassifiers {
          out=results;
          String str=DataSets.dropboxPath;
          
-         List<String> notNormed=Arrays.asList(DataSets.notNormalised);
-         NormalizeCase nc = new NormalizeCase();
          String[] files=DataSets.fileNames;
          for(int i=0;i<files.length;i++){
 //Load train test
@@ -63,12 +62,24 @@ public class BasicClassifiers {
             case "NaiveBayes":
                 c=new NaiveBayes();
                 break;
-            case "MultilayerPerceptron":
+            case "MLP":
                 c=new MultilayerPerceptron();
                 break;
-            case "RotationForest50":
+            case "RotationForest":
                 c= new RotationForest();
                 ((RotationForest)c).setNumIterations(50);
+                break;
+            case "Logistic":
+                c= new Logistic();
+                break;
+            case "DTW":
+                c=new DTW_1NN();
+                ((DTW_1NN)c).setR(1.0);
+                ((DTW_1NN)c).optimiseWindow(false);
+                break;
+            case "DTWCV":
+                c=new DTW_1NN();
+                ((DTW_1NN)c).optimiseWindow(true);
                 break;
             default:
                 c= new kNN(1);
@@ -91,91 +102,15 @@ public class BasicClassifiers {
         
     }
 
-/* Takes a possibly partial list of results and format into the outfile */
-    public static class Results{
-        String name;
-        double mean;
-        double stdDev;
-        double[] accs;
-        public boolean equals(Object o){
-            if( ((Results)o).name.equals(this.name))
-                return true;
-            return false;
-        }
-    }
-    public static void resultsParser(InFile f, OutFile of) throws Exception{
-        int lines= f.countLines();
-        f.reopen();
-        ArrayList<Results> res=new ArrayList<>();
-  //      System.out.println("Lines = "+lines);
 
-        
-        for(int i=0;i<lines;i++){
-            String line=f.readLine();
-            String[] split=line.split(",");
-            Results r=new Results();
-            r.name=split[0];
-            r.accs=new double[split.length-1];
-//            System.out.println("length="+r.accs.length+"::::"+line);
-            for(int j=0;j<r.accs.length;j++){
-                try{
-                r.accs[j]=Double.parseDouble(split[j+1]);
-                r.mean+=r.accs[j];
-                }catch(Exception e){
-                    System.out.println("ERROR: "+split[j]+" giving error "+e);
-                    System.exit(0);
-                }
-            }
-            r.mean/=r.accs.length;
-            r.stdDev=0;
-            for(int j=0;j<r.accs.length;j++){
-                r.stdDev+=(r.accs[j]-r.mean)*(r.accs[j]-r.mean);
-            }
-            r.stdDev/=(r.accs.length-1);
-            res.add(r);
-        }
-        for(int i=0;i<DataSets.fileNames.length;i++){
-            of.writeString(DataSets.fileNames[i]+",");
-            int j=0; //Wasteful linear scan
-            while(j<res.size() && !DataSets.fileNames[i].equals(res.get(j).name))
-                j++;
-            System.out.println("J =: "+j+" "+res.size());
-            if(j<res.size()){
-                Results r=res.get(j);
-                of.writeLine(r.mean+","+r.stdDev+","+r.accs.length);
-            }
-            else
-                of.writeLine(",,");
-        }
-    }
     
     public static void main(String[] args) throws Exception{
+        clusterSingleClassifier(args);
+        System.exit(0);
         Classifier c;
-        String s="C:\\Users\\ajb\\Dropbox\\Big TSC Bake Off\\New Results\\Standard Classifiers\\";
+        String s="C:\\Users\\ajb\\Dropbox\\Big TSC Bake Off\\New Results\\standard\\";
         OutFile res;
 
-        res = new OutFile(s+"C45.csv");
-        c= new J48();
-        System.out.println("******** J48 **********");
-        threadedSingleClassifier(c,res);
-/*        
-        c = new SMO();
-        PolyKernel p=new PolyKernel();
-        p.setExponent(2);
-        ((SMO)c).setKernel(p);
-        res = new OutFile(s+"SVMQ.csv");
-        threadedSingleClassifier(c,res);
- /*
-        res = new OutFile(s+"BayesNet.csv");
-        c= new BayesNet();
-        System.out.println("******** BayesNet **********");
-        threadedSingleClassifier(c,res);
-
-        /*        
-        res = new OutFile(s+"C45.csv");
-        c= new J48();
-        System.out.println("******** J48 **********");
-        threadedSingleClassifier(c,res);
         System.out.println("******** Naive Bayes *******************");
         c= new NaiveBayes();
         res = new OutFile(s+"NB.csv");
@@ -188,10 +123,36 @@ public class BasicClassifiers {
         ((SMO)c).setKernel(p);
         res = new OutFile(s+"SVML.csv");
         threadedSingleClassifier(c,res);
+
+        /*        
         System.out.println("******** Random Forest ***************************");
         c= new RandomForest();
         ((RandomForest) c).setNumTrees(500);
         res = new OutFile(s+"RandF.csv");
+        threadedSingleClassifier(c,res);
+
+        res = new OutFile(s+"C45.csv");
+        c= new J48();
+        System.out.println("******** J48 **********");
+        threadedSingleClassifier(c,res);
+        res = new OutFile(s+"BayesNet.csv");
+        c= new BayesNet();
+        System.out.println("******** BayesNet **********");
+        threadedSingleClassifier(c,res);
+
+        /*        
+        c = new SMO();
+        PolyKernel p=new PolyKernel();
+        p.setExponent(2);
+        ((SMO)c).setKernel(p);
+        res = new OutFile(s+"SVMQ.csv");
+        threadedSingleClassifier(c,res);
+ /*
+
+        /*        
+        res = new OutFile(s+"C45.csv");
+        c= new J48();
+        System.out.println("******** J48 **********");
         threadedSingleClassifier(c,res);
         c= new RotationForest();
         ((RotationForest)c).setNumIterations(50);

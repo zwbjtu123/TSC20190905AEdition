@@ -41,8 +41,6 @@ public class DTW_1NN implements Classifier {
 
         public DTW_1NN(){
         dtw=new DTW();
-//        dtw=new DTW_DistanceBasic();
-//        dtw=new SakoeChibaDTW(windowSize);
     }
         public double getMaxR(){ return maxR;}
     public void setMaxNosWindows(int a){maxNosWindows=a;}

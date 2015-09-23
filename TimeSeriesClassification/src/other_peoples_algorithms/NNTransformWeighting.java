@@ -201,13 +201,13 @@ public class NNTransformWeighting extends NNDerivativeWeighting{
     public NNTransformWeighting(){
         super();
         this.transformType = TransformType.COS;
-        this.distanceFunciton = new TransformWeightedDTW(this.transformType);
+        this.distanceFunction = new TransformWeightedDTW(this.transformType);
     }
     
     public NNTransformWeighting(TransformType transformType){
         super();
         this.transformType = transformType;
-        this.distanceFunciton = new TransformWeightedDTW(this.transformType);
+        this.distanceFunction = new TransformWeightedDTW(this.transformType);
     }
 
     

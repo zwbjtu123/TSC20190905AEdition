@@ -63,6 +63,7 @@ public class InFile{
                 System.out.println("EXIT:: Exception in InFile constructor :"+exception.toString());
         }
     }
+    public String getName(){return fileName;}
     
 //CSV file
     public void openFile(String name) throws FileNotFoundException

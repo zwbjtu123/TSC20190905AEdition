@@ -2,9 +2,11 @@ package development.Jay;
 
 import utilities.ClassifierTools;
 import utilities.InstanceTools;
+import weka.classifiers.lazy.DTW_1NN;
 import weka.classifiers.lazy.kNN;
 import weka.core.Instances;
 import weka.core.elastic_distance_measures.BasicDTW;
+import weka.core.elastic_distance_measures.DTW;
 import weka.core.elastic_distance_measures.DTW_DistanceBasic;
 
 /**
@@ -13,7 +15,7 @@ import weka.core.elastic_distance_measures.DTW_DistanceBasic;
  */
 public class ResultsChecker {
 
-    public static final String dir = "C:/Temp/Dropbox/TSC Problems/";
+    public static final String dir = "C:/users/ajb/Dropbox/TSC Problems/";
     
     public static void main(String[] args) throws Exception{
         
@@ -39,15 +41,32 @@ public class ResultsChecker {
 //        BasicDTW dtw = new BasicDTW();
         DTW_DistanceBasic dtw = new DTW_DistanceBasic();
         knn.setDistanceFunction(dtw);
+        DTW_1NN knn2=new DTW_1NN();
+        knn2.setR(1.0);
+        knn2.optimiseWindow(false);
+        
+        kNN knn3 = new kNN();
+        knn3.setDistanceFunction(new DTW());
 
         knn.buildClassifier(train);
+        knn2.buildClassifier(train);
+        knn3.buildClassifier(train);
         int correct = 0;
+        int c2 = 0;
+        int c3 = 0;
+        
         for(int i = 0; i < test.numInstances(); i++){
             if(knn.classifyInstance(test.instance(i))==test.instance(i).classValue()){
                 correct++;
             }
+            if(knn2.classifyInstance(test.instance(i))==test.instance(i).classValue()){
+                c2++;
+            }
+            if(knn3.classifyInstance(test.instance(i))==test.instance(i).classValue()){
+                c3++;
+            }
         }
-        
+        System.out.println(" knn1 ="+(double)correct/test.numInstances()+" knn2 ="+(double)c2/test.numInstances()+" knn3 = "+(double)c3/test.numInstances());
         return (double)correct/test.numInstances();
 
     }    
