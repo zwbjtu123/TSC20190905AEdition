@@ -5,9 +5,9 @@ import fileIO.OutFile;
 import utilities.ClassifierTools;
 import utilities.InstanceTools;
 import weka.classifiers.Classifier;
-import other_peoples_algorithms.LinBagOfPatterns;
-import weka.classifiers.SAXVSM;
-import weka.classifiers.SAX_1NN;
+import other_peoples_algorithms.BagOfPatterns;
+import other_peoples_algorithms.SAXVSM;
+import other_peoples_algorithms.SAX_1NN;
 import weka.classifiers.lazy.DTW_1NN;
 import weka.classifiers.lazy.kNN;
 import weka.core.Instances;
@@ -112,13 +112,13 @@ public class BasicExperiments {
             Instances[] datasets = loadTestTrainsets(UCRnames[i]);
             tableData[i] = getDataInfo(datasets);
             
-            int[] params = LinBagOfPatterns.getUCRParameters(UCRnames[i]);
+            int[] params = BagOfPatterns.getUCRParameters(UCRnames[i]);
             
             kNN knn = new kNN();
             //DTW_1NN dtw = new DTW_1NN();
             SAX_1NN sax1nn = new SAX_1NN(params[1], params[2]);
             SAXVSM saxvsm = new SAXVSM(params[1], params[2], params[0]);
-            LinBagOfPatterns bop = new LinBagOfPatterns(params[1], params[2], params[0]);
+            BagOfPatterns bop = new BagOfPatterns(params[1], params[2], params[0]);
             
             
             Classifier[] cs = { knn, sax1nn, saxvsm, bop };

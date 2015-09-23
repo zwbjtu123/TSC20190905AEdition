@@ -1,7 +1,8 @@
 
-package weka.classifiers;
+package other_peoples_algorithms;
 
 import utilities.ClassifierTools;
+import weka.classifiers.Classifier;
 import weka.classifiers.lazy.kNN;
 import weka.core.Capabilities;
 import weka.core.DenseInstance;

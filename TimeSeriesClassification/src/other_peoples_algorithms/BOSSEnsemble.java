@@ -10,7 +10,7 @@
 //because we generally want to reduce space used
 
 
-package weka.classifiers;
+package other_peoples_algorithms;
 
 import java.util.Collections;
 import java.util.Iterator;
@@ -20,8 +20,9 @@ import utilities.ClassifierTools;
 import weka.core.Capabilities;
 import weka.core.Instance;
 import weka.core.Instances;
-import development.DataSets;
+import weka.classifiers.Classifier;
 import static JamesStuff.TestTools.testClassifiers;
+import development.DataSets;
 
 /**
  * BOSS classifier with parameter search, if parameters are known, use BOSS classifier and directly provide them.

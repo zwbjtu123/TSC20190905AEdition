@@ -1,7 +1,8 @@
-package weka.classifiers;
+package other_peoples_algorithms;
 
 import fileIO.OutFile;
 import utilities.ClassifierTools;
+import weka.classifiers.Classifier;
 import weka.classifiers.lazy.kNN;
 import weka.core.Capabilities;
 import weka.core.FastVector;
@@ -9,7 +10,7 @@ import weka.core.Instance;
 import weka.core.Instances;
 import weka.core.SparseInstance;
 import weka.filters.NormalizeCase;
-import weka.filters.timeseries.BagOfPatterns;
+import weka.filters.timeseries.BagOfPatternsFilter;
 import weka.filters.timeseries.SAX;
 
 /**
@@ -17,12 +18,12 @@ import weka.filters.timeseries.SAX;
  * 
  * @author James
  */
-public class LinBagOfPatterns implements Classifier {
+public class BagOfPatterns implements Classifier {
 
     public Instances matrix;
     public kNN knn;
     
-    private BagOfPatterns bop;
+    private BagOfPatternsFilter bop;
     private int PAA_intervalsPerWindow;
     private int SAX_alphabetSize;
     private int windowSize;
@@ -31,7 +32,7 @@ public class LinBagOfPatterns implements Classifier {
     
     private final boolean useParamSearch; //does user want parameter search to be performed
     
-    public LinBagOfPatterns() {
+    public BagOfPatterns() {
         this.PAA_intervalsPerWindow = -1;
         this.SAX_alphabetSize = -1;
         this.windowSize = -1;
@@ -41,12 +42,12 @@ public class LinBagOfPatterns implements Classifier {
         useParamSearch=true;
     }
     
-    public LinBagOfPatterns(int PAA_intervalsPerWindow, int SAX_alphabetSize, int windowSize) {
+    public BagOfPatterns(int PAA_intervalsPerWindow, int SAX_alphabetSize, int windowSize) {
         this.PAA_intervalsPerWindow = PAA_intervalsPerWindow;
         this.SAX_alphabetSize = SAX_alphabetSize;
         this.windowSize = windowSize;
         
-        bop = new BagOfPatterns(PAA_intervalsPerWindow, SAX_alphabetSize, windowSize);       
+        bop = new BagOfPatternsFilter(PAA_intervalsPerWindow, SAX_alphabetSize, windowSize);       
         knn = new kNN(); //default to 1NN, Euclidean distance
         alphabet = SAX.getAlphabet(SAX_alphabetSize);
         
@@ -91,7 +92,7 @@ public class LinBagOfPatterns implements Classifier {
             for (int winSize = minWinSize; winSize <= maxWinSize; winSize+=winInc) {
                 for (int wordSize = 2; wordSize <= winSize/2; wordSize*=2) { //lin BoP suggestion
          
-                    LinBagOfPatterns bop = new LinBagOfPatterns(wordSize, alphaSize, winSize);
+                    BagOfPatterns bop = new BagOfPatterns(wordSize, alphaSize, winSize);
 
                     double acc = ClassifierTools.crossValidationWithStats(bop, data, data.numInstances())[0][0];//leave-one-out cv
 //                    double acc = ClassifierTools.crossValidationWithStats(vsm, data, 2)[0][0];//2-fold cv
@@ -128,7 +129,7 @@ public class LinBagOfPatterns implements Classifier {
             this.SAX_alphabetSize = params[1];
             this.windowSize = params[2];
             
-            bop = new BagOfPatterns(PAA_intervalsPerWindow, SAX_alphabetSize, windowSize);
+            bop = new BagOfPatternsFilter(PAA_intervalsPerWindow, SAX_alphabetSize, windowSize);
             alphabet = SAX.getAlphabet(SAX_alphabetSize);
         }
         
@@ -271,12 +272,12 @@ public class LinBagOfPatterns implements Classifier {
             Instances train = ClassifierTools.loadData(path+fname+"\\"+fname+"_TRAIN");
             Instances test = ClassifierTools.loadData(path+fname+"\\"+fname+"_TEST");
 
-            LinBagOfPatterns bopsearch = new LinBagOfPatterns(); //use param search
+            BagOfPatterns bopsearch = new BagOfPatterns(); //use param search
             bopsearch.buildClassifier(train);
             double searchErr = 1.0-ClassifierTools.accuracy(test, bopsearch);
             
-            int[] params = LinBagOfPatterns.getUCRParameters(UCRnames[i]);
-            LinBagOfPatterns bopfixed = new LinBagOfPatterns(params[1], params[2], params[0]); //use params given
+            int[] params = BagOfPatterns.getUCRParameters(UCRnames[i]);
+            BagOfPatterns bopfixed = new BagOfPatterns(params[1], params[2], params[0]); //use params given
             bopfixed.buildClassifier(train);
             double fixedErr = 1.0-ClassifierTools.accuracy(test, bopfixed);
             

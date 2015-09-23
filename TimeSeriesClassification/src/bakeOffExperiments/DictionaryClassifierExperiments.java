@@ -7,9 +7,9 @@ import utilities.ClassifierTools;
 import utilities.InstanceTools;
 import weka.classifiers.Classifier;
 import weka.core.Instances;
-import weka.classifiers.SAXVSM;
-import weka.classifiers.BOSSEnsemble;
-import weka.classifiers.LinBagOfPatterns;
+import other_peoples_algorithms.SAXVSM;
+import other_peoples_algorithms.BOSSEnsemble;
+import other_peoples_algorithms.BagOfPatterns;
 
 /**
  * Runs resample experiments for the classifiers:
@@ -44,15 +44,42 @@ public class DictionaryClassifierExperiments {
         return foldAcc;
     }
     
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
+        //nonThreadedFull();
+        threadedExperiments();
+    }
+    
+    public static void threadedExperiments() throws Exception {
+        
+        //CHANGE DATAPATH AS FOUND in threadedSingleClassifier(...).str => "C:\\Temp\\TESTDATA\\TSC Problems\\"
+        
+        String dataPath="C:\\Temp\\TESTDATA\\TSC Problems\\";
+        String outPath="C:\\Temp\\BAKEOFFRESULTS\\";
+        
+        BOSSEnsemble boss = new BOSSEnsemble(true);
+        SAXVSM saxvsm = new SAXVSM();
+        BagOfPatterns bop = new BagOfPatterns();
+
+        Classifier[] classifiers = { boss, saxvsm, bop } ;
+        String[] fileNames = { "BakeOff_BOSSEnsemble", "BakeOff_SAXVSM", "BakeOff_BOP" };
+
+        for (int i = 0; i < classifiers.length; ++i) {
+            System.out.println("**" + fileNames[i] + "**");
+            OutFile out = new OutFile(outPath+fileNames[i] + ".csv");
+            BasicClassifiers.threadedSingleClassifier(classifiers[i], out);
+        }
+    }
+    
+    public static void nonThreadedFull() {
         try {
             String dataPath="C:\\Temp\\TESTDATA\\TSC Problems\\";
+            String outPath="C:\\Temp\\BAKEOFFRESULTS\\";
             
             String[] datasets = DataSets.fileNames;
             
             BOSSEnsemble boss = new BOSSEnsemble(true);
             SAXVSM saxvsm = new SAXVSM();
-            LinBagOfPatterns bop = new LinBagOfPatterns();
+            BagOfPatterns bop = new BagOfPatterns();
             
             Classifier[] classifiers = { boss, saxvsm, bop } ;
             String[] fileNames = { "BakeOff_BOSSEnsemble", "BakeOff_SAXVSM", "BakeOff_BOP" };
@@ -60,7 +87,7 @@ public class DictionaryClassifierExperiments {
             for (int i = 0; i < classifiers.length; ++i) {
                 System.out.println("\n" + fileNames[i]);
                 
-                OutFile out = new OutFile(fileNames[i]);
+                OutFile out = new OutFile(outPath+fileNames[i] + ".csv");
                 
                 for (String dataset : datasets) {
                     Instances[] data = TestTools.loadTestTrainsets(dataPath, dataset);

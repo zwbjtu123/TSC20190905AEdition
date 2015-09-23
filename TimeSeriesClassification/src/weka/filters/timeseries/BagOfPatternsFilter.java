@@ -28,7 +28,7 @@ import weka.filters.SimpleBatchFilter;
  * 
  * @author James
  */
-public class BagOfPatterns extends SimpleBatchFilter {
+public class BagOfPatternsFilter extends SimpleBatchFilter {
 
     public TreeSet<String> dictionary;
     
@@ -44,7 +44,7 @@ public class BagOfPatterns extends SimpleBatchFilter {
     
     private static final long serialVersionUID = 1L;
 
-    public BagOfPatterns(int PAA_intervalsPerWindow, int SAX_alphabetSize, int windowSize) {
+    public BagOfPatternsFilter(int PAA_intervalsPerWindow, int SAX_alphabetSize, int windowSize) {
         this.numIntervals = PAA_intervalsPerWindow;
         this.alphabetSize = SAX_alphabetSize;
         this.windowSize = windowSize;

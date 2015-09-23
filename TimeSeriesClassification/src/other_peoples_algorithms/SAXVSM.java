@@ -1,15 +1,16 @@
-package weka.classifiers;
+package other_peoples_algorithms;
 
 import static JamesStuff.BasicExperiments.UCRvsmdata;
 import fileIO.OutFile;
 import utilities.ClassifierTools;
+import weka.classifiers.Classifier;
 import weka.classifiers.lazy.kNN;
 import weka.core.Capabilities;
 import weka.core.FastVector;
 import weka.core.Instance;
 import weka.core.Instances;
 import weka.core.SparseInstance;
-import weka.filters.timeseries.BagOfPatterns;
+import weka.filters.timeseries.BagOfPatternsFilter;
 import weka.filters.timeseries.SAX;
 
 /**
@@ -26,7 +27,7 @@ public class SAXVSM implements Classifier {
     //double[][] classWeights; //class weight matrix
     public kNN knn;
     
-    private BagOfPatterns bop;
+    private BagOfPatternsFilter bop;
     private int PAA_intervalsPerWindow;
     private int SAX_alphabetSize;
     private int windowSize;
@@ -77,7 +78,7 @@ public class SAXVSM implements Classifier {
         this.SAX_alphabetSize = SAX_alphabetSize;
         this.windowSize = windowSize;
         
-        bop = new BagOfPatterns(PAA_intervalsPerWindow, SAX_alphabetSize, windowSize);
+        bop = new BagOfPatternsFilter(PAA_intervalsPerWindow, SAX_alphabetSize, windowSize);
         knn = new kNN(); //default to 1NN, Euclidean distance
         alphabet = SAX.getAlphabet(SAX_alphabetSize);
         
@@ -159,7 +160,7 @@ public class SAXVSM implements Classifier {
             this.SAX_alphabetSize = params[1];
             this.windowSize = params[2];
             
-            bop = new BagOfPatterns(PAA_intervalsPerWindow, SAX_alphabetSize, windowSize);
+            bop = new BagOfPatternsFilter(PAA_intervalsPerWindow, SAX_alphabetSize, windowSize);
             alphabet = SAX.getAlphabet(SAX_alphabetSize);
         }
         

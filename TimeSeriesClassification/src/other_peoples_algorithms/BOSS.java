@@ -11,7 +11,7 @@
 // aka always to dist FROM test histogram TO bag histogram? or visa versa
 // does it make a differnece?
 
-package weka.classifiers;
+package other_peoples_algorithms;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -22,6 +22,7 @@ import weka.core.Instances;
 import java.util.HashMap;
 import java.util.Map.Entry;
 import utilities.ClassifierTools;
+import weka.classifiers.Classifier;
 import weka.filters.timeseries.FFT;
 import weka.filters.timeseries.FFT.Complex;
 
