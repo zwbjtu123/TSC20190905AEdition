@@ -271,12 +271,12 @@ public class LinBagOfPatterns implements Classifier {
             Instances train = ClassifierTools.loadData(path+fname+"\\"+fname+"_TRAIN");
             Instances test = ClassifierTools.loadData(path+fname+"\\"+fname+"_TEST");
 
-            LinBagOfPatterns bopsearch = new LinBagOfPatterns(); //user param search
+            LinBagOfPatterns bopsearch = new LinBagOfPatterns(); //use param search
             bopsearch.buildClassifier(train);
             double searchErr = 1.0-ClassifierTools.accuracy(test, bopsearch);
             
             int[] params = LinBagOfPatterns.getUCRParameters(UCRnames[i]);
-            LinBagOfPatterns bopfixed = new LinBagOfPatterns(params[1], params[2], params[0]); //user param search
+            LinBagOfPatterns bopfixed = new LinBagOfPatterns(params[1], params[2], params[0]); //use params given
             bopfixed.buildClassifier(train);
             double fixedErr = 1.0-ClassifierTools.accuracy(test, bopfixed);
             
