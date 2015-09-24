@@ -73,7 +73,7 @@ public class LearnShapelets implements Classifier{
     double Psi_test[][];
     double sigY_test[];
 
-    Random rand = new Random();
+    Random rand;
 
     List<Integer> instanceIdxs;
     List<Integer> rIdxs;
@@ -81,6 +81,11 @@ public class LearnShapelets implements Classifier{
     // constructor
     public LearnShapelets() {
         kMeansIter = 100;
+    }
+    
+    public void setSeed(int seed)
+    {
+        rand = new Random(seed);
     }
 
     // initialize the data structures
@@ -406,8 +411,66 @@ public class LearnShapelets implements Classifier{
     @Override
     public void buildClassifier(Instances data) throws Exception {
         
-        trainSet = data;
+        double[] paramsLambdaW = {0.01, 0.1};
+        double[] paramsPercentageOfSeriesLength = {0.1, 0.2};
+        int[] paramsShapeletLengthScale = {2, 3};
+
+        int noFolds = 3;
+
+        double bsfAccuracy = 0;
         
+        int[] params = {0,0,0};
+        
+        double accuracy = 0;
+        for (int i = 0; i < paramsLambdaW.length; i++) {
+            for (int j = 0; j < paramsPercentageOfSeriesLength.length; j++) {
+                for (int k = 0; k < paramsShapeletLengthScale.length; k++) {
+                    double sumAccuracy = 0;
+                    //build our test and train sets. for cross-validation.
+                    for (int l = 0; l < noFolds; l++) {
+                        Instances trainCV = data.trainCV(noFolds, l);
+                        Instances testCV = data.testCV(noFolds, l);
+
+                        percentageOfSeriesLength = paramsPercentageOfSeriesLength[j];
+                        shapeletLengthScale = paramsShapeletLengthScale[k];
+                        lambdaW = paramsLambdaW[i];
+                        train(trainCV);
+                        
+                        //test on the remaining fold.
+                        int correct=0;
+                        for(Instance in : testCV){
+                            if(classifyInstance(in) == in.classValue())
+                                correct++;
+                        }
+                        
+                        accuracy = (double)correct/(double)testCV.numInstances();
+                        sumAccuracy += accuracy;
+                    }
+                    sumAccuracy/=noFolds;
+                    
+                    System.out.printf("%f,%d,%f,%f\n", paramsPercentageOfSeriesLength[j], paramsShapeletLengthScale[k], paramsLambdaW[i], sumAccuracy);
+                    
+                    if(sumAccuracy > bsfAccuracy){
+                        //weird? Can't put i,j,k straight in params?
+                        int[] p = {i,j,k};
+                        params = p;
+                        
+                        bsfAccuracy = sumAccuracy;
+                    }
+                }
+            }
+        }
+        
+        percentageOfSeriesLength = paramsPercentageOfSeriesLength[params[1]];
+        shapeletLengthScale = paramsShapeletLengthScale[params[2]];
+        lambdaW = paramsLambdaW[params[0]];
+        train(data); 
+    }
+    
+    private void train(Instances data) throws Exception
+    {
+
+        trainSet = data;
         seriesLength = trainSet.numAttributes() - 1; //so we don't include the classLabel at the end.
 
         nominalLabels = ReadNominalTargets(trainSet);

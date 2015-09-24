@@ -72,16 +72,22 @@ public class ResamplingExperiments {
         //createAllResamples();
         //createShapelets(fold);
         
-        File f = new File(transformLocation + File.separator + classifierName);
+        createLearnShapeleteAccuracies(fold);
         
-        for(File file : f.listFiles())
+        /*File f = new File(transformLocation + File.separator + classifierName);
+        
+        File[] files = f.listFiles();
+        
+        for(int i=20; i< files.length; i++)
         {
+            
+            File file = files[i];
             if(!f.isDirectory() || f.isHidden()) continue;
             
             currentDataSet = file.getName();
             System.out.println(currentDataSet);
             createRandomForestOnTransform();
-        }
+        }*/
         //fileVerifier();
         //createAndWriteAccuracies();
         //createAccuracyTable();
@@ -325,60 +331,37 @@ public class ResamplingExperiments {
         }
     }
 
-    //TODO tidy up.
-    public static void createLearnShapeleteAccuracies(String filePath, String savePath, int fold) {
+    public static void createLearnShapeleteAccuracies(int fold) {
 
+        String fileExtension = File.separator + currentDataSet + File.separator + currentDataSet;
+
+        //get the loadLocation of the resampled files.
+        String classifierDir = File.separator + classifierName + fileExtension;
+        String resultsPath = resultsLocation + classifierDir;
+        String samplePath = resampleLocation + fileExtension + fold;
+        
         try {
             //get the train and test instances for each dataset.
-            Instances test = utilities.ClassifierTools.loadData(filePath + fold + "_TEST");
-            Instances train = utilities.ClassifierTools.loadData(filePath + fold + "_TRAIN");
-
-            //create our accuracy file.
-            File f = new File(savePath + fold + ".csv");
+            Instances test = utilities.ClassifierTools.loadData(samplePath + "_TEST");
+            Instances train = utilities.ClassifierTools.loadData(samplePath + "_TRAIN");
+            
+            LearnShapelets ls = new LearnShapelets();
+            ls.setSeed(fold);
+            ls.buildClassifier(train);
+            double accuracy = ClassifierTools.accuracy(test, ls);
+            
+            System.out.println(accuracy);
+            
+            /*//create our accuracy file.
+            File f = new File(resultsPath + fold + ".csv");
             f.getParentFile().mkdirs();
             f.createNewFile();
             PrintWriter pw = new PrintWriter(f);
             pw.printf("%s,%s,%s,%s\n", "percentageOfSeriesLength", "shapeletLengthScale", "lambdaW", "accuracy");
+            for(String s : results)
+                pw.print(s);
+            pw.close();*/
 
-            double[] lambdaW = {0.01, 0.1};
-            double[] percentageOfSeriesLength = {0.1, 0.2};
-            int[] shapeletLengthScale = {2, 3};
-
-            int noFolds = 3;
-
-            double accuracy = 0;
-            LearnShapelets ls;
-            for (int i = 0; i < lambdaW.length; i++) {
-                for (int j = 0; j < percentageOfSeriesLength.length; j++) {
-                    for (int k = 0; k < shapeletLengthScale.length; k++) {
-                        double sumAccuracy = 0;
-                        //build our test and train sets. for cross-validation.
-                        for (int l = 0; l < noFolds; l++) {
-                            Instances trainCV = train.trainCV(noFolds, l);
-                            Instances testCV = train.testCV(noFolds, l);
-                            //build the elastic Ensemble on our training data.
-                            ls = new LearnShapelets();
-                            //{PercentageOfSeriesLength,shapeletLengthScale, weights}; 
-                            ls.percentageOfSeriesLength = percentageOfSeriesLength[j];
-                            ls.shapeletLengthScale = shapeletLengthScale[k];
-                            ls.lambdaW = lambdaW[i];
-                            ls.buildClassifier(trainCV);
-                            accuracy = ClassifierTools.accuracy(testCV, ls);
-                            sumAccuracy += accuracy;
-
-                            System.out.println(accuracy);
-                            pw.printf("%f,%d,%f,%f\n", percentageOfSeriesLength[j], shapeletLengthScale[k], lambdaW[i], accuracy);
-                        }
-
-                        pw.printf("%f,%d,%f,%f\n", percentageOfSeriesLength[j], shapeletLengthScale[k], lambdaW[i], sumAccuracy / noFolds);
-
-                        //line space after each set of params.
-                        pw.println();
-                    }
-                }
-            }
-
-            pw.close();
         } catch (Exception ex) {
             System.out.println("Classifier exception: " + ex);
         }
