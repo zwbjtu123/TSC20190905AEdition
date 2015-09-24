@@ -135,34 +135,34 @@ public class DataSets {
 			"Car", // 60,60,577,4
 			"CBF", // 30,900,128,3
 			"ChlorineConcentration", // 467,3840,166,3
-			"CinC_ECG_torso", // 40,1380,1639,4
+			"CinCECGtorso", // 40,1380,1639,4
 			"Coffee", // 28,28,286,2
-			"Cricket_X", // 390,390,300,12
-			"Cricket_Y", // 390,390,300,12
-			"Cricket_Z", // 390,390,300,12
+			"CricketX", // 390,390,300,12
+			"CricketY", // 390,390,300,12
+			"CricketZ", // 390,390,300,12
 			"DiatomSizeReduction", // 16,306,345,4
 			"ECGFiveDays", // 23,861,136,2
 			"FaceAll", // 560,1690,131,14
 			"FaceFour", // 24,88,350,4
 			"FacesUCR", // 200,2050,131,14
-			"fiftywords", // 450,455,270,50
-			"fish", // 175,175,463,7
+			"FiftyWords", // 450,455,270,50
+			"Fish", // 175,175,463,7
 			"GunPoint", // 50,150,150,2
 			"Haptics", // 155,308,1092,5
 			"InlineSkate", // 100,550,1882,7
 			"ItalyPowerDemand", // 67,1029,24,2
 			"Lightning2", // 60,61,637,2
 			"Lightning7", // 70,73,319,7
-			"MALLAT", // 55,2345,1024,8
+			"Mallat", // 55,2345,1024,8
                         "MedicalImages", // 381,760,99,10
 			"MoteStrain", // 20,1252,84,2
-			"NonInvasiveFatalECG_Thorax1", // 1800,1965,750,42
-			"NonInvasiveFatalECG_Thorax2", // 1800,1965,750,42
+			"NonInvasiveFatalECGThorax1", // 1800,1965,750,42
+			"NonInvasiveFatalECGThorax2", // 1800,1965,750,42
 			"OliveOil", // 30,30,570,4
 			"OSULeaf", // 200,242,427,6
 			"Plane", // 105,105,144,7
-			"SonyAIBORobotSurface", // 20,601,70,2
-			"SonyAIBORobotSurfaceII", // 27,953,65,2
+			"SonyAIBORobotSurface1", // 20,601,70,2
+			"SonyAIBORobotSurface2", // 27,953,65,2
 			"StarLightCurves", // 1000,8236,1024,3
                         "SwedishLeaf", // 500,625,128,15
 			"Symbols", // 25,995,398,6
@@ -170,12 +170,12 @@ public class DataSets {
 			"Trace", // 100,100,275,4
 			"TwoLeadECG", // 23,1139,82,2
 			"TwoPatterns", // 1000,4000,128,4
-			"UWaveGestureLibrary_X", // 896,3582,315,8
-			"UWaveGestureLibrary_Y", // 896,3582,315,8
-			"UWaveGestureLibrary_Z", // 896,3582,315,8
-			"wafer", // 1000,6164,152,2
+			"UWaveGestureLibraryX", // 896,3582,315,8
+			"UWaveGestureLibraryY", // 896,3582,315,8
+			"UWaveGestureLibraryZ", // 896,3582,315,8
+			"Wafer", // 1000,6164,152,2
                         "WordSynonyms", // 267,638,270,25
-                        "yoga" // 300,3000,426,2
+                        "Yoga" // 300,3000,426,2
                 };   
       //</editor-fold>
 
@@ -659,7 +659,7 @@ public static String[] notNormalised={"ArrowHead","Beef","BeetleFly","BirdChicke
 public static void dataDescription(String[] fileNames){
     //Produce summary descriptions
     //dropboxPath=uciPath;
-        OutFile f=new OutFile(dropboxPath+"DataDimensions.csv");
+        OutFile f=new OutFile(problemPath+"DataDimensions.csv");
         MetaData[] all=new MetaData[fileNames.length];
         TreeSet<String> nm=new TreeSet<>();
         nm.addAll(Arrays.asList(notNormalised));     
@@ -706,21 +706,21 @@ public static void dataDescription(String[] fileNames){
 
 
 public static void main(String[] args) throws Exception{
-    for(String s: fileNames){
-        Instances all = ClassifierTools.loadData(problemPath+s+"/"+s);
-        Instances train = ClassifierTools.loadData(problemPath+s+"/"+s+"_TRAIN");
-        Instances test = ClassifierTools.loadData(problemPath+s+"/"+s+"_TEST");
-        System.out.println(s+" load ok ");
-    }
-    System.exit(0);
-  
+
     dataDescription(fileNames);
     listNotNormalisedList();  
     processUCRData();
     Instances train = ClassifierTools.loadData(problemPath+"wafer/wafer_TRAIN");
     Instances test = ClassifierTools.loadData(problemPath+"wafer/wafer_TEST");
 
-
+    for(String s: fileNames){
+        Instances all = ClassifierTools.loadData(problemPath+s+"/"+s);
+        train = ClassifierTools.loadData(problemPath+s+"/"+s+"_TRAIN");
+        test = ClassifierTools.loadData(problemPath+s+"/"+s+"_TEST");
+        System.out.println(s+" load ok ");
+    }
+    System.exit(0);
+  
 //    dataDescription(uciFileNames);
 /*    for(String s:uciFileNames){
         Instances train =ClassifierTools.loadData(uciPath+s+"\\"+s+"-train");

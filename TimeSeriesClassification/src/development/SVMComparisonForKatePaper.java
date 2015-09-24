@@ -4,7 +4,7 @@
  * and open the template in the editor.
  */
 
-package other_peoples_algorithms;
+package development;
 
 import development.DataSets;
 import fileIO.OutFile;

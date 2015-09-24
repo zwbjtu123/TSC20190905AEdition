@@ -26,7 +26,7 @@ public class ThreadedClassifierExperiment extends Thread{
     SimpleBatchFilter filter;
     String name;
     int resamples=100;
-    public static boolean removeUseless=true;
+    public static boolean removeUseless=false;
     
     public ThreadedClassifierExperiment(Instances tr, Instances te, Classifier cl,String n){
         train=tr;

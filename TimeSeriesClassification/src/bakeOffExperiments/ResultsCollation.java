@@ -49,6 +49,7 @@ public class ResultsCollation {
     static String[] dictionary={"BoP","SAXVSM","BOSS"};
     static String[] shapelet={"ST","LS","FS"};
     static String[] interval={"TSF","TSBF","LPS"};
+    static String[] complexity={"CID_EE","CID_DTW","RPCD"};
     static String[] ensemble={"EE","COTE"};
     static final String[][] names={standard,elastic,shapelet,dictionary,interval,ensemble};
     static final String[] directoryNames={"standard","Elastic distance measures","shapelet","dictionary","interval","ensemble"};

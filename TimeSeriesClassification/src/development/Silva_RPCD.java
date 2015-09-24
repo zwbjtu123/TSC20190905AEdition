@@ -7,7 +7,7 @@ booktitle    ="Proc. {IEEE} ICDM",
 year="2013"
 }
  */
-package other_peoples_algorithms;
+package development;
 
 /**
  *

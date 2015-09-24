@@ -8,6 +8,7 @@ import fileIO.InFile;
 import fileIO.OutFile;
 import java.io.File;
 import java.util.*;
+import other_peoples_algorithms.NN_CID;
 import utilities.ClassifierTools;
 import weka.classifiers.AbstractClassifier;
 import weka.classifiers.Classifier;
@@ -32,10 +33,12 @@ import weka.filters.NormalizeCase;
  */
 public class BasicClassifiers {
     public static OutFile out;
+    static String[] unfinished={"Adiac","FiftyWords","Fish","Mallat","SonyAIBORobotSurface1","StarlightCurves","UWaveGestureLibraryZ","Wafer","Yoga"};
     
     public static void threadedSingleClassifier(Classifier c, OutFile results) throws Exception{
          ThreadedClassifierExperiment[] thr=new ThreadedClassifierExperiment[DataSets.fileNames.length]; 
          out=results;
+         
          String str=DataSets.dropboxPath;
          
          String[] files=DataSets.fileNames;
@@ -56,21 +59,36 @@ public class BasicClassifiers {
     public static void clusterSingleClassifier(String[] args){
 //first gives the problem file      
         String classifier=args[0];
-        String s=DataSets.fileNames[Integer.parseInt(args[1])];
+        String s=DataSets.fileNames[Integer.parseInt(args[1])-1];        
+//        String s=unfinished[Integer.parseInt(args[1])-1];
         Classifier c=null;
         switch(classifier){
-            case "NaiveBayes":
-                c=new NaiveBayes();
+            case "SVMQ":
+                c=new SMO();
+                PolyKernel p=new PolyKernel();
+                p.setExponent(2);
+                ((SMO)c).setKernel(p);
+
+                break;
+            case "SVML":
+                c=new SMO();
+                PolyKernel p2=new PolyKernel();
+                p2.setExponent(1);
+                ((SMO)c).setKernel(p2);
                 break;
             case "MLP":
                 c=new MultilayerPerceptron();
                 break;
-            case "RotationForest":
+            case "RotF":
                 c= new RotationForest();
                 ((RotationForest)c).setNumIterations(50);
                 break;
             case "Logistic":
                 c= new Logistic();
+                break;
+            case "CID_DTW":
+                c=new NN_CID();
+                ((NN_CID)c).useDTW();
                 break;
             case "DTW":
                 c=new DTW_1NN();
@@ -110,12 +128,7 @@ public class BasicClassifiers {
         Classifier c;
         String s="C:\\Users\\ajb\\Dropbox\\Big TSC Bake Off\\New Results\\standard\\";
         OutFile res;
-
-        System.out.println("******** Naive Bayes *******************");
-        c= new NaiveBayes();
-        res = new OutFile(s+"NB.csv");
-        threadedSingleClassifier(c,res);
-        
+       
         System.out.println("**************** SVML *************8**********");
         c = new SMO();
         PolyKernel p=new PolyKernel();

@@ -10,7 +10,7 @@ import java.io.FileReader;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import other_peoples_algorithms.Gorecki14nonisometric;
+import development.Gorecki14nonisometric;
 import utilities.ClassifierTools;
 import weka.classifiers.lazy.DTW_1NN;
 import weka.classifiers.lazy.kNN;

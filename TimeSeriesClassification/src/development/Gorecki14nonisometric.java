@@ -9,7 +9,7 @@
 }
  */
 
-package other_peoples_algorithms;
+package development;
 
 import development.DataSets;
 import fileIO.InFile;
