@@ -374,7 +374,7 @@ public class ElasticEnsembleCluster extends ElasticEnsemble{
      * @return kNN. The nearest neighbour classifier built with the correct parameter and measure settings
      * @throws Exception
      */
-    protected static kNN getInternalClassifier(ClassifierVariants classifierType, int paramId, Instances trainingData) throws Exception{
+    public static kNN getInternalClassifier(ClassifierVariants classifierType, int paramId, Instances trainingData) throws Exception{
         
         EuclideanDistance distanceMeasure = null;
         kNN knn;
