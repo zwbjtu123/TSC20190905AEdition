@@ -8,7 +8,7 @@ import fileIO.InFile;
 import fileIO.OutFile;
 import java.io.File;
 import java.util.*;
-import other_peoples_algorithms.NN_CID;
+import other_peoples_algorithms.*;
 import utilities.ClassifierTools;
 import weka.classifiers.AbstractClassifier;
 import weka.classifiers.Classifier;
@@ -31,9 +31,19 @@ import weka.filters.NormalizeCase;
  *
  * @author ajb
  */
-public class BasicClassifiers {
+public class Experiments {
+    static String[] elastic = {"Euclidean_1NN","DTW_R1_1NN","DTW_Rn_1NN","DDTW_R1_1NN","DDTW_Rn_1NN","ERP_1NN","LCSS_1NN","MSM_1NN","TWE_1NN","WDDTW_1NN","WDTW_1NN","DD_DTW","DTD_C"};
+    static String[] standard={"NB","C45","SVML","SVMQ","Logistic","BayesNet","RandF","RotF","MLP"};
+    static String[] dictionary={"BoP","SAXVSM","BOSS"};
+    static String[] shapelet={"ST","LS","FS"};
+    static String[] interval={"TSF","TSBF","LPS"};
+    static String[] complexity={"CID_ED","CID_DTW","RPCD"};
+    static String[] ensemble={"EE","COTE"};
+    String resultsPath="C:\\Users\\ajb\\Dropbox\\Big TSC Bake Off\\New Results\\";
+    static final String[] directoryNames={"standard","Elastic distance measures","shapelet","dictionary","interval","ensemble","complexity"};
+
     public static OutFile out;
-    static String[] unfinished={"Adiac","FiftyWords","Fish","Mallat","SonyAIBORobotSurface1","StarlightCurves","UWaveGestureLibraryZ","Wafer","Yoga"};
+//    static String[] unfinished={"Adiac","FiftyWords","Fish","Mallat","SonyAIBORobotSurface1","StarlightCurves","UWaveGestureLibraryZ","Wafer","Yoga"};
     
     public static void threadedSingleClassifier(Classifier c, OutFile results) throws Exception{
          ThreadedClassifierExperiment[] thr=new ThreadedClassifierExperiment[DataSets.fileNames.length]; 
@@ -86,9 +96,15 @@ public class BasicClassifiers {
             case "Logistic":
                 c= new Logistic();
                 break;
+            case "CID_ED":
+                c=new NN_CID();
+                break;
             case "CID_DTW":
                 c=new NN_CID();
                 ((NN_CID)c).useDTW();
+                break;
+            case "LearnShapelets":
+                c=new LearnShapelets();
                 break;
             case "DTW":
                 c=new DTW_1NN();
@@ -114,21 +130,23 @@ public class BasicClassifiers {
         double[] folds=ClusterClassifierExperiment.resampleExperiment(train,test,c,100,of);
         of.writeString("\n");
     }
-    public static void formatResults(String path, String algo){
-        InFile inF=new InFile(path+algo+".csv");
-        OutFile out= new OutFile(path+algo+"Formatted.csv");
+  
+    public static void standardClassifiers(){
         
     }
-
-
     
     public static void main(String[] args) throws Exception{
         clusterSingleClassifier(args);
         System.exit(0);
         Classifier c;
-        String s="C:\\Users\\ajb\\Dropbox\\Big TSC Bake Off\\New Results\\standard\\";
+        String s="C:\\Users\\ajb\\Dropbox\\Big TSC Bake Off\\New Results\\shapelet\\";
         OutFile res;
+        System.out.println("**************** LS *************8**********");
+        c = new LearnShapelets();
+        res = new OutFile(s+"LS.csv");
+        threadedSingleClassifier(c,res);
        
+ /*
         System.out.println("**************** SVML *************8**********");
         c = new SMO();
         PolyKernel p=new PolyKernel();

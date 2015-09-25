@@ -43,24 +43,9 @@ import java.util.ArrayList;
  *
  * @author ajb
  */
-public class ResultsCollation {
-    static String[] elastic = {"Euclidean_1NN","DTW_R1_1NN","DTW_Rn_1NN","DDTW_R1_1NN","DDTW_Rn_1NN","ERP_1NN","LCSS_1NN","MSM_1NN","TWE_1NN","WDDTW_1NN","WDTW_1NN","DD_DTW","DTD_C"};
-    static String[] standard={"NB","C45","SVML","SVMQ","Logistic","BayesNet","RandF","RotF","MLP"};
-    static String[] dictionary={"BoP","SAXVSM","BOSS"};
-    static String[] shapelet={"ST","LS","FS"};
-    static String[] interval={"TSF","TSBF","LPS"};
-    static String[] complexity={"CID_EE","CID_DTW","RPCD"};
-    static String[] ensemble={"EE","COTE"};
-    static final String[][] names={standard,elastic,shapelet,dictionary,interval,ensemble};
-    static final String[] directoryNames={"standard","Elastic distance measures","shapelet","dictionary","interval","ensemble"};
-
-    /*names[0]=standard;
-        names[1]=elastic;
-        names[2]=shapelet;
-        names[3]=dictionary;
-        names[4]=interval;
-        names[5]=ensemble;   
-    */
+public class CollateResults {
+   static final String[][] names={Experiments.standard,Experiments.elastic,Experiments.shapelet,Experiments.dictionary,Experiments.interval,Experiments.ensemble,Experiments.complexity};
+   static String[] dirNames=Experiments.directoryNames;
     
 /** 
  * 2. single file of problem and classifier  to single file of classifier
@@ -68,23 +53,23 @@ public class ResultsCollation {
  * NaiveBayes/ArrowHead.csv    
  * */
     public static void clusterResultsCollation(String path){
-        for(int i=0;i<directoryNames.length;i++){
+        for(int i=0;i<dirNames.length;i++){
             for(int j=0;j<names[i].length;j++){
 //Check for directory
-                File dir= new File(path+"\\"+directoryNames[i]+"\\"+names[i][j]);
+                File dir= new File(path+"\\"+dirNames[i]+"\\"+names[i][j]);
                 if(dir.isDirectory()){    //Proceed if there is a directory of results
-                    System.out.println(path+"\\"+directoryNames[i]+"\\"+names[i][j]+" IS a directory");
-                    OutFile results = new OutFile(path+"\\"+directoryNames[i]+"\\"+names[i][j]+".csv");
+                    System.out.println(path+"\\"+dirNames[i]+"\\"+names[i][j]+" IS a directory");
+                    OutFile results = new OutFile(path+"\\"+dirNames[i]+"\\"+names[i][j]+".csv");
                     for(String s:DataSets.fileNames){
-                        File f= new File(path+"\\"+directoryNames[i]+"\\"+names[i][j]+"\\"+s+".csv");
+                        File f= new File(path+"\\"+dirNames[i]+"\\"+names[i][j]+"\\"+s+".csv");
                         if(f.exists()){
-                            InFile f2=new InFile(path+"\\"+directoryNames[i]+"\\"+names[i][j]+"\\"+s+".csv"); 
+                            InFile f2=new InFile(path+"\\"+dirNames[i]+"\\"+names[i][j]+"\\"+s+".csv"); 
                             results.writeLine(f2.readLine());
                         }
                     }
                 }
                 else{
-                   System.out.println(path+"\\"+directoryNames[i]+"\\"+names[i][j]+" IS NOT a directory");
+                   System.out.println(path+"\\"+dirNames[i]+"\\"+names[i][j]+" IS NOT a directory");
 
                }
             }
@@ -162,17 +147,17 @@ public class ResultsCollation {
     public static void fileStandardiseForProblems(String path) throws Exception{
 
         
-        for(int i=0;i<directoryNames.length;i++){
+        for(int i=0;i<dirNames.length;i++){
             for(int j=0;j<names[i].length;j++){        
                 for(String s:names[i]){
-                    File f= new File(path+"\\"+directoryNames[i]+"\\"+s+".csv");
+                    File f= new File(path+"\\"+dirNames[i]+"\\"+s+".csv");
                     if(f.exists()){
-                        InFile inf=new InFile(path+"\\"+directoryNames[i]+"\\"+s+".csv");
+                        InFile inf=new InFile(path+"\\"+dirNames[i]+"\\"+s+".csv");
                         OutFile outf=new OutFile(path+"\\SingleClassifiers\\"+s+".csv");
                         incompleteResultsParser(inf,outf);
                     }
                     else
-                        System.out.println(" File "+path+"\\"+directoryNames[i]+"\\"+s+" does not exist");
+                        System.out.println(" File "+path+"\\"+dirNames[i]+"\\"+s+" does not exist");
                 }
             }
         }

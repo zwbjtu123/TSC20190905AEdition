@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package weka.filters.timeseries.alternative_shapelet;
+package other_peoples_algorithms;
 
 import java.io.File;
 import java.util.ArrayList;

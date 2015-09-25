@@ -1,4 +1,4 @@
-package weka.filters.timeseries.alternative_shapelet;
+package other_peoples_algorithms;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -12,13 +12,13 @@ import static utilities.InstanceTools.FromWekaInstances;
 import static utilities.StatisticalUtilities.CalculateSigmoid;
 import static utilities.StatisticalUtilities.Normalize;
 import static utilities.StatisticalUtilities.Normalize2D;
-import weka.classifiers.Classifier;
+import weka.classifiers.*;
 import weka.clusterers.SimpleKMeans;
 import weka.core.Capabilities;
 import weka.core.Instance;
 import weka.core.Instances;
 
-public class LearnShapelets implements Classifier{
+public class LearnShapelets extends AbstractClassifier{
 
     // length of a time-series 
     public int seriesLength;
@@ -73,7 +73,7 @@ public class LearnShapelets implements Classifier{
     double Psi_test[][];
     double sigY_test[];
 
-    Random rand;
+    Random rand=new Random();
 
     List<Integer> instanceIdxs;
     List<Integer> rIdxs;
@@ -125,7 +125,7 @@ public class LearnShapelets implements Classifier{
         }
 
         // initialize shapelets
-        InitializeShapeletsKMeans();
+        initializeShapeletsKMeans();
 
 
         // initialize the terms for pre-computation
@@ -199,7 +199,7 @@ public class LearnShapelets implements Classifier{
     }
 
     // initialize the shapelets from the centroids of the segments
-    public void InitializeShapeletsKMeans() throws Exception {
+    public void initializeShapeletsKMeans() throws Exception {
         // a multi-threaded parallel implementation of the clustering
         // on thread for each scale r, i.e. for each set of K shapelets at
         // length L_min*(r+1)
@@ -323,7 +323,7 @@ public class LearnShapelets implements Classifier{
 
     // compute the accuracy loss of instance i according to the 
     // smooth hinge loss 
-    public double AccuracyLoss(double[][] M, double[] Y_b, int c) {
+    public double accuracyLoss(double[][] M, double[] Y_b, int c) {
         double Y_hat_ic = Predict_i(M, c);
         double sig_y_ic = CalculateSigmoid(Y_hat_ic);
 
@@ -338,7 +338,7 @@ public class LearnShapelets implements Classifier{
             PreCompute(D_train[i], E_train[i], Psi_train[i], M_train[i], sigY_train[i], train[i]);
 
             for (int c = 0; c < numClasses; c++) {
-                accuracyLoss += AccuracyLoss(M_train[i], classValuePredictions[i], c);
+                accuracyLoss += accuracyLoss(M_train[i], classValuePredictions[i], c);
             }
         }
 
