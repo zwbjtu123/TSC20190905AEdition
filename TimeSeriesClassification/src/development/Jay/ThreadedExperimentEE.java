@@ -24,13 +24,15 @@ public class ThreadedExperimentEE extends Thread{
     Instances originalTest;
     ElasticEnsemble.ClassifierVariants measureType;
     int numResamples;
+    String outputResultsDir;
 
-    public ThreadedExperimentEE(String datasetName, Instances originalTrain, Instances originalTest, ElasticEnsemble.ClassifierVariants measureType, int numResamples) {
+    public ThreadedExperimentEE(String datasetName, Instances originalTrain, Instances originalTest, ElasticEnsemble.ClassifierVariants measureType, int numResamples, String outputResultsDir) {
         this.datasetName = datasetName;
         this.originalTrain = originalTrain;
         this.originalTest = originalTest;
         this.measureType = measureType;
         this.numResamples = numResamples;
+        this.outputResultsDir = outputResultsDir;
     }
     
     public void resampleExperiment() throws Exception{
@@ -39,7 +41,7 @@ public class ThreadedExperimentEE extends Thread{
 
         for(int resample = 1; resample <= this.numResamples; resample++){
             train = InstanceTools.resampleTrainAndTestInstances(originalTrain, originalTest, resample)[0];
-            writeCvAllParams(train, datasetName, resample, measureType);
+            writeCvAllParams(train, datasetName, resample, measureType, outputResultsDir);
         }
         
     }
@@ -53,20 +55,18 @@ public class ThreadedExperimentEE extends Thread{
         }
     }
     
-    public static void writeCvAllParams(Instances instances, String datasetName, int resampleId, ElasticEnsemble.ClassifierVariants measureType) throws Exception{
+    public static void writeCvAllParams(Instances instances, String datasetName, int resampleId, ElasticEnsemble.ClassifierVariants measureType, String outResultsDir) throws Exception{
 
         // don't bother if parsed output already exists for this dataset, resampleId and classifier
-        if(new File("eeClusterOutput/"+datasetName+"/"+datasetName+"_"+resampleId+"/"+datasetName+"_"+resampleId+"_parsedOutput/"+datasetName+"_"+resampleId+"_"+measureType+".txt").exists()){
+        if(new File(outResultsDir+"eeClusterOutput/"+datasetName+"/"+datasetName+"_"+resampleId+"/"+datasetName+"_"+resampleId+"_parsedOutput/"+datasetName+"_"+resampleId+"_"+measureType+".txt").exists()){
             return;
         }
        
         Instances fullTrain;
         double prediction;
         FileWriter out;
-        int instanceId;
         File outDir;
         String outLoc;
-        
         int correct;
         double acc;
 
@@ -80,15 +80,15 @@ public class ThreadedExperimentEE extends Thread{
         if(measureType.equals(ElasticEnsemble.ClassifierVariants.DDTW_R1_1NN)||measureType.equals(ElasticEnsemble.ClassifierVariants.DDTW_Rn_1NN)||measureType.equals(ElasticEnsemble.ClassifierVariants.WDDTW_1NN)){
              DerivativeFilter d = new DerivativeFilter();
              fullTrain = d.process(instances);
-         }else{
-             fullTrain = new Instances(instances);
-         }
+        }else{
+            fullTrain = new Instances(instances);
+        }
 
         File paramFile;
         
         for(int paramId = 0; paramId< maxParamId; paramId++){
             
-            outLoc = "eeClusterOutput/"+datasetName+"/"+datasetName+"_"+resampleId+"/"+datasetName+"_"+resampleId+"_"+measureType+"/"+datasetName+"_"+resampleId+"_"+measureType+"_p_"+paramId+".txt";
+            outLoc = outResultsDir+"eeClusterOutput/"+datasetName+"/"+datasetName+"_"+resampleId+"/"+datasetName+"_"+resampleId+"_"+measureType+"/"+datasetName+"_"+resampleId+"_"+measureType+"_p_"+paramId+".txt";
             paramFile = new File(outLoc);
             if(paramFile.exists()){
                 if(paramFile.length() > 0){ // weird bug on cluster made a few files with no content (maybe crashed while writing, or didn't close stream)
@@ -96,7 +96,7 @@ public class ThreadedExperimentEE extends Thread{
                 }
             }
 
-            outDir = new File("eeClusterOutput/"+datasetName+"/"+datasetName+"_"+resampleId+"/"+datasetName+"_"+resampleId+"_"+measureType+"/");
+            outDir = new File(outResultsDir+"eeClusterOutput/"+datasetName+"/"+datasetName+"_"+resampleId+"/"+datasetName+"_"+resampleId+"_"+measureType+"/");
             outDir.mkdirs();
 
             StringBuilder st = new StringBuilder();
@@ -117,7 +117,7 @@ public class ThreadedExperimentEE extends Thread{
                 if(prediction==testIns.classValue()){
                     correct++;
                 }
-                st.append(i+","+prediction+"/"+testIns.classValue()+"\n");
+                st.append(i).append(",").append(prediction).append("/").append(testIns.classValue()).append("\n");
             }
 
             acc = (double)correct/fullTrain.numInstances();
@@ -127,7 +127,7 @@ public class ThreadedExperimentEE extends Thread{
             out.close();
             // create a global information file as a contingency (if it doesn't exist). This can provide information such as number of instances and actual class values
             // without needing to load raw data, and also help inturpret old files if the origin is unclear by storing the relation name
-            String infoLoc = "eeClusterOutput/"+datasetName+"/"+datasetName+"_"+resampleId+"/"+datasetName+"_"+resampleId+".info";
+            String infoLoc = outResultsDir+"eeClusterOutput/"+datasetName+"/"+datasetName+"_"+resampleId+"/"+datasetName+"_"+resampleId+".info";
             if(!new File(infoLoc).exists()){
                 out = new FileWriter(infoLoc);
                 String summary = instances.toSummaryString();
@@ -144,9 +144,7 @@ public class ThreadedExperimentEE extends Thread{
         }
     }
     
-//    public static void threadedSingleClassifier(String tscProblemDir, Classifier c) throws Exception{
-//    public static void threadedSingleClassifier(String tscProblemDir, Classifier c) throws Exception{
-    public static void threadedSingleDataset(String tscProblemDir, String datasetName) throws Exception{
+    public static void threadedSingleDataset(String tscProblemDir, String datasetName, String outputResultsDir, int numResamples) throws Exception{
         
         ElasticEnsemble.ClassifierVariants[] measureTypes = {
             ElasticEnsemble.ClassifierVariants.Euclidean_1NN,
@@ -169,10 +167,8 @@ public class ThreadedExperimentEE extends Thread{
         Instances test = nc.process(ClassifierTools.loadData(tscProblemDir+datasetName+"/"+datasetName+"_TEST"));
         
         
-        int totalResamples = 10;
-        
         for(int i = 0; i < measureTypes.length; i++){    
-            threads[i]=new ThreadedExperimentEE(datasetName, train, test, measureTypes[i], totalResamples);
+            threads[i]=new ThreadedExperimentEE(datasetName, train, test, measureTypes[i], numResamples, outputResultsDir);
             threads[i].start();
             System.out.println(" started "+datasetName+" with "+measureTypes[i]);
         }
@@ -183,7 +179,7 @@ public class ThreadedExperimentEE extends Thread{
     }
     
     public static void main(String[] args) throws Exception{
-        threadedSingleDataset("C:/Temp/Dropbox/TSC Problems/", "ItalyPowerDemand");
+        threadedSingleDataset("C:/Users/sjx07ngu/Dropbox/TSC Problems/", "ItalyPowerDemand", "C:/Jay/TestOutputEE/", 10);
     }
     
 }
