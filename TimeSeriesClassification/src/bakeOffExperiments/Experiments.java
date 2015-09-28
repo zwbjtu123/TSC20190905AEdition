@@ -12,12 +12,9 @@ import other_peoples_algorithms.*;
 import utilities.ClassifierTools;
 import weka.classifiers.AbstractClassifier;
 import weka.classifiers.Classifier;
-import weka.classifiers.bayes.BayesNet;
-import weka.classifiers.bayes.NaiveBayes;
 import weka.classifiers.functions.Logistic;
 import weka.classifiers.functions.MultilayerPerceptron;
 import weka.classifiers.functions.SMO;
-import weka.classifiers.functions.supportVector.Kernel;
 import weka.classifiers.functions.supportVector.PolyKernel;
 import weka.classifiers.lazy.DTW_1NN;
 import weka.classifiers.lazy.kNN;
@@ -43,7 +40,19 @@ public class Experiments {
     static final String[] directoryNames={"standard","Elastic distance measures","shapelet","dictionary","interval","ensemble","complexity"};
 
     public static OutFile out;
-//    static String[] unfinished={"Adiac","FiftyWords","Fish","Mallat","SonyAIBORobotSurface1","StarlightCurves","UWaveGestureLibraryZ","Wafer","Yoga"};
+    
+    static boolean doUnfinished=true;
+    static String[] unfinishedSVMQ={"StarlightCurves","UWaveGestureLibraryZ"};
+    static String[] unfinishedRotF={"StarlightCurves"};
+    
+    static String[] unfinishedLogistic={"NonInvasiveFatalECGThorax1","NonInvasiveFatalECGThorax2","Phoneme","ShapesAll","StarlightCurves","UWaveGestureLibraryZ"};
+    static String[] unfinishedMLP={"HandOutlines","StarlightCurves"};
+    static String[] unfinishedCID={"StarlightCurves","UWaveGestureLibraryZ"};
+    //2
+    static String[] unfinishedDD_DTW={"StarlightCurves", "UWaveGestureLibraryZ"};
+    //14
+    static String[] unfinishedDTD_C={"ElectricDevices","FordA","FordB","HandOutlines","InlineSkate","NonInvasiveFatalECGThorax1","NonInvasiveFatalECGThorax2","Phoneme","StarlightCurves", "UWaveGestureLibraryX","UWaveGestureLibraryY","UWaveGestureLibraryZ","UWaveGestureLibraryAll"};
+
     
     public static void threadedSingleClassifier(Classifier c, OutFile results) throws Exception{
          ThreadedClassifierExperiment[] thr=new ThreadedClassifierExperiment[DataSets.fileNames.length]; 
@@ -74,6 +83,8 @@ public class Experiments {
         Classifier c=null;
         switch(classifier){
             case "SVMQ":
+                if(doUnfinished)
+                   s=unfinishedSVMQ[Integer.parseInt(args[1])-1];
                 c=new SMO();
                 PolyKernel p=new PolyKernel();
                 p.setExponent(2);
@@ -87,19 +98,29 @@ public class Experiments {
                 ((SMO)c).setKernel(p2);
                 break;
             case "MLP":
+                if(doUnfinished)
+                    s=unfinishedMLP[Integer.parseInt(args[1])-1];
                 c=new MultilayerPerceptron();
                 break;
             case "RotF":
+                if(doUnfinished)
+                    s=unfinishedRotF[Integer.parseInt(args[1])-1];
                 c= new RotationForest();
                 ((RotationForest)c).setNumIterations(50);
                 break;
             case "Logistic":
+                if(doUnfinished)
+                    s=unfinishedLogistic[Integer.parseInt(args[1])-1];
                 c= new Logistic();
                 break;
             case "CID_ED":
+                if(doUnfinished)
+                    s=unfinishedCID[Integer.parseInt(args[1])-1];
                 c=new NN_CID();
                 break;
             case "CID_DTW":
+                if(doUnfinished)
+                    s=unfinishedCID[Integer.parseInt(args[1])-1];
                 c=new NN_CID();
                 ((NN_CID)c).useDTW();
                 break;
@@ -115,8 +136,21 @@ public class Experiments {
                 c=new DTW_1NN();
                 ((DTW_1NN)c).optimiseWindow(true);
                 break;
-            default:
-                c= new kNN(1);
+            case "DD_DTW":
+                 if(doUnfinished)
+                     s=unfinishedDD_DTW[Integer.parseInt(args[1])-1];               
+                c=new NNDerivativeWeighting();
+                break;
+            case "DTD_C":
+                if(doUnfinished)
+                    s=unfinishedDTD_C[Integer.parseInt(args[1])-1];               
+                c=new NNTransformWeighting();
+                break;
+            case "TSF":
+                c=new TimeSeriesForest();
+                break;
+//            default:
+//                throw new Exception("Unknown classifier "+classifier);
         }
         String str=DataSets.clusterPath;
         System.out.println("Classifier ="+str+" problem ="+s);
@@ -139,7 +173,7 @@ public class Experiments {
         clusterSingleClassifier(args);
         System.exit(0);
         Classifier c;
-        String s="C:\\Users\\ajb\\Dropbox\\Big TSC Bake Off\\New Results\\shapelet\\";
+        String s="C:\\Users\\ajb\\Dropbox\\Big TSC Bake Off\\New Results\\Elastic distance measures\\";
         OutFile res;
         System.out.println("**************** LS *************8**********");
         c = new LearnShapelets();
@@ -162,24 +196,7 @@ public class Experiments {
         res = new OutFile(s+"RandF.csv");
         threadedSingleClassifier(c,res);
 
-        res = new OutFile(s+"C45.csv");
-        c= new J48();
-        System.out.println("******** J48 **********");
-        threadedSingleClassifier(c,res);
-        res = new OutFile(s+"BayesNet.csv");
-        c= new BayesNet();
-        System.out.println("******** BayesNet **********");
-        threadedSingleClassifier(c,res);
-
-        /*        
-        c = new SMO();
-        PolyKernel p=new PolyKernel();
-        p.setExponent(2);
-        ((SMO)c).setKernel(p);
-        res = new OutFile(s+"SVMQ.csv");
-        threadedSingleClassifier(c,res);
- /*
-
+      
         /*        
         res = new OutFile(s+"C45.csv");
         c= new J48();

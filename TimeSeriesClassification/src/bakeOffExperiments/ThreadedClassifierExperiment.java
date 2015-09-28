@@ -6,7 +6,7 @@
 
 package bakeOffExperiments;
 
-import bakeOffExperiments.BasicClassifiers;
+import bakeOffExperiments.Experiments;
 import utilities.InstanceTools;
 import weka.classifiers.Classifier;
 import weka.classifiers.Evaluation;
@@ -111,13 +111,13 @@ public class ThreadedClassifierExperiment extends Thread{
                 
             }
         
-            synchronized(BasicClassifiers.out){
+            synchronized(Experiments.out){
                 System.out.println(" finished ="+name);
 
-                BasicClassifiers.out.writeString(name+",");
+                Experiments.out.writeString(name+",");
                 for(int i=0;i<resamples;i++)
-                    BasicClassifiers.out.writeString(foldAcc[i]+",");
-                BasicClassifiers.out.writeString("\n");
+                    Experiments.out.writeString(foldAcc[i]+",");
+                Experiments.out.writeString("\n");
             
         }
     }
