@@ -1,4 +1,4 @@
-package other_peoples_algorithms;
+package tsc_algorithms;
 
 import fileIO.OutFile;
 import utilities.ClassifierTools;

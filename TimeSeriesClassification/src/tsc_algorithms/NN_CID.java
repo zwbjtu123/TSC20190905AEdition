@@ -24,7 +24,7 @@ CF(Q,C) = max (CE(Q),CE(C))
 ie the ratio of complexities. In the paper, 
 
 */
-package other_peoples_algorithms;
+package tsc_algorithms;
 
 import development.DataSets;
 import java.util.Enumeration;

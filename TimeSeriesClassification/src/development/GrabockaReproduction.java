@@ -1,6 +1,6 @@
 package development;
 
-import weka.filters.timeseries.alternative_shapelet.LearnShapelets;
+import tsc_algorithms.LearnShapelets;
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;

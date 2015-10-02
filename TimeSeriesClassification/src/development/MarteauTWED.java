@@ -6,7 +6,7 @@ package development;
 
 import development.DataSets;
 import fileIO.OutFile;
-import other_peoples_algorithms.RecreateResults;
+import tsc_algorithms.RecreateResults;
 import utilities.ClassifierTools;
 import weka.classifiers.Classifier;
 import weka.classifiers.lazy.kNN;

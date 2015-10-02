@@ -7,9 +7,9 @@ import utilities.ClassifierTools;
 import utilities.InstanceTools;
 import weka.classifiers.Classifier;
 import weka.core.Instances;
-import other_peoples_algorithms.SAXVSM;
-import other_peoples_algorithms.BOSSEnsemble;
-import other_peoples_algorithms.BagOfPatterns;
+import tsc_algorithms.SAXVSM;
+import tsc_algorithms.BOSSEnsemble;
+import tsc_algorithms.BagOfPatterns;
 
 /**
  * Runs resample experiments for the classifiers:
@@ -66,7 +66,7 @@ public class DictionaryClassifierExperiments {
         for (int i = 0; i < classifiers.length; ++i) {
             System.out.println("**" + fileNames[i] + "**");
             OutFile out = new OutFile(outPath+fileNames[i] + ".csv");
-            BasicClassifiers.threadedSingleClassifier(classifiers[i], out);
+            Experiments.threadedSingleClassifier(classifiers[i], out);
         }
     }
     

@@ -2,7 +2,7 @@
 Class to recreate someone elses  
 
 */
-package other_peoples_algorithms;
+package tsc_algorithms;
 
 /**
  *

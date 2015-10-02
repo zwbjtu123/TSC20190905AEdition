@@ -6,7 +6,7 @@
 package development;
 
 import AaronTest.LocalInfo;
-import other_peoples_algorithms.LearnShapelets;
+import tsc_algorithms.LearnShapelets;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;

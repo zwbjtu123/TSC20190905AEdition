@@ -10,7 +10,7 @@
 //because we generally want to reduce space used
 
 
-package other_peoples_algorithms;
+package tsc_algorithms;
 
 import java.util.Collections;
 import java.util.Iterator;

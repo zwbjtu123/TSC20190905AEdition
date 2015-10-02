@@ -11,7 +11,7 @@
 // aka always to dist FROM test histogram TO bag histogram? or visa versa
 // does it make a differnece?
 
-package other_peoples_algorithms;
+package tsc_algorithms;
 
 import java.util.ArrayList;
 import java.util.Arrays;

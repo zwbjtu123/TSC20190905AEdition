@@ -1,5 +1,5 @@
 
-package other_peoples_algorithms;
+package tsc_algorithms;
 
 import utilities.ClassifierTools;
 import weka.classifiers.Classifier;

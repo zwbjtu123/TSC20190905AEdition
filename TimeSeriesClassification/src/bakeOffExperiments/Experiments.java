@@ -3,12 +3,16 @@ Default weka classifiers in the time domain.
  */
 package bakeOffExperiments;
 
+import tsc_algorithms.LearnShapelets;
+import tsc_algorithms.NN_CID;
+import tsc_algorithms.NNTransformWeighting;
+import tsc_algorithms.TimeSeriesForest;
+import tsc_algorithms.NNDerivativeWeighting;
 import development.DataSets;
 import fileIO.InFile;
 import fileIO.OutFile;
 import java.io.File;
 import java.util.*;
-import other_peoples_algorithms.*;
 import utilities.ClassifierTools;
 import weka.classifiers.AbstractClassifier;
 import weka.classifiers.Classifier;
@@ -29,7 +33,7 @@ import weka.filters.NormalizeCase;
  * @author ajb
  */
 public class Experiments {
-    static String[] elastic = {"Euclidean_1NN","DTW_R1_1NN","DTW_Rn_1NN","DDTW_R1_1NN","DDTW_Rn_1NN","ERP_1NN","LCSS_1NN","MSM_1NN","TWE_1NN","WDDTW_1NN","WDTW_1NN","DD_DTW","DTD_C"};
+    static String[] elastic = {"Euclidean_1NN","DTW_R1_1NN","DTW_Rn_1NN","DDTW_R1_1NN","DDTW_Rn_1NN","ERP_1NN","LCSS_1NN","MSM_1NN","TWE_1NN","WDDTW_1NN","WDTW_1NN","DD_DTW","DTD_C","DTW_Features"};
     static String[] standard={"NB","C45","SVML","SVMQ","Logistic","BayesNet","RandF","RotF","MLP"};
     static String[] dictionary={"BoP","SAXVSM","BOSS"};
     static String[] shapelet={"ST","LS","FS"};

@@ -1,4 +1,4 @@
-package other_peoples_algorithms;
+package tsc_algorithms;
 
 
 import java.util.ArrayList;
@@ -28,7 +28,7 @@ Overview: Input n series length m
 for each tree
     sample sqrt(m) intervals
     build tree on these features
-    ensemble the trees
+    ensemble the trees with majority vote
 
 Three interval features: mean, standard deviation and slope. 
  *
@@ -43,7 +43,14 @@ buildClassifier:
 classifyInstance:
     4. majority vote with sqrt(m) RandomTree classifiers
     
-Splitting criteria may need some work
+Splitting criteria has a tiny refinement. Ties in entropy gain
+are split with a further stat called margin that measures the distance of the split point
+to the closest data. So if the split value for feature f=f_1,...f_n is v the margin is defined
+as
+
+margin= min{ |f_i-v| } 
+
+
  */
 public class TimeSeriesForest extends AbstractClassifier{
     RandomTree[] trees;
