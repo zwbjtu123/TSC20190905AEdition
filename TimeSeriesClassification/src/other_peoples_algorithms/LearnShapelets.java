@@ -1,5 +1,8 @@
 package other_peoples_algorithms;
 
+import grabocka_reproduction.KMeans;
+import grabocka_reproduction.LearnShapeletsGeneralized;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -20,10 +23,12 @@ import weka.core.Instances;
 
 public class LearnShapelets extends AbstractClassifier{
 
+    int seed;
+    
     // length of a time-series 
     public int seriesLength;
     // length of shapelet
-    public int L[];
+    public int lengthsOfShapelet[];
     public double percentageOfSeriesLength;
     // number of latent patterns
     public int numLatentPatterns;
@@ -32,7 +37,9 @@ public class LearnShapelets extends AbstractClassifier{
     // number of classes
     public int numClasses;
     // number of segments
-    public int J[];
+    public int numberOfSegments[];
+    
+    int L_min;
     // shapelets
     double Shapelets[][][];
     // classification weights
@@ -45,7 +52,7 @@ public class LearnShapelets extends AbstractClassifier{
     public Instances trainSet;
     public Instance testSet;
     // time series data and the label 
-    public double[][] train, classValuePredictions;
+    public double[][] train, classValuePredictions_train;
     public double[] test;
 
     // the number of iterations
@@ -61,7 +68,7 @@ public class LearnShapelets extends AbstractClassifier{
     public List<Double> nominalLabels;
 
     // structures for storing the precomputed terms
-    double D_train[][][][];
+    double D_train[][][][]; //mean square error for each shapelet compared with each shapelet centroid.
     double E_train[][][][];
     double M_train[][][];
     double Psi_train[][][];
@@ -85,6 +92,7 @@ public class LearnShapelets extends AbstractClassifier{
     
     public void setSeed(int seed)
     {
+        seed = 1;
         rand = new Random(seed);
     }
 
@@ -95,23 +103,27 @@ public class LearnShapelets extends AbstractClassifier{
         if (numLatentPatterns == 0) {
             numLatentPatterns = 1;
         }
+        
+        L_min = (int)(percentageOfSeriesLength * seriesLength);
 
         // set the labels to be binary 0 and 1, needed for the logistic loss
         CreateOneVsAllTargets();
 
         // initialize the shapelets (complete initialization during the clustering)
         Shapelets = new double[shapeletLengthScale][][];
-        // initialize the number of shapelets and the length of the shapelets 
-        J = new int[shapeletLengthScale];
-        L = new int[shapeletLengthScale];
+        // initialize the number of shapelets (by their starting point) and the length of the shapelets 
+        numberOfSegments = new int[shapeletLengthScale];
+        lengthsOfShapelet = new int[shapeletLengthScale];
         // set the lengths of shapelets and the number of segments
         // at each scale r
         int totalSegments = 0;
+        
+        //for each scale we create a number of segments and a shapelet length based on the scale value and our minimum shapelet length.
         for (int r = 0; r < shapeletLengthScale; r++) {
-            L[r] = (int) ((r + 1) * percentageOfSeriesLength * seriesLength);
-            J[r] = seriesLength - L[r];
+            lengthsOfShapelet[r] = (r + 1) * L_min;
+            numberOfSegments[r] = seriesLength - lengthsOfShapelet[r];
 
-            totalSegments += train.length * J[r];
+            totalSegments += train.length * numberOfSegments[r];
         }
 
         // set the total number of shapelets per scale as a rule of thumb
@@ -135,12 +147,12 @@ public class LearnShapelets extends AbstractClassifier{
         for (int i = 0; i < train.length; i++) {
             for (int r = 0; r < shapeletLengthScale; r++) {
                 for (int k = 0; k < numLatentPatterns; k++) {
-                    D_train[i][r][k] = new double[J[r]];
-                    E_train[i][r][k] = new double[J[r]];
+                    D_train[i][r][k] = new double[numberOfSegments[r]];
+                    E_train[i][r][k] = new double[numberOfSegments[r]];
                 }
             }
         }
-
+        
         // initialize the placeholders for the precomputed values
         M_train = new double[train.length][shapeletLengthScale][numLatentPatterns];
         Psi_train = new double[train.length][shapeletLengthScale][numLatentPatterns];
@@ -164,6 +176,8 @@ public class LearnShapelets extends AbstractClassifier{
         for (int i = 0; i < train.length; i++) {
             PreCompute(D_train[i], E_train[i], Psi_train[i], M_train[i], sigY_train[i], train[i]);
         }
+        
+        
 
         // initialize W by learning the model on the centroid data
         LearnFOnlyW();
@@ -174,69 +188,56 @@ public class LearnShapelets extends AbstractClassifier{
             instanceIdxs.add(i);
         }
         // shuffle the order for a better convergence
-        Collections.shuffle(instanceIdxs);
+        Collections.shuffle(instanceIdxs, rand);
     }
 
     // create one-cs-all targets
     public void CreateOneVsAllTargets() {
         numClasses = nominalLabels.size();
 
-        classValuePredictions = new double[train.length][numClasses];
+        classValuePredictions_train = new double[train.length][numClasses];
 
         // initialize the extended representation  
         for (int i = 0; i < train.length; i++) {
             // firts set everything to zero
             for (int c = 0; c < numClasses; c++) {
-                classValuePredictions[i][c] =  0;
+                classValuePredictions_train[i][c] =  0;
             }
 
             // then set the real label index to 1
             //the label is at the end of the series. not the beginning.
-            int indexLabel = nominalLabels.indexOf(train[i][train[i].length-1]);
-            classValuePredictions[i][indexLabel] = 1.0;
+            int indexLabel = nominalLabels.indexOf(trainSet.get(i).classValue());
+            classValuePredictions_train[i][indexLabel] = 1.0;
         }
-
     }
 
     // initialize the shapelets from the centroids of the segments
     public void initializeShapeletsKMeans() throws Exception {
-        // a multi-threaded parallel implementation of the clustering
-        // on thread for each scale r, i.e. for each set of K shapelets at
+        //for each scale r, i.e. for each set of K shapelets at
         // length L_min*(r+1)
         for (Integer r : rIdxs) {
-            double[][] segmentsR = new double[train.length * J[r]][L[r]];
-
+            double[][] segmentsR = new double[train.length * numberOfSegments[r]][lengthsOfShapelet[r]];
+            
             //construct the segments from the train set.
             for (int i = 0; i < train.length; i++) {
-                for (int j = 0; j < J[r]; j++) {
-                    for (int l = 0; l < L[r]; l++) {
-                        segmentsR[i * J[r] + j][l] = train[i][j + l];
-                        
+                for (int j = 0; j < numberOfSegments[r]; j++) {
+                    for (int l = 0; l < lengthsOfShapelet[r]; l++) {
+                        segmentsR[i * numberOfSegments[r] + j][l] = train[i][j + l];
                     }
                 }
             }
 
             // normalize segments
             for (int i = 0; i < train.length; i++) {
-                for (int j = 0; j < J[r]; j++) {
-                    segmentsR[i * J[r] + j] = StatisticalUtilities.Normalize(segmentsR[i * J[r] + j]);
+                for (int j = 0; j < numberOfSegments[r]; j++) {
+                    segmentsR[i * numberOfSegments[r] + j] = StatisticalUtilities.Normalize(segmentsR[i * numberOfSegments[r] + j]);
                 }
             }
 
+           
+            KMeans kmeans = new KMeans();
+            Shapelets[r] = kmeans.InitializeKMeansPP(segmentsR, numLatentPatterns, 100); 
             
-            
-            //cluster the shapelets.
-            Instances ins = InstanceTools.ToWekaInstances(segmentsR);
-
-            SimpleKMeans skm = new SimpleKMeans();
-            skm.setNumClusters(numLatentPatterns);
-            skm.setMaxIterations(100);
-            skm.setSeed((int) (Math.random() * 1000));
-            skm.setInitializeUsingKMeansPlusPlusMethod(true);
-            skm.buildClusterer(ins);
-            Instances centroidsWeka = skm.getClusterCentroids();
-
-            Shapelets[r] = InstanceTools.FromWekaInstances(centroidsWeka);
 
             if (Shapelets[r] == null) {
                 System.out.println("P not set");
@@ -264,32 +265,29 @@ public class LearnShapelets extends AbstractClassifier{
         for (int r = 0; r < shapeletLengthScale; r++) {
             //in most cases Shapelets[r].length == numLatentPatterns, this is not always true.
             for (int k = 0; k < Shapelets[r].length; k++) { 
-                for (int j = 0; j < J[r]; j++) {
+                Psi[r][k] = 0;
+                M[r][k] = 0;
+                
+                for (int j = 0; j < numberOfSegments[r]; j++) {
                     // precompute D
                     D[r][k][j] = 0;
-                    double err = 0;
+                    double err;
                     
-                    for (int l = 0; l < L[r]; l++) {
+                    //find a shapelet, what is the difference between it and the centroid shapelet.
+                    for (int l = 0; l < lengthsOfShapelet[r]; l++) {
                         err = series[j + l] - Shapelets[r][k][l];
                         D[r][k][j] += err * err;
                     }
 
-                    D[r][k][j] /= (double) L[r];
+                    D[r][k][j] /= (double) lengthsOfShapelet[r];
 
                     // precompute E
                     E[r][k][j] = Math.exp(alpha * D[r][k][j]);
-                }
-
-                // precompute Psi 
-                Psi[r][k] = 0;
-                for (int j = 0; j < J[r]; j++) {
-                    Psi[r][k] += Math.exp(alpha * D[r][k][j]);
-                }
-
-                // precompute M 
-                M[r][k] = 0;
-
-                for (int j = 0; j < J[r]; j++) {
+                
+                    //precompute Psi
+                    Psi[r][k] += E[r][k][j];
+                
+                    //precompute M
                     M[r][k] += D[r][k][j] * E[r][k][j];
                 }
 
@@ -310,24 +308,35 @@ public class LearnShapelets extends AbstractClassifier{
             PreCompute(D_train[i], E_train[i], Psi_train[i], M_train[i], sigY_train[i], train[i]);
 
             Instance inst = trainSet.get(i);
-            double label_i = classifyInstance(inst);
+            
+            double max_Y_hat_ic = Double.MIN_VALUE;
+            int label_i = -1;
+
+            for (int c = 0; c < numClasses; c++) {
+                double Y_hat_ic = CalculateSigmoid(Predict_i(M_train[i], c));
+
+                if (Y_hat_ic > max_Y_hat_ic) {
+                    max_Y_hat_ic = Y_hat_ic;
+                    label_i = c;
+                }
+            }
 
             //we've predicted a value which doesn't exist.
             if (inst.classValue() != label_i) {
-                numErrors++;
-            }
-        }
+                numErrors++; 
+            }  
+       }
 
         return (double) numErrors / (double) trainSet.numInstances();
     }
 
     // compute the accuracy loss of instance i according to the 
     // smooth hinge loss 
-    public double accuracyLoss(double[][] M, double[] Y_b, int c) {
+    public double accuracyLoss(double[][] M, double[] classValues, int c) {
         double Y_hat_ic = Predict_i(M, c);
         double sig_y_ic = CalculateSigmoid(Y_hat_ic);
 
-        return -Y_b[c] * Math.log(sig_y_ic) - (1 - Y_b[c]) * Math.log(1 - sig_y_ic);
+        return -classValues[c] * Math.log(sig_y_ic) - (1 - classValues[c]) * Math.log(1 - sig_y_ic);
     }
 
     // compute the accuracy loss of the train set
@@ -338,7 +347,7 @@ public class LearnShapelets extends AbstractClassifier{
             PreCompute(D_train[i], E_train[i], Psi_train[i], M_train[i], sigY_train[i], train[i]);
 
             for (int c = 0; c < numClasses; c++) {
-                accuracyLoss += accuracyLoss(M_train[i], classValuePredictions[i], c);
+                accuracyLoss += accuracyLoss(M_train[i], classValuePredictions_train[i], c);
             }
         }
 
@@ -358,18 +367,19 @@ public class LearnShapelets extends AbstractClassifier{
             PreCompute(D_train[i], E_train[i], Psi_train[i], M_train[i], sigY_train[i], train[i]);
 
             for (int c = 0; c < numClasses; c++) {
-                dLdY = -(classValuePredictions[i][c] - sigY_train[i][c]);
+                //difference beteen our classes predicted and our actual values.
+                dLdY = -(classValuePredictions_train[i][c] - sigY_train[i][c]);
 
                 for (int r = 0; r < shapeletLengthScale; r++) {
                     //in most cases Shapelets[r].length == numLatentPatterns, this is not always true.
                     for (int k = 0; k < Shapelets[r].length; k++) {
                         W[c][r][k] -= eta * (dLdY * M_train[i][r][k] + regWConst * W[c][r][k]);
 
-                        tmp1 = (2.0 / ((double) L[r] * Psi_train[i][r][k]));
+                        tmp1 = (2.0 / ((double) lengthsOfShapelet[r] * Psi_train[i][r][k]));
 
-                        for (int l = 0; l < L[r]; l++) {
+                        for (int l = 0; l < lengthsOfShapelet[r]; l++) {
                             tmp2 = 0;
-                            for (int j = 0; j < J[r]; j++) {
+                            for (int j = 0; j < numberOfSegments[r]; j++) {
                                 tmp2 += E_train[i][r][k][j] * (1 + alpha * (D_train[i][r][k][j] - M_train[i][r][k])) * (Shapelets[r][k][l] - train[i][j + l]);
                             }
 
@@ -396,11 +406,11 @@ public class LearnShapelets extends AbstractClassifier{
 
                     for (int r = 0; r < shapeletLengthScale; r++) {
                         for (int k = 0; k < numLatentPatterns; k++) {
-                            W[c][r][k] -= eta * (-(classValuePredictions[i][c] - sigY_train[i][c]) * M_train[i][r][k] + regWConst * W[c][r][k]);
+                            W[c][r][k] -= eta * (-(classValuePredictions_train[i][c] - sigY_train[i][c]) * M_train[i][r][k] + regWConst * W[c][r][k]);
                         }
                     }
 
-                    biasW[c] -= eta * (-(classValuePredictions[i][c] - sigY_train[i][c]));
+                    biasW[c] -= eta * (-(classValuePredictions_train[i][c] - sigY_train[i][c]));
                 }
             }
         }
@@ -448,13 +458,12 @@ public class LearnShapelets extends AbstractClassifier{
                     }
                     sumAccuracy/=noFolds;
                     
-                    System.out.printf("%f,%d,%f,%f\n", paramsPercentageOfSeriesLength[j], paramsShapeletLengthScale[k], paramsLambdaW[i], sumAccuracy);
+                    //System.out.printf("%f,%d,%f,%f\n", paramsPercentageOfSeriesLength[j], paramsShapeletLengthScale[k], paramsLambdaW[i], sumAccuracy);
                     
                     if(sumAccuracy > bsfAccuracy){
                         //weird? Can't put i,j,k straight in params?
                         int[] p = {i,j,k};
                         params = p;
-                        
                         bsfAccuracy = sumAccuracy;
                     }
                 }
@@ -533,8 +542,8 @@ public class LearnShapelets extends AbstractClassifier{
 
         for (int r = 0; r < shapeletLengthScale; r++) {
             for (int k = 0; k < numLatentPatterns; k++) {
-                D_test[r][k] = new double[J[r]];
-                E_test[r][k] = new double[J[r]];
+                D_test[r][k] = new double[numberOfSegments[r]];
+                E_test[r][k] = new double[numberOfSegments[r]];
             }
         }
 
@@ -567,7 +576,7 @@ public class LearnShapelets extends AbstractClassifier{
             for (int k = 0; k < numLatentPatterns; k++) {
                 System.out.print("Shapelets(" + r + "," + k + ")= [ ");
 
-                for (int l = 0; l < L[r]; l++) {
+                for (int l = 0; l < lengthsOfShapelet[r]; l++) {
                     System.out.print(Shapelets[r][k][l] + " ");
                 }
 
@@ -598,7 +607,7 @@ public class LearnShapelets extends AbstractClassifier{
         for (int i = 0; i < train.length; i++) {
             PreCompute(D_train[i], E_train[i], Psi_train[i], M_train[i], sigY_train[i], train[i]);
             
-            System.out.print(classValuePredictions[i][c] + " ");
+            System.out.print(classValuePredictions_train[i][c] + " ");
 
             for (int k = 0; k < numLatentPatterns; k++) {
                 System.out.print(M_train[i][r][k] + " ");
@@ -644,5 +653,62 @@ public class LearnShapelets extends AbstractClassifier{
         Collections.sort(nominalLabels);
 
         return nominalLabels;
+    }
+    
+    
+    public static void main(String[] args) throws Exception{
+        
+        //resample 1 of the italypowerdemand dataset
+        String dataset = "ArrowHead";
+        String fileExtension = File.separator + dataset + File.separator + dataset;
+        String samplePath = "../../resampled data sets" + fileExtension + 13;
+        
+        //load the train and test.
+        Instances testSet = utilities.ClassifierTools.loadData(samplePath + "_TEST");
+        Instances trainSet = utilities.ClassifierTools.loadData(samplePath + "_TRAIN");
+        
+        /*int numTrainInstances = trainSet.numInstances();
+        int numTestInstances = testSet.numInstances();
+        
+        Instances combined0 = new Instances(trainSet);
+        combined0.addAll(testSet);
+        
+        Instances combined1 = new Instances(trainSet);
+        combined1.addAll(testSet);
+        
+        //predictor variables T
+        double[][] T = FromWekaInstances(combined0);
+        Normalize2D(T, true);
+        
+        double[][] Y = FromWekaInstances(combined1);
+        Normalize2D(Y, true);
+        
+        //verificatiom
+        
+        //both have the same seed.
+        LearnShapeletsGeneralized lsg = new LearnShapeletsGeneralized();
+        lsg.Q = trainSet.numAttributes()-1;
+        lsg.lambdaW = 0.01;
+        lsg.L_min = (int)(0.1 * (trainSet.numAttributes() - 1));
+        lsg.R = 2;
+        lsg.ITrain = numTrainInstances;
+        lsg.ITest = numTestInstances;
+        
+        lsg.T = T;
+        lsg.Y = Y;
+        lsg.maxIter = 1000;
+        lsg.eta = 0.1;
+        lsg.alpha = -30;
+        lsg.nominalLabels = ReadNominalTargets(trainSet);
+        double error = lsg.Learn();
+        System.out.println("LSG: " + error);*/
+        
+
+        LearnShapelets ls = new LearnShapelets();
+        ls.setSeed(1);
+        ls.buildClassifier(trainSet);
+        
+        double accuracy = utilities.ClassifierTools.accuracy(testSet, ls);
+        System.out.println("LS: " + (1-accuracy));
     }
 }

@@ -72,13 +72,14 @@ public class ResamplingExperiments {
         //createAllResamples();
         //createShapelets(fold);
         
-        createLearnShapeleteAccuracies(fold);
+        //createLearnShapeleteAccuracies(fold);
         
-        /*File f = new File(transformLocation + File.separator + classifierName);
+        //File f = new File(transformLocation + File.separator + classifierName);
+        /*File f = new File(resultsLocation + File.separator + classifierName);
         
         File[] files = f.listFiles();
         
-        for(int i=20; i< files.length; i++)
+        for(int i=0; i< files.length; i++)
         {
             
             File file = files[i];
@@ -86,8 +87,10 @@ public class ResamplingExperiments {
             
             currentDataSet = file.getName();
             System.out.println(currentDataSet);
-            createRandomForestOnTransform();
+            //createRandomForestOnTransform();
+            createAccuracyTable();
         }*/
+        
         //fileVerifier();
         //createAndWriteAccuracies();
         //createAccuracyTable();
@@ -207,7 +210,7 @@ public class ResamplingExperiments {
                 String fileExtension = File.separator + smallDataset + File.separator + smallDataset;
                 resultsPath = resultsLocation + classifierDir + fileExtension;
 
-                File f = new File(resultsPath + ".csv");
+                File f = new File(resultsPath + "_RF500.csv");
 
                 //if the file doesn't exist skip it.
                 if (!f.exists()) {
@@ -411,24 +414,18 @@ public class ResamplingExperiments {
             Scanner sc;
             
             PrintWriter pw;
-            File save = new File(directory + ".csv");
+            File save = new File(directory + "_RF500.csv");
             save.getParentFile().mkdirs();
             save.createNewFile();
             pw = new PrintWriter(save);
-
-            //setup header.
-            pw.printf("%s", "datasets");
-            for(int i=0; i< 100; i++){
-                pw.printf(",%d", i);
-            }
-            pw.print("\n");
             
             File[] folders = dir.listFiles();
 
             for (File dataset : folders) {
                 String name = dataset.getName();
 
-                File csv = new File(dataset.getAbsolutePath() + File.separator + name + ".csv");
+                //get the accuracy file.
+                File csv = new File(dataset.getAbsolutePath() + File.separator + name + "_RF500.csv");
                 System.out.println(name + "------------------------------------------");
                 
                 sc = new Scanner(csv);
