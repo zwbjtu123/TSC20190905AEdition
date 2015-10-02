@@ -1,6 +1,4 @@
 package other_peoples_algorithms;
-
-import grabocka_reproduction.KMeans;
 import grabocka_reproduction.LearnShapeletsGeneralized;
 import java.io.File;
 import java.util.ArrayList;
@@ -47,7 +45,7 @@ public class LearnShapelets extends AbstractClassifier{
     double biasW[];
 
     // the softmax parameter
-    public double alpha = -30;
+    public double alpha;
     
     public Instances trainSet;
     public Instance testSet;
@@ -56,11 +54,9 @@ public class LearnShapelets extends AbstractClassifier{
     public double[] test;
 
     // the number of iterations
-    public int maxIter = 1000;
+    public int maxIter;
     // the learning rate
-    public double eta = 0.1;
-
-    public int kMeansIter;
+    public double eta;
 
     // the regularization parameters
     public double lambdaW;
@@ -87,12 +83,11 @@ public class LearnShapelets extends AbstractClassifier{
 
     // constructor
     public LearnShapelets() {
-        kMeansIter = 100;
     }
     
     public void setSeed(int seed)
     {
-        seed = 1;
+        this.seed = seed;
         rand = new Random(seed);
     }
 
@@ -234,11 +229,16 @@ public class LearnShapelets extends AbstractClassifier{
                 }
             }
 
-           
-            KMeans kmeans = new KMeans();
-            Shapelets[r] = kmeans.InitializeKMeansPP(segmentsR, numLatentPatterns, 100); 
+            Instances ins = InstanceTools.ToWekaInstances(segmentsR); 
+            SimpleKMeans skm = new SimpleKMeans();
+            skm.setNumClusters(numLatentPatterns);
+            skm.setMaxIterations(100);
+            skm.setSeed( (int) (rand.nextDouble() * 1000) ); 
+            skm.setInitializeUsingKMeansPlusPlusMethod(true); 
+            skm.buildClusterer( ins );
+            Instances centroidsWeka = skm.getClusterCentroids();
+            Shapelets[r] =  InstanceTools.FromWekaInstances(centroidsWeka);
             
-
             if (Shapelets[r] == null) {
                 System.out.println("P not set");
             }
@@ -444,6 +444,9 @@ public class LearnShapelets extends AbstractClassifier{
                         percentageOfSeriesLength = paramsPercentageOfSeriesLength[j];
                         shapeletLengthScale = paramsShapeletLengthScale[k];
                         lambdaW = paramsLambdaW[i];
+                        eta = 0.1;
+                        maxIter = 1000;
+                        alpha = -30;
                         train(trainCV);
                         
                         //test on the remaining fold.
@@ -659,13 +662,17 @@ public class LearnShapelets extends AbstractClassifier{
     public static void main(String[] args) throws Exception{
         
         //resample 1 of the italypowerdemand dataset
-        String dataset = "ArrowHead";
+        String dataset = "ItalyPowerDemand";
         String fileExtension = File.separator + dataset + File.separator + dataset;
         String samplePath = "../../resampled data sets" + fileExtension + 13;
+        String samplePath1 = "../../resampled data sets" + fileExtension + 14;
         
         //load the train and test.
         Instances testSet = utilities.ClassifierTools.loadData(samplePath + "_TEST");
         Instances trainSet = utilities.ClassifierTools.loadData(samplePath + "_TRAIN");
+        
+        Instances testSet1 = utilities.ClassifierTools.loadData(samplePath1 + "_TEST");
+        Instances trainSet1 = utilities.ClassifierTools.loadData(samplePath1 + "_TRAIN");
         
         /*int numTrainInstances = trainSet.numInstances();
         int numTestInstances = testSet.numInstances();
@@ -705,10 +712,15 @@ public class LearnShapelets extends AbstractClassifier{
         
 
         LearnShapelets ls = new LearnShapelets();
-        ls.setSeed(1);
+        ls.setSeed(13);
         ls.buildClassifier(trainSet);
-        
         double accuracy = utilities.ClassifierTools.accuracy(testSet, ls);
-        System.out.println("LS: " + (1-accuracy));
+        System.out.println("LS: " + accuracy);
+        
+        
+        ls.setSeed(14);
+        ls.buildClassifier(trainSet1);
+        accuracy = utilities.ClassifierTools.accuracy(testSet1, ls);
+        System.out.println("LS: " + accuracy);
     }
 }
