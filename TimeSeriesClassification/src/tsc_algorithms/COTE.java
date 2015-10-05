@@ -5,11 +5,12 @@ COTE Classifier for the paper
 The default set up is as it is described in the paper. Note results may be
 slightly different because this is a more recent Weka implementation
 */
-package weka.classifiers.meta.timeseriesensembles;
+package tsc_algorithms;
 
 import fileIO.OutFile;
 import utilities.ClassifierTools;
 import weka.classifiers.AbstractClassifier;
+import weka.classifiers.meta.timeseriesensembles.WeightedEnsemble;
 import weka.core.*;
 import weka.core.shapelet.QualityMeasures;
 import weka.filters.timeseries.ACF;

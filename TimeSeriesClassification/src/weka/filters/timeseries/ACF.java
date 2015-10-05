@@ -15,13 +15,6 @@ import weka.filters.*;
 /*
  *      * copyright: Anthony Bagnall
 
- * 1. Check debugging:
- *          ACF vs ACvF. No point really. 
- *          Truncate:
-     *          Simple significance threshold
-    *          Shifting significance threshold.Smoothing: e Blackman-Tukey method
-    * 
-    * Other things to investigate: 
  */
 
 public class ACF extends SimpleBatchFilter {

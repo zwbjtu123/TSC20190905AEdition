@@ -1,5 +1,5 @@
-package other_peoples_algorithms;
-import grabocka_reproduction.LearnShapeletsGeneralized;
+package tsc_algorithms;
+//import grabocka_reproduction.LearnShapeletsGeneralized;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;

@@ -29,7 +29,7 @@ import java.util.Scanner;
 
 import utilities.ClassifierTools;
 
-import weka.classifiers.meta.timeseriesensembles.ElasticEnsemble;
+import tsc_algorithms.ElasticEnsemble;
 import weka.classifiers.lazy.kNN;
 import weka.core.Instance;
 import weka.core.Instances;

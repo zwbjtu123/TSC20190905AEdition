@@ -20,7 +20,7 @@ import java.text.DecimalFormat;
 import utilities.ClassifierTools;
 
 import weka.classifiers.Classifier;
-import weka.classifiers.meta.timeseriesensembles.ElasticEnsemble;
+import tsc_algorithms.ElasticEnsemble;
 import weka.core.Instance;
 import weka.core.Instances;
 import weka.filters.timeseries.SummaryStats;

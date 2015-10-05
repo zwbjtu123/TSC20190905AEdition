@@ -3,11 +3,7 @@ Default weka classifiers in the time domain.
  */
 package bakeOffExperiments;
 
-import tsc_algorithms.LearnShapelets;
-import tsc_algorithms.NN_CID;
-import tsc_algorithms.NNTransformWeighting;
-import tsc_algorithms.TimeSeriesForest;
-import tsc_algorithms.NNDerivativeWeighting;
+import tsc_algorithms.*;
 import development.DataSets;
 import fileIO.InFile;
 import fileIO.OutFile;
@@ -39,13 +35,13 @@ public class Experiments {
     static String[] shapelet={"ST","LS","FS"};
     static String[] interval={"TSF","TSBF","LPS"};
     static String[] complexity={"CID_ED","CID_DTW","RPCD"};
-    static String[] ensemble={"EE","COTE"};
+    static String[] ensemble={"ACF","PS","EE","COTE"};
     String resultsPath="C:\\Users\\ajb\\Dropbox\\Big TSC Bake Off\\New Results\\";
     static final String[] directoryNames={"standard","Elastic distance measures","shapelet","dictionary","interval","ensemble","complexity"};
 
     public static OutFile out;
     
-    static boolean doUnfinished=true;
+    static boolean doUnfinished=false;
     static String[] unfinishedSVMQ={"StarlightCurves","UWaveGestureLibraryZ"};
     static String[] unfinishedRotF={"StarlightCurves"};
     
@@ -153,26 +149,39 @@ public class Experiments {
             case "TSF":
                 c=new TimeSeriesForest();
                 break;
+            case "ACF":
+                c=new ACF_Ensemble();
+                ((ACF_Ensemble)c).setClassifierType("RotF");
+                break;
+            case "PS":
+                c=new PS_Ensemble();
+                break;
 //            default:
 //                throw new Exception("Unknown classifier "+classifier);
         }
         String str=DataSets.clusterPath;
         System.out.println("Classifier ="+str+" problem ="+s);
-        File f=new File(str+"Results/"+classifier);
         Instances train=ClassifierTools.loadData(str+"TSC Problems/"+s+"/"+s+"_TRAIN");
         Instances test=ClassifierTools.loadData(str+"TSC Problems/"+s+"/"+s+"_TEST");
+        File f=new File(str+"Results/"+classifier);
         if(!f.exists())
             f.mkdir();
+        String predictions=str+"Results/"+classifier+"/Predictions";
+        f=new File(predictions);
+        if(!f.exists())
+            f.mkdir();
+        predictions=predictions+"/"+s;
+        f=new File(predictions);
+        if(!f.exists())
+            f.mkdir();
+        
         OutFile of=new OutFile(str+"Results/"+classifier+"/"+s+".csv");
         of.writeString(s+",");
-        double[] folds=ClusterClassifierExperiment.resampleExperiment(train,test,c,100,of);
+        double[] folds=ClusterClassifierExperiment.resampleExperiment(train,test,c,100,of,predictions);
         of.writeString("\n");
     }
   
-    public static void standardClassifiers(){
-        
-    }
-    
+
     public static void main(String[] args) throws Exception{
         clusterSingleClassifier(args);
         System.exit(0);

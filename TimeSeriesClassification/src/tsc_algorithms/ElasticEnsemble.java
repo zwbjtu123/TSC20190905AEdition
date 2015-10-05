@@ -1,4 +1,4 @@
-package weka.classifiers.meta.timeseriesensembles;
+package tsc_algorithms;
 
 import fileIO.OutFile;
 import java.io.File;

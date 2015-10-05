@@ -20,7 +20,7 @@ import weka.classifiers.lazy.DTW_1NN;
 
 import weka.filters.timeseries.SummaryStats;
 
-import weka.classifiers.meta.timeseriesensembles.ElasticEnsemble;
+import tsc_algorithms.ElasticEnsemble;
 import weka.filters.NormalizeCase;
 import weka.filters.timeseries.PowerSpectrum;
 import weka.filters.timeseries.shapelet_transforms.ApproximateShapeletTransform;

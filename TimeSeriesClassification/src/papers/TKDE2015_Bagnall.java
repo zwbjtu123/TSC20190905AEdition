@@ -14,6 +14,8 @@ weka.classifiers.meta.timeseriesensembles
 
 package papers;
 
+import tsc_algorithms.ElasticEnsemble;
+import tsc_algorithms.COTE;
 import development.DataSets;
 import fileIO.InFile;
 import fileIO.OutFile;

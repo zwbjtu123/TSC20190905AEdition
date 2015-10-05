@@ -1,7 +1,5 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+
  */
 package bakeOffExperiments;
 
@@ -22,12 +20,14 @@ import weka.core.Instances;
 public class ClusterClassifierExperiment {
     public static String resultsPath=DataSets.clusterPath+"Results/";
     
-    public static double[] resampleExperiment(Instances train, Instances test, Classifier c, int resamples,OutFile of){
+//Store and save accuracies and predictions    
+    public static double[] resampleExperiment(Instances train, Instances test, Classifier c, int resamples,OutFile of,String preds){
 
        double[] foldAcc=new double[resamples];
         for(int i=0;i<resamples;i++){
             Instances[] data=InstanceTools.resampleTrainAndTestInstances(train, test, i);
             double act,pred;
+            OutFile p=new OutFile(preds+"/fold"+i+".csv");
             try{              
                 c.buildClassifier(data[0]);
                 foldAcc[i]=0;
@@ -37,6 +37,7 @@ public class ClusterClassifierExperiment {
                     pred=c.classifyInstance(data[1].instance(j));
                     if(act==pred)
                         foldAcc[i]++;
+                    p.writeLine(act+","+pred);
                 }
                 foldAcc[i]/=data[1].numInstances();
                 of.writeString(foldAcc[i]+",");
