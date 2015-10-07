@@ -23,10 +23,9 @@ import weka.filters.timeseries.SAX;
  */
 public class SAXVSM implements Classifier {
 
+    Instances transformedData;
     Instances corpus;
-    //double[][] classWeights; //class weight matrix
-    public kNN knn;
-    
+
     private BagOfPatternsFilter bop;
     private int PAA_intervalsPerWindow;
     private int SAX_alphabetSize;
@@ -67,8 +66,6 @@ public class SAXVSM implements Classifier {
         this.PAA_intervalsPerWindow = -1;
         this.SAX_alphabetSize = -1;
         this.windowSize = -1;
-      
-        knn = new kNN(); //default to 1NN, Euclidean distance
 
         useParamSearch = true;
     }
@@ -79,7 +76,6 @@ public class SAXVSM implements Classifier {
         this.windowSize = windowSize;
         
         bop = new BagOfPatternsFilter(PAA_intervalsPerWindow, SAX_alphabetSize, windowSize);
-        knn = new kNN(); //default to 1NN, Euclidean distance
         alphabet = SAX.getAlphabet(SAX_alphabetSize);
         
         useParamSearch = false;
@@ -104,30 +100,28 @@ public class SAXVSM implements Classifier {
      * @param data Data to perform cross validation testing on
      * @return { numIntervals, alphabetSize, slidingWindowSize } 
      */
-    public static int[] parameterSearch(Instances data) {
-//        System.out.println("SAXVSM_ParamSearch\n\n");
-  
+    public static int[] parameterSearch(Instances data) throws Exception {
+
         double bestAcc = 0.0;
         int bestAlpha = 0, bestWord = 0, bestWindowSize = 0;
         int numTests = 5;
 
         int minWinSize = (int)((data.numAttributes()-1) / 10.0);
         int maxWinSize = (int)((data.numAttributes()-1) / 2.0);
-        int winInc = (int)((maxWinSize - minWinSize) / 10.0); 
-
-//        System.out.println("serieslength:"+(data.numAttributes()-1)+"    max:"+maxWinSize+"   min:"+minWinSize+"    inc:"+winInc);
-        
-        for (int alphaSize = 2; alphaSize <= 10; alphaSize++) {
+//        int winInc = (int)((maxWinSize - minWinSize) / 10.0); 
+        int winInc = 1;
+      
+        for (int alphaSize = 2; alphaSize <= 8; alphaSize++) {
             for (int winSize = minWinSize; winSize <= maxWinSize; winSize+=winInc) {
-                for (int wordSize = 2; wordSize <= winSize/2; wordSize*=2) { //lin BoP suggestion
-//                for (int interSize = 2; interSize <= 10; interSize++) { //arbitrary, minimizing dictionary size suggestion
-                
+                for (int wordSize = 2; wordSize <= winSize/2; wordSize*=2) { //lin BoP suggestion            
                     SAXVSM vsm = new SAXVSM(wordSize,alphaSize,winSize);
-                    double acc = ClassifierTools.crossValidationWithStats(vsm, data, data.numInstances())[0][0];//leave-one-out cv
-//                    double acc = ClassifierTools.crossValidationWithStats(vsm, data, 2)[0][0];//2-fold
                     
-//                    System.out.println("i/a/w/acc : "+wordSize+"/"+alphaSize+"/"+winSize+"/"+acc);
-              
+                    double acc = vsm.crossValidate(data); //leave-one-out without doing bop transformation every fold (still applying tfxidf)
+//                    double acc = ClassifierTools.crossValidationWithStats(vsm, data, data.numInstances())[0][0];//leave-one-out cv
+//                    double acc = ClassifierTools.crossValidationWithStats(vsm, data, 2)[0][0];//2-fold
+
+                    System.out.println(acc);
+                    
                     if (acc > bestAcc) {
                         bestAcc = acc;
                         bestAlpha = alphaSize;
@@ -138,14 +132,22 @@ public class SAXVSM implements Classifier {
             }
         }
 
-//        System.out.println("\n\nbest accuracy: " + bestAcc);
-//        System.out.println("best alphabet size: " + bestAlpha);
-//        System.out.println("best num intervals: " + bestWord);
-//        System.out.println("best window size: " + bestWindowSize);  
-        
-//        System.out.println(data.relationName() + " params: i/a/w/acc = "+bestWord+"/"+bestAlpha+"/"+bestWindowSize+"/"+bestAcc);
-        
         return new int[] { bestWord, bestAlpha, bestWindowSize};
+    }
+    
+    private double crossValidate(Instances data) throws Exception {
+        double correct = 0;
+        
+        transformedData = bop.process(data);
+        
+        for (int i = 0; i < data.numInstances(); ++i) {
+            corpus = tfxidf(transformedData, i);
+            
+            if (classifyInstance(data.get(i)) == data.get(i).classValue())
+                ++correct;
+        }
+            
+        return correct /  data.numInstances();
     }
     
     @Override
@@ -175,17 +177,29 @@ public class SAXVSM implements Classifier {
             throw new Exception("SAXVSM_BuildClassifier: Invalid sliding window size: " 
                     + windowSize + " (series length "+ (data.numAttributes()-1) + ")");
         
-        data = bop.process(data);
-//        
-//        System.out.println("\n\nBOP");
-//        System.out.println(data);
-//        System.out.println("\n\n");
-//        
-        int numClasses = data.numClasses();
-        int numInstances = data.numInstances();
-        int numTerms = bop.dictionary.size();
+        transformedData = bop.process(data);
         
-        double[] classValues = data.attributeToDoubleArray(data.classIndex());
+        corpus = tfxidf(transformedData);
+    }
+    
+    /**
+     * Given a set of *individual* series transformed into bop form, will return a corpus 
+     * containing *class* bags made from that data with tfxidf weigh applied
+     */
+    public Instances tfxidf(Instances bopData) {
+        return tfxidf(bopData, -1); //include all instances into corpus
+    }
+    
+    /**
+     * If skip = 0 to numInstances, will not include instance at that index into the corpus
+     * Part of leave one out cv, while avoiding unnecessary repeats of the BoP transformation 
+     */
+    private Instances tfxidf(Instances bopData, int skip) {
+        int numClasses = bopData.numClasses();
+        int numInstances = bopData.numInstances();
+        int numTerms = bopData.numAttributes()-1; //minus class attribute
+        
+        double[] classValues = bopData.attributeToDoubleArray(bopData.classIndex());
         //initialise class weights
         double[][] classWeights = new double[numClasses][];
         for (int i = 0; i < numClasses; ++i) {
@@ -195,27 +209,18 @@ public class SAXVSM implements Classifier {
         }
 
         //build class bags
-        for (int i = 0; i < numInstances; ++i)
+        for (int i = 0; i < numInstances; ++i) {
+            if (i == skip) //skip 'this' one, for leave-one-out cv
+                continue;
+
             for (int j = 0; j < numTerms; ++j)
-                classWeights[(int)classValues[i]][j] += data.get(i).value(j);
-        
-        
-//        //TESTING TO SEE IF THIS MAKES A DIFFERENCE
-//        for (int i = 0; i < numClasses; ++i) 
-//            intervalNorm(classWeights[i]);
-//        
-        
-//        System.out.println("\n\npre weighting");
-//        for (int i = 0; i < numClasses; ++i) {
-//            for (int j = 0; j < numTerms; ++j)
-//                System.out.print(classWeights[i][j] +" ");
-//            System.out.println("");
-//        }
-        
+                classWeights[(int)classValues[i]][j] += bopData.get(i).value(j);
+        }
+            
         //apply tf x idf
         for (int i = 0; i < numTerms; ++i) { //for each term
             double df = 0; //document frequency
-            //as i read it 'number of bags where term t appears' 
+            //'number of bags where term t appears' 
             //NOT how many times it appears in total, e.g appears 3 times in bag a, 2 times in bag b, df = 2, NOT 5
             
             for (int j = 0; j < numClasses; ++j) //find how many classes this term appears in
@@ -229,7 +234,7 @@ public class SAXVSM implements Classifier {
                             classWeights[j][i] = Math.log(1 + classWeights[j][i]) * Math.log(numClasses / df);                
                 }
                 else { //appears in all
-                    //check this just in case, done to avoid log calculations
+                    //done to avoid log calculations
                     //if df == num classes -> idf = log(N/df) = log(1) = 0 surely
                     //but not mentioned in paper, only df == 0 case mentioned, to avoid divide by 0
                     for (int j = 0; j < numClasses; ++j) 
@@ -238,169 +243,12 @@ public class SAXVSM implements Classifier {
             }
         }
         
-//        System.out.println("\n\npost weighting");
-//        for (int i = 0; i < numClasses; ++i) {
-//            for (int j = 0; j < numTerms; ++j)
-//                System.out.print(String.format("%3f ", classWeights[i][j]));
-//            System.out.println("");
-//        }
-        
-        
-//        //        //TESTING TO SEE IF THIS MAKES A DIFFERENCE
-//        for (int i = 0; i < numClasses; ++i) 
-//            intervalNorm(classWeights[i]);
-//        
-        
-        
-        corpus = new Instances(data, numClasses);
+        Instances tfxidfCorpus = new Instances(bopData, numClasses);
         for (int i = 0; i < numClasses; ++i)
-            corpus.add(new SparseInstance(1.0, classWeights[i]));
+            tfxidfCorpus.add(new SparseInstance(1.0, classWeights[i]));
         
-        knn.buildClassifier(corpus);
+        return tfxidfCorpus;
     }
-    
-//    @Override
-//    public void buildClassifier(Instances data) throws Exception {
-//         
-//        if (data.classIndex() != data.numAttributes()-1)
-//            throw new Exception("SAXVSM_BuildClassifier: Class attribute not set as last attribute in dataset");
-//        
-//        int numClasses = data.numClasses();
-//        int numInstances = data.numInstances();
-//        int numTerms = bop.dictionaryIndices.size();
-//        
-//        //store class values
-//        double[] classValues = data.attributeToDoubleArray(data.classIndex());
-//        
-//        //convert each series to bop form
-//        double[][] bopmatrix = new double[numInstances][];
-//        for (int i = 0; i < numInstances; i++)
-//            bopmatrix[i] = bop.buildBag(data.get(i));
-//                
-//        //initialise class weights
-//        classWeights = new double[numClasses][];
-//        for (int i = 0; i < numClasses; ++i) {
-//            classWeights[i] = new double[numTerms];
-//            for (int j = 0; j < numTerms; ++j)
-//                classWeights[i][j] = 0; //cant remember whether java defaults doubles to 0, meh
-//        }
-//
-//        //build class bags
-//        for (int i = 0; i < numInstances; ++i)
-//            for (int j = 0; j < numTerms; ++j)
-//                classWeights[(int)classValues[i]][j] += bopmatrix[i][j];
-//
-//               
-////DEBUG
-////        
-////        System.out.println("numClasses: " + numClasses);
-////        System.out.println("numTerms: " + numTerms);
-////        System.out.println("numInsts: " + numInstances);
-////        System.out.print("classvalues:");
-////        for (int i = 0; i < numInstances; ++i) 
-////            System.out.print(classValues[i] + " ");
-////        System.out.println("\n");
-////        
-////        double origSize = 0.0;
-////        for (int i = 0; i < numInstances; ++i) 
-////            for (int j = 0; j < numTerms; ++j)
-////                origSize += bopmatrix[i][j];
-////        
-////        double afterSize = 0.0;
-////        for (int i = 0; i < numClasses; ++i) 
-////            for (int j = 0; j < numTerms; ++j)
-////                afterSize += classWeights[i][j];
-////        
-////        System.out.println("should be equal: " + origSize + " " + afterSize);
-////        
-////        for (int i = 0; i < numClasses; ++i) {
-////            double classSize = 0.0;
-////            for (int j = 0; j < numTerms; ++j)
-////                classSize += classWeights[i][j];
-////            
-////            System.out.println("class" + i + ": " + classSize);
-////        }
-////
-////        System.out.println("\n\npre weighting");
-////        for (int i = 0; i < numClasses; ++i) {
-////            for (int j = 0; j < numTerms; ++j)
-////                System.out.print(classWeights[i][j] +" ");
-////            System.out.println("");
-////        }
-// //ENDDEBUG
-//        
-//        //apply tf x idf
-//        for (int i = 0; i < numTerms; ++i) { //for each term
-//            double df = 0; //document frequency
-//            //as i read it 'number of bags where term t appears' 
-//            //NOT how many times it appears in total, e.g appears 3 times in bag a, 2 times in bag b, df = 2, NOT 5
-//            
-//            for (int j = 0; j < numClasses; ++j) //find how many classes this term appears in
-//                if (classWeights[j][i] != 0)
-//                    ++df;
-//            
-//            if (df != 0) { //if it appears
-//                if (df != numClasses) { //but not in all, apply weighting
-//                    for (int j = 0; j < numClasses; ++j) 
-//                        if (classWeights[j][i] != 0) 
-//                            classWeights[j][i] = Math.log(1 + classWeights[j][i]) * Math.log(numClasses / df);                
-//                }
-//                else { //appears in all
-//                    //check this just in case, done to avoid log calculations
-//                    //if df == num classes -> idf = log(N/df) = log(1) = 0 surely
-//                    //but not mentioned in paper, only df == 0 case mentioned, to avoid divide by 0
-//                    for (int j = 0; j < numClasses; ++j) 
-//                        classWeights[j][i] = 0;
-//                }      
-//            }
-//                
-//        }
-// 
-// //DEBUG
-////        System.out.println("\n\npost weighting");
-////        for (int i = 0; i < numClasses; ++i) {
-////            for (int j = 0; j < numTerms; ++j)
-////                System.out.print(classWeights[i][j] +" ");
-////            System.out.println("");
-////        }
-// //ENDDEBUG
-//        
-//        //this code tried using instance.mergeinstance, KEEPING EVERYTHING SPARSE
-//        //'merge' actually just adds on the values of the second onto the first
-//        //i.e a = [1,2,3], b = [2,3,4], a.merge(b) = [1,2,3,2,3,4]
-////        Instances classMatrix = new Instances(matrix, matrix.numClasses());
-////        
-////        //merge each series in each CLASS
-////        double[] classValues = matrix.attributeToDoubleArray(matrix.classIndex());
-////        
-////        for (int c = 0; c < matrix.numClasses(); ++c) {
-////            boolean firstInClass = true;
-////            Instance firstClassInst = null;
-////            
-////            for (int i = 0; i < classValues.length; ++i) {
-////                if (classValues[i] == c)
-////                    if (firstInClass) {
-////                        firstClassInst = matrix.get(i);
-////                        firstInClass = false;
-////                    }
-////                    else
-////                        firstClassInst = firstClassInst.mergeInstance(matrix.get(i));
-////            }
-////            
-////            if (firstClassInst != null)
-////                classMatrix.add(firstClassInst);
-////            
-////        }
-////        
-////        System.out.println("initialmatrix");
-////        System.out.println("numClasses: " + matrix.numClasses());
-////        System.out.println("numInsts: " + matrix.numInstances());
-////        System.out.println("\nnewmatrix");
-////        System.out.println("numClasses: " + classMatrix.numClasses());
-////        System.out.println("numInsts: " + classMatrix.numInstances());
-////        
-////        System.out.println("\n\n" + classMatrix);
-//    }
 
     /**
      * Takes two vectors of equal length, and computes the cosine similarity between them.
@@ -478,6 +326,38 @@ public class SAXVSM implements Classifier {
         
     }
     
+     /**
+      * **BROKEN**
+      * java.lang.ArrayIndexOutOfBoundsException: 2
+	at weka.core.SparseInstance.toDoubleArray(SparseInstance.java:425)
+	at tsc_algorithms.SAXVSM.classifyInstance(SAXVSM.java:340)
+      * 
+      * Used as part of a leave-one-out crossvalidation, to skip having to rebuild 
+      * the classifier every time (since n-1 histograms would be identical each time anyway), therefore this classifies 
+      * the instance at the index passed while ignoring its own corresponding histogram 
+      * 
+      * @param test index of instance to classify
+      * @return classification
+      */
+    private double classifyInstance(int test) throws Exception {
+        
+        double bestDist = Double.MAX_VALUE;
+        double nn = -1.0;
+
+        double[] termFreqs = transformedData.get(test).toDoubleArray();
+        
+        for (int i = 0; i < corpus.numInstances(); ++i) {
+            double dist = cosineSimilarity(corpus.get(i).toDoubleArray(), termFreqs, termFreqs.length - 1); 
+            
+            if (dist < bestDist) {
+                bestDist = dist;
+                nn = corpus.get(i).classValue();
+            }
+        }
+        
+        return nn;
+    }
+    
     @Override
     public double classifyInstance(Instance instance) throws Exception {
         
@@ -498,43 +378,26 @@ public class SAXVSM implements Classifier {
 
     @Override
     public double[] distributionForInstance(Instance instance) throws Exception {
-        //int numClasses = classWeights.length;
         int numClasses = corpus.numInstances();
         
         double[] termFreqs = bop.bagToArray(bop.buildBag(instance));
-        intervalNorm(termFreqs);
-        
-//        return knn.distributionForInstance(instance);
         
         double[] similarities = new double[numClasses];
         
-//        for (int i = 0; i < termFreqs.length; ++i) 
-//            System.out.print(termFreqs[i] + " ");
-//        System.out.println("");
-        
-//        System.out.print("SIMILARITIES ");
+
         double sum = 0.0;
         for (int i = 0; i < numClasses; ++i) {
             //similarities[i] = cosineSimilarity(classWeights[i], termFreqs); 
             similarities[i] = cosineSimilarity(corpus.get(i).toDoubleArray(), termFreqs, termFreqs.length); 
             sum+=similarities[i];
-//            System.out.print(similarities[i] + " ");
         }
-//        System.out.println("");
-        
-        
-//        System.out.println("DISTRIBUTIIONS");
+
         if (sum != 0) {
-            //you moron, want all to sum to 1, not just all in range 0 to 1
-            //PROBABILITY that case is in each class
-            //intervalNorm(similarities);
-            
+
             for (int i = 0; i < numClasses; ++i) {
                 similarities[i] /= sum;
-//                System.out.println(similarities[i]);
             }
         }
-//        System.out.println("");
         
         return similarities;
     }
@@ -551,7 +414,16 @@ public class SAXVSM implements Classifier {
             //aaa();
             //paramSearchTest();
             //crossValidationTest();
-            fullTest();
+            //fullTest();
+            
+            String path = "C:\\Users\\JamesL\\Documents\\UEA\\Internship\\DATA\\";
+//            Instances train = ClassifierTools.loadData(path+"Coffee\\Coffee_TRAIN");
+//            Instances test = ClassifierTools.loadData(path+"Coffee\\Coffee_TEST");
+            
+            Instances train = ClassifierTools.loadData(path+"Car\\Car_TRAIN");
+            Instances test = ClassifierTools.loadData(path+"Car\\Car_TEST");
+            
+            basicTest(train, test);
             
             //very small dataset for testing by eye
 //            Instances all = ClassifierTools.loadData("C:\\\\Temp\\\\TESTDATA\\\\Sheet2_3.arff");
@@ -636,23 +508,14 @@ public class SAXVSM implements Classifier {
     }
     
     public static void basicTest(Instances train, Instances test) throws Exception {
-        
-//        System.out.println("SAXVSMtest\n\n");
-//        
-//        System.out.println("PRE");
-//        System.out.println("train");
-//        System.out.println(train);
-//        System.out.println("\ntest");
-//        System.out.println(test);
-        
+
         SAXVSM vsm = new SAXVSM(8,4,100);
-        vsm.buildClassifier(train);
-//
-//        System.out.println("\nCORPUS");
-//        System.out.println(vsm.corpus);
-//        System.out.println("\n\n");
-//        
-        System.out.println("\n\nACCURACY " + ClassifierTools.accuracy(test, vsm));
+        vsm.buildClassifier(train);     
+        System.out.println("\n\nACCURACY1 " + ClassifierTools.accuracy(test, vsm));
+        
+        SAXVSM vsm2 = new SAXVSM();
+        vsm2.buildClassifier(train);     
+        System.out.println("\n\nACCURACY2 " + ClassifierTools.accuracy(test, vsm2));
     }
     
     public static void fullTest() throws Exception {

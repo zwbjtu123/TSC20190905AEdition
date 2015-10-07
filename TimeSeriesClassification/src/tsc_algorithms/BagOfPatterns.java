@@ -73,7 +73,7 @@ public class BagOfPatterns implements Classifier {
      * @param data Data to perform cross validation testing on
      * @return { numIntervals, alphabetSize, slidingWindowSize } 
      */
-    public static int[] parameterSearch(Instances data) {
+    public static int[] parameterSearch(Instances data) throws Exception {
 //        System.out.println("LinBoP_ParamSearch\n\n");
   
         double bestAcc = 0.0;
@@ -88,15 +88,18 @@ public class BagOfPatterns implements Classifier {
 //        int winInc = (int)((maxWinSize - minWinSize) / 10.0); //check 10 values within that range
 //        if (winInc < 1) winInc = 1;
 
-        for (int alphaSize = 2; alphaSize <= 10; alphaSize++) {
+        for (int alphaSize = 2; alphaSize <= 8; alphaSize++) {
             for (int winSize = minWinSize; winSize <= maxWinSize; winSize+=winInc) {
                 for (int wordSize = 2; wordSize <= winSize/2; wordSize*=2) { //lin BoP suggestion
          
                     BagOfPatterns bop = new BagOfPatterns(wordSize, alphaSize, winSize);
 
-                    double acc = ClassifierTools.crossValidationWithStats(bop, data, data.numInstances())[0][0];//leave-one-out cv
+                    double acc = bop.crossValidate(data); //leave-one-out without rebuiding every fold
+//                    double acc = ClassifierTools.crossValidationWithStats(bop, data, data.numInstances())[0][0];//leave-one-out cv
 //                    double acc = ClassifierTools.crossValidationWithStats(vsm, data, 2)[0][0];//2-fold cv
 
+                    System.out.println(acc);
+                    
                     if (acc > bestAcc) {
                         bestAcc = acc;
                         bestAlpha = alphaSize;
@@ -115,6 +118,18 @@ public class BagOfPatterns implements Classifier {
 //        System.out.println(data.relationName() + " params: i/a/w/acc = "+bestWord+"/"+bestAlpha+"/"+bestWindowSize+"/"+bestAcc);
         
         return new int[] { bestWord, bestAlpha, bestWindowSize};
+    }
+    
+    private double crossValidate(Instances data) throws Exception {
+        double correct = 0;
+        
+        buildClassifier(data);
+        
+        for (int i = 0; i < data.numInstances(); ++i)
+            if (classifyInstance(i) == data.get(i).classValue())
+                ++correct;
+        
+        return correct /  data.numInstances();
     }
     
     @Override
@@ -144,7 +159,6 @@ public class BagOfPatterns implements Classifier {
             throw new Exception("LinBoP_BuildClassifier: Invalid sliding window size: " 
                     + windowSize + " (series length "+ (data.numAttributes()-1) + ")");
         
-        Instances dataCopy = new Instances(data);
         matrix = bop.process(data);
         
         knn.buildClassifier(matrix);
@@ -163,6 +177,37 @@ public class BagOfPatterns implements Classifier {
         return knn.classifyInstance(newInsts.firstInstance());
     }
 
+    /**
+     * Used as part of a leave-one-out crossvalidation, to skip having to rebuild 
+     * the classifier every time (since n-1 histograms would be identical each time anyway), therefore this classifies 
+     * the instance at the index passed while ignoring its own corresponding histogram 
+     * 
+     * @param test index of instance to classify
+     * @return classification
+     */
+    public double classifyInstance(int test) {
+        
+        double bestDist = Double.MAX_VALUE;
+        double nn = -1.0;
+        
+        Instance testInst = matrix.get(test);
+        
+        for (int i = 0; i < matrix.numInstances(); ++i) {
+            if (i == test) //skip 'this' one, leave-one-out
+                continue;
+            
+            double dist = knn.distance(testInst, matrix.get(i)); 
+            
+            if (dist < bestDist) {
+                bestDist = dist;
+                nn = matrix.get(i).classValue();
+            }
+        }
+        
+        return nn;
+    }
+    
+    
     @Override
     public double[] distributionForInstance(Instance instance) throws Exception {
         //convert to proper form
@@ -181,10 +226,30 @@ public class BagOfPatterns implements Classifier {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
     
+     public static void basicTest(Instances train, Instances test) throws Exception {
+
+        BagOfPatterns bop = new BagOfPatterns(8,4,100);
+        bop.buildClassifier(train);     
+        System.out.println("\n\nACCURACY1 " + ClassifierTools.accuracy(test, bop));
+        
+        BagOfPatterns bop2 = new BagOfPatterns();
+        bop2.buildClassifier(train);     
+        System.out.println("\n\nACCURACY2 " + ClassifierTools.accuracy(test, bop2));
+    }
+    
     public static void main(String[] args){
         System.out.println("BagofPatternsTest\n\n");
         
         try {
+            
+            String path = "C:\\Users\\JamesL\\Documents\\UEA\\Internship\\DATA\\";
+//            Instances train = ClassifierTools.loadData(path+"Coffee\\Coffee_TRAIN");
+//            Instances test = ClassifierTools.loadData(path+"Coffee\\Coffee_TEST");
+            
+            Instances train = ClassifierTools.loadData(path+"Car\\Car_TRAIN");
+            Instances test = ClassifierTools.loadData(path+"Car\\Car_TEST");
+            
+            basicTest(train, test);
 //            //very small dataset for testing by eye
 ////            Instances all = ClassifierTools.loadData("C:\\\\Temp\\\\TESTDATA\\\\Sheet2_Train2.arff");
 //            Instances all = ClassifierTools.loadData("C:\\\\Temp\\\\TESTDATA\\\\TwoClassV1.arff");
@@ -241,8 +306,8 @@ public class BagOfPatterns implements Classifier {
 //            System.out.println("\nACCURACY TEST");
 //            System.out.println(ClassifierTools.accuracy(test, bop));
 
-            String fname = "LinBoPpapertests.csv";
-            fullTest(fname);
+            //String fname = "LinBoPpapertests.csv";
+           // fullTest(fname);
         }
         catch (Exception e) {
             System.out.println(e);

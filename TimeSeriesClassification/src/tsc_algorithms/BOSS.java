@@ -27,8 +27,8 @@ import weka.filters.timeseries.FFT;
 import weka.filters.timeseries.FFT.Complex;
 
 /**
- * BOSS classifier to be used with known parameters, for boss with parameter search,
- * use BOSSEnsemble.
+ * BOSS classifier to be used with known parameters
+ * For boss with parameter search, use BOSSEnsemble.
  * 
  * Params: wordLength, alphabetSize, windowLength, normalise?
  * 
@@ -361,8 +361,7 @@ public class BOSS implements Classifier {
      * the classifier every time (since n-1 histograms would be identical each time anyway), therefore this classifies 
      * the instance at the index passed while ignoring its own corresponding histogram 
      * 
-     * @param inst to classify
-     * @param leaveOut histogram to ignore
+     * @param test index of instance to classify
      * @return classification
      */
     public double classifyInstance(int test) {
