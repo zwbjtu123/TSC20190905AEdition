@@ -6,7 +6,6 @@
 package development;
 
 import AaronTest.LocalInfo;
-import tsc_algorithms.LearnShapelets;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -16,6 +15,7 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Scanner;
+import tsc_algorithms.LearnShapelets;
 import utilities.ClassifierTools;
 import utilities.InstanceTools;
 import weka.classifiers.meta.timeseriesensembles.WeightedEnsemble;

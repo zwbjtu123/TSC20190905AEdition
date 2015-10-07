@@ -9,7 +9,7 @@ import java.util.Random;
 
 import utilities.StatisticalUtilities;
 import utilities.InstanceTools;
-import static utilities.InstanceTools.FromWekaInstances;
+import static utilities.InstanceTools.FromWekaInstancesArray;
 import static utilities.StatisticalUtilities.CalculateSigmoid;
 import static utilities.StatisticalUtilities.Normalize;
 import static utilities.StatisticalUtilities.Normalize2D;
@@ -237,7 +237,7 @@ public class LearnShapelets extends AbstractClassifier{
             skm.setInitializeUsingKMeansPlusPlusMethod(true); 
             skm.buildClusterer( ins );
             Instances centroidsWeka = skm.getClusterCentroids();
-            Shapelets[r] =  InstanceTools.FromWekaInstances(centroidsWeka);
+            Shapelets[r] =  InstanceTools.FromWekaInstancesArray(centroidsWeka);
             
             if (Shapelets[r] == null) {
                 System.out.println("P not set");
@@ -488,7 +488,7 @@ public class LearnShapelets extends AbstractClassifier{
         nominalLabels = ReadNominalTargets(trainSet);
         
         //convert the training set into a 2D Matrix.
-        train = FromWekaInstances(trainSet);
+        train = FromWekaInstancesArray(trainSet);
         Normalize2D(train, true);
         
         // initialize the data structures

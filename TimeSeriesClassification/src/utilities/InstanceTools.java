@@ -130,7 +130,6 @@ public class InstanceTools {
         int dimRows = data.length;
         int dimColumns = data[0].length;
 
-        //Logging.println("Converting " + dimRows + " and " + dimColumns + " features.", LogLevel.DEBUGGING_LOG);
         // create a list of attributes features + label
         FastVector attributes = new FastVector(dimColumns);
         for (int i = 0; i < dimColumns; i++) {
@@ -156,7 +155,7 @@ public class InstanceTools {
 
     
     //converts a weka Instances into a 2d array.
-    public static double[][] FromWekaInstances(Instances ds) {
+    public static double[][] FromWekaInstancesArray(Instances ds) {
         int numFeatures = ds.numAttributes();
         int numInstances = ds.numInstances();
 
@@ -167,6 +166,25 @@ public class InstanceTools {
             for (int j = 0; j < numFeatures; j++) {
                 data[i][j] = ds.get(i).value(j);
             }
+        }
+
+        return data;
+    }
+    
+        //converts a weka Instances into a 2d array.
+    public static ArrayList<ArrayList<Double>> FromWekaInstancesList(Instances ds) {
+        int numFeatures = ds.numAttributes()-1; //no classValue
+        int numInstances = ds.numInstances();
+
+        //Logging.println("Converting " + numInstances + " instances and " + numFeatures + " features.", LogLevel.DEBUGGING_LOG);
+        ArrayList<ArrayList<Double>> data = new ArrayList<>(numInstances);
+        ArrayList<Double> temp;
+        for (int i = 0; i < numInstances; i++) {
+            temp = new ArrayList<>(numFeatures);
+            for (int j = 0; j < numFeatures; j++) {
+                temp.add(ds.get(i).value(j));
+            }
+            data.add(temp);
         }
 
         return data;

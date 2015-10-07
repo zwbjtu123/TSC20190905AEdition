@@ -1,6 +1,5 @@
 package development;
 
-import tsc_algorithms.LearnShapelets;
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -9,6 +8,7 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Random;
+import tsc_algorithms.LearnShapelets;
 import utilities.ClassifierTools;
 import weka.core.Instances;
 

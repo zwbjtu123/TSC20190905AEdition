@@ -8,7 +8,7 @@ import java.util.HashSet;
 import java.util.Scanner;
 import utilities.ClassifierTools;
 import utilities.InstanceTools;
-import weka.classifiers.meta.timeseriesensembles.ElasticEnsemble;
+import tsc_algorithms.ElasticEnsemble;
 import weka.core.Instances;
 import weka.filters.NormalizeCase;
 
