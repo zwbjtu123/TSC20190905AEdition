@@ -84,9 +84,9 @@ public class BagOfPatterns implements Classifier {
         //Doesn't say whether it checks EVERY size in that range, currently assuming it does
         int minWinSize = (int)((data.numAttributes()-1) * (15.0/100.0));
         int maxWinSize = (int)((data.numAttributes()-1) * (36.0/100.0));
-        int winInc = 1; //check every size in range
-//        int winInc = (int)((maxWinSize - minWinSize) / 10.0); //check 10 values within that range
-//        if (winInc < 1) winInc = 1;
+//        int winInc = 1; //check every size in range
+        int winInc = (int)((maxWinSize - minWinSize) / 10.0); //check 10 values within that range
+        if (winInc < 1) winInc = 1;
 
         for (int alphaSize = 2; alphaSize <= 8; alphaSize++) {
             for (int winSize = minWinSize; winSize <= maxWinSize; winSize+=winInc) {
