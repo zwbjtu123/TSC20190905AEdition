@@ -1,0 +1,202 @@
+package weka.filters.timeseries;
+
+import utilities.ClassifierTools;
+import weka.core.Attribute;
+import weka.core.DenseInstance;
+import weka.core.FastVector;
+import weka.core.Instance;
+import weka.core.Instances;
+import weka.filters.SimpleBatchFilter;
+
+/**
+ * Filter to reduce dimensionality of a time series into Piecewise Aggregate Approximation (PAA) form. 
+ * Default number of intervals = 10
+ *
+ * @author James
+ */
+public class PAA extends SimpleBatchFilter {
+
+    private int numIntervals = 10;
+    
+    private static final long serialVersionUID = 1L;
+    
+    public int getNumIntervals() {
+        return numIntervals;
+    }
+    
+    public void setNumIntervals(int intervals) {
+        numIntervals = intervals;
+    }
+
+
+    @Override
+    protected Instances determineOutputFormat(Instances inputFormat)
+            throws Exception {
+        
+        //Check all attributes are real valued, otherwise throw exception
+        for (int i = 0; i < inputFormat.numAttributes(); i++) {
+            if (inputFormat.classIndex() != i) {
+                if (!inputFormat.attribute(i).isNumeric()) {
+                    throw new Exception("Non numeric attribute not allowed for PAA");
+                }
+            }
+        }
+        
+        //Set up instances size and format. 
+        FastVector attributes = new FastVector();
+        
+        for (int i = 0; i < numIntervals; i++)
+            attributes.addElement(new Attribute("PAAInterval_" + i));
+
+        if (inputFormat.classIndex() >= 0) {	//Classification set, set class 
+            //Get the class values as a fast vector			
+            Attribute target = inputFormat.attribute(inputFormat.classIndex());
+
+            FastVector vals = new FastVector(target.numValues());
+            for (int i = 0; i < target.numValues(); i++) {
+                vals.addElement(target.value(i));
+            }
+            attributes.addElement(new Attribute(inputFormat.attribute(inputFormat.classIndex()).name(), vals));
+        }
+        
+        Instances result = new Instances("PAA" + inputFormat.relationName(), attributes, inputFormat.numInstances());
+        if (inputFormat.classIndex() >= 0) {
+            result.setClassIndex(result.numAttributes() - 1);
+        }
+        return result;
+    }
+
+    @Override
+    public String globalInfo() {
+        return null;
+    }
+
+    @Override
+    public Instances process(Instances input) 
+            throws Exception {
+        Instances output = determineOutputFormat(input);
+
+        for (int i = 0; i < input.numInstances(); i++) {
+            
+            double[] data = input.instance(i).toDoubleArray();
+            
+            //remove class attribute if needed
+            double[] temp;
+            int c = input.classIndex();
+            if(c >= 0) {
+                temp=new double[data.length-1];
+                System.arraycopy(data,0,temp,0,c); //assumes class attribute is in last index
+                data=temp;
+            }
+            
+            double[] intervals = convertInstance(data);
+            
+            //Now in PAA form, extract out the terms and set the attributes of new instance
+            Instance newInstance;
+            if (input.classIndex() >= 0)
+                newInstance = new DenseInstance(numIntervals + 1);
+            else
+                newInstance = new DenseInstance(numIntervals);
+
+            for (int j = 0; j < numIntervals; j++)
+                newInstance.setValue(j, intervals[j]);
+                
+            if (input.classIndex() >= 0)
+                newInstance.setValue(output.classIndex(), input.instance(i).classValue());
+
+            output.add(newInstance);
+        }
+        
+        return output;
+    }
+    
+    private double[] convertInstance(double[] data) 
+            throws Exception {
+        
+        if (numIntervals > data.length) 
+            throw new Exception(
+                    "Error converting to PAA, number of intervals (" + numIntervals + ") greater"
+                    + " than series length (" + data.length + ")");
+        
+        double[] intervals = new double[numIntervals];
+
+        //counters to keep track of progress towards completion of a frame
+        //potential for data.length % intervals != 0, therefore non-integer
+        //interval length, so weight the boundary data points to effect both 
+        //intervals it touches
+        int currentFrame = 0;
+        double realFrameLength = (double)data.length / numIntervals;
+        double frameSum = 0.0, currentFrameSize = 0.0, remaining = 0.0;
+        
+        //PAA conversion
+        for (int i = 0; i < data.length; ++i) {
+            remaining = realFrameLength - currentFrameSize;
+
+            if (remaining > 1.0) {
+                //just use whole data point 
+                frameSum += data[i];
+                currentFrameSize += 1;
+            } else {
+                //use some portion of data point as needed
+                frameSum += remaining * data[i]; 
+                currentFrameSize += remaining;
+            }   
+            
+            if (currentFrameSize == realFrameLength) { //if frame complete
+                intervals[currentFrame++] = frameSum / realFrameLength; //store mean
+
+                //before going onto next datapoint, 'use up' any of the current one on the new interval
+                //that might not have been used for interval just completed
+                frameSum = (1-remaining) * data[i];
+                currentFrameSize = (1-remaining);
+            }
+        }
+        
+        return intervals;
+    }
+    
+    public static double[] convertInstance(double[] data, int numIntervals) throws Exception {
+        PAA paa = new PAA();
+        paa.setNumIntervals(numIntervals);
+        
+        return paa.convertInstance(data);
+    }
+
+    public String getRevision() {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    public static void main(String[] args) {
+        /**
+         * Debug code to test SummaryStats generation:          *
+         *
+         * try{ Instances
+         * test=ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\TSC
+         * Problems\\Beef\\Beef_TRAIN"); // Instances filter=new
+         * SummaryStats().process(test); SummaryStats m=new SummaryStats();
+         * m.setInputFormat(test); Instances filter=Filter.useFilter(test,m);
+         * System.out.println(filter); } catch(Exception e){
+         * System.out.println("Exception thrown ="+e); e.printStackTrace();
+         *
+         * }*
+         */
+        System.out.println("PAAtest\n\n");
+        
+        try {
+            Instances test = ClassifierTools.loadData("C:\\Temp\\TESTDATA\\Sheet2_Train.arff");
+            PAA paa = new PAA();
+            paa.setNumIntervals(2);
+            Instances result = paa.process(test);
+            
+            System.out.println(test);
+            System.out.println("\n\n\nResults:\n\n");
+            System.out.println(result);
+        }
+        catch (Exception e) {
+            System.out.println(e);
+            e.printStackTrace();
+        }
+    }
+
+}
