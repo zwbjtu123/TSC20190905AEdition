@@ -123,7 +123,6 @@ public class FastShapelets implements Classifier {
                 ScoreAllSAX(R);
 
                 sh = FindBestSAX(top_k);
-                System.out.println("series: " + sh.obj + " pos: " + sh.pos);
 
                 if (bsf_sh.lessThan(sh)) {
                     bsf_sh = sh;
@@ -145,7 +144,6 @@ public class FastShapelets implements Classifier {
                 SetNextNodeObj(node_id, bsf_sh);
             }
         }
-
     }
 
     /// From top-k-score SAX
@@ -604,8 +602,41 @@ public class FastShapelets implements Classifier {
 
     @Override
     public double classifyInstance(Instance instance) throws Exception {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        int node_id, m;
+        double d, dist_th;  
+        
+        double[] dArray = instance.toDoubleArray();
+        ArrayList<Double> data = new ArrayList<>();    
+        //-1 off length so we don't add the classValue.
+        for(int i=0; i< dArray.length-1; i++) data.add(dArray[i]);
+        
+        int tree_size = Node_Obj_List.size();
+          
+        /// start at the top node
+        node_id = 1;
+        while((Classify_list.get(node_id) < 0)||(node_id > tree_size))
+        {
+            Shapelet node = Final_Sh.get(node_id);
+
+            m=node.len;
+            double[] Q = new double[m];
+            int[] order = new int[m];
+
+            d = nn.NearestNeighborSearch(node.ts, data, 0, Q, order);
+            dist_th = node.dist_th;
+
+            //printf("  node_id: %d,  d=%f   dist_th=%f\n",node_id,d,dist_th);
+
+            if (d <=dist_th)
+                node_id = 2*node_id;
+            else
+                node_id = 2*node_id + 1;
+
+        }
+
+        return (double)Classify_list.get(node_id);
     }
+    
 
     @Override
     public double[] distributionForInstance(Instance instance) throws Exception {
@@ -619,19 +650,23 @@ public class FastShapelets implements Classifier {
 
     public static void main(String[] args) throws Exception {
         final String dotdotSlash = ".." + File.separator;
-        String datasetName = "ItalyPowerDemand";
+        String datasetName = "ECGFiveDays";
         String datasetLocation = dotdotSlash + dotdotSlash + "time-series-datasets\\TSC Problems (1)" + File.separator + datasetName + File.separator + datasetName;
 
         Instances train = utilities.ClassifierTools.loadData(datasetLocation + "_TRAIN");
+        Instances test = utilities.ClassifierTools.loadData(datasetLocation + "_TEST");
 
         FastShapelets fs = new FastShapelets();
 
-        //try {
-        fs.buildClassifier(train);
+        try {
+            fs.buildClassifier(train);
+        
+            double accuracy = utilities.ClassifierTools.accuracy(test, fs);
+            System.out.println(accuracy);
 
-        //} catch (Exception ex) {
-        //    System.out.println("Exception " + ex);
-        //}
+        } catch (Exception ex) {
+            System.out.println("Exception " + ex);
+        }
     }
 
     private class ScoreComparator implements Comparator<Pair<Integer, Double>> {
