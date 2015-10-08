@@ -58,8 +58,11 @@ public class FastShapelets implements Classifier {
     ArrayList<ArrayList<Integer>> Node_Obj_List;
 
     double class_entropy;
+    
+    NN_ED nn;
 
     public FastShapelets() {
+        nn = new NN_ED();
     }
 
     @Override
@@ -72,6 +75,7 @@ public class FastShapelets implements Classifier {
         rand = new Random(seed);
 
         num_class = data.numClasses();
+        num_obj = data.numInstances();
         
         card = 4;
         sax_max_len = 15;
@@ -86,7 +90,8 @@ public class FastShapelets implements Classifier {
         Final_Sh = new ArrayList<>();
         USAX_Map = new HashMap<>();
         Score_List = new ArrayList<>();
-
+        Classify_list   = new ArrayList<>();
+        
         /// Find Shapelet
         for (int node_id = 1; (node_id == 1) || (node_id < Node_Obj_List.size()); node_id++) {
             Shapelet bsf_sh = new Shapelet();
@@ -162,10 +167,7 @@ public class FastShapelets implements Classifier {
         int[] c_in = new int[num_class];
         int[] c_out = new int[num_class];
         //init the array list with 0s
-        ArrayList<Double> query = new ArrayList<>(subseq_len);
-        for (int i = 0; i < subseq_len; i++) {
-            query.add(0.0);
-        }
+        double[] query = new double[subseq_len];
 
         if (top_k > 0) {
             Collections.sort(Score_List, new ScoreComparator());
@@ -184,15 +186,15 @@ public class FastShapelets implements Classifier {
                     c_out[i] = Class_Freq[i];
                 }
                 for (int i = 0; i < subseq_len; i++) {
-                    query.set(i, Data.get(q_obj).get(q_pos + i));
+                    query[i]=Data.get(q_obj).get(q_pos + i);
                 }
 
                 double dist;
-                int m = query.size();
+                int m = query.length;
                 double[] Q = new double[m];
                 int[] order = new int[m];
                 for (int obj = 0; obj < num_obj; obj++) {
-                    dist = NN_ED.NearestNeighborSearch(query, Data.get(obj), obj, Q, order);
+                    dist = nn.NearestNeighborSearch(query, Data.get(obj), obj, Q, order);
                     Dist.set(obj, new Pair<>(obj, dist));
                 }
 
@@ -498,8 +500,9 @@ public class FastShapelets implements Classifier {
         int q_pos = sh.pos;
         int q_len = sh.len;
         double dist_th = sh.dist_th;
-        ArrayList<Double> query = new ArrayList<>(q_len);
-        ArrayList<Integer> next_level = new ArrayList<>(num_obj);
+        double[] query = new double[q_len];
+        
+        int[] next_level = new int[num_obj];
         int left_num_obj = 0, right_num_obj = 0;
         int left_node_id = node_id * 2;
         int right_node_id = node_id * 2 + 1;
@@ -524,25 +527,26 @@ public class FastShapelets implements Classifier {
 
         /// Use the shapelet on previous Data
         for (int i = 0; i < q_len; i++) {
-            query.set(i, Data.get(q_obj).get(q_pos + i));
+            query[i] =  Data.get(q_obj).get(q_pos + i);
         }
+        
         double dist;
-        int m = query.size();
+        int m = query.length;
         double[] Q = new double[m];
         int[] order = new int[m];
 
         for (int obj = 0; obj < num_obj; obj++) {
-            dist = NN_ED.NearestNeighborSearch(query, Data.get(obj), obj, Q, order);
+            dist = nn.NearestNeighborSearch(query, Data.get(obj), obj, Q, order);
             real_obj = Node_Obj_List.get(node_id).get(obj);
 
             if (dist <= dist_th) {
                 left_num_obj++;
-                next_level.set(obj, 1);  ///left
+                next_level[obj] = 1;  ///left
 
                 Node_Obj_List.get(left_node_id).add(real_obj);
             } else {
                 right_num_obj++;
-                next_level.set(obj, 2);  ///right
+                next_level[obj]=2;  ///right
 
                 Node_Obj_List.get(right_node_id).add(real_obj);
             }
@@ -726,7 +730,7 @@ public class FastShapelets implements Classifier {
         }
     }
 
-    private static class NN_ED {
+    private class NN_ED {
 
         private class Index implements Comparable<Index> {
 
@@ -742,7 +746,9 @@ public class FastShapelets implements Classifier {
             }
         }
 
-        static double NearestNeighborSearch(ArrayList<Double> query, ArrayList<Double> data, int obj_id, double[] Q, int[] order) {
+        public NN_ED() {}
+        
+        double NearestNeighborSearch(double[] query, ArrayList<Double> data, int obj_id, double[] Q, int[] order) {
 
             double bsf;
             int m, M;
@@ -752,7 +758,7 @@ public class FastShapelets implements Classifier {
             double ex, ex2, mean, std;
             int loc = 0;
 
-            m = query.size();
+            m = query.length;
             M = data.size();
 
             bsf = Double.MAX_VALUE;
@@ -762,7 +768,7 @@ public class FastShapelets implements Classifier {
 
             if (obj_id == 0) {
                 for (i = 0; i < m; i++) {
-                    d = query.get(i);
+                    d = query[i];
                     ex += d;
                     ex2 += d * d;
                     Q[i] = d;
@@ -776,8 +782,9 @@ public class FastShapelets implements Classifier {
                     Q[i] = (Q[i] - mean) / std;
                 }
 
-                Index[] Q_tmp = new Index[m];
+                Index[] Q_tmp = new Index[m];                
                 for (i = 0; i < m; i++) {
+                    Q_tmp[i] =  new Index();
                     Q_tmp[i].value = Q[i];
                     Q_tmp[i].index = i;
                 }
@@ -822,7 +829,7 @@ public class FastShapelets implements Classifier {
             return bsf;
         }
 
-        static double distance(double[] Q, int[] order, double[] T, int j, int m, double mean, double std, double best_so_far) {
+        double distance(double[] Q, int[] order, double[] T, int j, int m, double mean, double std, double best_so_far) {
             int i;
             double sum = 0;
             double bsf2 = best_so_far * best_so_far;
@@ -833,7 +840,7 @@ public class FastShapelets implements Classifier {
             return Math.sqrt(sum);
         }
 
-        static double distance(double[] Q, int[] order, double[] T, int j, int m, double mean, double std) {
+        double distance(double[] Q, int[] order, double[] T, int j, int m, double mean, double std) {
             return distance(Q, order, T, j, m, mean, std, Double.MAX_VALUE);
         }
     }
