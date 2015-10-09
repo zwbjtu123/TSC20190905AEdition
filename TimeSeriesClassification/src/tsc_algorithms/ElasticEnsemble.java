@@ -203,7 +203,7 @@ public class ElasticEnsemble implements Classifier{
     // the other arrays, such as cvAccs and cvPreds. Secondly, this seperates the classifier selection before and after building the classifier, ensuring that unexpected behaviour isn't caused
     // by carrying out abnormal opperations (i.e. adding classifiers to the ensemble after training has occured). 
     protected TreeSet<ClassifierVariants> classifiersToUse;
-    protected ClassifierVariants[] finalClassifiers;
+    protected ClassifierVariants[] finalClassifierTypes;
     
 
     protected double[] cvAccs;
@@ -228,13 +228,20 @@ public class ElasticEnsemble implements Classifier{
     public double[] getCVAccs(){ return cvAccs;}
     public double[][] getbestParams(){ return bestParams;}
     
+    public ClassifierVariants[] getFinalClassifierTypes() {
+        if(!this.classifierBuilt){
+            return null; // final classifiers are only confirmed when the ensemble is built; could throw exception, but return null for now
+        }
+        return this.finalClassifierTypes;
+    }
+    
     
     public ElasticEnsemble(){
         setEnsembleType(ElasticEnsemble.EnsembleType.Prop);
         this.classifiersToUse = new TreeSet<>();
         classifiersToUse.addAll(Arrays.asList(ClassifierVariants.values()));
 
-        this.finalClassifiers = null;
+        this.finalClassifierTypes = null;
         this.fileWriting = false;
         this.outpurDirLocation = null;
         this.cvAccs = null;
@@ -344,19 +351,19 @@ public class ElasticEnsemble implements Classifier{
             }
         }
 
-        this.finalClassifiers = new ClassifierVariants[this.classifiersToUse.size()];
+        this.finalClassifierTypes = new ClassifierVariants[this.classifiersToUse.size()];
         int c = 0;
         for(ClassifierVariants classifier:this.classifiersToUse){
-            this.finalClassifiers[c++] = classifier;
+            this.finalClassifierTypes[c++] = classifier;
         }
         // carry out the cross validation        
 
-        this.cvAccs = new double[this.finalClassifiers.length];
-        this.cvPreds = new double[this.finalClassifiers.length][train.numInstances()];
-        this.bestParams = new double[this.finalClassifiers.length][];        
+        this.cvAccs = new double[this.finalClassifierTypes.length];
+        this.cvPreds = new double[this.finalClassifierTypes.length][train.numInstances()];
+        this.bestParams = new double[this.finalClassifierTypes.length][];        
         
-        for(int i = 0; i < finalClassifiers.length; i++){
-            ClassifierVariants classifierType = this.finalClassifiers[i];
+        for(int i = 0; i < finalClassifierTypes.length; i++){
+            ClassifierVariants classifierType = this.finalClassifierTypes[i];
 
             crossValidateClassifierType(classifierType, train, i);
             if(fileWriting){
@@ -738,10 +745,10 @@ public class ElasticEnsemble implements Classifier{
 //        int numThreads = (numProcessors > this.finalClassifiers.length) ? this.finalClassifiers.length:numProcessors;
         ExecutorService service = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
         ArrayList<Future<IndividualClassificationOutput>> futures = new ArrayList<Future<IndividualClassificationOutput>>();
-        predictions = new double[this.finalClassifiers.length];
+        predictions = new double[this.finalClassifierTypes.length];
         ClassifierVariants classifier;
         for(int i = 0; i < predictions.length; i++){
-            classifier = this.finalClassifiers[i];
+            classifier = this.finalClassifierTypes[i];
             if(this.ensembleType!=EnsembleType.Signif || this.mcNemarsInclusion[i]==true){
                 kNN knn = getInternalClassifier(classifier, this.bestParams[i], this.fullTrainingData);
                 futures.add(service.submit(new SingleTrainTestCaller(i, instance, knn)));
@@ -773,7 +780,7 @@ public class ElasticEnsemble implements Classifier{
     }
     public double[] getPredictions(){ return predictions;}
 
-    private double classifyInstances_best(double[] predictions){
+    protected double classifyInstances_best(double[] predictions){
 
         ArrayList<Integer> bestClassifierIds = new ArrayList<Integer>();
         double bsfAcc = -1;
@@ -794,7 +801,7 @@ public class ElasticEnsemble implements Classifier{
         }
     }
     
-    private double classifyInstances_equal(double[] predictions){
+    protected double classifyInstances_equal(double[] predictions){
 
 
         TreeMap<Double, Integer> classValsAndVotes = new TreeMap<Double, Integer>();
@@ -831,7 +838,7 @@ public class ElasticEnsemble implements Classifier{
         }
     }
 
-    private double classifyInstances_prop(double[] predictions){
+    protected double classifyInstances_prop(double[] predictions){
 
         TreeMap<Double, Double> classValsAndVotes = new TreeMap<Double, Double>();
 
@@ -890,8 +897,8 @@ public class ElasticEnsemble implements Classifier{
         double decision, classValue;
         ClassifierVariants classifier;
         
-        for(int c = 0; c < elastic.finalClassifiers.length; c++){
-            classifier = elastic.finalClassifiers[c];
+        for(int c = 0; c < elastic.finalClassifierTypes.length; c++){
+            classifier = elastic.finalClassifierTypes[c];
             knn = getInternalClassifier(classifier, elastic.bestParams[c], train);
 
             correct = 0;
@@ -1003,9 +1010,9 @@ public class ElasticEnsemble implements Classifier{
         // classifier should be used in the array. i.e. if a classifier is significantly different to the best (i.e. it must be worse), output 0 for
         // that classifier. Else, output 1 to show that it is not significantly worse, and sjouldbe included.
 
-        boolean[] output = new boolean[this.finalClassifiers.length];
+        boolean[] output = new boolean[this.finalClassifierTypes.length];
 
-        for(int classifierB = 0; classifierB < this.finalClassifiers.length; classifierB++){
+        for(int classifierB = 0; classifierB < this.finalClassifierTypes.length; classifierB++){
 
             if(classifierB==bestClassifierId){
                 output[classifierB] = true; // looking at itself, and obviously we want the best classifier included!

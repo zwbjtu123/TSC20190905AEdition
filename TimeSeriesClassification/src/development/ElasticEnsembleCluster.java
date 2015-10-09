@@ -253,7 +253,8 @@ public class ElasticEnsembleCluster extends ElasticEnsemble{
         ee.turnAllClassifiersOn();
         ee.setPathToTrainingResults(individualClassifierTrainingResultsDir);
         
-        String newArffName = ElasticEnsembleBakeOffParser.getNewName(datasetName);
+//        String newArffName = ElasticEnsembleBakeOffParser.getNewName(datasetName);
+        String newArffName = getNewName(datasetName);
 
         Instances origTrain = ClassifierTools.loadData(tscProbsDir+newArffName+"/"+newArffName+"_TRAIN");
         Instances origTest = ClassifierTools.loadData(tscProbsDir+newArffName+"/"+newArffName+"_TEST");
@@ -333,14 +334,37 @@ public class ElasticEnsembleCluster extends ElasticEnsemble{
     
     }
     
-    public static void hamInvestigation() throws Exception{
+//    public static void hamInvestigation() throws Exception{
+//        
+////        development.Jay.ThreadedExperimentEE.writeCvAllParams(null, null, resampleId, ClassifierVariants.DTW_R1_1NN, null);
+//        
+//        Instances hamTrain = ClassifierTools.loadData("C:/Temp/Dropbox/TSC Problems/Ham/Ham_TRAIN");
+//        Instances hamTest = ClassifierTools.loadData("C:/Temp/Dropbox/TSC Problems/Ham/Ham_TEST");
+//        InstanceTools.resampleTrainAndTestInstances(hamTrain, hamTrain, 1);
+//        
+//    }
+    
+    public static String getNewName(String oldName){
         
-//        development.Jay.ThreadedExperimentEE.writeCvAllParams(null, null, resampleId, ClassifierVariants.DTW_R1_1NN, null);
+        String newName = oldName.replaceAll("_", "");
         
-        Instances hamTrain = ClassifierTools.loadData("C:/Temp/Dropbox/TSC Problems/Ham/Ham_TRAIN");
-        Instances hamTest = ClassifierTools.loadData("C:/Temp/Dropbox/TSC Problems/Ham/Ham_TEST");
-        InstanceTools.resampleTrainAndTestInstances(hamTrain, hamTrain, 1);
+        if(newName.equalsIgnoreCase("yoga")){
+            newName = "Yoga";
+        }else if(newName.equalsIgnoreCase("fiftywords")){
+            newName = "FiftyWords";
+        }else if(newName.equalsIgnoreCase("fish")){
+            newName = "Fish";
+        }else if(newName.equalsIgnoreCase("MALLAT")){
+            newName = "Mallat";
+        }else if(newName.equalsIgnoreCase("wafer")){
+            newName = "Wafer";
+        }else if(newName.equalsIgnoreCase("SonyAIBORobotSurface")){
+            newName = "SonyAIBORobotSurface1";
+        }else if(newName.equalsIgnoreCase("SonyAIBORobotSurfaceII")){
+            newName = "SonyAIBORobotSurface2";
+        }
         
+        return newName;
     }
     
     public static void eeClassification() throws Exception{
@@ -370,7 +394,7 @@ public class ElasticEnsembleCluster extends ElasticEnsemble{
 //            if(!datasetName.equalsIgnoreCase("Strawberry")){
                 continue;
             }
-            System.out.print(ElasticEnsembleBakeOffParser.getNewName(datasetName)+",");
+            System.out.print(getNewName(datasetName)+",");
 //            for(int i = 1; i <= 100; i++){
 //            for(int i = 65; i <= 65; i++){
             for(int i = 0; i <= 100; i++){
