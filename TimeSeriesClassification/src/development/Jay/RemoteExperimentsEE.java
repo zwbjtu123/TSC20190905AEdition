@@ -2,7 +2,7 @@ package development.Jay;
 
 import development.DataSets;
 import development.ElasticEnsembleCluster;
-import static development.Jay.ElasticEnsembleClusterExperiments.writeBestParamFileFromClusterOutput;
+//import static development.Jay.ElasticEnsembleClusterExperiments.writeBestParamFileFromClusterOutput;
 import java.io.File;
 import java.io.FileWriter;
 import java.util.ArrayList;
@@ -127,6 +127,125 @@ public class RemoteExperimentsEE {
     }
     
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    
+    public static void writeBestParamFileFromClusterOutput(String dataName, String outputNameIdentifier, ElasticEnsemble.ClassifierVariants measureType, boolean tidyUp) throws Exception{
+
+        String dirStart = "eeClusterOutput/"+dataName+"/"+outputNameIdentifier;
+        File existingParsed = new File(dirStart+"/"+outputNameIdentifier+"_parsedOutput/"+outputNameIdentifier+"_"+measureType+".txt");
+
+        if(existingParsed.exists() && existingParsed.length() > 0){
+            
+            // check that parsed output has actually been written too, rather than jsut an empty file
+            // new behaviour added because cluster allowed parsed output test file to be created but not written to
+            // now need to find empty ones, remove them, and treat them as a typical folder needing to be parsed
+//            if(existingParsed.length()>0){
+                return;
+//            }else{ 
+//                // check non-parsed results exist still as a fail safe
+//                if(new File(dirStart+"/"+outputNameIdentifier+"_"+measureType+"/").exists()){
+//                    existingParsed.delete();
+//                }
+//            }
+        }
+
+        int expectedParams;
+        if(measureType.equals(ElasticEnsemble.ClassifierVariants.Euclidean_1NN)||measureType.equals(ElasticEnsemble.ClassifierVariants.DTW_R1_1NN)||measureType.equals(ElasticEnsemble.ClassifierVariants.DDTW_R1_1NN)){
+            expectedParams = 1;
+        }else{
+            expectedParams =100;
+        }
+
+        double[] paramPredictions;
+        double[] bsfParamPredictions = null;
+
+        int bsfParamId = -1;
+        int correct;
+        int bsfCorrect = -1;
+        
+        double acc;
+        double bsfAcc = -1;
+
+        Scanner scan;
+        String[] linePart1;
+        String[] linePart2;
+
+        // get infoFile
+        scan = new Scanner(new File(dirStart+"/"+outputNameIdentifier+".info"));
+        scan.useDelimiter("\n");
+        scan.next(); // relationName
+        int expectedInstances = Integer.parseInt(scan.next().trim());
+
+        double[] classVals = new double[expectedInstances];
+        for(int i = 0; i < expectedInstances; i++){
+            classVals[i] = Double.parseDouble(scan.next().trim());
+        }
+        scan.close();
+
+        for(int p = 0; p < expectedParams; p++){ // check accuracy of each parameter
+            correct = 0;
+            paramPredictions = new double[expectedInstances];
+            File results = new File(dirStart+"/"+outputNameIdentifier+"_"+measureType+"/"+outputNameIdentifier+"_"+measureType+"_p_"+p+".txt");
+            if(!results.exists()){
+                throw new Exception("Error: Missing result file: "+dirStart+"/"+outputNameIdentifier+"_"+measureType+"/"+outputNameIdentifier+"_"+measureType+"_p_"+p+".txt");
+            }
+            
+            scan = new Scanner(results);
+            scan.useDelimiter("\n");
+            acc = Double.parseDouble(scan.next().trim()); // accuracy line
+
+            if(acc > bsfAcc){
+                bsfAcc = acc;
+                for(int i = 0; i < expectedInstances; i++){
+                    linePart1 = scan.next().trim().split(",");
+                    linePart2 = linePart1[1].split("/");
+                    
+                    // sanity check - make sure we're looking at the correct instance (possible mismatch if fold resampling isn't correct
+                    if(Integer.parseInt(linePart1[0])!=i){
+                        throw new Exception("Instance indexm mismatch. Expected "+i+", line started with "+linePart1[0]);
+                    }
+
+                    // extract predicted and actual (as a further sanity check) from the line
+                    paramPredictions[i] = Double.parseDouble(linePart2[0]);
+                    if(paramPredictions[i]==classVals[i]){
+                        correct++;
+                    }
+                    if(classVals[i]!=Double.parseDouble(linePart2[1])){
+                        throw new Exception("ERROR: class values have been confused. Instance "+i+ "should be "+classVals[i]+", file states "+Double.parseDouble(linePart2[1]));
+                    }
+                }
+            }
+            scan.close();
+
+            if(correct>bsfCorrect){ // favours smaller params/earlioer options. This may cause different paramater selection to original approach for measures with two params - investigate further
+                bsfCorrect = correct;
+                bsfParamId = p;
+                bsfParamPredictions = paramPredictions;
+            }
+        }
+
+        new File(dirStart+"/"+outputNameIdentifier+"_parsedOutput/").mkdirs();
+        FileWriter out = new FileWriter(dirStart+"/"+outputNameIdentifier+"_parsedOutput/"+outputNameIdentifier+"_"+measureType+".txt");
+        out.append((double)bsfCorrect/expectedInstances+"\n");
+        out.append(bsfParamId+"\n");
+        for(int i = 0; i < bsfParamPredictions.length; i++){
+            out.append(bsfParamPredictions[i]+"/"+classVals[i]+"\n");
+        }
+        out.close();
+        if(tidyUp){
+            deleteDir(new File(dirStart+"/"+outputNameIdentifier+"_"+measureType));
+        }
+    }
+    
+    private static void deleteDir(File dir){
+        if(dir.isDirectory()){
+            File[] files = dir.listFiles();
+            for(int f = 0; f < files.length; f++){
+                deleteDir(files[f]);
+            }
+        }
+        dir.delete();
+    }
+    
     
     public static void trainTestClassification(Instances train, Instances test, String dataName, int resampleId, ElasticEnsemble.ClassifierVariants classifier, String existingCvResultsDir) throws Exception{
         new File("eeClusterOutput_testResults/"+dataName+"/"+dataName+"_"+resampleId+"/").mkdirs();
