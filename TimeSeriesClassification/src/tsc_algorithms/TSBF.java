@@ -405,6 +405,7 @@ public class TSBF extends AbstractClassifier{
                 probs=ClassifierTools.crossValidate(features,subseriesRandomForest,folds); 
                 subseriesRandomForest.buildClassifier(features);
             }
+            
 
     //4. Discretise probabilities into equal width bins, form counts for each instance
     //then concatinate class probabilies to form new set of instances

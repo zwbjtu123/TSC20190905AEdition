@@ -118,7 +118,6 @@ static String[] unfinishedTSF={"CinCECGtorso","ElectricDevices","FordA","FordB",
                 PolyKernel p=new PolyKernel();
                 p.setExponent(2);
                 ((SMO)c).setKernel(p);
-
                 break;
             case "MLP":
                 c=new MultilayerPerceptron();
@@ -139,6 +138,9 @@ static String[] unfinishedTSF={"CinCECGtorso","ElectricDevices","FordA","FordB",
                 break;
             case "LearnShapelets": case "LS":
                 c=new LearnShapelets();
+                break;
+            case "FastShapelets": case "FS":
+                c=new FastShapelets();
                 break;
             case "DTW":
                 c=new DTW_1NN();
