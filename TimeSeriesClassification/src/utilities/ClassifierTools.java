@@ -400,6 +400,46 @@ public class ClassifierTools {
     }	
     
     
+    public static double[][] crossValidate(Instances data, Classifier c, int numFolds)
+    {
+        double[][] results=new double[data.numInstances()][data.numClasses()];
+        Instances train;
+        Instances test;
+        int interval = data.numInstances()/numFolds;
+        int start=0;		
+        int end=interval;
+        int testCount=0;
+        try{
+            for(int f=0;f<numFolds;f++){
+                if(f==numFolds-1)
+                    end=data.numInstances();
+                //Split Data
+                train=new Instances(data,0);
+                test=new Instances(data,0);
+                for(int i=0;i<data.numInstances();i++){
+                    if(i>=start && i<end)
+                            test.add(data.instance(i));
+                    else
+                            train.add(data.instance(i));
+                }
+                //Classify on training
+                c.buildClassifier(train);
+                //Predict
+                for(int i=0;i<test.numInstances();i++){
+                    results[testCount]=c.distributionForInstance(test.instance(i));
+                    testCount++;
+                }
+                //Increment
+                start=end;
+                end=end+interval;
+            }
+        }catch(Exception e){
+            System.out.println(" Error in manual cross val");
+        }
+        return results;
+    }
+	
+    
     public static class ResultsStats{
         public double accuracy;
         public double sd;

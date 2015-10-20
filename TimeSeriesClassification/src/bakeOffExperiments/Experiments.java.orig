@@ -118,6 +118,7 @@ static String[] unfinishedTSF={"CinCECGtorso","ElectricDevices","FordA","FordB",
                 PolyKernel p=new PolyKernel();
                 p.setExponent(2);
                 ((SMO)c).setKernel(p);
+
                 break;
             case "MLP":
                 c=new MultilayerPerceptron();
@@ -138,13 +139,6 @@ static String[] unfinishedTSF={"CinCECGtorso","ElectricDevices","FordA","FordB",
                 break;
             case "LearnShapelets": case "LS":
                 c=new LearnShapelets();
-                break;
-            case "FastShapelets": case "FS":
-                c=new FastShapelets();
-                break;
-            case "ShapeletTransform": case "ST": case "ST_Ensemble":
-                c=new ST_Ensemble();
-                ((ST_Ensemble)c).doSTransform(false);//Assumes the transformed files will be loaded.
                 break;
             case "DTW":
                 c=new DTW_1NN();
@@ -175,18 +169,11 @@ static String[] unfinishedTSF={"CinCECGtorso","ElectricDevices","FordA","FordB",
             case "TSBF":
                 c=new TSBF();
                 break;
-            case "BOP": case "BoP": case "BagOfPatterns":
-                c=new BagOfPatterns();
-                break;
-             case "BOSS": case "BOSSEnsemble": 
-                c=new BOSSEnsemble(true);
-                break;
-             case "SAXVSM": case "SAX": 
-                c=new SAXVSM();
-                break;
-           default:
+//            case "FS":
+//                c=new FastShapelet();
+            default:
                 System.out.println("UNKNOWN CLASSIFIER");
-//                System.exit(0);
+                System.exit(0);
 //                throw new Exception("Unknown classifier "+classifier);
         }
         return c;
@@ -297,8 +284,8 @@ static String[] unfinishedTSF={"CinCECGtorso","ElectricDevices","FordA","FordB",
         String classifier=args[0];
         String s=DataSets.fileNames[Integer.parseInt(args[1])-1];        
 //        String s=unfinished[Integer.parseInt(args[1])-1];
-        System.out.println("Classifier ="+classifier+" problem ="+s);
         Classifier c=setClassifier(classifier);
+        System.out.println("Classifier ="+classifier+" problem ="+s);
         Instances train=ClassifierTools.loadData(DataSets.problemPath+s+"/"+s+"_TRAIN");
         Instances test=ClassifierTools.loadData(DataSets.problemPath+s+"/"+s+"_TEST");
         File f=new File(DataSets.resultsPath+classifier);
@@ -436,7 +423,6 @@ static String[] unfinishedTSF={"CinCECGtorso","ElectricDevices","FordA","FordB",
     public static void main(String[] args){
         try{
             if(args.length>0){ //Cluster run
-        System.out.println("ARGS[0] ="+args[0]+" ARGS LENGTH ="+args.length);
 
             DataSets.resultsPath=DataSets.clusterPath+"Results/";
             DataSets.problemPath=DataSets.clusterPath+"TSC Problems/";
@@ -447,13 +433,13 @@ static String[] unfinishedTSF={"CinCECGtorso","ElectricDevices","FordA","FordB",
 //Local threaded run    
              DataSets.resultsPath="C:/Users/ajb/Dropbox/Big TSC Bake Off/New Results/";
              DataSets.problemPath=DataSets.dropboxPath+"TSC Problems/";
-            String classifier="FS";
+            String classifier="DTD_C";
              String problem;
 // TSF    FordA 15, FordB 16, HandOutlines 15, Mallat 85, NonInvasiveFatalECGThorax1 13, NonInvasiveFatalECGThorax2 13,
 //     Phoneme 63, ShapesAll 53, StarlightCurves13,  UWaveGestureLibraryX 74, UWaveGestureLibraryY 75
 //     UWaveGestureLibraryZ 75, UWaveGestureLibraryAll22
 //             String problem="UWaveGestureLibraryY"; 68
-             problem="ItalyPowerDemand";
+             problem="InsectWingbeatSound";
 
              DataSets.resultsPath+=getFolder(classifier)+"/";
              System.out.println("Running "+classifier+" on "+problem);

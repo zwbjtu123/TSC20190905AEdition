@@ -9,6 +9,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Random;
@@ -295,9 +296,45 @@ public class InstanceTools {
             }else{
                 i++;
             }
+        }       
+    }
+
+    
+    public static boolean hasMissing(Instances ins){
+        for(Instance in:ins)
+            if(in.hasMissingValue())
+                return true;
+       return false;
+    }
+    
+     //Returns the *shifted* indexes, so just deleting them should work
+    public static int[] removeConstantTrainAttributes(Instances train){
+        int i=0;
+        LinkedList<Integer> list= new LinkedList<>();
+        int count=0;
+        while(i<train.numAttributes()-1){ //Dont test class
+// Test if constant
+            int j=1;
+            while(j<train.numInstances() && train.instance(j-1).value(i)==train.instance(j).value(i))
+                j++;
+            if(j==train.numInstances()){
+    // Remove from train
+                train.deleteAttributeAt(i);
+                list.add(i);
+    // Remove from test            
+            }else{
+                i++;
+            }
+            count++;
         }
+        int[] del=new int[list.size()];
+        count=0;
+        for(Integer in:list){
+            del[count++]=in;
+        }
+        return del;
         
     }
-      
+     
     
 }
