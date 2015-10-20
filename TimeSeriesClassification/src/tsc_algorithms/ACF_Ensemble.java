@@ -1,9 +1,11 @@
 package tsc_algorithms;
 
-import bakeOffExperiments.ClusterClassifierExperiment;
+
+import bakeOffExperiments.Experiments;
 import fileIO.OutFile;
 import java.util.ArrayList;
 import utilities.ClassifierTools;
+import utilities.InstanceTools;
 import weka.classifiers.AbstractClassifier;
 import weka.classifiers.Classifier;
 import weka.classifiers.meta.RotationForest;
@@ -36,6 +38,8 @@ public class ACF_Ensemble extends AbstractClassifier implements SaveableEnsemble
     private boolean saveResults=false;
     private String trainCV="";
     private String testPredictions="";
+    private boolean doTransform=true;
+    int[] constantFeatures;
     
     protected void saveResults(boolean s){
         saveResults=s;
@@ -92,11 +96,22 @@ public class ACF_Ensemble extends AbstractClassifier implements SaveableEnsemble
                 
         } 
     }
-    
+    public void doACFTransform(boolean b){
+        doTransform=b;
+    }
     @Override
     public void buildClassifier(Instances data) throws Exception {
         baseClassifier=c.createClassifier();
-        format=ACF.formChangeCombo(data);
+/*This flag allows the perfomance of the transform outside of the classifier, 
+        which speeds up the cross validation and is ok because the transform
+        is unsupervised and indendent of other cases
+        */
+                
+        if(doTransform)
+            format=ACF.formChangeCombo(data);
+        else
+            format=data;
+        constantFeatures=InstanceTools.removeConstantTrainAttributes(format);
         if(saveResults && c==ClassifierType.WeightedEnsemble){
 //Set up the file space here
             ((WeightedEnsemble) baseClassifier).saveTrainCV(trainCV);
@@ -111,7 +126,14 @@ public class ACF_Ensemble extends AbstractClassifier implements SaveableEnsemble
     public double classifyInstance(Instance ins) throws Exception{
 //   
         format.add(ins);    //Should match!
-        Instances temp=ACF.formChangeCombo(format);
+        Instances temp;
+        if(doTransform)
+            temp=ACF.formChangeCombo(format);
+        else
+            temp=format;
+//Delete constants
+        for(int del:constantFeatures)
+            temp.deleteAttributeAt(del);
         Instance trans=temp.get(0);
         format.remove(0);
         return baseClassifier.classifyInstance(trans);
@@ -125,6 +147,6 @@ public class ACF_Ensemble extends AbstractClassifier implements SaveableEnsemble
         ACF_Ensemble acf= new ACF_Ensemble();
         acf.setClassifierType("WE");
         acf.saveResults(trainS, testS);
-        double a =ClusterClassifierExperiment.singleSampleExperiment(train, test, acf,0, preds);
+        double a =Experiments.singleSampleExperiment(train, test, acf,0, preds);
     }
 }

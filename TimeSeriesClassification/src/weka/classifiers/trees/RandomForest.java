@@ -668,5 +668,6 @@ public class RandomForest
   public static void main(String[] argv) {
     runClassifier(new RandomForest(), argv);
   }
+  
 }
 

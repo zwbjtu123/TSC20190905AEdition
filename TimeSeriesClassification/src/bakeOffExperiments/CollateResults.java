@@ -58,15 +58,18 @@ public class CollateResults {
 //Check for directory
                 File dir= new File(path+"\\"+dirNames[i]+"\\"+names[i][j]);
                 if(dir.isDirectory()){    //Proceed if there is a directory of results
-//                  System.out.println(path+"\\"+dirNames[i]+"\\"+names[i][j]+" IS a directory");
                     OutFile results = new OutFile(path+"\\"+dirNames[i]+"\\"+names[i][j]+".csv");
                     for(String s:DataSets.fileNames){
                         File f= new File(path+"\\"+dirNames[i]+"\\"+names[i][j]+"\\"+s+".csv");
                         if(f.exists()){
-                            InFile f2=new InFile(path+"\\"+dirNames[i]+"\\"+names[i][j]+"\\"+s+".csv"); 
-                            results.writeLine(f2.readLine());
+                            InFile f2=new InFile(path+"\\"+dirNames[i]+"\\"+names[i][j]+"\\"+s+".csv");
+                            String str=f2.readLine();
+                            if(names[i][j].equals("DTD_C") && s.equals("InsectWingbeatSound"))  
+                            System.out.println(path+"\\"+dirNames[i]+"\\"+names[i][j]+" IS a directory: file f content ="+str);
+                            results.writeLine(str);
                         }
                     }
+                    results.closeFile();
                 }
  //               else{
    //                System.out.println(path+"\\"+dirNames[i]+"\\"+names[i][j]+" IS NOT a directory");
@@ -149,17 +152,17 @@ public class CollateResults {
 
         
         for(int i=0;i<dirNames.length;i++){
-            for(int j=0;j<names[i].length;j++){        
-                for(String s:names[i]){
-                    File f= new File(path+"\\"+dirNames[i]+"\\"+s+".csv");
-                    if(f.exists()){
-                        InFile inf=new InFile(path+"\\"+dirNames[i]+"\\"+s+".csv");
-                        OutFile outf=new OutFile(path+"\\SingleClassifiers\\"+s+".csv");
-                        incompleteResultsParser(inf,outf);
-                    }
-                    else
-                        System.out.println(" File "+path+"\\"+dirNames[i]+"\\"+s+" does not exist");
+            for(String s:names[i]){
+                File f= new File(path+"\\"+dirNames[i]+"\\"+s+".csv");
+                if(f.exists()){
+                    InFile inf=new InFile(path+"\\"+dirNames[i]+"\\"+s+".csv");
+                    OutFile outf=new OutFile(path+"\\SingleClassifiers\\"+s+".csv");
+                    incompleteResultsParser(inf,outf);
+                    inf.closeFile();
+                    outf.closeFile();
                 }
+                else
+                    System.out.println(" File "+path+"\\"+dirNames[i]+"\\"+s+" does not exist");
             }
         }
     }
@@ -198,14 +201,16 @@ public class CollateResults {
             for(int i=0;i<inFiles.length;i++){
                 for(int j=0;j<inFiles[i].length;j++){
                     if(inFiles[i][j]==null){
-                        for(OutFile o:of)
-                            o.writeString(",");
+                            of[0].writeString(",");
+                            of[1].writeString(",");
+                            of[2].writeString("0,");
                     }
                     else{
                         String[] name=inFiles[i][j].readLine().split(",");
                         if(name.length<2){
-                            for(OutFile o:of)
-                                o.writeString(",");
+                            of[0].writeString(",");
+                            of[1].writeString(",");
+                            of[2].writeString("0,");
                         }
                         else{
                             for(int k=0;k<3;k++)
@@ -228,9 +233,7 @@ public class CollateResults {
                 System.out.println(" Incomplete files, no fold "+i+" on path ="+path);
                 System.exit(0);
             }
-            else{
-                
-            }
+            inf.closeFile();
         }
         OutFile out=new OutFile(result);
         out.writeString(problem+",");
@@ -249,38 +252,190 @@ public class CollateResults {
             acc/=cases;
             out.writeString(acc+",");
             System.out.println("Fold "+i+" acc ="+acc);
+            inf.closeFile();
         }
     }
+     public static void combineFolds(String source, OutFile dest, int start, int end){
+        for(int i=start;i<=end;i++){
+            File inf=new File(source+"fold"+i+".csv");
+            if(inf.exists() && inf.length()>0){
+                InFile f=new InFile(source+"fold"+i+".csv");
+                int lines=f.countLines();
+                f=new InFile(source+"fold"+i+".csv");
+                double acc=0;
+                for(int j=0;j<lines;j++){
+                    double act=f.readDouble();
+                    double pred=f.readDouble();
+                    if(act==pred) acc++;
+                }
+                if(i<end)
+                    dest.writeString(acc/lines+",");
+                else
+                    dest.writeLine(acc/lines+"");
+            }
+        }
+    }
+
+    public static void combineSingles(String root){
         
+        for(int i=0;i<dirNames.length;i++){
+            for(int j=0;j<names[i].length;j++){
+//Check for directory
+                File dir= new File(root+"\\"+dirNames[i]+"\\"+names[i][j]);
+                if(dir.isDirectory()){    //Proceed if there is a directory of results
+    //Check if already complete
+                        if(names.equals("DTD_C")){
+                            System.out.println(" Processing DTD_C");    
+                        }
+                    for(int k=0;k<DataSets.fileNames.length;k++){
+                        String cls=names[i][j];
+                        String directory=dirNames[i];
+                        String s= DataSets.fileNames[k];
+                        File f=new File(dir+"\\"+s+".csv");
+                        if(f.exists()){ //At least partially complete
+    //See how complete it is
+                            InFile inf=new InFile(dir+"\\"+s+".csv");
+                            String line=inf.readLine();
+                            inf.closeFile();
+//                            System.out.println(directory+" "+cls+" "+s+" "+line);
+                            String[] res=null;
+                            if(line==null){ //Delete the file
+                                f=new File(dir+"\\"+s+".csv");
+                                f.delete();
+                            }
+                            else{
+                                res=line.split(",");
+                            }
+                            if(res!=null && res.length<101)
+                            {   //Check to see if there are any preds need adding
+                                OutFile of = new OutFile(dir+"\\"+s+".csv");
+                                int length=res.length-1;
+                                for(String str:res){
+                                    if(str.equals("NaN"))
+                                        length--;
+                                    else
+                                        of.writeString(str+",");
+                                }
+                                combineFolds(dir+"\\Predictions\\"+s+"\\",of,length,99);
+                                of.closeFile();
+                                
+                            }
+                        }
+                        else{
+                            //Check if there are any predictions
+                            if(checkPredictions(dir+"\\Predictions\\"+s+"\\")){
+                                OutFile of=new OutFile(dir+"\\"+s+".csv"); 
+                                of.writeString(s+",");
+                                combineFolds(dir+"\\Predictions\\"+s+"\\",of,0,99);
+                                of.closeFile();
+                            }
+                        }
+                    }
+                }
+            }
+    /*        prob="MiddlePhalanxOutlineCorrect";
+        of=new OutFile(root+"\\"+dir+"\\"+cls+"\\"+prob+"2.csv"); 
+        combineFolds(root+"\\"+dir+"\\"+cls+"\\Predictions\\"+prob+"\\",of,27,99);
+*/
+        }
+    }
+    public static boolean checkPredictions(String path){
+        for(int i=0;i<100;i++){
+            if(new File(path+"fold"+i+".csv").exists())
+                return true;
+        }
+        return false;
+    }
+    public static void generateScripts(String root, String dest){
+        InFile inf=new InFile(root+"\\SampleSizes.csv");
+        OutFile outf=new OutFile(dest+"\\AllProblems.txt");
+        File f=new File(dest+"\\Scripts");
+        deleteDirectory(f);
+        if(!f.isDirectory())
+            f.mkdir();
+        String[] algos=new String[39];
+        for(int i=0;i<algos.length;i++)
+           algos[i]=inf.readString();
+        String[] problems=new String[85];
+        int[][] counts=new int[85][algos.length];
+        int c=0;
+        int p=0;
+        for(int i=0;i<problems.length;i++){
+            problems[i]=inf.readString();
+            for(int j=0;j<algos.length;j++){
+                   counts[i][j]=inf.readInt();
+//                System.out.print(counts[i][j]+" ");
+            }
+        }
+        for(int j=0;j<algos.length;j++){
+            for(int i=0;i<problems.length;i++){
+                if(counts[i][j]<100){
+                    f=new File(dest+"\\Scripts\\"+algos[j]);
+                    if(!f.isDirectory())
+                        f.mkdir();
+                    c++;
+                    p+=(100-counts[i][j]);
+                    OutFile of=new OutFile(dest+"\\Scripts\\"+algos[j]+"\\"+problems[i]+".bsub");
+                    of.writeString("#!/bin/csh\n" +
+                      "#BSUB -q ");
+                    switch(problems[i]){
+                        case "FordA": case "FordB": case "ElectricDevices":
+                        case "HandOutlines": case "NonInvasiveFatalECGThorax1": 
+                        case "NonInvasiveFatalECGThorax2": case "StarlightCurves":
+                        case "UWaveGestureLibraryAll":
+                    of.writeString("long\n#BSUB -J ");
+                    if(counts[i][j]<10)
+                        of.writeLine(algos[j]+problems[i]+"["+(counts[i][j]+1)+"-10]");
+                    else
+                        of.writeLine(algos[j]+problems[i]+"["+(counts[i][j]+1)+"-100]");
+                    of.writeString("#BSUB -oo output/"+algos[j]+"%I.out\n" +
+                      "#BSUB -eo error/"+algos[j]+"%I.err\n" +
+                      "#BSUB -R \"rusage[mem=8000]\"\n" +
+                      "#BSUB -M 9000");
+                    break;
+                        default:
+                    of.writeString("short\n#BSUB -J ");                           
+                    of.writeLine(algos[j]+problems[i]+"["+(counts[i][j]+1)+"-100]");
+                    of.writeString("#BSUB -oo output/"+algos[j]+"%I.out\n" +
+                      "#BSUB -eo error/"+algos[j]+"%I.err\n" +
+                      "#BSUB -R \"rusage[mem=4000]\"\n" +
+                      "#BSUB -M 5000");
+                    }        
+                    
+                    of.writeLine("\n\n module add java/jdk/1.8.0_31");
+                    of.writeLine("java -jar TimeSeriesClassification.jar "+algos[j]+" " +problems[i]+" $LSB_JOBINDEX");
+                    outf.writeLine("bsub < "+"Scripts/"+algos[j]+"/"+problems[i]+".bsub");
+                    of.closeFile();
+                }
+            }
+        }
+        System.out.println(" Total number of problems remaining ="+c);
+        System.out.println(" Total number of runs remaining ="+p);
+        outf.closeFile();
+    }
+    public static boolean deleteDirectory(File directory) {
+        if(directory.exists()){
+            File[] files = directory.listFiles();
+            if(null!=files){
+                for(int i=0; i<files.length; i++) {
+                    if(files[i].isDirectory()) {
+                        deleteDirectory(files[i]);
+                    }
+                    else {
+                        files[i].delete();
+                    }
+                }
+            }
+        }
+        return(directory.delete());
+    }    
     public static void main(String[] args)throws Exception{
-        String r="C:\\Users\\ajb\\Dropbox\\Big TSC Bake Off\\New Results\\";
-        String problem="FordA";
-        String classifier="RotF";
-        String result=r+"standard\\"+classifier+"\\"+problem+".csv";
-        String source=r+"standard\\"+classifier+"\\Predictions\\"+problem;
-        parseSingleProblem(source,result,problem);
-        problem="FordB";
-        classifier="RotF";
-        result=r+"standard\\"+classifier+"\\"+problem+".csv";
-        source=r+"standard\\"+classifier+"\\Predictions\\"+problem;
-        parseSingleProblem(source,result,problem);
-        System.exit(0);
- /*       String r="C:\\Users\\ajb\\Dropbox\\Big TSC Bake Off\\New Results\\SingleClassifiers\\MLP.csv";
-       InFile in= new InFile(r);
-       int l=in.countLines();
-       in.reopen();
-       for(int i=0;i<l;i++){
-            String[] name=in.readLine().split(",");
-            System.out.print(" Line "+i+" splits = "+name.length+" ");
-            for(String s:name) 
-                System.out.print(s+ " ");
-            System.out.print("\n");
-       }
-  */      
-        String root ="C:\\Users\\ajb\\Dropbox\\Big TSC Bake Off\\New Results";
+        String root="C:\\Users\\ajb\\Dropbox\\Big TSC Bake Off\\New Results";
+        combineSingles(root);
         clusterResultsCollation(root);
         fileStandardiseForProblems(root);
         fileCombineClassifiers(root+"\\SingleClassifiers\\",root);
-    }
+        generateScripts(root,root);
 
+    }
 }

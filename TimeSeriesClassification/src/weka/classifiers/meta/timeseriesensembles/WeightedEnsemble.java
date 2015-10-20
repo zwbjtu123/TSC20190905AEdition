@@ -22,6 +22,7 @@ import weka.classifiers.functions.SMO;
 import weka.classifiers.functions.supportVector.PolyKernel;
 import weka.classifiers.lazy.kNN;
 import weka.classifiers.meta.RotationForest;
+import weka.classifiers.trees.EnhancedRandomForest;
 import weka.classifiers.trees.J48;
 import weka.classifiers.trees.RandomForest;
 import weka.core.*;
@@ -147,7 +148,7 @@ tation Forest [30] (with 10 trees), and a Bayesian network.
                svm.setRandomSeed(seed);
             classifiers.add(svm);
             names.add("SVMQ");
-            RandomForest r=new RandomForest();
+            EnhancedRandomForest r=new EnhancedRandomForest();
             r.setNumTrees(500);
             if(setSeed)
                r.setSeed(seed);            
@@ -213,15 +214,26 @@ tation Forest [30] (with 10 trees), and a Bayesian network.
             double sum=0;
             Evaluation eval;
             for(int i=0;i<c.length;i++){
-                eval=new Evaluation(train);
-//                r.setSeed(1234);
-//set the max number of folds to 100 or use LOOCV
-                int folds=train.numInstances();
-                if(folds>MAX_NOS_FOLDS)
-                    folds=MAX_NOS_FOLDS;
-                eval.crossValidateModel(c[i],train,folds,r);
-                cvAccs[i]=1-eval.errorRate();
-                sum+=cvAccs[i];
+/*Speed things up by using the OOB error rather than the CV error for random forest.                
+    it should be possible to do this for rotation forest also            
+                */
+                if(c[i] instanceof EnhancedRandomForest){
+                    c[i].buildClassifier(train);
+                    cvAccs[i]=1-((EnhancedRandomForest)c[i]).measureOutOfBagError();
+                    sum+=cvAccs[i];
+//                    System.out.println(" OOB ="+(1-cvAccs[i]));
+                }
+                else{
+                    eval=new Evaluation(train);
+    //                r.setSeed(1234);
+    //set the max number of folds to 100 or use LOOCV
+                    int folds=train.numInstances();
+                    if(folds>MAX_NOS_FOLDS)
+                        folds=MAX_NOS_FOLDS;
+                    eval.crossValidateModel(c[i],train,folds,r);
+                    cvAccs[i]=1-eval.errorRate();
+                    sum+=cvAccs[i];
+                }
             }
             for(int i=0;i<c.length;i++)
                 weights[i]=cvAccs[i]/sum;
@@ -274,8 +286,9 @@ tation Forest [30] (with 10 trees), and a Bayesian network.
         }
         for(int i=0;i<preds.length;i++)
             preds[i]/=sum;
-            if(saveTest)
-                testData.writeString("\n");
+        if(saveTest){
+            testData.writeString("\n");            
+        }
         
         return preds;
     }

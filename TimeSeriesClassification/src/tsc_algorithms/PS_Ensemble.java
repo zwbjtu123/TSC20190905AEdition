@@ -1,5 +1,6 @@
 package tsc_algorithms;
 
+import utilities.InstanceTools;
 import weka.classifiers.AbstractClassifier;
 import weka.classifiers.Classifier;
 import weka.classifiers.meta.RotationForest;
@@ -20,6 +21,10 @@ public class PS_Ensemble extends AbstractClassifier implements SaveableEnsemble{
     private boolean saveResults=false;
     private String trainCV="";
     private String testPredictions="";
+    int[] constantFeatures;
+    PowerSpectrum ps=new PowerSpectrum();
+    boolean doTransform=true;
+    public PowerSpectrum getTransform(){ return ps;}
     protected void saveResults(boolean s){
         saveResults=s;
     }
@@ -28,9 +33,11 @@ public class PS_Ensemble extends AbstractClassifier implements SaveableEnsemble{
         trainCV=tr;
         testPredictions=te;
     }
-    
+     public void doTransform(boolean b){
+        doTransform=b;
+    }
+   
     //Power Spectrum
-    PowerSpectrum ps=new PowerSpectrum();
     public enum ClassifierType{
         RandF("RandF",500),RotF("RotF",50),WeightedEnsemble("WE",8);
         String type;
@@ -78,9 +85,16 @@ public class PS_Ensemble extends AbstractClassifier implements SaveableEnsemble{
     
     @Override
     public void buildClassifier(Instances data) throws Exception {
+        
         ps=new PowerSpectrum();
         baseClassifier=c.createClassifier();
-        Instances psTrain=ps.process(data);
+        Instances psTrain;
+        if(doTransform)
+             psTrain=ps.process(data);
+        else
+             psTrain=data;
+        constantFeatures=InstanceTools.removeConstantTrainAttributes(psTrain);
+
         if(saveResults && c==ClassifierType.WeightedEnsemble){
 //Set up the file space here
             ((WeightedEnsemble) baseClassifier).saveTrainCV(trainCV);
@@ -94,7 +108,14 @@ public class PS_Ensemble extends AbstractClassifier implements SaveableEnsemble{
     public double classifyInstance(Instance ins) throws Exception{
 //   
         format.add(ins);    //Should match!
-        Instances temp=ps.process(format);
+        Instances temp;
+        if(doTransform)
+            temp=ps.process(format);
+        else
+            temp=format;
+//Delete constants
+        for(int del:constantFeatures)
+            temp.deleteAttributeAt(del);
         Instance trans=temp.get(0);
         format.remove(0);
         return baseClassifier.classifyInstance(trans);

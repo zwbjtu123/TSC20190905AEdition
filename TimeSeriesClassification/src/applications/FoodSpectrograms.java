@@ -73,7 +73,7 @@ public class FoodSpectrograms {
             s.setShapeletMinAndMax(minLength, maxLength);
             s.setQualityMeasure(QualityMeasures.ShapeletQualityChoice.F_STAT);
             s.turnOffLog();            
-            runs[i]=new ThreadedClassifierExperiment(train[i],test[i],c,"shapelet");
+            runs[i]=new ThreadedClassifierExperiment(train[i],test[i],c,"shapelet","test");
             runs[i].setTransform(s);
             threads[i]=new Thread(runs[i]);
         }
@@ -97,11 +97,12 @@ public class FoodSpectrograms {
         ThreadedClassifierExperiment[] runs= new ThreadedClassifierExperiment[nosExp];
         Thread[] threads=new Thread[nosExp];
         
+        
         for(int i=0;i<nosExp;i++){
             DTW_1NN c=new DTW_1NN();
             c.optimiseWindow(true);
                     
-            runs[i]=new ThreadedClassifierExperiment(train[i],test[i],c,"baseline");
+            runs[i]=new ThreadedClassifierExperiment(train[i],test[i],c,"baseline","test");
             threads[i]=new Thread(runs[i]);
         }
         for(int i=0;i<nosExp;i++)

@@ -4,7 +4,7 @@
  *   the Free Software Foundation, either version 3 of the License, or
  *   (at your option) any later version.
  *
- *   This program is distributed in the hope that it will be useful,
+ *   This program is distributed in the hope hat it will be useful,
  *   but WITHOUT ANY WARRANTY; without even the implied warranty of
  *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *   GNU General Public License for more details.
@@ -407,6 +407,7 @@ public class Bagging
     return newVector.elements();
   }
   
+
   /**
    * Returns the value of the named measure.
    *
@@ -471,7 +472,6 @@ public class Bagging
     // remove instances with missing class
     m_data = new Instances(data);
     m_data.deleteWithMissingClass();
-    
     super.buildClassifier(m_data);
 
     if (m_CalcOutOfBag && (m_BagSizePercent != 100)) {
@@ -570,13 +570,12 @@ public class Bagging
    * instance.
    *
    * @param instance the instance to be classified
-   * @return preedicted class probability distribution
+   * @return predicted class probability distribution
    * @throws Exception if distribution can't be computed successfully 
    */
   public double[] distributionForInstance(Instance instance) throws Exception {
 
     double [] sums = new double [instance.numClasses()], newProbs; 
-    
     for (int i = 0; i < m_NumIterations; i++) {
       if (instance.classAttribute().isNumeric() == true) {
 	sums[0] += m_Classifiers[i].classifyInstance(instance);

@@ -157,6 +157,19 @@ public class TimeSeriesForest extends AbstractClassifier{
         return maxVote;
     }
   
+    
+    public static class DengTree extends AbstractClassifier{
+        int numIntervals=20;
+        int[][] boundaries; 
+        @Override
+        public void buildClassifier(Instances data) throws Exception {
+            boundaries=new int[data.numAttributes()-1][numIntervals];
+        }
+    
+        
+        
+    }
+    
     public static class FeatureSet{
         double mean;
         double stDev;
@@ -176,10 +189,17 @@ public class TimeSeriesForest extends AbstractClassifier{
             mean=sumY/length;
             stDev=sumYY-(sumY*sumY)/length;
             slope=(sumXY-(sumX*sumY)/length);
-            slope/=sumXX-(sumX*sumX)/length;
+            if(sumXX-(sumX*sumX)/length!=0)
+                slope/=sumXX-(sumX*sumX)/length;
+            else
+                slope=0;
             stDev/=length;
-            stDev=Math.sqrt(stDev);
-            
+            if(stDev==0)    //Flat line
+                slope=0;
+//            else
+//                stDev=Math.sqrt(stDev);
+            if(slope==0)
+                stDev=0;
         }
         public void setFeatures(double[] data){
             setFeatures(data,0,data.length-1);

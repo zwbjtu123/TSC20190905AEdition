@@ -66,7 +66,7 @@ public class DictionaryClassifierExperiments {
         for (int i = 0; i < classifiers.length; ++i) {
             System.out.println("**" + fileNames[i] + "**");
             OutFile out = new OutFile(outPath+fileNames[i] + ".csv");
-            Experiments.threadedSingleClassifier(classifiers[i], out);
+ //           ThreadedClassifierExperiment.threadedSingleClassifier(classifiers[i],out);
         }
     }
     
