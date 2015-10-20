@@ -1,0 +1,58 @@
+level:0, numInstances:67
+seriesId, startPos, length, infoGain, splitThresh
+43,1,8,38.815468303672134,0.6162803909451666
+1.4806679067430208,0.03715631290368049,-0.0969066154421742,-0.5153101673887862,1.7079323280247098,-1.3053631718654586,-0.8193723714063202,-0.48880422156867265,
+left size under level 0: 33
+level:1, numInstances:33
+seriesId, startPos, length, infoGain, splitThresh
+0,2,3,4.836206896551724,0.11760312292452715
+-1.4131557771611427,0.6592169119535464,0.7539388652075963,
+left size under level 1: 16
+level:2, numInstances:16
+seriesId, startPos, length, infoGain, splitThresh
+0,6,3,5.333333333333334,0.13242643268311416
+-1.0001726954488128,1.3659621670304964,-0.36578947158168307,
+left size under level 2: 8
+level:3, numInstances:8
+seriesId, startPos, length, infoGain, splitThresh
+4,1,3,8.0,0.0721096359272743
+-1.1048406792891552,1.3169432660770743,-0.21210258678791896,
+left size under level 3: 4
+level:4, numInstances:4
+class decision here: 0.0
+right size under level 3: 4
+level:4, numInstances:4
+class decision here: 1.0
+right size under level 2: 8
+level:3, numInstances:8
+class decision here: 1.0
+right size under level 1: 17
+level:2, numInstances:17
+class decision here: 1.0
+right size under level 0: 34
+level:1, numInstances:34
+seriesId, startPos, length, infoGain, splitThresh
+0,2,3,4.533333333333333,0.011861819829789247
+1.3948538285127627,-0.8993850728250966,-0.4954687556876658,
+left size under level 1: 17
+level:2, numInstances:17
+class decision here: 0.0
+right size under level 1: 17
+level:2, numInstances:17
+seriesId, startPos, length, infoGain, splitThresh
+1,5,3,5.884615384615385,0.048155113535774424
+1.3651621631628825,-0.36281679151557,-1.0023453716473116,
+left size under level 2: 8
+level:3, numInstances:8
+seriesId, startPos, length, infoGain, splitThresh
+2,1,4,8.0,0.3348777764166634
+1.1965910103527626,0.33939747692420236,0.029924608775956558,-1.5659130960529215,
+left size under level 3: 4
+level:4, numInstances:4
+class decision here: 1.0
+right size under level 3: 4
+level:4, numInstances:4
+class decision here: 0.0
+right size under level 2: 9
+level:3, numInstances:9
+class decision here: 0.0

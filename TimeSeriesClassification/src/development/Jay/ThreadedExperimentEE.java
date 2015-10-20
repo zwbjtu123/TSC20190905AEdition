@@ -180,7 +180,7 @@ public class ThreadedExperimentEE extends Thread{
     }
     
     public static void main(String[] args) throws Exception{
-        threadedSingleDataset("C:/Users/ajb/Dropbox/TSC Problems/", "UWaveGestureLibraryAll", "C:\\Users\\ajb\\Dropbox\\Big TSC Bake Off\\New Results\\Elastic distance measures\\UWaveGestureLibraryAll", 10);
+        threadedSingleDataset("C:/Users/ajb/Dropbox/TSC Problems/", "StarLightCurves", "C:\\Users\\ajb\\Dropbox\\Big TSC Bake Off\\New Results\\Elastic distance measures\\", 10);
     }
     
 }

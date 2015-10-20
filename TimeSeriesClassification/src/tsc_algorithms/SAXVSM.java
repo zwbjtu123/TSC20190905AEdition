@@ -104,16 +104,17 @@ public class SAXVSM implements Classifier {
 
         double bestAcc = 0.0;
         int bestAlpha = 0, bestWord = 0, bestWindowSize = 0;
-        int numTests = 5;
 
-        int minWinSize = (int)((data.numAttributes()-1) / 10.0);
-        int maxWinSize = (int)((data.numAttributes()-1) / 2.0);
-//        int winInc = (int)((maxWinSize - minWinSize) / 10.0); 
-        int winInc = 1;
+        //BoP paper window search range suggestion
+        int minWinSize = (int)((data.numAttributes()-1) * (15.0/100.0));
+        int maxWinSize = (int)((data.numAttributes()-1) * (36.0/100.0));
+//        int winInc = 1; //check every size in range
+        int winInc = (int)((maxWinSize - minWinSize) / 10.0); //check 10 values within that range
+        if (winInc < 1) winInc = 1;
       
         for (int alphaSize = 2; alphaSize <= 8; alphaSize++) {
             for (int winSize = minWinSize; winSize <= maxWinSize; winSize+=winInc) {
-                for (int wordSize = 2; wordSize <= winSize/2; wordSize*=2) { //lin BoP suggestion            
+                for (int wordSize = 8; wordSize <= 16; wordSize+=2) { //BOSS search space, no search space mentioned in paper           
                     SAXVSM vsm = new SAXVSM(wordSize,alphaSize,winSize);
                     
                     double acc = vsm.crossValidate(data); //leave-one-out without doing bop transformation every fold (still applying tfxidf)

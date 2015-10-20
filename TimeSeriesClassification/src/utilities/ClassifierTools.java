@@ -14,7 +14,8 @@ import weka.classifiers.bayes.*;
 import weka.classifiers.evaluation.EvaluationUtils;
 import weka.classifiers.evaluation.NominalPrediction;
 import weka.classifiers.functions.SMO;
-import weka.classifiers.functions.supportVector.*;
+import weka.classifiers.functions.supportVector.PolyKernel;
+import weka.classifiers.functions.supportVector.RBFKernel;
 import weka.classifiers.lazy.IBk;
 import weka.classifiers.meta.RotationForest;
 import weka.classifiers.trees.J48;
@@ -246,7 +247,7 @@ public class ClassifierTools {
             return preds;
 
     }
-    		
+		
     public static double stratifiedCrossValidation(Instances data, Classifier c, int folds, int seed){
         Random rand = new Random(seed);   // create seeded number generator
         Instances randData = new Instances(data);   // create copy of original data
@@ -273,15 +274,14 @@ public class ClassifierTools {
     }
 
 /**
- * This does a manual cross validation (i.e. without EvalUtils) and r
-returns 
+ * This does a manual cross validation (i.e. without EvalUtils) and rather confusingly returns 
  * the distribution for each Instance (as opposed to the predicted/actual in method performCrossValidation
  * @param data
  * @param c
  * @param numFolds
  * @return distribution for each Instance 
  */
-    public static double[][] crossValidate(Instances data, Classifier c, int numFolds)
+    public static double[][] performManualCrossValidation(Instances data, Classifier c, int numFolds)
     {
         double[][] results=new double[data.numInstances()][data.numClasses()];
         Instances train;
@@ -292,8 +292,6 @@ returns
         int testCount=0;
         try{
             for(int f=0;f<numFolds;f++){
-                if(f==numFolds-1)
-                    end=data.numInstances();
                 //Split Data
                 train=new Instances(data,0);
                 test=new Instances(data,0);
@@ -304,9 +302,9 @@ returns
                             train.add(data.instance(i));
                 }
                 //Classify on training
-                c.buildClassifier(train);
+                c.buildClassifier(data);
                 //Predict
-                for(int i=0;i<test.numInstances();i++){
+                for(int i=0;i<interval;i++){
                     results[testCount]=c.distributionForInstance(test.instance(i));
                     testCount++;
                 }
