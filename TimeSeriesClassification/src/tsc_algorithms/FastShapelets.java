@@ -668,7 +668,7 @@ public class FastShapelets implements Classifier {
             System.out.println("Exception " + ex);
         }
     }
-
+ 
     private class ScoreComparator implements Comparator<Pair<Integer, Double>> {
 
         @Override
