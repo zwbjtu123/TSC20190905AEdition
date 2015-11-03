@@ -67,7 +67,7 @@ public class FastShapelets implements Classifier {
 
     @Override
     public void buildClassifier(Instances data) throws Exception {
-        int sax_max_len, sax_len, w, card, R, top_k;
+        int sax_max_len, sax_len, w, R, top_k;
         int max_len = data.numAttributes() - 1, min_len = 5, step = 1; //consider whole search space.
         double percent_mask;
         Shapelet sh;
@@ -77,7 +77,6 @@ public class FastShapelets implements Classifier {
         num_class = data.numClasses();
         num_obj = data.numInstances();
         
-        card = 4;
         sax_max_len = 15;
         R = 10;
         percent_mask = 0.25;
@@ -97,8 +96,8 @@ public class FastShapelets implements Classifier {
             Shapelet bsf_sh = new Shapelet();
             if (node_id <= 1) {
                 SetCurData(node_id);
-            } else if (Classify_list.get(node_id) == -1) /// non-leaf node (-1:body node, -2:unused node)
-            {
+            }
+            else if (Classify_list.get(node_id) == -1){ /// non-leaf node (-1:body node, -2:unused node)
                 SetCurData(node_id);
             } else {
                 continue;
@@ -500,8 +499,6 @@ public class FastShapelets implements Classifier {
         double dist_th = sh.dist_th;
         double[] query = new double[q_len];
         
-        int[] next_level = new int[num_obj];
-        int left_num_obj = 0, right_num_obj = 0;
         int left_node_id = node_id * 2;
         int right_node_id = node_id * 2 + 1;
         int real_obj;
@@ -536,18 +533,8 @@ public class FastShapelets implements Classifier {
         for (int obj = 0; obj < num_obj; obj++) {
             dist = nn.NearestNeighborSearch(query, Data.get(obj), obj, Q, order);
             real_obj = Node_Obj_List.get(node_id).get(obj);
-
-            if (dist <= dist_th) {
-                left_num_obj++;
-                next_level[obj] = 1;  ///left
-
-                Node_Obj_List.get(left_node_id).add(real_obj);
-            } else {
-                right_num_obj++;
-                next_level[obj]=2;  ///right
-
-                Node_Obj_List.get(right_node_id).add(real_obj);
-            }
+            int node = dist <= dist_th ? left_node_id : right_node_id; //left or right node?
+            Node_Obj_List.get(node).add(real_obj);
         }
         /// If left/right is pure, or so small, stop spliting
         int max_c_in = -1, sum_c_in = 0;
@@ -650,23 +637,26 @@ public class FastShapelets implements Classifier {
 
     public static void main(String[] args) throws Exception {
         final String dotdotSlash = ".." + File.separator;
-        String datasetName = "ECGFiveDays";
-        String datasetLocation = dotdotSlash + dotdotSlash + "time-series-datasets\\TSC Problems (1)" + File.separator + datasetName + File.separator + datasetName;
+        String datasetName = "ItalyPowerDemand";
+        String datasetLocation = dotdotSlash + dotdotSlash + "resampled data sets" + File.separator + datasetName + File.separator + datasetName;
 
-        Instances train = utilities.ClassifierTools.loadData(datasetLocation + "_TRAIN");
-        Instances test = utilities.ClassifierTools.loadData(datasetLocation + "_TEST");
+        for(int i=0; i< 100; i++){
+            Instances train = utilities.ClassifierTools.loadData(datasetLocation + i + "_TRAIN");
+            Instances test = utilities.ClassifierTools.loadData(datasetLocation + i +"_TEST");
 
-        FastShapelets fs = new FastShapelets();
+            FastShapelets fs = new FastShapelets();
 
-        try {
-            fs.buildClassifier(train);
-        
-            double accuracy = utilities.ClassifierTools.accuracy(test, fs);
-            System.out.println(accuracy);
+            try {
+                fs.buildClassifier(train);
 
-        } catch (Exception ex) {
-            System.out.println("Exception " + ex);
-        }
+                double accuracy = utilities.ClassifierTools.accuracy(test, fs);
+                System.out.println("fold " + i + " acc: " + accuracy);
+
+
+            } catch (Exception ex) {
+                System.out.println("Exception " + ex);
+            }
+        }   
     }
  
     private class ScoreComparator implements Comparator<Pair<Integer, Double>> {

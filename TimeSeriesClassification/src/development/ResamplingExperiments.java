@@ -20,6 +20,7 @@ import utilities.ClassifierTools;
 import utilities.InstanceTools;
 import weka.classifiers.meta.timeseriesensembles.WeightedEnsemble;
 import weka.classifiers.trees.RandomForest;
+import weka.core.Instance;
 import weka.core.Instances;
 import weka.core.shapelet.QualityMeasures;
 import weka.filters.timeseries.shapelet_transforms.*;
@@ -55,11 +56,11 @@ public class ResamplingExperiments {
         //datasets = DataSets.ucrSmall;
         //we assume certain file structure for cross platform use.
         //arg0 is the dataset name. 
-        //arg1 is the fold number. 0-99.
-        //arg2 is the algorithm Full is 0 and Binary is 1.
+        //arg2 is the fold number. 0-99.
+        //arg1 is the algorithm Full is 0 and Binary is 1.
         //We could opt to not have our arguments come from command line and instead run the folds and datasets and algorithms in 3 nested loops.
-        currentDataSet = args[0];
-
+        currentDataSet = /*sometimes we need to use the array number*/DataSets.fileNames[Integer.parseInt(args[0])];
+        
         classifier = Integer.parseInt(args[1]);
         setClassifierName(classifier);
 
@@ -68,30 +69,27 @@ public class ResamplingExperiments {
         if (args.length >= 3) {
             fold = Integer.parseInt(args[2]) - 1;
         }
+        
+        System.out.println(currentDataSet + " " + fold);
 
         //createAllResamples();
-        //createShapelets(fold);
+        File f = new File(transformLocation + File.separator + classifierName + File.separator + currentDataSet + File.separator+currentDataSet+fold+"_TRAIN.arff");
+        if(!f.exists())
+            createShapelets(fold);
+        else
+            System.out.println("already transformed");
+        
         
         //createLearnShapeleteAccuracies(fold);
         
-        //File f = new File(transformLocation + File.separator + classifierName);
-        /*File f = new File(resultsLocation + File.separator + classifierName);
-        
-        File[] files = f.listFiles();
-        
-        for(int i=0; i< files.length; i++)
-        {
-            
-            File file = files[i];
-            if(!f.isDirectory() || f.isHidden()) continue;
-            
-            currentDataSet = file.getName();
-            System.out.println(currentDataSet);
-            //createRandomForestOnTransform();
-            createAccuracyTable();
-        }*/
+        //System.out.println(currentDataSet);
+        //createRandomForestOnTransform();
         
         //fileVerifier();
+        
+        //we need to do this for a specific dataset.
+        //createWEOnTransform();
+        
         //createAndWriteAccuracies();
         //createAccuracyTable();
         //createAccuracies();
@@ -137,6 +135,7 @@ public class ResamplingExperiments {
         String samplePath = resampleLocation + fileExtension + fold;
         String transformPath = transformLocation + classifierDir + fold;
         String serialiseName = classifierName+"_"+currentDataSet+fold+".ser";
+        
         
         try {
             ObjectInputStream ois = new ObjectInputStream(new FileInputStream(serialiseName));
@@ -462,6 +461,10 @@ public class ResamplingExperiments {
         String transformPath = transformLocation + classifierDir;
         String resultsPath = resultsLocation + classifierDir;
 
+        File f = new File(resultsPath + "_RF500.csv");
+        //if the file exists, then we've already created this data
+        if(f.exists()) return;
+        
         try {
             //create our accuracy file.
             double[] accuracies = new double[noSamples];
@@ -482,7 +485,80 @@ public class ResamplingExperiments {
             }
             
             //save Accuracies to File.
-            File f = new File(resultsPath + "_RF500.csv");
+
+            f.getParentFile().mkdirs();
+            f.createNewFile();
+            try (PrintWriter pw = new PrintWriter(f)) {
+                pw.printf("%s,%s\n", "fold", "accuracy");
+                for (int fold = 0; fold < noSamples; fold++) {
+                    pw.printf("%d,%f\n", fold, accuracies[fold]);
+                }
+            }
+
+        } catch (Exception ex) {
+            System.out.println("Classifier exception: " + ex);
+        }
+    }
+    
+    
+    public static void checkCompletion(){
+        String fileExtension = File.separator + currentDataSet + File.separator + currentDataSet;
+
+        //get the loadLocation of the resampled files.
+        String classifierDir = File.separator + classifierName + fileExtension;
+        String transformPath = transformLocation + classifierDir;
+    
+        File f = null;
+        System.out.print("[");
+        
+        for (int fold = 0; fold < noSamples; fold++) {
+                //get the train and test instances for each dataset.
+                f = new File(transformPath + fold + "_TRAIN.arff");
+                //System.out.println(f.getAbsolutePath());
+
+                if(!f.exists()){
+                    System.out.print(fold + ",");
+                }
+        }
+        System.out.print("]\n");
+                
+    }
+    
+    
+    public static void createWEOnTransform() {
+        String fileExtension = File.separator + currentDataSet + File.separator + currentDataSet;
+
+        //get the loadLocation of the resampled files.
+        String classifierDir = File.separator + classifierName + fileExtension;
+        String transformPath = transformLocation + classifierDir;
+        String resultsPath = resultsLocation + classifierDir;
+
+        File f = new File(resultsPath + "_WE.csv");
+        //if the file exists, then we've already created this data
+        if(f.exists()) return;
+        
+        try {
+            //create our accuracy file.
+            double[] accuracies = new double[noSamples];
+
+            //create accuracies Array.
+            for (int fold = 0; fold < noSamples; fold++) {
+                //get the train and test instances for each dataset.
+                Instances test = utilities.ClassifierTools.loadData(transformPath + fold + "_TEST");
+                Instances train = utilities.ClassifierTools.loadData(transformPath + fold + "_TRAIN");
+
+                //build the elastic Ensemble on our training data.
+                WeightedEnsemble we= new WeightedEnsemble();
+                we.saveTestPreds(resultsPath+fold+"_TestPreds.csv");
+                we.saveTrainCV(resultsPath+fold+"_TrainCV.csv");
+                we.buildClassifier(train);
+                accuracies[fold] = utilities.ClassifierTools.accuracy(test, we);
+
+                System.out.printf("%d,%f\n", fold, accuracies[fold]);
+            }
+            
+            //save Accuracies to File.
+
             f.getParentFile().mkdirs();
             f.createNewFile();
             try (PrintWriter pw = new PrintWriter(f)) {

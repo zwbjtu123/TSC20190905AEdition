@@ -6,15 +6,13 @@
 package tsc_algorithms;
 
 import bakeOffExperiments.Experiments;
+import java.io.File;
 import utilities.ClassifierTools;
-import utilities.InstanceTools;
 import weka.classifiers.AbstractClassifier;
-import weka.classifiers.Classifier;
 import weka.classifiers.meta.timeseriesensembles.WeightedEnsemble;
 import weka.core.Instance;
 import weka.core.Instances;
 import weka.core.shapelet.QualityMeasures;
-import weka.filters.timeseries.ACF;
 import weka.filters.timeseries.shapelet_transforms.BalancedClassShapeletTransform;
 import weka.filters.timeseries.shapelet_transforms.FullShapeletTransform;
 import weka.filters.timeseries.shapelet_transforms.classValue.BinarisedClassValue;
@@ -92,18 +90,18 @@ public class ST_Ensemble  extends AbstractClassifier implements SaveableEnsemble
         String dataLocation = "..\\..\\resampled transforms\\BalancedClassShapeletTransform\\";
         String saveLocation = "..\\..\\resampled results\\BalancedClassShapeletTransform\\";
         String datasetName = "ItalyPowerDemand";
-        String fold = "0";
+        int fold = 0;
         
-        Instances train= ClassifierTools.loadData(dataLocation+datasetName+"\\"+datasetName+fold+"_TRAIN");
-        Instances test= ClassifierTools.loadData(dataLocation+datasetName+"\\"+datasetName+fold+"_TEST");
-        String trainS= saveLocation+datasetName+"\\TrainCV.csv";
-        String testS=saveLocation+datasetName+"\\TestPreds.csv";
+        Instances train= ClassifierTools.loadData(dataLocation+datasetName+File.separator+datasetName+fold+"_TRAIN");
+        Instances test= ClassifierTools.loadData(dataLocation+datasetName+File.separator+datasetName+fold+"_TEST");
+        String trainS= saveLocation+datasetName+File.separator+"TrainCV.csv";
+        String testS=saveLocation+datasetName+File.separator+"TestPreds.csv";
         String preds=saveLocation+datasetName;
 
         ST_Ensemble st= new ST_Ensemble();
         st.saveResults(trainS, testS);
         st.doSTransform(false);
-        double a = Experiments.singleSampleExperiment(train, test, st, 0, preds);
+        double a = Experiments.singleSampleExperiment(train, test, st, fold, preds);
         System.out.println("accuracy: " + a);
     }    
 }
