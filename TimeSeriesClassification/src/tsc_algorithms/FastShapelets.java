@@ -174,7 +174,7 @@ public class FastShapelets implements Classifier {
         for (int k = 0; k < Math.min(top_k, Score_List.size()); k++) {
             word = Score_List.get(k).first;
             usax = USAX_Map.get(word);
-            for (kk = 0; kk < Math.min((int) usax.sax_id.size(), 1); kk++) {
+            for (kk = 0; kk < Math.min(usax.sax_id.size(), 1); kk++) {
                 q_obj = usax.sax_id.get(kk).first;
                 q_pos = usax.sax_id.get(kk).second;
 
@@ -204,7 +204,7 @@ public class FastShapelets implements Classifier {
 
                     dist_th = (pair_i.second + pair_ii.second) / 2;
                     //gap = Dist[i+1].second - dist_th;
-                    gap = ((double) (pair_i.second - dist_th)) / Math.sqrt(subseq_len);
+                    gap = ((double) (pair_ii.second - dist_th)) / Math.sqrt(subseq_len);
                     label = Label.get(pair_i.first);
                     c_in[label]++;
                     c_out[label]--;
@@ -277,6 +277,7 @@ public class FastShapelets implements Classifier {
     }
 
     /// Count the number of occurrences
+    //TODO: NOT SURE RandomProjection is correct!!!!
     void RandomProjection(int R, double percent_mask, int sax_len) {
         HashMap<Integer, HashSet<Integer>> Hash_Mark = new HashMap<>();
         int word, mask_word, new_word;
@@ -294,7 +295,17 @@ public class FastShapelets implements Classifier {
 
                 //put the new word and set combo in the hash_mark
                 new_word = word | mask_word;
-                Hash_Mark.put(new_word, obj_set);
+                
+                ptr = Hash_Mark.get(new_word);
+                
+                //TODO: NOT SURE ON THIS BLOCK!!! 
+                //ptr->insert(it.begin(), it.end());
+                if(ptr == null)
+                    Hash_Mark.put(new_word, new HashSet<>(obj_set));
+                else{
+                    //add onto our ptr, rather than overwrite.
+                    ptr.addAll(obj_set);
+                }
             }
 
             /// hash again for keep the count
@@ -305,7 +316,7 @@ public class FastShapelets implements Classifier {
                 //increase the histogram
                 for (Integer o_it : obj_set) {
                     Integer count = entry.getValue().obj_count.get(o_it);
-                    count = count == null ? 0 : + 1;
+                    count = count == null ? 0 : count + 1;
                     entry.getValue().obj_count.put(o_it, count);
                 }
             }
@@ -319,7 +330,7 @@ public class FastShapelets implements Classifier {
 
         a = 0;
         for (int i = 0; i < num_mask; i++) {
-            b = 1 << (rand.nextInt(word_len)); //generate a random number between 0 and the word_len
+            b = 1 << (rand.nextInt()%word_len); //generate a random number between 0 and the word_len
             a = a | b;
         }
         return a;
@@ -352,11 +363,9 @@ public class FastShapelets implements Classifier {
 
             int cur_class;
 
+            //build our data structures based on the node and the labels and histogram.
             for (Integer in : it) {
                 cur_class = Org_Label.get(in);
-                if ((cur_class < 0) || (cur_class >= num_class)) {
-                    System.out.printf("cur_class = %d\n", cur_class);   //xxxxx
-                }
                 Data.add(Org_Data.get(in));
                 Label.add(cur_class);
                 Class_Freq[cur_class]++;
@@ -560,11 +569,11 @@ public class FastShapelets implements Classifier {
         boolean left_is_leaf = false;
         boolean right_is_leaf = false;
 
-        MIN_OBJ_SPLIT = (int) Math.ceil((double) (MIN_PERCENT_OBJ_SPLIT * num_obj) / num_class);
-        if ((sum_c_in <= MIN_OBJ_SPLIT) || ((double) max_c_in / sum_c_in >= MAX_PURITY_SPLIT)) {
+        MIN_OBJ_SPLIT = (int) Math.ceil((double) (MIN_PERCENT_OBJ_SPLIT * num_obj) / (double) num_class);
+        if ((sum_c_in <= MIN_OBJ_SPLIT) || ((double) max_c_in /(double)sum_c_in >= MAX_PURITY_SPLIT)) {
             left_is_leaf = true;
         }
-        if ((sum_c_out <= MIN_OBJ_SPLIT) || ((double) max_c_out / sum_c_out >= MAX_PURITY_SPLIT)) {
+        if ((sum_c_out <= MIN_OBJ_SPLIT) || ((double) max_c_out /(double)sum_c_out >= MAX_PURITY_SPLIT)) {
             right_is_leaf = true;
         }
 
@@ -574,17 +583,16 @@ public class FastShapelets implements Classifier {
             right_is_leaf = true;
         }
 
+        //set node.
         Classify_list.set(node_id, -1);
-        if (left_is_leaf) {
-            Classify_list.set(left_node_id, max_ind_c_in);
-        } else {
-            Classify_list.set(left_node_id, -1);
-        }
-        if (right_is_leaf) {
-            Classify_list.set(right_node_id, max_ind_c_out);
-        } else {
-            Classify_list.set(right_node_id, -1);
-        }
+        
+        //set left child.
+        int val = left_is_leaf ? max_ind_c_in : -1;
+        Classify_list.set(left_node_id, val);
+        
+        //set right child.
+        val = right_is_leaf ? max_ind_c_out : -1;
+        Classify_list.set(right_node_id, val);
     }
 
     @Override
@@ -663,7 +671,6 @@ public class FastShapelets implements Classifier {
 
         @Override
         //if the left one is bigger put it closer to the top.
-        //TODO: double check this.
         public int compare(Pair<Integer, Double> t, Pair<Integer, Double> t1) {
             return Double.compare(t1.second, t.second);
         }
@@ -693,6 +700,13 @@ public class FastShapelets implements Classifier {
         double[] ts;
 
         public Shapelet() {
+            gain = Double.NEGATIVE_INFINITY;
+            gap = Double.NEGATIVE_INFINITY;
+            dist_th = Double.POSITIVE_INFINITY;
+            obj = -1;
+            pos = -1;
+            len = -1;
+            num_diff = -1;
         }
 
         void setValueFew(double gain, double gap, double dist_th) {
