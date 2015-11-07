@@ -93,6 +93,8 @@ public class InstanceTools {
      * @return Instances[] with two elements; [0] is the output training instances, [1] output test instances
      */
     public static Instances[] resampleTrainAndTestInstances(Instances train, Instances test, int seed){
+        if(seed==0)
+             return new Instances[]{train,test};
         Instances all = new Instances(train);
         all.addAll(test);
         ClassDistribution trainDistribution = new TreeSetClassDistribution(train);

@@ -63,7 +63,7 @@ Next iteration:
 NNTranformWeighting.java 
 */
 
-public class NNDerivativeWeighting extends kNN{
+public class DD_DTW extends kNN{
 
     public static final String DATA_DIR = "C:/Temp/Dropbox/TSC Problems/";
     public static final double[] ALPHAS = {
@@ -158,14 +158,14 @@ public class NNDerivativeWeighting extends kNN{
     public enum DistanceType{EUCLIDEAN, DTW};
     
     // defaults to Euclidean distance
-    public NNDerivativeWeighting(){
+    public DD_DTW(){
         super();
         this.distanceFunction = new GoreckiDerivativesEuclideanDistance();
         this.paramsSet = false;
         
     }
     
-    public NNDerivativeWeighting(DistanceType distType){
+    public DD_DTW(DistanceType distType){
         super();
         if(distType==DistanceType.EUCLIDEAN){
             this.distanceFunction = new GoreckiDerivativesEuclideanDistance();
@@ -630,7 +630,7 @@ public class NNDerivativeWeighting extends kNN{
             System.out.print(df.format(err)+",");
 
             //DD_ED
-            NNDerivativeWeighting dd_ed = new NNDerivativeWeighting(DistanceType.EUCLIDEAN);
+            DD_DTW dd_ed = new DD_DTW(DistanceType.EUCLIDEAN);
             correct = getCorrect(dd_ed, train, test);
             acc = (double)correct/test.numInstances();
             err = (1-acc)*100;
@@ -653,7 +653,7 @@ public class NNDerivativeWeighting extends kNN{
             System.out.print(df.format(err)+",");
 
             // DDDTW
-            NNDerivativeWeighting dd_dtw = new NNDerivativeWeighting(DistanceType.DTW);
+            DD_DTW dd_dtw = new DD_DTW(DistanceType.DTW);
             correct = getCorrect(dd_dtw, train, test);
             acc = (double)correct/test.numInstances();
             err = (1-acc)*100;
@@ -677,7 +677,7 @@ public class NNDerivativeWeighting extends kNN{
                 Instances test = ClassifierTools.loadData(DATA_DIR+dataName+"/"+dataName+"_TEST");
                 
                 // create the classifier, using DTW as the distance function as an example
-                NNDerivativeWeighting nndw = new NNDerivativeWeighting(DistanceType.DTW);;
+                DD_DTW nndw = new DD_DTW(DistanceType.DTW);;
                 
                 // params a and b have not been explicitly set, so buildClassifier will cv to find them
                 nndw.buildClassifier(train);

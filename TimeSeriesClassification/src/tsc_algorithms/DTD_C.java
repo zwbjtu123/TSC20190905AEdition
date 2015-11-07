@@ -30,7 +30,7 @@ import weka.filters.timeseries.Hilbert;
 BRIEF DESCRIPTION:
 =========================================================================================================================
 
-The classifier is highly related to NNDerivativeWeighting; however, instead of using a weighted combination of the raw 
+The classifier is highly related to DD_DTW; however, instead of using a weighted combination of the raw 
 data representation and derivatives, this classifier replaces derivatives with either Sine, Cosine or Hilbert-transformed
 data. It should also be noted that unlike the aforementioned class, this classifier does not use ED, and uses only a
 full-window DTW implementation. Two params are again used to weight the classifier, a and b, which represent the weight 
@@ -44,7 +44,7 @@ just using DTW, and a=0, b=1 is equivilent DTW on the appropriately-transformed 
 
 Again, the author's propose using a single parameter alpha to weight these two components by using it to derive values of 
 a and b. This was ignored in this classifier however, as results indicated that this did not reproduce results for the 
-derivative version of the classifier (see notes in NNDerivativeWeighting.java). Therefore in our experiments we search 
+derivative version of the classifier (see notes in DD_DTW.java). Therefore in our experiments we search 
 from a = 0 to 1 and b = 1 to 0 in increments of 0.01 (101 param options) again.
 
 =========================================================================================================================
@@ -67,14 +67,14 @@ String DATA_DIR should be changed to point to the dir of TSC problems (examples 
 RELATED CLASSES:
 =========================================================================================================================
 Previous iteration:
-NNDerivativeWeighting.java 
+DD_DTW.java 
 
 Classes used:
 Cosine.java, Sine.java, Hilbert.java
 
 
 */
-public class NNTransformWeighting extends NNDerivativeWeighting{
+public class DTD_C extends DD_DTW{
     
     public static final String DATA_DIR = "C:/Temp/Dropbox/TSC Problems/";
 //    public static final String DATA_DIR = "/Users/Jay/Dropbox/TSC Problems/";
@@ -198,20 +198,20 @@ public class NNTransformWeighting extends NNDerivativeWeighting{
     private TransformType transformType;
     
     
-    public NNTransformWeighting(){
+    public DTD_C(){
         super();
         this.transformType = TransformType.COS;
         this.distanceFunction = new TransformWeightedDTW(this.transformType);
     }
     
-    public NNTransformWeighting(TransformType transformType){
+    public DTD_C(TransformType transformType){
         super();
         this.transformType = transformType;
         this.distanceFunction = new TransformWeightedDTW(this.transformType);
     }
 
     
-    public static class TransformWeightedDTW extends NNDerivativeWeighting.GoreckiDerivativesDTW{
+    public static class TransformWeightedDTW extends DD_DTW.GoreckiDerivativesDTW{
         
         private TransformType transformType;
         
@@ -289,7 +289,7 @@ public class NNTransformWeighting extends NNDerivativeWeighting{
             
             // now use a combination of the raw and transform
             for(TransformType transform:transformTypes){
-                NNTransformWeighting tdtw = new NNTransformWeighting(transform);
+                DTD_C tdtw = new DTD_C(transform);
                 correct = getCorrect(tdtw, train, test);
                 acc = (double)correct/test.numInstances();
                 err = (1-acc)*100;
@@ -313,7 +313,7 @@ public class NNTransformWeighting extends NNDerivativeWeighting{
                 Instances test = ClassifierTools.loadData(DATA_DIR+dataName+"/"+dataName+"_TEST");
                 
                 // create the classifier, using cosine in the distance calculations as an example
-                NNTransformWeighting nntw = new NNTransformWeighting(TransformType.COS);
+                DTD_C nntw = new DTD_C(TransformType.COS);
                 
                 // params a and b have not been explicitly set, so buildClassifier will cv to find them
                 nntw.buildClassifier(train);

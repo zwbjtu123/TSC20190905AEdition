@@ -8,6 +8,11 @@ import development.DataSets;
 import fileIO.InFile;
 import fileIO.OutFile;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.util.*;
 import utilities.ClassifierTools;
 import utilities.InstanceTools;
@@ -22,6 +27,7 @@ import weka.classifiers.lazy.kNN;
 import weka.classifiers.meta.RotationForest;
 import weka.classifiers.trees.J48;
 import weka.classifiers.trees.RandomForest;
+import weka.core.Instance;
 import weka.core.Instances;
 import weka.filters.NormalizeCase;
 import weka.filters.timeseries.ACF;
@@ -156,10 +162,10 @@ static String[] unfinishedTSF={"CinCECGtorso","ElectricDevices","FordA","FordB",
                 ((DTW_1NN)c).optimiseWindow(true);
                 break;
             case "DD_DTW":
-                c=new NNDerivativeWeighting();
+                c=new DD_DTW();
                 break;
             case "DTD_C":
-                c=new NNTransformWeighting();
+                c=new DTD_C();
                 break;
             case "TSF":
                 c=new TimeSeriesForest();
@@ -184,6 +190,9 @@ static String[] unfinishedTSF={"CinCECGtorso","ElectricDevices","FordA","FordB",
              case "SAXVSM": case "SAX": 
                 c=new SAXVSM();
                 break;
+             case "LPS":
+                c=new LPS();
+                break; 
            default:
                 System.out.println("UNKNOWN CLASSIFIER");
 //                System.exit(0);
@@ -330,6 +339,60 @@ static String[] unfinishedTSF={"CinCECGtorso","ElectricDevices","FordA","FordB",
         of.writeString("\n");
     }
     
+    public static void singleClassifierAndFoldAndParameter(String[] args) throws Exception{
+//first gives the problem file      
+        String classifier=args[0];
+//Need to make this generic
+        Classifier c=setClassifier(classifier);
+        if(!(c instanceof ParameterSplittable)){
+            System.out.println("ERROR, CLASSIFIER "+classifier+" IS NOT SPLITTABLE");
+            System.exit(0);
+        }
+        
+            
+        String s=args[1];
+        int fold=Integer.parseInt(args[2])-1;
+        int para=Integer.parseInt(args[3]);
+   
+ 
+        File f=new File(DataSets.resultsPath+classifier);
+        if(!f.exists())
+            f.mkdir();
+        String predictions=DataSets.resultsPath+classifier+"/Predictions";
+        f=new File(predictions);
+        if(!f.exists())
+            f.mkdir();
+        predictions=predictions+"/"+s;
+        f=new File(predictions);
+        if(!f.exists())
+            f.mkdir();
+//Check whether fold already exists, if so, dont do it, just quit
+        ((ParameterSplittable)c).setParamSearch(false);
+        ((ParameterSplittable)c).setPara(para);
+        f=new File(predictions+"/fold"+fold+"_"+para+"TRAIN.csv");
+        File f2=new File(predictions+"/fold"+fold+"_"+para+"TRAIN.ser");
+        
+        if(!f.exists() || f.length()==0){
+            Instances train=ClassifierTools.loadData(DataSets.problemPath+s+"/"+s+"_TRAIN");
+            Instances test=ClassifierTools.loadData(DataSets.problemPath+s+"/"+s+"_TEST");
+            Instances[] data=InstanceTools.resampleTrainAndTestInstances(train, test, fold);
+            train=data[0];
+            data=null;
+            test=null;
+            c.buildClassifier(train);
+            OutFile of=new OutFile(predictions+"/fold"+fold+"_"+para+"TRAIN.csv");
+            of.writeString(para+","+((ParameterSplittable)c).getParas()+","+((ParameterSplittable)c).getAcc());
+            FileOutputStream fos = new FileOutputStream(predictions+"/"+classifier+fold+"_"+para+"TRAIN.ser");
+            ObjectOutputStream outS = new ObjectOutputStream(fos);
+            outS.writeObject(c);
+            outS.close();
+        }
+        else{
+            System.out.println("File already exists "+f);
+        }
+            
+    }
+    
     
     public static void singleClassifierAndFold(String[] args){
 //first gives the problem file      
@@ -424,16 +487,108 @@ static String[] unfinishedTSF={"CinCECGtorso","ElectricDevices","FordA","FordB",
         }
          return acc;
     }
-
+    public static void testACC() throws Exception{
+//Load a classifier
+        String problem="ItalyPowerDemand";
+             TSBF t;
+            FileInputStream fis = new FileInputStream("C:\\Users\\ajb\\Dropbox\\Big TSC Bake Off\\New Results\\interval\\TSBF\\Predictions\\ItalyPowerDemand\\TSBF0_2TRAIN.ser");
+            ObjectInputStream in = new ObjectInputStream(fis);
+           t =(TSBF)in.readObject();
+           in.close();
+           Instances test=ClassifierTools.loadData(DataSets.problemPath+problem+"\\"+problem+"_TEST");
+           double a=ClassifierTools.accuracy(test, t);
+                System.out.println("ACC ="+a); 
+             System.exit(0);
+        
+    }
         
     public static void clusterRun(String[] args) throws Exception{
-        if(args.length>2)   //
+        if(args.length>3)   //
+            singleClassifierAndFoldAndParameter(args);
+        else if(args.length>2)   //
             singleClassifierAndFold(args);
         else
             singleClassifier(args);
             
     }
-    public static void main(String[] args){
+    public static void reconstruct(String classifier, String problem,  int fold, int paras) throws Exception{
+        String path=DataSets.resultsPath+classifier+"/Predictions/"+problem;
+        System.out.println("PATH = "+path);
+        boolean completeFold=true;
+        double bestAcc=0;
+        int bestC=0;
+        completeFold=true;
+        fold=fold-1;
+        for (int j = 1; j <= paras; j++) {
+//Check file exists 
+            File f=new File(path+"/fold"+fold+"_"+j+"TRAIN.csv");
+            if(!f.exists()){//Fold is not complete Skip this fold
+                System.out.println("Fold "+fold+" paras "+j+" incomplete on "+path+"/fold"+fold+"_"+j+"TRAIN.csv");
+                completeFold=false;
+            }            
+//Find accuracy
+            else{
+                System.out.println("Parameter values "+j+" is complete");
+                InFile inf=new InFile(path+"/fold"+fold+"_"+j+"TRAIN.csv");
+                int p=inf.readInt();
+                double d=inf.readDouble();
+                double acc=inf.readDouble();
+                if(acc>bestAcc){
+                    bestAcc=acc;
+                    bestC=j;
+                }
+            }
+        }
+//Load best classifier if all paras have been tested
+        if(completeFold){
+            System.out.println("Best Train Accuracy="+bestAcc+" with param setting"+bestC);
+            File f=new File(path+"/"+classifier+fold+"_"+bestC+"TRAIN.ser");
+            if(f.exists()){
+                 FileInputStream fis = new FileInputStream(path+"/"+classifier+fold+"_"+bestC+"TRAIN.ser");
+                 ObjectInputStream inS = new ObjectInputStream(fis);
+                 Classifier cls = (Classifier)inS.readObject();
+                 System.out.println("Classifier "+classifier+" loaded");
+                 inS.close();
+ //Load test data
+                 Instances train=ClassifierTools.loadData(DataSets.problemPath+problem+"/"+problem+"_TRAIN");
+                 Instances test=ClassifierTools.loadData(DataSets.problemPath+problem+"/"+problem+"_TEST");
+                 Instances[] data=InstanceTools.resampleTrainAndTestInstances(train, test, fold);
+                 test=data[1];
+                 data=null;
+                 train=null;
+ //Write                 
+                 OutFile p=new OutFile(path+"/fold"+fold+".csv");
+ // hack here to save internal CV for furhter ensembling
+                 double acc=0;
+                 for(int j=0;j<test.numInstances();j++)
+                 {
+                     double act=test.instance(j).classValue();
+                     double pred=cls.classifyInstance(test.instance(j));
+                     p.writeLine(act+","+pred);
+                     if(act==pred)
+                         acc++;
+                 }
+                 acc/=test.numInstances();
+                 System.out.println(" TEST ACC ="+acc);
+            }
+            else{
+                System.out.println("ERROR: "+f+" does not exist");
+            }
+        }
+//            
+    }
+    
+    public static void main(String[] args) throws Exception{
+        
+/*       DataSets.resultsPath=DataSets.clusterPath+"Results/";
+       DataSets.problemPath=DataSets.clusterPath+"TSC Problems/";
+       int fold=Integer.parseInt(args[2]);
+       int paras=Integer.parseInt(args[3]);
+        reconstruct(args[0],args[1],fold,paras);
+        System.exit(0);
+ */
+//       reconstruct("C:/Users/ajb/Dropbox/Big TSC Bake Off/New Results/interval/TSBF/Predictions/FordB","TSBF",4,1);
+ //       System.exit(0);
         try{
             if(args.length>0){ //Cluster run
         System.out.println("ARGS[0] ="+args[0]+" ARGS LENGTH ="+args.length);
@@ -454,21 +609,28 @@ static String[] unfinishedTSF={"CinCECGtorso","ElectricDevices","FordA","FordB",
 //     UWaveGestureLibraryZ 75, UWaveGestureLibraryAll22
 //             String problem="UWaveGestureLibraryY"; 68
              problem="ItalyPowerDemand";
-
+             System.out.println("Problem ="+problem);
              DataSets.resultsPath+=getFolder(classifier)+"/";
-             System.out.println("Running "+classifier+" on "+problem);
-  
- //            singleClassifier(classifier,problem);
-             threadedSingleClassifierSingleProblem(classifier,problem,100,12);
+             int f=1;
+/*             
+             String[] ar={classifier,problem,f+"",4+""};
+             singleClassifierAndFoldAndParameter(ar);
+             ar[3]=3+"";
+             singleClassifierAndFoldAndParameter(ar);
+             ar[3]=2+"";
+             singleClassifierAndFoldAndParameter(ar);
+             ar[3]=1+"";
+             singleClassifierAndFoldAndParameter(ar);
+            reconstruct(ar[0],ar[1],f,4);
+             System.exit(0); 
+*/             
+             threadedSingleClassifierSingleProblem(classifier,problem,100,1);
              System.out.println("Finished");
          }
         }catch(Exception e){
             System.out.println("Exception thrown ="+e);
             System.exit(0);
         }
-        
-       
-        
     }
     public static String getFolder(String classifier){
         for(int i=0;i<classifiers.length;i++)
@@ -477,8 +639,5 @@ static String[] unfinishedTSF={"CinCECGtorso","ElectricDevices","FordA","FordB",
                     return directoryNames[i];
         return null;
     }
-
-
-
 
 }

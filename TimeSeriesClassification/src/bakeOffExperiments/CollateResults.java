@@ -346,9 +346,41 @@ public class CollateResults {
         }
         return false;
     }
+    public static void generateParameterSplitScripts(String root, String dest,String classifier,String problem,int paras,int folds){
+        InFile inf=new InFile(root+"\\SampleSizes.csv");
+        File f=new File(dest+"\\Scripts\\"+problem);
+        deleteDirectory(f);
+        if(!f.isDirectory())
+            f.mkdir();
+        OutFile of2=new OutFile(dest+"\\Scripts\\"+problem+"\\"+problem+"paras.txt");
+        for(int j=1;j<=paras;j++){
+            OutFile of=new OutFile(dest+"\\Scripts\\"+problem+"\\paraFold"+"_"+j+".bsub");
+            of.writeString("#!/bin/csh\n" +
+                "#BSUB -q ");
+            of.writeString("long\n#BSUB -J ");
+            of.writeLine(classifier+problem+"[1-10]");
+            of.writeString("#BSUB -oo output/"+classifier+"%I.out\n" +
+              "#BSUB -eo error/"+classifier+"%I.err\n" +
+              "#BSUB -R \"rusage[mem=2000]\"\n" +
+              "#BSUB -M 3000");
+            of.writeLine("\n\n module add java/jdk/1.8.0_31");
+            of.writeLine("java -jar TimeSeriesClassification.jar "+classifier+" " +problem+" $LSB_JOBINDEX"+j);
+            of2.writeLine("bsub < "+"Scripts/"+classifier+"/Unstarted/"+problem+".bsub");
+            of.closeFile();
+        }
+        
+    }
+    public static int getParas(String algo){
+        switch(algo){
+            case "TSBF": return 4;
+            case "LS": return 8;
+            default: return 10;    
+        }
+    }
     public static void generateScripts(String root, String dest){
         InFile inf=new InFile(root+"\\SampleSizes.csv");
         OutFile outf=new OutFile(dest+"\\AllProblems.txt");
+        OutFile outf2=new OutFile(dest+"\\UnstartedProblems.txt");
         File f=new File(dest+"\\Scripts");
         deleteDirectory(f);
         if(!f.isDirectory())
@@ -368,50 +400,103 @@ public class CollateResults {
             }
         }
         for(int j=0;j<algos.length;j++){
-            for(int i=0;i<problems.length;i++){
-                if(counts[i][j]<100){
-                    f=new File(dest+"\\Scripts\\"+algos[j]);
-                    if(!f.isDirectory())
-                        f.mkdir();
-                    c++;
-                    p+=(100-counts[i][j]);
-                    OutFile of=new OutFile(dest+"\\Scripts\\"+algos[j]+"\\"+problems[i]+".bsub");
-                    of.writeString("#!/bin/csh\n" +
-                      "#BSUB -q ");
-                    switch(problems[i]){
-                        case "FordA": case "FordB": case "ElectricDevices":
-                        case "HandOutlines": case "NonInvasiveFatalECGThorax1": 
-                        case "NonInvasiveFatalECGThorax2": case "StarlightCurves":
-                        case "UWaveGestureLibraryAll":
-                    of.writeString("long\n#BSUB -J ");
-                    if(counts[i][j]<10)
-                        of.writeLine(algos[j]+problems[i]+"["+(counts[i][j]+1)+"-10]");
-                    else
-                        of.writeLine(algos[j]+problems[i]+"["+(counts[i][j]+1)+"-100]");
-                    of.writeString("#BSUB -oo output/"+algos[j]+"%I.out\n" +
-                      "#BSUB -eo error/"+algos[j]+"%I.err\n" +
-                      "#BSUB -R \"rusage[mem=8000]\"\n" +
-                      "#BSUB -M 9000");
-                    break;
-                        default:
-                    of.writeString("short\n#BSUB -J ");                           
-                    of.writeLine(algos[j]+problems[i]+"["+(counts[i][j]+1)+"-100]");
-                    of.writeString("#BSUB -oo output/"+algos[j]+"%I.out\n" +
-                      "#BSUB -eo error/"+algos[j]+"%I.err\n" +
-                      "#BSUB -R \"rusage[mem=4000]\"\n" +
-                      "#BSUB -M 5000");
-                    }        
-                    
-                    of.writeLine("\n\n module add java/jdk/1.8.0_31");
-                    of.writeLine("java -jar TimeSeriesClassification.jar "+algos[j]+" " +problems[i]+" $LSB_JOBINDEX");
-                    outf.writeLine("bsub < "+"Scripts/"+algos[j]+"/"+problems[i]+".bsub");
-                    of.closeFile();
+            if(generateScripts(algos[j])){
+                for(int i=0;i<problems.length;i++){
+                    if(counts[i][j]==0){
+                        f=new File(dest+"\\Scripts\\"+algos[j]);
+                        if(!f.isDirectory())
+                            f.mkdir();
+                        f=new File(dest+"\\Scripts\\"+algos[j]+"\\Unstarted");
+                        if(!f.isDirectory())
+                            f.mkdir();
+                        c++;
+                        p+=100;
+                        int paras=getParas(algos[j]);
+                        for(int k=1;k<=paras;k++){
+                            OutFile of=new OutFile(dest+"\\Scripts\\"+algos[j]+"\\Unstarted\\"+problems[i]+"_"+k+".bsub");
+                             of.writeString("#!/bin/csh\n" +
+                                "#BSUB -q ");
+                             of.writeString("long-ib\n#BSUB -J ");
+                            of.writeLine(algos[j]+problems[i]+"["+(counts[i][j]+1)+"-10]");
+                            of.writeString("#BSUB -oo output/"+algos[j]+k+"%I.out\n" +
+                                "#BSUB -eo error/"+algos[j]+k+"%I.err\n" +
+                                "#BSUB -R \"rusage[mem=10000]\"\n" +
+                                "#BSUB -M 11000");
+                            of.writeLine("\n\n module add java/jdk1.8.0_51");
+
+                            of.writeLine("java -jar TimeSeriesClassification.jar "+algos[j]+" " +problems[i]+" $LSB_JOBINDEX "+k);
+                            outf2.writeLine("bsub < "+"Scripts/"+algos[j]+"/Unstarted/"+problems[i]+"_"+k+".bsub");
+                            of.closeFile();
+                        }
+                    }
+                    else if(counts[i][j]<100){                    
+                        f=new File(dest+"\\Scripts\\"+algos[j]);
+                        if(!f.isDirectory())
+                            f.mkdir();
+                        c++;
+                        p+=(100-counts[i][j]);
+                        if(algos[j].equals("LS")){
+                            int paras=getParas(algos[j]);
+                            for(int k=1;k<=paras;k++){
+                                OutFile of=new OutFile(dest+"\\Scripts\\"+algos[j]+"\\"+problems[i]+"_"+k+".bsub");
+                                 of.writeString("#!/bin/csh\n" +
+                                  "#BSUB -q ");
+                                 of.writeString("long-ib\n#BSUB -J ");
+                                 if(counts[i][j]<=10)
+                                    of.writeLine(algos[j]+problems[i]+"["+(counts[i][j]+1)+"-10]");
+                                 else
+                                    of.writeLine(algos[j]+problems[i]+"["+(counts[i][j]+1)+"-100]");
+                                of.writeString("#BSUB -oo output/"+algos[j]+k+"%I.out\n" +
+                              "#BSUB -eo error/"+algos[j]+k+"%I.err\n" +
+                              "#BSUB -R \"rusage[mem=10000]\"\n" +
+                              "#BSUB -M 11000");
+                                of.writeLine("\n\n module add java/jdk1.8.0_51");
+
+                                of.writeLine("java -jar TimeSeriesClassification.jar "+algos[j]+" " +problems[i]+" $LSB_JOBINDEX "+k);
+                                outf2.writeLine("bsub < "+"Scripts/"+algos[j]+"/Unstarted/"+problems[i]+"_"+k+".bsub");
+                                of.closeFile();
+                            }                        
+                        }
+                        else{
+                            OutFile of=new OutFile(dest+"\\Scripts\\"+algos[j]+"\\"+problems[i]+".bsub");
+                            of.writeString("#!/bin/csh\n" +
+                              "#BSUB -q ");
+                            if(counts[i][j]>0 && counts[i][j]<9){
+                                of.writeString("long-ib\n#BSUB -J ");
+                                of.writeLine(algos[j]+problems[i]+"["+(counts[i][j]+1)+"-10]");
+                                of.writeString("#BSUB -oo output/"+algos[j]+"%I.out\n" +
+                              "#BSUB -eo error/"+algos[j]+"%I.err\n" +
+                              "#BSUB -R \"rusage[mem=10000]\"\n" +
+                              "#BSUB -M 11000");
+                            }else{
+                                of.writeString("long\n#BSUB -J ");                           
+                                of.writeLine(algos[j]+problems[i]+"["+(counts[i][j]+1)+"-10]");
+                                of.writeString("#BSUB -oo output/"+algos[j]+"%I.out\n" +
+                                  "#BSUB -eo error/"+algos[j]+"%I.err\n" +
+                                  "#BSUB -R \"rusage[mem=2000]\"\n" +
+                                  "#BSUB -M 3000");
+                            }                            
+                            of.writeLine("\n\n module add java/jdk1.8.0_51");
+                            of.writeLine("java -jar TimeSeriesClassification.jar "+algos[j]+" " +problems[i]+" $LSB_JOBINDEX");
+                            outf.writeLine("bsub < "+"Scripts/"+algos[j]+"/"+problems[i]+".bsub");
+                            of.closeFile();
+                        }
+                    }
                 }
             }
         }
         System.out.println(" Total number of problems remaining ="+c);
         System.out.println(" Total number of runs remaining ="+p);
         outf.closeFile();
+    }
+    public static boolean generateScripts(String algo){
+        switch(algo){
+            case "TSF":case "TSBF": case "Logistic": case "MLP": case "LS": 
+            case "FS": case "ACF": case "PS": 
+                return true;
+            default:
+                return false;
+        }
     }
     public static boolean deleteDirectory(File directory) {
         if(directory.exists()){

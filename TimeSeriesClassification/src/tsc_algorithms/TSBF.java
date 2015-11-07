@@ -79,8 +79,9 @@ import weka.core.TechnicalInformation;
  * ARGUMENTS
  * 
  */
-public class TSBF extends AbstractClassifier{
+public class TSBF extends AbstractClassifier implements ParameterSplittable{
 //Paras
+    
 //<editor-fold defaultstate="collapsed" desc="results reported in PAMI paper">        
     static double[] reportedResults={0.245,
 0.287,
@@ -175,7 +176,7 @@ public class TSBF extends AbstractClassifier{
 "Yoga"};
       //</editor-fold>  
     
-            
+          
     public TechnicalInformation getTechnicalInformation() {
     TechnicalInformation 	result;
     
@@ -196,6 +197,7 @@ public class TSBF extends AbstractClassifier{
     int minIntervalLength=5;   
     int numBins=10;      //bin size for codebook generation   
     double[] zLevels={0.1,0.25,0.5,0.75}; //minimum subsequence length factors (z) to be evaluated
+    double z=zLevels[0];
     int folds=10;
 //Variables, dont need to be global, can be local to buildClassifier
     
@@ -205,6 +207,7 @@ public class TSBF extends AbstractClassifier{
     int minSubLength;   // min series length = zlevel*seriesLength
     int numOfTreeStep=50; //step size for tree building process
     boolean paramSearch=true;
+    double trainAcc;
     boolean stepWise=true;
     int[][] subSeries;
     int[][][] intervals;
@@ -217,6 +220,13 @@ public class TSBF extends AbstractClassifier{
     public void seedRandom(int s){
         rand=new Random(s);
     }
+    public void setZLevel(double zLevel){ z=zLevel;}
+    public void setPara(int x){z=zLevels[x-1];}
+    public String getParas(){ return z+"";}
+    public double getAcc(){ return trainAcc;}
+    @Override
+    public void setParamSearch(boolean b){paramSearch =b;} 
+    
     Instances formatIntervalInstances(Instances data){
 
         //3 stats for whole subseries, start and end point, 3 stats per interval
@@ -363,7 +373,15 @@ public class TSBF extends AbstractClassifier{
         int[][] bestSubSeries=null;
         int[][][] bestIntervals=null;
         seriesLength=data.numAttributes()-1;
-        for(double zLevel:zLevels){
+        double [] paras;
+        if(paramSearch)
+            paras=zLevels;
+        else{
+            paras=new double[1];
+            paras[0]=z;
+        }
+        for(double zLevel:paras){
+            System.out.println(" ZLEVEL ="+zLevel+" paramSearch ="+paramSearch);
             numIntervals=(int)((zLevel*seriesLength)/minIntervalLength);
             if(numIntervals==0) //Skip this z setting?
                 numIntervals=1;
@@ -437,7 +455,6 @@ public class TSBF extends AbstractClassifier{
                 Random r= new Random();
                 acc=ClassifierTools.stratifiedCrossValidation(data, finalRandForest, 10,r.nextInt());
             }
-            System.out.println(" zlevel ="+zLevel+" acc ="+acc);
             if(acc>maxAcc){
                if(!stepWise)
                     finalRandForest.buildClassifier(second);
@@ -461,7 +478,7 @@ public class TSBF extends AbstractClassifier{
         subSeries=bestSubSeries;
         subseriesRandomForest=bestSubseriesModel;
         finalRandForest=bestFinalModel;
-        
+        trainAcc=maxAcc;        
     }
     public void countsFormat(int[][][] counts,double[][] classProbs,double[][] probs,int numClasses, int numInstances){
         for(int i=0;i<numInstances;i++){
