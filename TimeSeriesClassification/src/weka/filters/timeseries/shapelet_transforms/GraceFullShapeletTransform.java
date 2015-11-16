@@ -8,15 +8,17 @@ package weka.filters.timeseries.shapelet_transforms;
 import AaronTest.LocalInfo;
 import development.DataSets;
 import java.io.File;
-import java.io.FileNotFoundException;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
-import java.util.Scanner;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.TreeMap;
 import weka.core.Instances;
 import weka.core.shapelet.Shapelet;
 import static weka.filters.timeseries.shapelet_transforms.FullShapeletTransform.removeSelfSimilar;
@@ -98,6 +100,8 @@ public class GraceFullShapeletTransform extends FullShapeletTransform {
         ArrayList<Shapelet> kShapelets = new ArrayList<>();
         ArrayList<Shapelet> seriesShapelets;                                    // temp store of all shapelets for each time series
 
+        int proportion = numShapelets/data.numClasses();
+        
         //for all time series
         outputPrint("Processing data: ");
 
@@ -105,183 +109,165 @@ public class GraceFullShapeletTransform extends FullShapeletTransform {
 
         double[] wholeCandidate = data.get(currentSeries).toDoubleArray();
 
-        //changed to pass in the worst of the K-Shapelets.
-        Shapelet worstKShapelet = kShapelets.size() == numShapelets ? kShapelets.get(numShapelets - 1) : null;
-
+        //we don't have a worst shapelet because we're doing a single scan.
+        
         //set the series we're working with.
         subseqDistance.setSeries(currentSeries);
         //set the clas value of the series we're working with.
         classValue.setShapeletValue(data.get(currentSeries));
 
-        seriesShapelets = findShapeletCandidates(data, currentSeries, wholeCandidate, worstKShapelet);
+        seriesShapelets = findShapeletCandidates(data, currentSeries, wholeCandidate, null);
 
         Collections.sort(seriesShapelets, shapeletComparator);
 
         seriesShapelets = removeSelfSimilar(seriesShapelets);
 
-        kShapelets = combine(numShapelets, kShapelets, seriesShapelets);
+        //by putting them into kShapelets we cut down on how many we seralise.
+        //also use the proportion rather than num to be in line with Balanced.
+        kShapelets = combine(proportion, kShapelets, seriesShapelets);
 
-        this.numShapelets = kShapelets.size();
-
-        recordShapelets(kShapelets, getSubShapeletFileName(currentSeries));
-        printShapelets(kShapelets);
+        createSerialFile(kShapelets);
 
         return kShapelets;
     }
     
+    
+    private void createSerialFile(ArrayList<Shapelet> shapelets){
+        
+        String fileName = getSubShapeletFileName(currentSeries);
+        
+        //Serialise the object.
+        ObjectOutputStream out = null;
+        try {
+            out = new ObjectOutputStream(new FileOutputStream(fileName));
+            out.writeObject(shapelets);
+        } catch (IOException ex) {
+            System.out.println("Failed to write " + ex);
+        }
+        finally{
+            if(out != null){
+                try {
+                    out.close();
+                } catch (IOException ex) {
+                    System.out.println("Failed to close " + ex);
+                }
+            }
+        }
+    }
+    
     private String getSubShapeletFileName(int i)
     {
-        File f = new File(this.ouputFileLocation);
+        File f = new File(serialName);
         String str = f.getName();
         str = str.substring(0, str.lastIndexOf('.'));
-        return str + i + ".csv";
+        return str + "_" + i + ".ser";
     }
 
+    //we use the balanced class structure from BalancedClassShapeletTransform.
     public Instances processFromSubFile(Instances train) {
         File f = new File(this.ouputFileLocation);
 
         ArrayList<Shapelet> kShapelets = new ArrayList<>();
         ArrayList<Shapelet> seriesShapelets;
-        int i=0;
-        while(true) {
-            seriesShapelets = readShapeletsFromFile(getSubShapeletFileName(i++));
-            if(seriesShapelets == null) break; //we've reached the end of the files.
-            kShapelets = combine(numShapelets, kShapelets, seriesShapelets);
+        
+        TreeMap<Double, ArrayList<Shapelet>> kShapeletsMap = new TreeMap<>();
+        for (int i=0; i < train.numClasses(); i++){
+            kShapeletsMap.put((double)i, new ArrayList<Shapelet>());
+        }
+            
+        //found out how many we want in each sub list.
+        int proportion = numShapelets/kShapeletsMap.keySet().size();
+        
+        
+        for(int i=0; i<train.numInstances(); i++){
+            //get the proportion.
+            kShapelets = kShapeletsMap.get(train.get(i).classValue());
+            
+            seriesShapelets = readShapeletsFromFile(getSubShapeletFileName(i));
+            kShapelets = combine(proportion, kShapelets, seriesShapelets);
+            
+            //put the new proportion back.
+            kShapeletsMap.put(train.get(i).classValue(), kShapelets);
         }
         
-        numShapelets = kShapelets.size();
+        kShapelets = buildKShapeletsFromMap(kShapeletsMap);
+        
+        this.numShapelets = kShapelets.size();
+        
         shapelets = kShapelets;
         shapeletsTrained = true;
 
         return buildTansformedDataset(train, shapelets);
     }
+    
+           
+    private ArrayList<Shapelet> buildKShapeletsFromMap(Map<Double, ArrayList<Shapelet>> kShapeletsMap)
+    {
+       ArrayList<Shapelet> kShapelets = new ArrayList<>();
+       
+       int numberOfClassVals = kShapeletsMap.keySet().size();
+       int proportion = numShapelets/numberOfClassVals;
+       
+       
+       Iterator<Shapelet> it;
+       
+       //all lists should be sorted.
+       //go through the map and get the sub portion of best shapelets for the final list.
+       for(ArrayList<Shapelet> list : kShapeletsMap.values())
+       {
+           int i=0;
+           it = list.iterator();
+           
+           while(it.hasNext() && i++ <= proportion)
+           {
+               kShapelets.add(it.next());
+           }
+       }
+       return kShapelets;
+    }
+    
+    
 
     public static ArrayList<Shapelet> readShapeletsFromFile(String shapeletLocation){
+        ArrayList<Shapelet> shapelets = null;
         try {
-            ArrayList<Shapelet> shapelets = new ArrayList<>();
-            File f = new File(shapeletLocation);
-            
-            Scanner sc = new Scanner(f);
-            String[] lineData;
-            double[] timeSeries;
-            double qualityValue;
-            int seriesId,startPos, i;
-            Shapelet s;
-            
-            while (sc.hasNextLine()) {
-                lineData = sc.nextLine().split(",");
-                
-                qualityValue = lineData.length >= 1 ? Double.parseDouble(lineData[0]) : 0.0;
-                seriesId = lineData.length >= 2 ? Integer.parseInt(lineData[1]) : 0;
-                startPos = lineData.length >= 3 ? Integer.parseInt(lineData[2]) : 0;
-                
-                //first three elements of the data have been accounted, next line is the contents of the shapelet.
-                lineData = sc.nextLine().split(",");
-                
-                timeSeries = new double[lineData.length];
-                for (i = 0; i < timeSeries.length; ++i) {
-                    timeSeries[i] = Double.parseDouble(lineData[i]);
-                }
-                
-                shapelets.add(new Shapelet(timeSeries, qualityValue, seriesId, startPos));
-            }
-            
-            return shapelets;
-            
-        } catch (FileNotFoundException ex) {
-            System.out.println("File Not Found");
-            return null;
+            ObjectInputStream ois = new ObjectInputStream(new FileInputStream(shapeletLocation));
+            shapelets = (ArrayList<Shapelet>) ois.readObject();
+        } catch (IOException | ClassNotFoundException ex) {
+            System.out.println(ex);
         }
+        
+        return shapelets;
     }
 
     //memUsage is in MB.
-    public static void buildGraceBSUB(String filePath, String savePath, String jobName, String queue, int memUsage) {
+    public static void buildGraceBSUB(String fileName, int numInstances, int fold, String queue, int memUsage) {
         try {
 
             //create the directory and the files.
-            File f1 = new File("graceArray.bsub");
+            File f1 = new File(fileName+"GRACE.bsub");
             f1.createNewFile();
-            
-            File f2 = new File("graceCombiner.bsub");
-            f2.createNewFile();
-            
-            File f3 = new File("submitGrace.sh");
-            f3.createNewFile();
-            
-            Instances train = utilities.ClassifierTools.loadData(filePath+"_TRAIN");
 
             //write the bsubs
             try (PrintWriter pw = new PrintWriter(f1)) {
                 pw.println("#!/bin/csh");
                 pw.println("#BSUB -q " + queue);
-                pw.println("#BSUB -J " + jobName + "[1-" + train.numInstances() + "]"); //+1 because we have to start at 1.
-                pw.println("#BSUB -oo " + jobName + "_%I.out");
+                pw.println("#BSUB -J " + fileName+fold + "[1-" + numInstances + "]"); //+1 because we have to start at 1.
+                pw.println("#BSUB -cwd \"/gpfs/sys/raj09hxu/GraceTransform/dist\"");
+                pw.println("#BSUB -oo output/" + fileName+fold + "_%I.out");
                 pw.println("#BSUB -R \"rusage[mem=" + memUsage + "]\"");
-                pw.println("#BSUB -M " + (memUsage * 1.2)); //give ourselves a 20% wiggle room.
-                pw.println(". /etc/profile");
-                pw.println("module add java/jdk/1.7.0_13");
-                pw.println("java -jar -Xmx" + memUsage + "m TimeSeriesClassification.jar search $LSB_JOBINDEX " + filePath + " " + savePath);
+                pw.println("#BSUB -M " + (memUsage)); //give ourselves a 20% wiggle room.
+                pw.println("./etc/profile");
+                //pw.println("module add java/jdk/1.7.0_13");
+                pw.println("module add java/jdk1.8.0_51");
+                pw.println("java -jar -Xmx" + memUsage + "m TimeSeriesClassification.jar " + fileName + " 1 " + (fold+1) + " $LSB_JOBINDEX" );
             }
-            
-            try (PrintWriter pw = new PrintWriter(f2)) {
-                pw.println("#!/bin/csh");
-                pw.println("#BSUB -q " + queue);
-                pw.println("#BSUB -J " + jobName+"Combiner"); //+1 because we have to start at 1.
-                pw.println("#BSUB -w \"done(" + jobName + "[1-" + train.numInstances() + "])\"");
-                pw.println("#BSUB -oo " + jobName + "_%I.out");
-                pw.println("#BSUB -R \"rusage[mem=" + memUsage + "]\"");
-                pw.println("#BSUB -M " + (memUsage * 1.2)); //give ourselves a 20% wiggle room.
-                pw.println(". /etc/profile");
-                pw.println("module add java/jdk/1.7.0_13");
-                pw.println("java -jar -Xmx" + memUsage + "m TimeSeriesClassification.jar combine " + filePath + " " + savePath);
-            }
-            
-            //write the bash file which will submit both.
-            try (PrintWriter pw = new PrintWriter(f3)) {
-                pw.println("#!/bin/csh");
-                pw.println("bsub < " + f1.getName());
-                pw.println("bsub < " + f2.getName());
-            }
-            
         } catch (IOException ex) {
             System.out.println("Failed to create file " + ex);
         }
     }
 
     public static void main(String[] args) {
-        //we assume at the file path you have two files which have _TRAIN and _TEST attached to them.
-        // .jar search 1 ../../Time-Series-Datasets/Adiac/Adiac
-
-        //.jar combine  ../../Time-Series-Datasets/Adiac/Adiac ../../Time-Series-transforms/Adiac/Adiac
-        GraceFullShapeletTransform st = new GraceFullShapeletTransform();
-        if(args[0].equalsIgnoreCase("BSUB"))
-        {
-            GraceFullShapeletTransform.buildGraceBSUB(args[1],args[2],"samplingExperiments", "medium", 2000);
-        }
-        else if(args[0].equalsIgnoreCase("search"))
-        {
-            int number = Integer.parseInt(args[1]);
-            Instances train = utilities.ClassifierTools.loadData(args[2]+"_TRAIN");
-        
-            //set the params for your transform. length, shapelets etc.
-            st.setLogOutputFile(args[2] + ".csv");
-            st.setNumberOfShapelets(train.numInstances()*10);
-
-            //partial training.
-            st.setSeries(number-1);
-            st.process(train);
-        }
-        
-        else if(args[0].equalsIgnoreCase("combine"))
-        {
-            st.setLogOutputFile(args[1] + ".csv");
-     
-            Instances train = utilities.ClassifierTools.loadData(args[1]+"_TRAIN");
-            Instances test = utilities.ClassifierTools.loadData(args[1]+"_TEST");
-            
-            LocalInfo.saveDataset(st.processFromSubFile(train), args[2] + "_TRAIN");
-            LocalInfo.saveDataset(st.process(test), args[2] + "_TEST");
-        }
         
     }
     

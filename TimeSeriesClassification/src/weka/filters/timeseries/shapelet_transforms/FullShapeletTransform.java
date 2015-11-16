@@ -555,6 +555,8 @@ public class FullShapeletTransform extends SimpleBatchFilter {
     
     public void createSerialFile()
     {
+        if(serialName == null) return;
+        
         //Serialise the object.
         ObjectOutputStream out = null;
         try {
@@ -738,7 +740,7 @@ public class FullShapeletTransform extends SimpleBatchFilter {
             boolean shapelet1Null = shapelet1 == null;
             boolean shapelet2Null = shapelet2 == null;
 
-            //both lists have been explored, but we have less than K elements atm.
+            //both lists have been explored, but we have less than K elements.
             if (shapelet1Null && shapelet2Null) {
                 break;
             }

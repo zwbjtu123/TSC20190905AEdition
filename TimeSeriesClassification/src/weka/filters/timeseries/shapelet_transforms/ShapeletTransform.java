@@ -167,11 +167,11 @@ public class ShapeletTransform extends FullShapeletTransform {
 
     public static void main(String[] args) {
         final String dotdotSlash = ".." + File.separator;
-        String adiacLocation = dotdotSlash + dotdotSlash + "75 Data sets for Elastic Ensemble DAMI Paper" + File.separator + "Beef" + File.separator + "Beef";
+        String adiacLocation = dotdotSlash + dotdotSlash + "resampled data sets" + File.separator + "ItalyPowerDemand" + File.separator + "ItalyPowerDemand99";
 
         Instances train = utilities.ClassifierTools.loadData(adiacLocation + "_TRAIN");
 
-        ShapeletTransform transform = new ShapeletTransform();
+        /*ShapeletTransform transform = new ShapeletTransform();
         transform.setNumberOfShapelets(train.numInstances() * 10);
         transform.setShapeletMinAndMax(3, train.numAttributes() - 1);
         transform.supressOutput();
@@ -180,18 +180,17 @@ public class ShapeletTransform extends FullShapeletTransform {
         long startTime = System.nanoTime();
         transform.process(train);
         long finishTime = System.nanoTime();
-        System.out.println((finishTime - startTime));
+        System.out.println((finishTime - startTime));*/
 
         FullShapeletTransform transform1 = new FullShapeletTransform();
         transform1.setNumberOfShapelets(train.numInstances() * 10);
         transform1.setShapeletMinAndMax(3, train.numAttributes() - 1);
-        transform1.supressOutput();
         transform1.setQualityMeasure(QualityMeasures.ShapeletQualityChoice.INFORMATION_GAIN);
 
-        startTime = System.nanoTime();
+        //startTime = System.nanoTime();
         transform1.process(train);
-        finishTime = System.nanoTime();
-        System.out.println((finishTime - startTime));
+        //finishTime = System.nanoTime();
+        //System.out.println((finishTime - startTime));
 
     }
 }

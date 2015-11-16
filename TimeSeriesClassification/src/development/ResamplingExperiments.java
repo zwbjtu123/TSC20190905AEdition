@@ -39,7 +39,9 @@ public class ResamplingExperiments {
     private static final String transformLocation = dotdotSlash + dotdotSlash + "resampled transforms";
     private static final String accuraciesLocation = dotdotSlash + dotdotSlash + "resampled accuracies";
     private static final String resultsLocation = dotdotSlash + dotdotSlash + "resampled results";
-
+    private static final String serialLocation = dotdotSlash + dotdotSlash + "resampled serial files";
+    
+    
     private static String[] datasets;
 
     private static String classifierName;
@@ -51,6 +53,7 @@ public class ResamplingExperiments {
 
     public static void main(String args[]) {
 
+
         //ive already 
         //datasets = removeSubArray(DataSets.ucrNames, DataSets.ucrSmall);
         //datasets = DataSets.ucrSmall;
@@ -59,9 +62,9 @@ public class ResamplingExperiments {
         //arg2 is the fold number. 0-99.
         //arg1 is the algorithm Full is 0 and Binary is 1.
         //We could opt to not have our arguments come from command line and instead run the folds and datasets and algorithms in 3 nested loops.
-        currentDataSet = /*sometimes we need to use the array number*/DataSets.fileNames[Integer.parseInt(args[0])];
+        currentDataSet = args[0];///*sometimes we need to use the array number*/DataSets.fileNames[Integer.parseInt(args[0])];
         
-        classifier = Integer.parseInt(args[1]);
+        classifier = Integer.parseInt(args[1]); //auto set this Balanced.
         setClassifierName(classifier);
 
         //1-100. we want 0-99. Cluster thing.
@@ -70,14 +73,28 @@ public class ResamplingExperiments {
             fold = Integer.parseInt(args[2]) - 1;
         }
         
-        System.out.println(currentDataSet + " " + fold);
+        int currentSeries =0;
+        if (args.length >= 4) {
+            currentSeries = Integer.parseInt(args[3]) - 1;
+        }
+        
+        boolean complete = false;
+        if(args.length >=5){
+            complete =  Boolean.parseBoolean(args[4]);
+        }
+        
+        System.out.println(currentDataSet + " " + fold + " " + currentSeries);
 
+
+        createShapeletsGrace(fold, currentSeries, complete);
+        
+        
         //createAllResamples();
-        File f = new File(transformLocation + File.separator + classifierName + File.separator + currentDataSet + File.separator+currentDataSet+fold+"_TRAIN.arff");
+        /*File f = new File(transformLocation + File.separator + classifierName + File.separator + currentDataSet + File.separator+currentDataSet+fold+"_TRAIN.arff");
         if(!f.exists())
             createShapelets(fold);
         else
-            System.out.println("already transformed");
+            System.out.println("already transformed");*/
         
         
         //createLearnShapeleteAccuracies(fold);
@@ -94,6 +111,8 @@ public class ResamplingExperiments {
         //createAccuracyTable();
         //createAccuracies();
         //collateData(resultsLocation, simpleName);
+        //checkStatus();
+        
     }
 
     public static void setClassifierName(int classifier) {
@@ -173,6 +192,43 @@ public class ResamplingExperiments {
         LocalInfo.saveDataset(transform.process(test), transformPath + "_TEST");
     }
 
+    
+    public static void createShapeletsGrace(int fold, int currentSeries, boolean complete){
+        
+        String fileExtension = File.separator + currentDataSet + File.separator + currentDataSet;
+        String classifierDir = File.separator + classifierName + fileExtension;
+        String samplePath = resampleLocation + fileExtension + fold;
+        String transformPath = transformLocation + classifierDir + fold;
+        String serialiseName = classifierName+"_"+currentDataSet+fold+".ser";
+        
+        Instances test,train;
+        test = utilities.ClassifierTools.loadData(samplePath + "_TEST");
+        train = utilities.ClassifierTools.loadData(samplePath + "_TRAIN");
+
+        //if we can't load our transform for whatever reason create a new one.
+        GraceFullShapeletTransform  transform  = new GraceFullShapeletTransform();
+        transform.setClassValue(new BinarisedClassValue());
+        transform.setSubSeqDistance(new ImprovedOnlineSubSeqDistance());
+        transform.setSeries(currentSeries);
+        transform.useCandidatePruning();
+        transform.setSerialName(serialiseName);
+        transform.setNumberOfShapelets(train.numInstances() * 10);
+        transform.setShapeletMinAndMax(3, train.numAttributes() - 1);
+        transform.setQualityMeasure(QualityMeasures.ShapeletQualityChoice.INFORMATION_GAIN);
+        transform.setLogOutputFile(transformPath + "_shapelets.csv");
+
+        GraceFullShapeletTransform.buildGraceBSUB(currentDataSet, train.numInstances(), fold, "long-eth", 8000);
+        
+        /*if(!complete){
+            transform.process(train);
+        }
+        else{
+            //saveLocation/FullShapeletTransform/ItalyPowerDemand/ItalyPowerDemandi_TRAIN
+            LocalInfo.saveDataset(transform.processFromSubFile(train), transformPath + "_TRAIN");
+            LocalInfo.saveDataset(transform.process(test), transformPath + "_TEST");
+        }*/
+    }
+    
     public static String[] removeSubArray(String[] datasets, String[] subDatasets) {
         ArrayList<String> list = new ArrayList<>();
 
@@ -499,8 +555,7 @@ public class ResamplingExperiments {
             System.out.println("Classifier exception: " + ex);
         }
     }
-    
-    
+       
     public static void checkCompletion(){
         String fileExtension = File.separator + currentDataSet + File.separator + currentDataSet;
 
@@ -523,8 +578,7 @@ public class ResamplingExperiments {
         System.out.print("]\n");
                 
     }
-    
-    
+      
     public static void createWEOnTransform() {
         String fileExtension = File.separator + currentDataSet + File.separator + currentDataSet;
 
@@ -571,5 +625,39 @@ public class ResamplingExperiments {
         } catch (Exception ex) {
             System.out.println("Classifier exception: " + ex);
         }
+    }
+    
+    public static void checkStatus(){
+        
+        File dir = new File(resampleLocation);
+        
+        for (File listFile : dir.listFiles()) {
+            
+            String filePath = resampleLocation + File.separator + listFile.getName() + File.separator + listFile.getName();
+            
+            System.out.println(listFile.getName());
+
+            BalancedClassShapeletTransform transform;
+
+            System.out.println("Fold Percentage");
+            //go through all the datasets and there folds, open up the train file.
+            for (int fold = 0; fold < noSamples; fold++) {
+                //get the train and test instances for each dataset.
+                Instances train = utilities.ClassifierTools.loadData(filePath + fold + "_TRAIN");
+
+                //see if a serial file exists with the same name.
+                String serialiseName = serialLocation + File.separator + "BalancedClassShapeletTransform"+"_"+listFile.getName()+fold+".ser";
+                try {
+                    ObjectInputStream ois = new ObjectInputStream(new FileInputStream(serialiseName));
+                    transform = (BalancedClassShapeletTransform) ois.readObject();
+                    float completion = ((float)transform.dataSet/(float)train.numInstances())*100;
+                    if(completion != 100)
+                        System.out.println(fold + " " + completion);
+                } catch (IOException | ClassNotFoundException ex) {
+                }
+            }
+        }
+        //resampleLocation
+        //serialLocation
     }
 }
