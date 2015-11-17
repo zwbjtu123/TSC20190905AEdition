@@ -1,7 +1,5 @@
 package tsc_algorithms;
 
-import java.io.File;
-import java.io.FileWriter;
 import java.text.DecimalFormat;
 import utilities.ClassifierTools;
 import utilities.InstanceTools;
@@ -154,6 +152,12 @@ public class DD_DTW extends kNN{
     
     protected GoreckiDerivativesEuclideanDistance distanceFunction;
     protected boolean paramsSet;
+    protected boolean sampleForCV=false;
+    protected double prop;
+    public void sampleForCV(boolean b, double p){
+        sampleForCV=b;
+        prop=p;
+    }
     
     public enum DistanceType{EUCLIDEAN, DTW};
     

@@ -461,7 +461,8 @@ public class LearnShapelets extends AbstractClassifier implements ParameterSplit
             paramsLambdaW=lambdaWRange;
             paramsPercentageOfSeriesLength=percentageOfSeriesLengthRange;
             paramsShapeletLengthScale=shapeletLengthScaleRange;
-            maxIter = 100;
+//Hope to speed it up!            
+//            maxIter = 200;
         }else{// Hack to minimize changes to the method below
             paramsLambdaW=new double[1];
             paramsLambdaW[0]=lambdaW;
@@ -484,6 +485,7 @@ public class LearnShapelets extends AbstractClassifier implements ParameterSplit
                 for (int k = 0; k < paramsShapeletLengthScale.length; k++) {
                     double sumAccuracy = 0;
                     //build our test and train sets. for cross-validation.
+                    System.out.println("Begin cross validation");
                     for (int l = 0; l < noFolds; l++) {
                         Instances trainCV = data.trainCV(noFolds, l);
                         Instances testCV = data.testCV(noFolds, l);
@@ -518,10 +520,11 @@ public class LearnShapelets extends AbstractClassifier implements ParameterSplit
                 }
             }
         }
+        System.out.println("End cross validation paras "+params[0]+", "+params[1]+", "+params[2]);
         maxAcc=bsfAccuracy;
+        lambdaW = paramsLambdaW[params[0]];
         percentageOfSeriesLength = paramsPercentageOfSeriesLength[params[1]];
         shapeletLengthScale = paramsShapeletLengthScale[params[2]];
-        lambdaW = paramsLambdaW[params[0]];
         train(data); 
     }
     
@@ -543,28 +546,30 @@ public class LearnShapelets extends AbstractClassifier implements ParameterSplit
 
         List<Double> lossHistory = new ArrayList<>();
         lossHistory.add(Double.MIN_VALUE);
-
+        int restarts=0;
         // apply the stochastic gradient descent in a series of iterations
         for (int iter = 0; iter <= maxIter; iter++) {
             // learn the latent matrices
             learnF();
+//            if(iter%10==0)
+//            System.out.println("Max it ="+maxIter+" iter ="+iter);
 
             // measure the loss
-            if (iter % maxIter/2 == 0) {
+            if ((iter %(maxIter/2)) == 0 && iter>0) {
                 double mcrTrain = trainSetErrorRate();
                 double lossTrain = accuracyLossTrainSet();
 
                 lossHistory.add(lossTrain);
                 // if divergence is detected start from the beginning 
-                // at a lower learning rate
+                // at a lower learning rate, 
                 if (Double.isNaN(lossTrain) || mcrTrain == 1.0) {
-                    iter = 0;
-
+                    restarts++;
+  //                  System.out.println("Resetting "+restarts);    
                     eta /= 3;
-
                     lossHistory.clear();
-
                     initialize();
+                    if(restarts<5)
+                        iter = 0;
                 }
 
                 if (lossHistory.size() > maxIter/2) {
@@ -573,6 +578,7 @@ public class LearnShapelets extends AbstractClassifier implements ParameterSplit
                     }
                 }
             }
+//            System.out.println("END: Max it ="+maxIter+" iter ="+iter);            
         }
     }
 

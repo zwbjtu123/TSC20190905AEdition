@@ -38,6 +38,9 @@ import fileIO.InFile;
 import fileIO.OutFile;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  *
@@ -83,6 +86,7 @@ public class CollateResults {
     public static class Results{
         String name;
         double mean;
+        double median;
         double stdDev;
         double[] accs;
         public boolean equals(Object o){
@@ -110,8 +114,8 @@ public class CollateResults {
                 for(int j=0;j<r.accs.length;j++){
                     try{
                         r.accs[j]=Double.parseDouble(split[j+1]);
-                        if(r.accs[j]>1)
-                           r.accs[j]=r.accs[j-1]; //REMOVE IMMEDIATELY
+//                        if(r.accs[j]>1)
+//                           r.accs[j]=r.accs[j-1]; //REMOVE IMMEDIATELY
 //                            throw new Exception("ERRPR ACCURACY >1 = "+r.accs[j]+" line ="+i+" split ="+j+" file = "+f.getName());
                         r.mean+=r.accs[j];
                     }catch(Exception e){
@@ -126,6 +130,12 @@ public class CollateResults {
                 }
                 r.stdDev/=(r.accs.length-1);
                 r.stdDev=Math.sqrt(r.stdDev);
+                Arrays.sort(r.accs);
+                if(r.accs.length%2==0)
+                    r.median=(r.accs[r.accs.length/2]+r.accs[r.accs.length/2-1])/2;
+                else
+                    r.median=r.accs[r.accs.length/2];
+                    
             }
             res.add(r);
         }
@@ -138,7 +148,7 @@ public class CollateResults {
             if(j<res.size()){
                 Results r=res.get(j);
                 if(r.mean>0)
-                    of.writeLine(r.mean+","+r.stdDev+","+r.accs.length);
+                    of.writeLine(r.mean+","+r.stdDev+","+r.accs.length+","+r.median);
                 else
                     of.writeLine("");
             }
@@ -167,7 +177,7 @@ public class CollateResults {
         }
     }
     public static void fileCombineClassifiers(String inPath,String outPath) throws Exception{
-        OutFile[] of={new OutFile(outPath+"\\Means.csv"),new OutFile(outPath+"\\StDevs.csv"),new OutFile(outPath+"\\SampleSizes.csv")};
+        OutFile[] of={new OutFile(outPath+"\\Means.csv"),new OutFile(outPath+"\\StDevs.csv"),new OutFile(outPath+"\\SampleSizes.csv"),new OutFile(outPath+"\\Medians.csv")};
 
         
         for(OutFile o:of){
@@ -184,7 +194,7 @@ public class CollateResults {
         for(int i=0;i<inFiles.length;i++){
             inFiles[i]=new InFile[names[i].length];
             for(int j=0;j<inFiles[i].length;j++){
-//Check existance
+//Check existence
                 File f=new File(inPath+names[i][j]+".csv");
 //If exists, open                
                 if(f.exists())
@@ -204,6 +214,7 @@ public class CollateResults {
                             of[0].writeString(",");
                             of[1].writeString(",");
                             of[2].writeString("0,");
+                            of[3].writeString(",");
                     }
                     else{
                         String[] name=inFiles[i][j].readLine().split(",");
@@ -211,9 +222,10 @@ public class CollateResults {
                             of[0].writeString(",");
                             of[1].writeString(",");
                             of[2].writeString("0,");
+                            of[3].writeString(",");
                         }
                         else{
-                            for(int k=0;k<3;k++)
+                            for(int k=0;k<of.length;k++)
                                 of[k].writeString(name[k+1]+",");
                         }
                     }
@@ -288,14 +300,15 @@ public class CollateResults {
                             System.out.println(" Processing DTD_C");    
                         }
                     for(int k=0;k<DataSets.fileNames.length;k++){
-                        String cls=names[i][j];
-                        String directory=dirNames[i];
+//                        String cls=names[i][j];
+//                        String directory=dirNames[i];
                         String s= DataSets.fileNames[k];
                         File f=new File(dir+"\\"+s+".csv");
                         if(f.exists()){ //At least partially complete
     //See how complete it is
+                            System.out.println(" Reading "+dir+"\\"+s+".csv");
                             InFile inf=new InFile(dir+"\\"+s+".csv");
-                            String line=inf.readLine();
+                            String line=inf.readLine();                            
                             inf.closeFile();
 //                            System.out.println(directory+" "+cls+" "+s+" "+line);
                             String[] res=null;
@@ -305,6 +318,8 @@ public class CollateResults {
                             }
                             else{
                                 res=line.split(",");
+//                                System.out.println(" line ="+line+" length = "+res.length);
+
                             }
                             if(res!=null && res.length<101)
                             {   //Check to see if there are any preds need adding
@@ -316,6 +331,7 @@ public class CollateResults {
                                     else
                                         of.writeString(str+",");
                                 }
+//                                System.out.println("Checking for folds "+length+" to 99");
                                 combineFolds(dir+"\\Predictions\\"+s+"\\",of,length,99);
                                 of.closeFile();
                                 
@@ -382,6 +398,13 @@ public class CollateResults {
         OutFile outf=new OutFile(dest+"\\AllProblems.txt");
         OutFile outf2=new OutFile(dest+"\\UnstartedProblems.txt");
         File f=new File(dest+"\\Scripts");
+        int mem=4000;
+        int maxMem=6000;
+        int maxNum=100;
+        String queue="long-eth";
+        String oldCluster= "java/jdk/1.8.0_31";
+        String newCluster="java/jdk1.8.0_51";
+        String java=newCluster;
         deleteDirectory(f);
         if(!f.isDirectory())
             f.mkdir();
@@ -416,13 +439,13 @@ public class CollateResults {
                             OutFile of=new OutFile(dest+"\\Scripts\\"+algos[j]+"\\Unstarted\\"+problems[i]+"_"+k+".bsub");
                              of.writeString("#!/bin/csh\n" +
                                 "#BSUB -q ");
-                             of.writeString("long-ib\n#BSUB -J ");
-                            of.writeLine(algos[j]+problems[i]+"["+(counts[i][j]+1)+"-10]");
+                             of.writeString(queue+"\n#BSUB -J ");
+                            of.writeLine(algos[j]+problems[i]+"["+(counts[i][j]+1)+"-"+maxNum+"]");
                             of.writeString("#BSUB -oo output/"+algos[j]+k+"%I.out\n" +
                                 "#BSUB -eo error/"+algos[j]+k+"%I.err\n" +
-                                "#BSUB -R \"rusage[mem=10000]\"\n" +
-                                "#BSUB -M 11000");
-                            of.writeLine("\n\n module add java/jdk1.8.0_51");
+                                "#BSUB -R \"rusage[mem="+mem+"]\"\n" +
+                                "#BSUB -M "+maxMem);
+                            of.writeLine("\n\n module add "+java);
 
                             of.writeLine("java -jar TimeSeriesClassification.jar "+algos[j]+" " +problems[i]+" $LSB_JOBINDEX "+k);
                             outf2.writeLine("bsub < "+"Scripts/"+algos[j]+"/Unstarted/"+problems[i]+"_"+k+".bsub");
@@ -436,47 +459,50 @@ public class CollateResults {
                         c++;
                         p+=(100-counts[i][j]);
                         if(algos[j].equals("LS")){
+                            OutFile runScript=new OutFile(dest+"\\Scripts\\"+algos[j]+"\\Unfinished"+problems[i]+"Script.txt");
                             int paras=getParas(algos[j]);
                             for(int k=1;k<=paras;k++){
+                                runScript.writeLine("bsub < Scripts/"+algos[j]+"/"+problems[i]+"_"+k+".bsub");
                                 OutFile of=new OutFile(dest+"\\Scripts\\"+algos[j]+"\\"+problems[i]+"_"+k+".bsub");
                                  of.writeString("#!/bin/csh\n" +
                                   "#BSUB -q ");
-                                 of.writeString("long-ib\n#BSUB -J ");
+                                 of.writeString(queue+"\n#BSUB -J ");
                                  if(counts[i][j]<=10)
-                                    of.writeLine(algos[j]+problems[i]+"["+(counts[i][j]+1)+"-10]");
+                                    of.writeLine(algos[j]+problems[i]+"["+(counts[i][j]+1)+"-"+maxNum+"]");
                                  else
                                     of.writeLine(algos[j]+problems[i]+"["+(counts[i][j]+1)+"-100]");
                                 of.writeString("#BSUB -oo output/"+algos[j]+k+"%I.out\n" +
                               "#BSUB -eo error/"+algos[j]+k+"%I.err\n" +
-                              "#BSUB -R \"rusage[mem=10000]\"\n" +
-                              "#BSUB -M 11000");
-                                of.writeLine("\n\n module add java/jdk1.8.0_51");
+                              "#BSUB -R \"rusage[mem="+mem+"]\"\n" +
+                              "#BSUB -M "+maxMem);
+                                of.writeLine("\n\n module add "+java);
 
                                 of.writeLine("java -jar TimeSeriesClassification.jar "+algos[j]+" " +problems[i]+" $LSB_JOBINDEX "+k);
                                 outf2.writeLine("bsub < "+"Scripts/"+algos[j]+"/Unstarted/"+problems[i]+"_"+k+".bsub");
                                 of.closeFile();
-                            }                        
+                            }
+                            runScript.closeFile();
                         }
                         else{
                             OutFile of=new OutFile(dest+"\\Scripts\\"+algos[j]+"\\"+problems[i]+".bsub");
                             of.writeString("#!/bin/csh\n" +
                               "#BSUB -q ");
                             if(counts[i][j]>0 && counts[i][j]<9){
-                                of.writeString("long-ib\n#BSUB -J ");
-                                of.writeLine(algos[j]+problems[i]+"["+(counts[i][j]+1)+"-10]");
+                                of.writeString(queue+"\n#BSUB -J ");
+                                of.writeLine(algos[j]+problems[i]+"["+(counts[i][j]+1)+"-"+maxNum+"]");
                                 of.writeString("#BSUB -oo output/"+algos[j]+"%I.out\n" +
                               "#BSUB -eo error/"+algos[j]+"%I.err\n" +
-                              "#BSUB -R \"rusage[mem=10000]\"\n" +
-                              "#BSUB -M 11000");
+                              "#BSUB -R \"rusage[mem="+mem+"]\"\n" +
+                              "#BSUB -M "+maxMem);
                             }else{
-                                of.writeString("long\n#BSUB -J ");                           
+                                of.writeString(queue+"\n#BSUB -J ");                           
                                 of.writeLine(algos[j]+problems[i]+"["+(counts[i][j]+1)+"-10]");
                                 of.writeString("#BSUB -oo output/"+algos[j]+"%I.out\n" +
                                   "#BSUB -eo error/"+algos[j]+"%I.err\n" +
-                                  "#BSUB -R \"rusage[mem=2000]\"\n" +
-                                  "#BSUB -M 3000");
+                                  "#BSUB -R \"rusage[mem="+mem+"]\"\n" +
+                                  "#BSUB -M "+maxMem);
                             }                            
-                            of.writeLine("\n\n module add java/jdk1.8.0_51");
+                            of.writeLine("\n\n module add "+java);
                             of.writeLine("java -jar TimeSeriesClassification.jar "+algos[j]+" " +problems[i]+" $LSB_JOBINDEX");
                             outf.writeLine("bsub < "+"Scripts/"+algos[j]+"/"+problems[i]+".bsub");
                             of.closeFile();
@@ -514,12 +540,26 @@ public class CollateResults {
         }
         return(directory.delete());
     }    
-    public static void main(String[] args)throws Exception{
+    public static void main(String[] args){
         String root="C:\\Users\\ajb\\Dropbox\\Big TSC Bake Off\\New Results";
+        System.out.println("Combine singles ....");
         combineSingles(root);
+        System.out.println("cluster results collation ....");
         clusterResultsCollation(root);
-        fileStandardiseForProblems(root);
-        fileCombineClassifiers(root+"\\SingleClassifiers\\",root);
+       try {
+        System.out.println("file standardise for problems ....");
+           fileStandardiseForProblems(root);
+       } catch (Exception ex) {
+           System.out.println("Eorr in fileStandardiseForProblems");
+           System.exit(0);
+       }
+       try {
+        System.out.println("file combine classifiers ....");
+           fileCombineClassifiers(root+"\\SingleClassifiers\\",root);
+       } catch (Exception ex) {
+           System.out.println("Error in fileCombineClassifiers");
+           System.exit(0);
+       }
         generateScripts(root,root);
 
     }

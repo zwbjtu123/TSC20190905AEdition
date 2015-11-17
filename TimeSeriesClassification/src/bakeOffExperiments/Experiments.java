@@ -305,7 +305,7 @@ static String[] unfinishedTSF={"CinCECGtorso","ElectricDevices","FordA","FordB",
 //first gives the problem file  
         String classifier=args[0];
         String s=DataSets.fileNames[Integer.parseInt(args[1])-1];        
-//        String s=unfinished[Integer.parseInt(args[1])-1];
+//        String problem=unfinished[Integer.parseInt(args[1])-1];
         System.out.println("Classifier ="+classifier+" problem ="+s);
         Classifier c=setClassifier(classifier);
         Instances train=ClassifierTools.loadData(DataSets.problemPath+s+"/"+s+"_TRAIN");
@@ -392,17 +392,22 @@ static String[] unfinishedTSF={"CinCECGtorso","ElectricDevices","FordA","FordB",
         }
             
     }
-    
+    public static void allProblemsforSingleFold(String classifier, int fold){
+        for(String problem:DataSets.fileNames){
+            
+        }
+        
+    }
     
     public static void singleClassifierAndFold(String[] args){
 //first gives the problem file      
         String classifier=args[0];
-        String s=args[1];
+        String problem=args[1];
         int fold=Integer.parseInt(args[2])-1;
    
         Classifier c=setClassifier(classifier);
-        Instances train=ClassifierTools.loadData(DataSets.problemPath+s+"/"+s+"_TRAIN");
-        Instances test=ClassifierTools.loadData(DataSets.problemPath+s+"/"+s+"_TEST");
+        Instances train=ClassifierTools.loadData(DataSets.problemPath+problem+"/"+problem+"_TRAIN");
+        Instances test=ClassifierTools.loadData(DataSets.problemPath+problem+"/"+problem+"_TEST");
         File f=new File(DataSets.resultsPath+classifier);
         if(!f.exists())
             f.mkdir();
@@ -410,14 +415,14 @@ static String[] unfinishedTSF={"CinCECGtorso","ElectricDevices","FordA","FordB",
         f=new File(predictions);
         if(!f.exists())
             f.mkdir();
-        predictions=predictions+"/"+s;
+        predictions=predictions+"/"+problem;
         f=new File(predictions);
         if(!f.exists())
             f.mkdir();
 //Check whether fold already exists, if so, dont do it, just quit
         f=new File(predictions+"/fold"+fold+".csv");
         if(!f.exists() || f.length()==0){
-      //      of.writeString(s+","); );
+      //      of.writeString(problem+","); );
             double acc =singleSampleExperiment(train,test,c,fold,predictions);
  //       of.writeString("\n");
         }
@@ -514,20 +519,20 @@ static String[] unfinishedTSF={"CinCECGtorso","ElectricDevices","FordA","FordB",
     public static void reconstruct(String classifier, String problem,  int fold, int paras) throws Exception{
         String path=DataSets.resultsPath+classifier+"/Predictions/"+problem;
         System.out.println("PATH = "+path);
-        boolean completeFold=true;
+        boolean oneCompletePara=false;
         double bestAcc=0;
         int bestC=0;
-        completeFold=true;
         fold=fold-1;
         for (int j = 1; j <= paras; j++) {
 //Check file exists 
             File f=new File(path+"/fold"+fold+"_"+j+"TRAIN.csv");
             if(!f.exists()){//Fold is not complete Skip this fold
                 System.out.println("Fold "+fold+" paras "+j+" incomplete on "+path+"/fold"+fold+"_"+j+"TRAIN.csv");
-                completeFold=false;
+                
             }            
 //Find accuracy
             else{
+                oneCompletePara=true;
                 System.out.println("Parameter values "+j+" is complete");
                 InFile inf=new InFile(path+"/fold"+fold+"_"+j+"TRAIN.csv");
                 int p=inf.readInt();
@@ -540,7 +545,7 @@ static String[] unfinishedTSF={"CinCECGtorso","ElectricDevices","FordA","FordB",
             }
         }
 //Load best classifier if all paras have been tested
-        if(completeFold){
+        if(oneCompletePara){
             System.out.println("Best Train Accuracy="+bestAcc+" with param setting"+bestC);
             File f=new File(path+"/"+classifier+fold+"_"+bestC+"TRAIN.ser");
             if(f.exists()){
@@ -572,7 +577,7 @@ static String[] unfinishedTSF={"CinCECGtorso","ElectricDevices","FordA","FordB",
                  System.out.println(" TEST ACC ="+acc);
             }
             else{
-                System.out.println("ERROR: "+f+" does not exist");
+                System.out.println("ERROR: SER fILE "+f+" does not exist");
             }
         }
 //            
@@ -580,13 +585,34 @@ static String[] unfinishedTSF={"CinCECGtorso","ElectricDevices","FordA","FordB",
     
     public static void main(String[] args) throws Exception{
         
-/*       DataSets.resultsPath=DataSets.clusterPath+"Results/";
+       DataSets.resultsPath=DataSets.clusterPath+"Results/";
        DataSets.problemPath=DataSets.clusterPath+"TSC Problems/";
-       int fold=Integer.parseInt(args[2]);
-       int paras=Integer.parseInt(args[3]);
-        reconstruct(args[0],args[1],fold,paras);
+       String cls=args[0];
+       Classifier c=setClassifier(cls);
+        String prob=DataSets.fileNames[Integer.parseInt(args[1])-1];
+        Instances train=ClassifierTools.loadData(DataSets.problemPath+prob+"/"+prob+"_TRAIN");
+        Instances test=ClassifierTools.loadData(DataSets.problemPath+prob+"/"+prob+"_TEST");
+        File f=new File(DataSets.resultsPath+cls);
+        if(!f.exists())
+            f.mkdir();
+        String predictions=DataSets.resultsPath+cls+"/Predictions";
+        f=new File(predictions);
+        if(!f.exists())
+            f.mkdir();
+        predictions=predictions+"/"+prob;
+        f=new File(predictions);
+        if(!f.exists())
+            f.mkdir();
+        double acc =singleSampleExperiment(train,test,c,0,predictions);
+        System.out.println(cls+" ACC FOR "+prob+" = "+acc);
         System.exit(0);
- */
+
+//       allProblemsforSingleFold()
+//       int fold=Integer.parseInt(args[2]);
+//       int paras=Integer.parseInt(args[3]);
+//        reconstruct(args[0],args[1],fold,paras);
+//        System.exit(0);
+
 //       reconstruct("C:/Users/ajb/Dropbox/Big TSC Bake Off/New Results/interval/TSBF/Predictions/FordB","TSBF",4,1);
  //       System.exit(0);
         try{
@@ -602,16 +628,15 @@ static String[] unfinishedTSF={"CinCECGtorso","ElectricDevices","FordA","FordB",
 //Local threaded run    
              DataSets.resultsPath="C:/Users/ajb/Dropbox/Big TSC Bake Off/New Results/";
              DataSets.problemPath=DataSets.dropboxPath+"TSC Problems/";
-            String classifier="FS";
+            String classifier="LS";
              String problem;
 // TSF    FordA 15, FordB 16, HandOutlines 15, Mallat 85, NonInvasiveFatalECGThorax1 13, NonInvasiveFatalECGThorax2 13,
 //     Phoneme 63, ShapesAll 53, StarlightCurves13,  UWaveGestureLibraryX 74, UWaveGestureLibraryY 75
 //     UWaveGestureLibraryZ 75, UWaveGestureLibraryAll22
 //             String problem="UWaveGestureLibraryY"; 68
-             problem="ItalyPowerDemand";
+             problem="Wafer";
              System.out.println("Problem ="+problem);
              DataSets.resultsPath+=getFolder(classifier)+"/";
-             int f=1;
 /*             
              String[] ar={classifier,problem,f+"",4+""};
              singleClassifierAndFoldAndParameter(ar);
