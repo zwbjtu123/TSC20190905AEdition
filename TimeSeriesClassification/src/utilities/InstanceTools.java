@@ -337,6 +337,34 @@ public class InstanceTools {
         return del;
         
     }
+    
+    
+    //be careful using this function. 
+    //this wants to create a proportional sub sample 
+    //but if you're sampling size is too small you could create a dodgy dataset.
+    public static Instances subSample(Instances data, int amount, int seed){
+        Map<Double, Instances> classBins = createClassInstancesMap(data);
+        ClassDistribution trainDistribution = new TreeSetClassDistribution(data);
+        
+        Random r = new Random(seed);
+
+        //empty instances.
+        Instances output = new Instances(data, 0);
+
+        Iterator<Double> keys = classBins.keySet().iterator();
+        while(keys.hasNext()){
+            double classVal = keys.next();
+            int occurences = trainDistribution.get(classVal);
+            float proportion = (float) occurences / (float) data.numInstances();
+            int numInstances = (int) (proportion * amount);
+            Instances bin = classBins.get(classVal);
+            bin.randomize(r); //randomise the bin.
+
+            output.addAll(bin.subList(0,numInstances));//copy the first portion of the bin into the train set
+        }
+
+        return output;        
+    }
      
     
 }
