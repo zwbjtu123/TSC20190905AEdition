@@ -5,7 +5,9 @@
  */
 package weka.filters.timeseries.shapelet_transforms.searchFuntions;
 
+import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.function.Function;
 import weka.core.Instance;
 import weka.core.Instances;
 import weka.core.shapelet.Shapelet;
@@ -14,15 +16,14 @@ import weka.core.shapelet.Shapelet;
  *
  * @author raj09hxu
  */
-public class ShapeletSearch {
+public class ShapeletSearch implements Serializable{
     
     public interface ProcessCandidate{
-        public Shapelet process(double[] candidate);
+        public Shapelet process(double[] candidate, int start, int length);
     }
     
-    
-    int minShapeletLength;
-    int maxShapeletLength;
+    protected int minShapeletLength;
+    protected int maxShapeletLength;
     
     public ShapeletSearch(int min, int max){
         minShapeletLength = min;
@@ -31,19 +32,13 @@ public class ShapeletSearch {
     
     public ArrayList<Shapelet> SearchForShapeletsInSeries(Instance timeSeries, ProcessCandidate checkCandidate){
         ArrayList<Shapelet> seriesShapelets = new ArrayList<>();
-        
+
         double[] series = timeSeries.toDoubleArray();
-
+        
         for (int length = minShapeletLength; length <= maxShapeletLength; length++) {
-            double[] candidate = new double[length];
             //for all possible starting positions of that length
-            for (int start = 0; start <= series.length - length - 1; start++) {
-                //-1 = avoid classVal - handle later for series with no class val
-                // CANDIDATE ESTABLISHED - got original series, length and starting position
-                // extract relevant part into a double[] for processing
-                System.arraycopy(series, start, candidate, 0, length);
-
-                Shapelet shapelet = checkCandidate.process(candidate);
+            for (int start = 0; start <= timeSeries.numAttributes() - length - 1; start++) {
+                Shapelet shapelet = checkCandidate.process(series, start, length);
 
                 if (shapelet != null) {
                     seriesShapelets.add(shapelet);
@@ -53,5 +48,4 @@ public class ShapeletSearch {
         
         return seriesShapelets;
     }
-    
 }

@@ -4,11 +4,9 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Map;
 import java.util.TreeMap;
 import utilities.class_distributions.ClassDistribution;
 import utilities.class_distributions.TreeSetClassDistribution;
-import weka.filters.timeseries.shapelet_transforms.FullShapeletTransform;
 
 /**
  *      * copyright: Anthony Bagnall
@@ -65,17 +63,16 @@ public class QualityMeasures implements Serializable
         MOODS_MEDIAN
     }
 
-    public abstract static class ShapeletQualityMeasure  implements Serializable
+    public interface ShapeletQualityMeasure 
     {
-
-        public abstract double calculateQuality(ArrayList<OrderLineObj> orderline, ClassDistribution classDistribution);
+        public double calculateQuality(ArrayList<OrderLineObj> orderline, ClassDistribution classDistribution);
     }
 
     /**
      * A class for calculating the information gain of a shapelet, according to
      * the set of distances from the shapelet to a dataset.
      */
-    public static class InformationGain extends ShapeletQualityMeasure 
+    public static class InformationGain implements ShapeletQualityMeasure, Serializable 
     {
 
         /**
@@ -204,7 +201,7 @@ public class QualityMeasures implements Serializable
      * A class for calculating the F-Statistic of a shapelet, according to the
      * set of distances from the shapelet to a dataset.
      */
-    public static class FStat extends ShapeletQualityMeasure
+    public static class FStat implements ShapeletQualityMeasure, Serializable
     {
 
         /**
@@ -351,7 +348,7 @@ public class QualityMeasures implements Serializable
      * A class for calculating the Mood's Median statistic of a shapelet,
      * according to the set of distances from the shapelet to a dataset.
      */
-    public static class MoodsMedian extends ShapeletQualityMeasure
+    public static class MoodsMedian implements ShapeletQualityMeasure, Serializable
     {
 
         /**
@@ -432,7 +429,7 @@ public class QualityMeasures implements Serializable
      * A class for calculating the Kruskal-Wallis statistic of a shapelet,
      * according to the set of distances from the shapelet to a dataset.
      */
-    public static class KruskalWallis extends ShapeletQualityMeasure
+    public static class KruskalWallis implements ShapeletQualityMeasure, Serializable
     {
 
         /**

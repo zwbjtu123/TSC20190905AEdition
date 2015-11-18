@@ -70,6 +70,7 @@ public class QualityBound{
             }
         }
         
+        
         /**
          * Method to set the best quality so far of the shapelet
          * @param quality quality of the best so far quality observed
