@@ -2,6 +2,8 @@ package weka.filters.timeseries;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.TreeSet;
 import javax.swing.InputVerifier;
 import utilities.ClassifierTools;
@@ -72,15 +74,15 @@ public class BagOfPatternsFilter extends SimpleBatchFilter {
         numerosityReduction = b;
     }
     
-    private HashMap<String, Integer> buildHistogram(double[][] patterns) {
+    private HashMap<String, Integer> buildHistogram(LinkedList<double[]> patterns) {
         
         HashMap<String, Integer> hist = new HashMap<>();
 
-        for (int i = 0; i < patterns.length; ++i) {   
+        for (double[] pattern : patterns) {   
             //convert to string                
             String word = "";
-            for (int j = 0; j < patterns[i].length; ++j)
-                word += (String) alphabet.get((int)patterns[i][j]);
+            for (int j = 0; j < pattern.length; ++j)
+                word += (String) alphabet.get((int)pattern[j]);
 
             
             Integer val = hist.get(word);
@@ -94,94 +96,72 @@ public class BagOfPatternsFilter extends SimpleBatchFilter {
     }
     
     public HashMap<String, Integer> buildBag(Instance series) throws Exception {
-        double[] data = series.toDoubleArray();
-
-        //remove class attribute if needed
-        double[] temp;
-        int c = series.classIndex();
-        if(c >= 0) {
-            temp=new double[data.length-1];
-            System.arraycopy(data,0,temp,0,c); //assumes class attribute is in last index
-            data=temp;
-        }
+       
+        LinkedList<double[]> patterns = new LinkedList<>();
         
-        //generate all subsequences of this instance
-        double[][] patterns = slidingWindow(data);
-
-//        System.out.println("SLIDINGWINDOW");
-//        for(int i = 0; i < patterns.length; ++i) {
-//            System.out.print("pattern" + i + ":\t");
-//            for (int j = 0; j < patterns[i].length; ++j) 
-//                System.out.print(patterns[i][j] + " ");
-//            
-//            System.out.println("");
-//        }
+        double[] prevPattern = new double[windowSize];
+        for (int i = 0; i < windowSize; ++i) 
+            prevPattern[i] = -1;
         
-        for (int i = 0; i < patterns.length; ++i) {
+        for (int windowStart = 0; windowStart+windowSize-1 < series.numAttributes()-1; ++windowStart) { 
+            double[] pattern = slidingWindow(series, windowStart);
+            
             try {
-                NormalizeCase.standardNorm(patterns[i]);
+                NormalizeCase.standardNorm(pattern);
             } catch(Exception e) { //TONY COMMENT: Adapt this so catches a specific exception (ArithmeticException)?
                 //throws exception if zero variance
                 //if zero variance, all values in window the same 
                 //'normalised' version should essentially be all 0s? 
-                for (int j = 0; j < patterns[i].length; ++j)
-                    patterns[i][j] = 0;
+                for (int j = 0; j < pattern.length; ++j)
+                    pattern[j] = 0;
             }
-            patterns[i] = SAX.convertSequence(patterns[i], alphabetSize, numIntervals);
+            pattern = SAX.convertSequence(pattern, alphabetSize, numIntervals);
+            
+            if (!(numerosityReduction && identicalPattern(pattern, prevPattern)))
+                patterns.add(pattern);
         }
-       
-//        System.out.println("SAXD");
-//        for(int i = 0; i < patterns.length; ++i) {
-//            System.out.print("pattern" + i + ":\t");
-//            for (int j = 0; j < patterns[i].length; ++j) 
-//                System.out.print(patterns[i][j] + " ");
-//            
-//            System.out.println("");
-//        }
-        
-        if (numerosityReduction)    
-            patterns = removeTrivialMatches(patterns);
-        
-//        System.out.println("REDUCED");
-//        for(int i = 0; i < patterns.length; ++i) {
-//            System.out.print("pattern" + i + ":\t");
-//            for (int j = 0; j < patterns[i].length; ++j) 
-//                System.out.print(patterns[i][j] + " ");
-//            
-//            System.out.println("");
-//        }
         
         return buildHistogram(patterns);
     }
     
-    private double[][] slidingWindow(double[] data) {
-        double[][] subSequences = new double[data.length-windowSize+1][windowSize];
+    private double[] slidingWindow(Instance series, int windowStart) {
+        double[] window = new double[windowSize];
+
+        //copy the elements windowStart to windowStart+windowSize from data into the window
+        for (int i = 0; i < windowSize; ++i)
+            window[i] = series.value(i + windowStart);
         
-        for (int windowStart = 0; windowStart+windowSize-1 < data.length; ++windowStart) { 
-            //copy the elements windowStart to windowStart+windowSize from data into 
-            //the subsequence matrix at position windowStart
-            System.arraycopy(data,windowStart,subSequences[windowStart],0,windowSize);
-        }
-        
-        return subSequences;
+        return window;
     }
     
-    public double[][] removeTrivialMatches(double[][] patterns) {
-        ArrayList<Integer> toKeep = new ArrayList<>(patterns.length);
-        
-        toKeep.add(0); 
-        
-        for (int i = 1; i < patterns.length; ++i)
-            if (!identicalPattern(patterns[i], patterns[i-1]))
-                toKeep.add(i);
-            
-        double[][] keptPatterns = new double[toKeep.size()][];
-        
-        for (int i = 0; i < keptPatterns.length; ++i)
-            keptPatterns[i] = patterns[toKeep.get(i)];
-        
-        return keptPatterns;
-    }
+//    private double[][] slidingWindow(double[] data) {
+//        double[][] subSequences = new double[data.length-windowSize+1][windowSize];
+//        
+//        for (int windowStart = 0; windowStart+windowSize-1 < data.length; ++windowStart) { 
+//            //copy the elements windowStart to windowStart+windowSize from data into 
+//            //the subsequence matrix at position windowStart
+//            System.arraycopy(data,windowStart,subSequences[windowStart],0,windowSize);
+//        }
+//        
+//        return subSequences;
+//    }
+    
+//    public double[][] removeTrivialMatches(double[][] patterns) {
+//        ArrayList<Integer> toKeep = new ArrayList<>(patterns.length);
+//        
+//        toKeep.add(0); 
+//        
+//        for (int i = 1; i < patterns.length; ++i)
+//            if (!identicalPattern(patterns[i], patterns[i-1]))
+//                toKeep.add(i);
+//            
+//        double[][] keptPatterns = new double[toKeep.size()][];
+//        
+//        for (int i = 0; i < keptPatterns.length; ++i)
+//            keptPatterns[i] = patterns[toKeep.get(i)];
+//        
+//        return keptPatterns;
+//    }
     
     private boolean identicalPattern(double[] a, double[] b) {
         for (int i = 0; i < a.length; ++i)
@@ -232,27 +212,30 @@ public class BagOfPatternsFilter extends SimpleBatchFilter {
     }
 
     @Override
-    public Instances process(Instances input) 
+    public Instances process(final Instances input) 
             throws Exception {
         
-        Instances inputCopy = new Instances(input);
-        
-        
-        ArrayList< HashMap<String, Integer> > bags = new ArrayList<>(inputCopy.numInstances());
+        ArrayList< HashMap<String, Integer> > bags = new ArrayList<>(input.numInstances());
         dictionary = new TreeSet<>();
         
-        for (int i = 0; i < inputCopy.numInstances(); i++) {
-            bags.add(buildBag(inputCopy.get(i)));
+        for (int i = 0; i < input.numInstances(); i++) {
+            bags.add(buildBag(input.get(i)));
             dictionary.addAll(bags.get(i).keySet());
         }
         
-        Instances output = determineOutputFormat(inputCopy); //now that dictionary is known, set up output
+        Instances output = determineOutputFormat(input); //now that dictionary is known, set up output
         
-        for (int i = 0; i < inputCopy.numInstances(); ++i) {
-            double[] bag = bagToArray(bags.get(i));
+        Iterator<HashMap<String, Integer> > it = bags.iterator();
+        int i = 0;
+        while (it.hasNext()) {
+            double[] bag = bagToArray(it.next());
+            
+            it.remove(); //freeing space asap, now that data is in array form as needed
             
             output.add(new SparseInstance(1.0, bag));
-            output.get(i).setClassValue(inputCopy.get(i).classValue()); 
+            output.get(i).setClassValue(input.get(i).classValue());
+            
+            ++i;
         }
         
         return output;

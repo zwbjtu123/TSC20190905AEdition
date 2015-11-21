@@ -94,6 +94,13 @@ public class SAXVSM implements Classifier {
     }
     
     /**
+     * @return { numIntervals(word length), alphabetSize, slidingWindowSize } 
+     */
+    public int[] getParameters() {
+        return new int[] { PAA_intervalsPerWindow, SAX_alphabetSize, windowSize};
+    }
+    
+    /**
      * Performs cross validation on given data for varying parameter values, returns 
      * parameter set which yielded greatest accuracy
      * 
@@ -102,7 +109,7 @@ public class SAXVSM implements Classifier {
      */
     public static int[] parameterSearch(Instances data) throws Exception {
 
-        double bestAcc = 0.0;
+        double bestAcc = -1.0;
         int bestAlpha = 0, bestWord = 0, bestWindowSize = 0;
 
         //BoP paper window search range suggestion
@@ -112,17 +119,15 @@ public class SAXVSM implements Classifier {
         int winInc = (int)((maxWinSize - minWinSize) / 10.0); //check 10 values within that range
         if (winInc < 1) winInc = 1;
       
-        for (int alphaSize = 2; alphaSize <= 8; alphaSize++) {
+        for (int alphaSize = 2; alphaSize <= 8; alphaSize+=2) {
             for (int winSize = minWinSize; winSize <= maxWinSize; winSize+=winInc) {
-                for (int wordSize = 8; wordSize <= 16; wordSize+=2) { //BOSS search space, no search space mentioned in paper           
+                for (int wordSize = 2; wordSize <= 8 && wordSize < winSize; wordSize+=1) { //ItalyPowerDemand only     
                     SAXVSM vsm = new SAXVSM(wordSize,alphaSize,winSize);
                     
                     double acc = vsm.crossValidate(data); //leave-one-out without doing bop transformation every fold (still applying tfxidf)
 //                    double acc = ClassifierTools.crossValidationWithStats(vsm, data, data.numInstances())[0][0];//leave-one-out cv
 //                    double acc = ClassifierTools.crossValidationWithStats(vsm, data, 2)[0][0];//2-fold
 
-                    System.out.println(acc);
-                    
                     if (acc > bestAcc) {
                         bestAcc = acc;
                         bestAlpha = alphaSize;
@@ -167,14 +172,14 @@ public class SAXVSM implements Classifier {
             alphabet = SAX.getAlphabet(SAX_alphabetSize);
         }
         
-        if (PAA_intervalsPerWindow<0)
+        if (PAA_intervalsPerWindow<1)
             throw new Exception("SAXVSM_BuildClassifier: Invalid PAA word size: " + PAA_intervalsPerWindow);
         if (PAA_intervalsPerWindow>windowSize)
             throw new Exception("SAXVSM_BuildClassifier: Invalid PAA word size, bigger than sliding window size: "
                     + PAA_intervalsPerWindow + "," + windowSize);
-        if (SAX_alphabetSize<0 || SAX_alphabetSize>10)
+        if (SAX_alphabetSize<2 || SAX_alphabetSize>10)
             throw new Exception("SAXVSM_BuildClassifier: Invalid SAX alphabet size (valid=2-10): " + SAX_alphabetSize);
-        if (windowSize<0 || windowSize>data.numAttributes()-1)
+        if (windowSize<1 || windowSize>data.numAttributes()-1)
             throw new Exception("SAXVSM_BuildClassifier: Invalid sliding window size: " 
                     + windowSize + " (series length "+ (data.numAttributes()-1) + ")");
         
@@ -200,22 +205,19 @@ public class SAXVSM implements Classifier {
         int numInstances = bopData.numInstances();
         int numTerms = bopData.numAttributes()-1; //minus class attribute
         
-        double[] classValues = bopData.attributeToDoubleArray(bopData.classIndex());
         //initialise class weights
-        double[][] classWeights = new double[numClasses][];
-        for (int i = 0; i < numClasses; ++i) {
-            classWeights[i] = new double[numTerms];
-            for (int j = 0; j < numTerms; ++j)
-                classWeights[i][j] = 0; //cant remember whether java defaults array elements to 0, to be absolutely sure
-        }
+        double[][] classWeights = new double[numClasses][numTerms];
 
         //build class bags
-        for (int i = 0; i < numInstances; ++i) {
-            if (i == skip) //skip 'this' one, for leave-one-out cv
+        int inst = 0;
+        for (Instance in : bopData) {
+            if (inst++ == skip) //skip 'this' one, for leave-one-out cv
                 continue;
 
-            for (int j = 0; j < numTerms; ++j)
-                classWeights[(int)classValues[i]][j] += bopData.get(i).value(j);
+            int classVal = (int)in.classValue();
+            for (int j = 0; j < numTerms; ++j) {
+                classWeights[classVal][j] += in.value(j);
+            }
         }
             
         //apply tf x idf
@@ -264,18 +266,7 @@ public class SAXVSM implements Classifier {
             throw new Exception("Cannot calculate cosine similarity between vectors of different lengths "
                     + "(" + a.length + ", " + b.length + ")");
         
-        double dotProd = 0.0, aMag = 0.0, bMag = 0.0;
-        
-        for (int i = 0; i < a.length; ++i) {
-            dotProd += a[i]*b[i];
-            aMag += a[i]*a[i];
-            bMag += b[i]*b[i];
-        }
-        
-        if (aMag == 0 || bMag == 0 || dotProd == 0)
-            return 0;
-        
-        return dotProd / (Math.sqrt(aMag) * Math.sqrt(bMag));
+        return cosineSimilarity(a,b,a.length);
     }
     
     /**
@@ -305,6 +296,8 @@ public class SAXVSM implements Classifier {
         
         if (aMag == 0 || bMag == 0 || dotProd == 0)
             return 0;
+        if (aMag == bMag) //root(n) * root(n) just = n^1/2^2 = n, save the root operation
+            return dotProd / aMag;
         
         return dotProd / (Math.sqrt(aMag) * Math.sqrt(bMag));
     }

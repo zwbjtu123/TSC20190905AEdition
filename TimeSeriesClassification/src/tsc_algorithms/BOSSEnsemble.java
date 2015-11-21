@@ -44,7 +44,7 @@ public class BOSSEnsemble implements Classifier {
     private final Integer[] wordLengths = { 16, 14, 12, 10, 8 };
     private final int alphabetSize = 4;
     private boolean norm;
-    
+     
     public BOSSEnsemble(boolean normalise) {
         norm = normalise;
     }
@@ -62,6 +62,10 @@ public class BOSSEnsemble implements Classifier {
             return classifier.classifyInstance(inst); 
         }
         
+        /**
+         * @return { numIntervals(word length), alphabetSize, slidingWindowSize } 
+         */
+        public int[] getParameters() { return classifier.getParameters();  }
         public int getWindowSize()   { return classifier.getWindowSize();  }
         public int getWordLength()   { return classifier.getWordLength();  }
         public int getAlphabetSize() { return classifier.getAlphabetSize(); }
@@ -77,6 +81,18 @@ public class BOSSEnsemble implements Classifier {
         }
     }
     
+     /**
+     * @return { numIntervals(word length), alphabetSize, slidingWindowSize } for each BOSSWindow in this built classifier
+     */
+    public int[][] getParameters() {
+        int[][] params = new int[classifiers.size()][];
+        int i = 0;
+        for (BOSSWindow boss : classifiers) 
+            params[i++] = boss.getParameters();
+         
+        return params;
+    }
+    
     @Override
     public void buildClassifier(Instances data) throws Exception {
         //todo validate and all taht
@@ -87,13 +103,26 @@ public class BOSSEnsemble implements Classifier {
         classifiers = new LinkedList<>();
         
         int seriesLength = data.numAttributes()-1;
-        int minWindow = (int)(seriesLength * minWindowFactor);
-        int maxWindow = (int)(seriesLength * maxWindowFactor);     
-    
+//        int minWindow = (int)(seriesLength * minWindowFactor);
+//        int maxWindow = (int)(seriesLength * maxWindowFactor); 
+        int minWindow = 10;
+        int maxWindow = seriesLength; 
+
+//        int winInc = 1; //check every window size in range
+        
+        //whats the max number of window sizes that should be searched through
+        double maxWindowSearches = Math.min(200, Math.sqrt(seriesLength)); 
+//        double maxWindowSearches = 200; 
+        int winInc = (int)((maxWindow - minWindow) / maxWindowSearches); 
+        if (winInc < 1) winInc = 1;
+        
+        
         //keep track of current max accuracy, constantly check for correctthreshold to discard to save space
         double maxAcc = -1.0;
         
-        for (int winSize = minWindow; winSize < maxWindow; ++winSize) {          
+        for (int winSize = minWindow; winSize < maxWindow; winSize += winInc) {          
+            //System.out.print("Ensemble winsize: " + winSize);
+            
             BOSS boss = new BOSS(wordLengths[0], alphabetSize, winSize, norm);  
             boss.buildClassifier(data); //initial setup, with max word length     
             
@@ -102,13 +131,11 @@ public class BOSSEnsemble implements Classifier {
             double bestWindowAcc = -1.0;
             
             for (Integer wordLen : wordLengths) {            
-                boss = BOSS.shortenHistograms(wordLen, boss); //in first case, same lengths (16 by default, max length), will do nothing
-                
-                assert(boss.bags.size() == data.numInstances()); //sanity check
-                
+                boss = BOSS.shortenHistograms(wordLen, boss); //in first case, same lengths (wordLengths[0], max length), will do nothing
+
                 int correct = 0, numSeries = data.numInstances(); 
                 for (int i = 0; i < numSeries; ++i) {
-                    double c = boss.classifyInstance(i); //classify series i, ignoring histogram i
+                    double c = boss.classifyInstance(i); //classify series i, while ignoring its corresponding histogram i
                     if (c == data.get(i).classValue())
                         ++correct;
                 }
@@ -130,15 +157,19 @@ public class BOSSEnsemble implements Classifier {
                 if (bestWindowAcc > maxAcc)
                     maxAcc = bestWindowAcc;       
             }
+            
+            //System.out.println("done, ensemble size: " + classifiers.size());
         }
         
+         //get rid of any extras that dont fall within the final max threshold
         Iterator<BOSSWindow> it = classifiers.iterator();
-        
         while (it.hasNext()) {
             BOSSWindow boss = it.next();
             if (boss.accuracy < maxAcc * correctThreshold)
                 it.remove();
-        } //get rid of any extras that dont fall within the final max threshold
+        }
+        
+        System.out.println("ALL TRAINING DONE, final ensemble size: " + classifiers.size());
     }
 
     @Override
@@ -208,13 +239,36 @@ public class BOSSEnsemble implements Classifier {
     public static void fullTest() {
         System.out.println("BOSSEnsembleFullTest");
         try {
-            String[] datasets = DataSets.ucrNames;
+//            String[] datasets = DataSets.ucrNames;
+//            BOSSEnsemble boss = new BOSSEnsemble(true);
+//            
+//            Classifier[] classifier = { boss } ;
+//            String[] cNames = { "BOSSEnsemble" };
+//            
+//            testClassifiers(classifier, cNames, datasets, "BOSSEnsembleUCRTest.csv", 0);
+            
+//            Instances train = ClassifierTools.loadData("C:\\tempbakeoff\\Car\\Car_TRAIN.arff");
+//            Instances test = ClassifierTools.loadData("C:\\tempbakeoff\\Car\\Car_TEST.arff");
+//            Instances train = ClassifierTools.loadData("C:\\tempbakeoff\\BeetleFly\\BeetleFly_TRAIN.arff");
+//            Instances test = ClassifierTools.loadData("C:\\tempbakeoff\\BeetleFly\\BeetleFly_TEST.arff");
+//            Instances train = ClassifierTools.loadData("C:\\tempbakeoff\\StrawBerry\\StrawBerry_TRAIN.arff");
+//            Instances test = ClassifierTools.loadData("C:\\tempbakeoff\\StrawBerry\\StrawBerry_TEST.arff");
+//            Instances train = ClassifierTools.loadData("C:\\tempbakeoff\\SwedishLeaf\\SwedishLeaf_TRAIN.arff");
+//            Instances test = ClassifierTools.loadData("C:\\tempbakeoff\\SwedishLeaf\\SwedishLeaf_TEST.arff");
+//            Instances train = ClassifierTools.loadData("C:\\tempbakeoff\\Yoga\\Yoga_TRAIN.arff");
+//            Instances test = ClassifierTools.loadData("C:\\tempbakeoff\\Yoga\\Yoga_TEST.arff");
+            Instances train = ClassifierTools.loadData("C:\\tempbakeoff\\Herring\\Herring_TRAIN.arff");
+            Instances test = ClassifierTools.loadData("C:\\tempbakeoff\\Herring\\Herring_TEST.arff");
+            
+            System.out.println(train.relationName());
+            
             BOSSEnsemble boss = new BOSSEnsemble(true);
+            System.out.println("Training starting");
+            boss.buildClassifier(train);
             
-            Classifier[] classifier = { boss } ;
-            String[] cNames = { "BOSSEnsemble" };
-            
-            testClassifiers(classifier, cNames, datasets, "BOSSEnsembleUCRTest.csv", 0);
+            System.out.println("Testing starting");
+            System.out.println("ACC: " + ClassifierTools.accuracy(test, boss));
+
         }
         catch (Exception e) {
             System.out.println(e);

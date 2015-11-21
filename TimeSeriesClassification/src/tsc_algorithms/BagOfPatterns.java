@@ -67,6 +67,13 @@ public class BagOfPatterns implements Classifier {
     }
     
     /**
+     * @return { numIntervals(word length), alphabetSize, slidingWindowSize } 
+     */
+    public int[] getParameters() {
+        return new int[] { PAA_intervalsPerWindow, SAX_alphabetSize, windowSize};
+    }
+    
+    /**
      * Performs cross validation on given data for varying parameter values, returns 
      * parameter set which yielded greatest accuracy
      * 
@@ -98,8 +105,6 @@ public class BagOfPatterns implements Classifier {
 //                    double acc = ClassifierTools.crossValidationWithStats(bop, data, data.numInstances())[0][0];//leave-one-out cv
 //                    double acc = ClassifierTools.crossValidationWithStats(vsm, data, 2)[0][0];//2-fold cv
 
-                    System.out.println(acc);
-                    
                     if (acc > bestAcc) {
                         bestAcc = acc;
                         bestAlpha = alphaSize;
@@ -133,7 +138,7 @@ public class BagOfPatterns implements Classifier {
     }
     
     @Override
-    public void buildClassifier(Instances data) throws Exception {
+    public void buildClassifier(final Instances data) throws Exception {
         if (data.classIndex() != data.numAttributes()-1)
             throw new Exception("LinBoP_BuildClassifier: Class attribute not set as last attribute in dataset");
         
