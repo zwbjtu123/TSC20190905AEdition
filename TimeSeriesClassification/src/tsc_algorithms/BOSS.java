@@ -1,11 +1,4 @@
 //TODO 
-// ---equi-depth binning, how to handle non-int depths
-// e.g 19 letters, 4 bins =>  5/5/5/4? 4/5/5/5? etc
-// or naive imp: 19/4 = 4    =>   4/4/4/7
-// or 19.0/4.0 = 4.66 => 5/5/5/4 
-//
-// but if 17 lets, 4 bins, 17.0/4.0 = 4.25 => 5/5/5/2
-//
 // ---bossdistance
 // not symmetrical, so 'which' distance to use , d(1,2) or d(2,1) 
 // aka always to dist FROM test histogram TO bag histogram? or visa versa
@@ -39,6 +32,7 @@ public class BOSS implements Classifier {
     public static boolean debug = true;
     
     public ArrayList<Bag> bags;
+    double[/*letterindex*/][/*breakpointsforletter*/] breakpoints;
     
     private int windowSize;
     private int wordLength;
@@ -72,6 +66,8 @@ public class BOSS implements Classifier {
         this.numerosityReduction = boss.numerosityReduction; 
         this.alphabet = boss.alphabet;
         
+        this.breakpoints = boss.breakpoints;
+        
         bags = new ArrayList<>();
     }
 
@@ -89,6 +85,13 @@ public class BOSS implements Classifier {
 
     public boolean isNorm() {
         return norm;
+    }
+    
+    /**
+     * @return { numIntervals(word length), alphabetSize, slidingWindowSize } 
+     */
+    public int[] getParameters() {
+        return new int[] { wordLength, alphabetSize, windowSize};
     }
     
     public void generateAlphabet() {
@@ -113,7 +116,6 @@ public class BOSS implements Classifier {
     
     private double[][] performDFT(double[][] windows) {
         double[][] dfts = new double[windows.length][wordLength];
-        FFT fft = new FFT();
         for (int i = 0; i < windows.length; ++i) {
             double[] dft = DFT(windows[i]);
             int startIndex = norm ? 2 : 0; //drop first fourier coeff (mean value) if normalising 
@@ -146,64 +148,70 @@ public class BOSS implements Classifier {
         return dft;
     }
     
-    private double[][] MCB(double[][] dfts) {
-        //will return a list of breakpoints for each column (each letter)
-        double[/*column*/][/*list of breakpoints*/] breakpoints = new double[dfts[0].length][]; 
+    private double[][] disjointWindows(double [] data) {
+        int amount = (int)Math.ceil(data.length/(double)windowSize);
+        double[][] subSequences = new double[amount][windowSize];
         
-        for (int c = 0; c < dfts[0].length; ++c) { //go along each column (dft coeff), i.e each letter
+        for (int win = 0; win < amount; ++win) { 
+            int offset = Math.min(win*windowSize, data.length-windowSize);
             
-            //extract column from all windows
-            double[] column = new double[dfts.length];
-            for (int r = 0; r < column.length; ++r) 
-                column[r] = dfts[r][c];
+            //copy the elements windowStart to windowStart+windowSize from data into 
+            //the subsequence matrix at position windowStart
+            System.arraycopy(data,offset,subSequences[win],0,windowSize);
+        }
+        
+        return subSequences;
+    }
+    
+    private double[][] MCB(Instances data) {
+        double[][][] dfts = new double[data.numInstances()][][];
+        
+        int in = 0;
+        for (Instance inst : data) {
+            dfts[in++] = performDFT(disjointWindows(toArrayNoClass(inst))); //approximation
+        }
+        
+        int numInsts = dfts.length;
+        int numWindowsPerInst = dfts[0].length;
+        int totalNumWindows = numInsts*numWindowsPerInst;
+
+        assert(dfts[0][0].length == wordLength);
+        breakpoints = new double[wordLength][alphabetSize]; 
+        
+        for (int letter = 0; letter < wordLength; ++letter) { //go along each column (dft coeff), i.e each letter
+            
+            //extract this column from all windows in all instances
+            double[] column = new double[totalNumWindows];
+            for (int inst = 0; inst < numInsts; ++inst)
+                for (int window = 0; window < numWindowsPerInst; ++window) 
+                    column[window] = dfts[inst][window][letter];
             
             //sort, and run through to find breakpoints for equi-depth bins
             Arrays.sort(column);
             
-            int binDepth = 0, bin = 0;
-            double targetBinDepth = (double)dfts.length / (double)alphabetSize; 
+            double binDepth = 0;
+            int bin = 0;
+            double targetBinDepth = (double)totalNumWindows / (double)alphabetSize; 
             
-            breakpoints[c] = new double[alphabetSize];
-            for (int r = 0; r < column.length; ++r) {
-                if (binDepth++ > targetBinDepth) {
-                    breakpoints[c][bin++] = column[r];
-                    binDepth = 0;
+            for (int window = 0; window < column.length; ++window) {
+                if (binDepth++ >= targetBinDepth) {
+                    breakpoints[letter][bin++] = column[window];
+                    binDepth -= targetBinDepth;
                 }
-                breakpoints[c][alphabetSize-1] = Double.MAX_VALUE; //last one always = infinity
             }
+            breakpoints[letter][alphabetSize-1] = Double.MAX_VALUE; //last one always = infinity
         }
     
         return breakpoints;
     }
     
-    private Bag toSFABag(double[][] dfts, double[][] breakpoints) {
+    private Bag createBag(double[][] dfts) {
         Bag bag = new Bag();
         String lastWord = "";
         
-//        debug("numwindows:"+dfts.length+" numletters:"+dfts[0].length);
-//        debug(dfts.length + " = " + breakpoints.length + " ?");
-//        debug(breakpoints[0].length + " = " + alphabetSize + " ?");
-        
-        for (int w = 0; w < dfts.length; ++w) { //for each window 
-            
-            assert(dfts.length == wordLength);
-            
-            //build word
-            String word = "";
-            for (int l = 0; l < wordLength; ++l) {//for each letter
-                
-                assert(breakpoints[l].length == alphabetSize);
-                
-                for (int bp = 0; bp < alphabetSize; ++bp) {//run through breakpoints until right one found
-//                    debug("w:"+w+" l:"+l+" bp:"+bp);
-                    if (dfts[w][l] < breakpoints[l][bp]) {
-                        word += alphabet[bp]; //add corresponding letter to word
-                        break;
-                    }
-                }
-            }
-            
-            //add to bag, unless num reduction applies
+        for (double[] d : dfts) {
+            String word = createWord(d);
+        //add to bag, unless num reduction applies
             if (numerosityReduction && word.equals(lastWord))
                 continue;
             else {
@@ -217,6 +225,60 @@ public class BOSS implements Classifier {
         }
         
         return bag;
+    }
+    
+    private String createWord(double[] dft) {
+        
+        int l = -1, bp = -1;
+        //build word
+        String word = "";
+        
+        try {
+            for (l = 0; l < wordLength; ++l) {//for each letter
+                for (bp = 0; bp < alphabetSize; ++bp) {//run through breakpoints until right one found
+                    if (dft[l] < breakpoints[l][bp]) {
+                        word += alphabet[bp]; //add corresponding letter to word
+                        break;
+                    }
+                }
+            }
+        } catch (Exception ex) {
+            System.out.println("l: " + l);
+            System.out.println("bp: " + bp);
+            System.out.println("wordsofar: " + word);
+            System.out.println("wordLength: " + wordLength);
+            System.out.println("alphabetSize: " + alphabetSize);
+            try { 
+                System.out.print("dft (" + dft.length + "): [");
+                for (double d : dft)
+                    System.out.print(d + " ");
+                System.out.println("]");
+            } catch (Exception e) { System.out.println(e); }
+            
+            System.out.println("breakpointdims: [" + breakpoints.length + "][" + breakpoints[0].length + "]");
+   
+            try { 
+                System.out.println("breakpoints\n{");
+                for (double[] ds : breakpoints) {
+                    System.out.print("[");
+                    for (double d : ds)
+                        System.out.print(d + " ");
+                    System.out.println("]");
+                }
+                System.out.println("}");
+            } catch (Exception e) { System.out.println(e); }
+            
+            try { 
+                System.out.print("alphabet (" + alphabet.length + "): [");
+                for (String s : alphabet)
+                    System.out.print(s + " ");
+                System.out.println("]");
+            } catch (Exception e) { System.out.println(e); }
+            throw ex;
+        }
+        
+        
+        return word;
     }
     
     /**
@@ -241,10 +303,8 @@ public class BOSS implements Classifier {
     
     public Bag BOSSTransform(Instance inst) {
         double[] data = toArrayNoClass(inst);
-        
-        double[][] dfts = performDFT(slidingWindow(data)); //approximation    
-        double[][] breakpoints = MCB(dfts); //breakpoints for discretization   
-        Bag bag = toSFABag(dfts, breakpoints); //form words and put in bag
+        double[][] dfts = performDFT(slidingWindow(data)); //approximation     
+        Bag bag = createBag(dfts);
         bag.setClassVal(inst.classValue());
         return bag;
     }
@@ -312,8 +372,19 @@ public class BOSS implements Classifier {
         
         bags = new ArrayList<>(data.numInstances());
         
-        for (Instance inst : data)
-            bags.add(BOSSTransform(inst));
+        breakpoints = MCB(data); //breakpoints to be used for making sfa words for train AND test data
+        
+        
+        double[][][] dfts = new double[data.numInstances()][][];
+        for (int i = 0; i < dfts.length; i++) {
+            dfts[i] = performDFT(slidingWindow(toArrayNoClass(data.get(i)))); //approximation   
+        }
+
+        for (int i = 0; i < dfts.length; i++) {
+            Bag bag = createBag(dfts[i]);
+            bag.setClassVal(data.get(i).classValue());
+            bags.add(bag);
+        }
     }
 
     /**
@@ -414,8 +485,8 @@ public class BOSS implements Classifier {
         System.out.println("BOSStest\n\n");
         
         try {
-            Instances train = ClassifierTools.loadData("C:\\\\Temp\\\\TESTDATA\\\\TSC Problems\\\\Car\\\\Car_TRAIN.arff");
-            Instances test = ClassifierTools.loadData("C:\\\\Temp\\\\TESTDATA\\\\TSC Problems\\\\Car\\\\Car_TEST.arff");
+            Instances train = ClassifierTools.loadData("C:\\tempbakeoff\\Car\\Car_TRAIN.arff");
+            Instances test = ClassifierTools.loadData("C:\\tempbakeoff\\Car\\Car_TEST.arff");
             
             BOSS boss = new BOSS(8,4,100,false);
             boss.buildClassifier(train);
