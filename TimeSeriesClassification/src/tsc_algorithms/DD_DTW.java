@@ -149,7 +149,6 @@ public class DD_DTW extends kNN{
         "yoga"// 300,3000,426,2
         //</editor-fold>
     };
-    
     protected GoreckiDerivativesEuclideanDistance distanceFunction;
     protected boolean paramsSet;
     protected boolean sampleForCV=false;
@@ -201,6 +200,7 @@ public class DD_DTW extends kNN{
         protected double alpha;
         protected double a;
         protected double b;
+        public boolean sampleTrain=true;    //Change back to default to false
 
         public GoreckiDerivativesEuclideanDistance(){
             this.a = 1;
@@ -287,7 +287,12 @@ public class DD_DTW extends kNN{
         }
 
         // implemented to mirror original MATLAB implementeation that's described in the paper (with appropriate modifications)
-        public double crossValidateForAlpha(Instances train){
+        public double crossValidateForAlpha(Instances tr){
+            Instances train=tr;
+            if(sampleTrain){
+                tr=InstanceTools.subSample(tr, tr.numInstances()/10, 0);
+            }
+            
             double[] labels = new double[train.numInstances()];
             for(int i = 0; i < train.numInstances(); i++){
                 labels[i] = train.instance(i).classValue();
@@ -370,7 +375,12 @@ public class DD_DTW extends kNN{
         }
 
         // changed to now return the predictions of the best alpha parameter
-        public double[] crossValidateForAandB(Instances train){
+        public double[] crossValidateForAandB(Instances tr){
+            Instances train=tr;
+            if(sampleTrain){
+                tr=InstanceTools.subSample(tr, tr.numInstances()/10, 0);
+            }
+            
             double[] labels = new double[train.numInstances()];
             for(int i = 0; i < train.numInstances(); i++){
                 labels[i] = train.instance(i).classValue();

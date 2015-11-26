@@ -388,7 +388,7 @@ public class FastShapelets implements Classifier {
     }
 
     void ReadTrainData(Instances data) {
-        Org_Data = InstanceTools.FromWekaInstancesList(data);
+        Org_Data = InstanceTools.fromWekaInstancesList(data);
         Org_Class_Freq = new int[num_class];
         Org_Label = new ArrayList<>();
         for (Instance i : data) {

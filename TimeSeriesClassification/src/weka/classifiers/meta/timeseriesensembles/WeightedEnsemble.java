@@ -8,6 +8,7 @@
 package weka.classifiers.meta.timeseriesensembles;
 
 import development.DataSets;
+import fileIO.InFile;
 import fileIO.OutFile;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
@@ -40,7 +41,8 @@ public class WeightedEnsemble extends AbstractClassifier{
     double[] cvAccs;
     double[] weights;
     boolean loadCVWeights=false;
-    public static int MAX_NOS_FOLDS=50;
+    String cvFile="";
+    public static int MAX_NOS_FOLDS=100;
     Random r= new Random();
     boolean setSeed=false;
     int seed;
@@ -52,6 +54,7 @@ public class WeightedEnsemble extends AbstractClassifier{
 /*Test data must be explicitly closed in order to overwrite, otherwise it is kept
   open over different calls to classifyInstance   */
     OutFile testData;
+    boolean memoryClean=true;
     
 
     public enum WeightType{EQUAL,BEST,PROPORTIONAL,SIGNIFICANT_BINOMIAL,SIGNIFICANT_MCNEMAR};
@@ -68,6 +71,10 @@ public class WeightedEnsemble extends AbstractClassifier{
         setClassifiers(cl,names);
         weights=new double[c.length];
         cvAccs=new double[c.length];
+    }
+    public void loadCVWeights(String file){
+        loadCVWeights=true;
+        cvFile=file;
     }
     public void setRandSeed(int s){
         r=new Random(s);
@@ -186,6 +193,8 @@ tation Forest [30] (with 10 trees), and a Bayesian network.
     @Override
     public void buildClassifier(Instances data) throws Exception {
         train = data;
+        if(data.numInstances()>500 || data.numAttributes()>500)
+            MAX_NOS_FOLDS=10;
         OutFile of=null;
         if(saveTrain){
             of=new OutFile(trainDataResultsPath);
@@ -193,20 +202,30 @@ tation Forest [30] (with 10 trees), and a Bayesian network.
                 of.writeString(s+",");
             of.writeString("\n");
         }
-//HERE: Offer the option of loading CV, classifiers and parameter sets        
-//NOT IMPLEMENTED YET
-/*Train the classifiers on the whole train data. These are the classifiers        
-        that will be used for predictions
- */
-        for(int i=0;i<c.length;i++)
-            c[i].buildClassifier(train);
-        
+//load CV, classifiers and parameter sets        
+        if(loadCVWeights){
+            InFile inf=new InFile(cvFile);
+            inf.readLine(); //Header
+            double sum=0;
+            for(int i=0;i<c.length;i++){
+                cvAccs[i]=inf.readDouble();
+                sum+=cvAccs[i];
+            }
+//Train classifiers           
+            for(int i=0;i<c.length;i++)
+                weights[i]=cvAccs[i]/sum;
+            for(int i=0;i<c.length;i++)
+                c[i].buildClassifier(train);
+        }
 //If using equal weighting, set cvAcc to 1 and weights to 1/nosClassifiers        
-        if(w==WeightType.EQUAL){
+        else if(w==WeightType.EQUAL){
             for(int i=0;i<c.length;i++){
                 cvAccs[i]=1;
                 weights[i]=1/(double)c.length;
             }
+//Final train            
+            for(int i=0;i<c.length;i++)
+                c[i].buildClassifier(train);
         }
 //Else, find the cvAccs of the classifier through CV, then weight proportionally
 //All weight types will require this        
@@ -225,14 +244,18 @@ tation Forest [30] (with 10 trees), and a Bayesian network.
                 }
                 else{
                     eval=new Evaluation(train);
-    //                r.setSeed(1234);
-    //set the max number of folds to 100 or use LOOCV
+    //set the max number of folds to MAX_FOLDS or use LOOCV
                     int folds=train.numInstances();
                     if(folds>MAX_NOS_FOLDS)
                         folds=MAX_NOS_FOLDS;
+//Hugely memory intensive, so clean up if required
+//The CV could be done much more efficiently in memory
                     eval.crossValidateModel(c[i],train,folds,r);
                     cvAccs[i]=1-eval.errorRate();
                     sum+=cvAccs[i];
+                    c[i].buildClassifier(train);
+                    if(memoryClean)
+                        System.gc();
                 }
             }
             for(int i=0;i<c.length;i++)

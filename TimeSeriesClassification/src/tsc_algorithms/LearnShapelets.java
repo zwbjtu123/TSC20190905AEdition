@@ -9,7 +9,7 @@ import java.util.Random;
 
 import utilities.StatisticalUtilities;
 import utilities.InstanceTools;
-import static utilities.InstanceTools.FromWekaInstancesArray;
+import static utilities.InstanceTools.fromWekaInstancesArray;
 import static utilities.StatisticalUtilities.calculateSigmoid;
 //import static utilities.StatisticalUtilities.normalize;
 import static utilities.StatisticalUtilities.normalize2D;
@@ -262,7 +262,7 @@ public class LearnShapelets extends AbstractClassifier implements ParameterSplit
                 }
             }
 
-            Instances ins = InstanceTools.ToWekaInstances(segmentsR); 
+            Instances ins = InstanceTools.toWekaInstances(segmentsR); 
             SimpleKMeans skm = new SimpleKMeans();
             skm.setNumClusters(numLatentPatterns);
             skm.setMaxIterations(100);
@@ -270,7 +270,7 @@ public class LearnShapelets extends AbstractClassifier implements ParameterSplit
             skm.setInitializeUsingKMeansPlusPlusMethod(true); 
             skm.buildClusterer( ins );
             Instances centroidsWeka = skm.getClusterCentroids();
-            Shapelets[r] =  InstanceTools.FromWekaInstancesArray(centroidsWeka);
+            Shapelets[r] =  InstanceTools.fromWekaInstancesArray(centroidsWeka);
             
             if (Shapelets[r] == null) {
                 System.out.println("P not set");
@@ -457,10 +457,13 @@ public class LearnShapelets extends AbstractClassifier implements ParameterSplit
         double[] paramsLambdaW;
         double[] paramsPercentageOfSeriesLength;
         int[] paramsShapeletLengthScale;
+        Instances sample;
         if(paraSearch){ 
             paramsLambdaW=lambdaWRange;
             paramsPercentageOfSeriesLength=percentageOfSeriesLengthRange;
             paramsShapeletLengthScale=shapeletLengthScaleRange;
+            Random r=new Random();
+            sample=InstanceTools.subSample(data,data.numInstances()/10, r.nextInt());
 //Hope to speed it up!            
 //            maxIter = 200;
         }else{// Hack to minimize changes to the method below
@@ -470,15 +473,13 @@ public class LearnShapelets extends AbstractClassifier implements ParameterSplit
             paramsPercentageOfSeriesLength[0]=percentageOfSeriesLength;
             paramsShapeletLengthScale=new int[1];
             paramsShapeletLengthScale[0]=shapeletLengthScale;
+            sample=data;
         }
         
 
         int noFolds = 3;
-
         double bsfAccuracy = 0;
-        
         int[] params = {0,0,0};
-        
         double accuracy = 0;
         for (int i = 0; i < paramsLambdaW.length; i++) {
             for (int j = 0; j < paramsPercentageOfSeriesLength.length; j++) {
@@ -487,8 +488,8 @@ public class LearnShapelets extends AbstractClassifier implements ParameterSplit
                     //build our test and train sets. for cross-validation.
                     System.out.println("Begin cross validation");
                     for (int l = 0; l < noFolds; l++) {
-                        Instances trainCV = data.trainCV(noFolds, l);
-                        Instances testCV = data.testCV(noFolds, l);
+                        Instances trainCV = sample.trainCV(noFolds, l);
+                        Instances testCV = sample.testCV(noFolds, l);
 
                         percentageOfSeriesLength = paramsPercentageOfSeriesLength[j];
                         shapeletLengthScale = paramsShapeletLengthScale[k];
@@ -506,13 +507,14 @@ public class LearnShapelets extends AbstractClassifier implements ParameterSplit
                         
                         accuracy = (double)correct/(double)testCV.numInstances();
                         sumAccuracy += accuracy;
+                        trainCV=null;
+                        testCV=null;
                     }
                     sumAccuracy/=noFolds;
                     
                     //System.out.printf("%f,%d,%f,%f\n", paramsPercentageOfSeriesLength[j], paramsShapeletLengthScale[k], paramsLambdaW[i], sumAccuracy);
                     
                     if(sumAccuracy > bsfAccuracy){
-                        //weird? Can't put i,j,k straight in params?
                         int[] p = {i,j,k};
                         params = p;
                         bsfAccuracy = sumAccuracy;
@@ -521,11 +523,15 @@ public class LearnShapelets extends AbstractClassifier implements ParameterSplit
             }
         }
         System.out.println("End cross validation paras "+params[0]+", "+params[1]+", "+params[2]);
+        sample=null;
+        
+        System.gc();
         maxAcc=bsfAccuracy;
         lambdaW = paramsLambdaW[params[0]];
         percentageOfSeriesLength = paramsPercentageOfSeriesLength[params[1]];
         shapeletLengthScale = paramsShapeletLengthScale[params[2]];
-        train(data); 
+        if(paraSearch)  //Rebuild whole data set on optimal parameters 
+            train(data); 
     }
     
     private void train(Instances data) throws Exception
@@ -537,7 +543,7 @@ public class LearnShapelets extends AbstractClassifier implements ParameterSplit
         nominalLabels = readNominalTargets(trainSet);
         
         //convert the training set into a 2D Matrix.
-        train = FromWekaInstancesArray(trainSet);
+        train = fromWekaInstancesArray(trainSet);
 //Not necessary, already normalised
 //        normalize2D(train, true);
         

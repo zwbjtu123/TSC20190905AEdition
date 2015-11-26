@@ -3,6 +3,12 @@ package weka.filters.timeseries;
 
 //import fileIO.OutFile;
 import java.text.DecimalFormat;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import utilities.ClassifierTools;
+import utilities.InstanceTools;
+import weka.classifiers.bayes.NaiveBayes;
+import weka.classifiers.meta.timeseriesensembles.WeightedEnsemble;
 //import simulators.SimulateAR;
 //import weka.classifiers.evaluation.ClassifierTools;
 import weka.core.Attribute;
@@ -387,6 +393,22 @@ public class ACF extends SimpleBatchFilter {
 	public static void main(String[] args){
 //		testTransform();
 //                testTrunctate();
+                Instances train =ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\TSC Problems\\ElectricDevices\\ElectricDevices_TRAIN");
+                Instances test =ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\TSC Problems\\ElectricDevices\\ElectricDevices_TEST");
+                ACF acf= new ACF();
+                Instances f;
+            try {
+                f = acf.process(train);
+//                System.out.println(f.toString());
+                NaiveBayes nb=new NaiveBayes();    
+//                WeightedEnsemble we= new WeightedEnsemble();
+                f=InstanceTools.subSample(f, f.numInstances()/100, 0);
+                nb.buildClassifier(f);
+            } catch (Exception ex) {
+                Logger.getLogger(ACF.class.getName()).log(Level.SEVERE, null, ex);
+            }
+                
+                
                 
         }
 

@@ -123,7 +123,7 @@ public class InstanceTools {
     
     
     //converts a 2d array into a weka Instance.
-    public static Instances ToWekaInstances(double[][] data) {
+    public static Instances toWekaInstances(double[][] data) {
         Instances wekaInstances = null;
 
         if (data.length <= 0) {
@@ -158,7 +158,7 @@ public class InstanceTools {
 
     
     //converts a weka Instances into a 2d array.
-    public static double[][] FromWekaInstancesArray(Instances ds) {
+    public static double[][] fromWekaInstancesArray(Instances ds) {
         int numFeatures = ds.numAttributes();
         int numInstances = ds.numInstances();
 
@@ -175,7 +175,7 @@ public class InstanceTools {
     }
     
         //converts a weka Instances into a 2d array.
-    public static ArrayList<ArrayList<Double>> FromWekaInstancesList(Instances ds) {
+    public static ArrayList<ArrayList<Double>> fromWekaInstancesList(Instances ds) {
         int numFeatures = ds.numAttributes()-1; //no classValue
         int numInstances = ds.numInstances();
 
@@ -307,6 +307,12 @@ public class InstanceTools {
             if(in.hasMissingValue())
                 return true;
        return false;
+    }
+     //Returns the *shifted* indexes, so just deleting them should work
+    public static void removeConstantAttributes(Instances test, int[] features){
+        for(int del:features)
+            test.deleteAttributeAt(del);
+        
     }
     
      //Returns the *shifted* indexes, so just deleting them should work

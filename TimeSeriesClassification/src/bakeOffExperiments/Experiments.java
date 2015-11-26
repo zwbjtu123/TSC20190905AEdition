@@ -85,7 +85,7 @@ public class Experiments extends Thread{
 //All classifier names  
     //<editor-fold defaultstate="collapsed" desc="Directory names for all classifiers">   
     static String[] standard={"NB","C45","SVML","SVMQ","Logistic","BayesNet","RandF","RotF","MLP"};
-    static String[] elastic = {"Euclidean_1NN","DTW_R1_1NN","DTW_Rn_1NN","DDTW_R1_1NN","DDTW_Rn_1NN","ERP_1NN","LCSS_1NN","MSM_1NN","TWE_1NN","WDDTW_1NN","WDTW_1NN","DD_DTW","DTD_C","DTW_Features"};
+    static String[] elastic = {"Euclidean_1NN","DTW_R1_1NN","DTW_Rn_1NN","DDTW_R1_1NN","DDTW_Rn_1NN","ERP_1NN","LCSS_1NN","MSM_1NN","TWE_1NN","WDDTW_1NN","WDTW_1NN","DD_DTW","DTD_C","DTW_F"};
     static String[] shapelet={"ST","LS","FS"};
     static String[] dictionary={"BoP","SAXVSM","BOSS"};
     static String[] interval={"TSF","TSBF","LPS"};
@@ -149,8 +149,9 @@ static String[] unfinishedTSF={"CinCECGtorso","ElectricDevices","FordA","FordB",
                 c=new FastShapelets();
                 break;
             case "ShapeletTransform": case "ST": case "ST_Ensemble":
+//Assumes the transformed files will be loaded from the new data path
                 c=new ST_Ensemble();
-                ((ST_Ensemble)c).doSTransform(false);//Assumes the transformed files will be loaded.
+                ((ST_Ensemble)c).doSTransform(false);
                 break;
             case "DTW":
                 c=new DTW_1NN();
@@ -392,12 +393,6 @@ static String[] unfinishedTSF={"CinCECGtorso","ElectricDevices","FordA","FordB",
         }
             
     }
-    public static void allProblemsforSingleFold(String classifier, int fold){
-        for(String problem:DataSets.fileNames){
-            
-        }
-        
-    }
     
     public static void singleClassifierAndFold(String[] args){
 //first gives the problem file      
@@ -423,7 +418,10 @@ static String[] unfinishedTSF={"CinCECGtorso","ElectricDevices","FordA","FordB",
         f=new File(predictions+"/fold"+fold+".csv");
         if(!f.exists() || f.length()==0){
       //      of.writeString(problem+","); );
-            double acc =singleSampleExperiment(train,test,c,fold,predictions);
+            double acc=0;
+            acc =singleSampleExperiment(train,test,c,fold,predictions);
+            
+            
  //       of.writeString("\n");
         }
     }
@@ -457,6 +455,38 @@ static String[] unfinishedTSF={"CinCECGtorso","ElectricDevices","FordA","FordB",
                 of.writeString(",");
         }            
          return foldAcc;
+    }
+    public static double singleShapeletExperiment(Classifier c, int sample,String preds){
+        Instances[] data=new Instances[2];
+        data[0]=null;
+        data[1]=null;
+        
+        double acc=0;
+        double act,pred;
+        OutFile p=new OutFile(preds+"/fold"+sample+".csv");
+// hack here to save internal CV for furhter ensembling         
+        if(c instanceof SaveableEnsemble)
+           ((SaveableEnsemble)c).saveResults(preds+"/internalCV_"+sample+".csv",preds+"/internalTestPreds_"+sample+".csv");
+        try{              
+            c.buildClassifier(data[0]);
+            for(int j=0;j<data[1].numInstances();j++)
+            {
+                act=data[1].instance(j).classValue();
+                pred=c.classifyInstance(data[1].instance(j));
+                if(act==pred)
+                    acc++;
+                p.writeLine(act+","+pred);
+            }
+            acc/=data[1].numInstances();
+//            of.writeString(foldAcc[i]+",");
+
+        }catch(Exception e)
+        {
+                System.out.println(" Error ="+e+" in method simpleExperiment"+e);
+                e.printStackTrace();
+                System.exit(0);
+        }
+         return acc;
     }
 
 
@@ -515,6 +545,11 @@ static String[] unfinishedTSF={"CinCECGtorso","ElectricDevices","FordA","FordB",
         else
             singleClassifier(args);
             
+    }
+//Works with the pre-generatedd Shapelet transform filse     
+    public static void shapeletRun(String[] args) throws Exception{
+        
+        
     }
     public static void reconstruct(String classifier, String problem,  int fold, int paras) throws Exception{
         String path=DataSets.resultsPath+classifier+"/Predictions/"+problem;
@@ -585,7 +620,7 @@ static String[] unfinishedTSF={"CinCECGtorso","ElectricDevices","FordA","FordB",
     
     public static void main(String[] args) throws Exception{
         
-       DataSets.resultsPath=DataSets.clusterPath+"Results/";
+/*       DataSets.resultsPath=DataSets.clusterPath+"Results/";
        DataSets.problemPath=DataSets.clusterPath+"TSC Problems/";
        String cls=args[0];
        Classifier c=setClassifier(cls);
@@ -606,7 +641,7 @@ static String[] unfinishedTSF={"CinCECGtorso","ElectricDevices","FordA","FordB",
         double acc =singleSampleExperiment(train,test,c,0,predictions);
         System.out.println(cls+" ACC FOR "+prob+" = "+acc);
         System.exit(0);
-
+*/
 //       allProblemsforSingleFold()
 //       int fold=Integer.parseInt(args[2]);
 //       int paras=Integer.parseInt(args[3]);
