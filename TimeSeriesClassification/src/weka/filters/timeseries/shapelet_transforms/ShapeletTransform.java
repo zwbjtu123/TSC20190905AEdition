@@ -42,7 +42,7 @@ public class ShapeletTransform extends FullShapeletTransform {
             double[][][] normalisedSubSeqs = generateNormalisedSubSequences(data, length);
 
             //changed to pass in the worst of the K-Shapelets.
-            Shapelet worstKShapelet = kShapelets.size() == numShapelets ? kShapelets.get(numShapelets - 1) : null;
+            worstShapelet = kShapelets.size() == numShapelets ? kShapelets.get(numShapelets - 1) : null;
 
             //for all possible time series.
             for (int i = 0; i < normalisedSubSeqs.length; i++) {
@@ -54,11 +54,11 @@ public class ShapeletTransform extends FullShapeletTransform {
                     double[] candidate = normalisedSubSeqs[i][j];
 
                     //Initialize bounding algorithm for current candidate
-                    QualityBound.ShapeletQualityBound qualityBound = initializeQualityBound(classValue.getClassDistributions());
+                    //QualityBound.ShapeletQualityBound qualityBound = initializeQualityBound(classValue.getClassDistributions());
 
                     //Set bound of the bounding algorithm
-                    if (qualityBound != null && worstKShapelet != null) {
-                        qualityBound.setBsfQuality(worstKShapelet.qualityValue);
+                    if (qualityBound != null && worstShapelet != null) {
+                        qualityBound.setBsfQuality(worstShapelet.qualityValue);
                     }
 
                     Shapelet candidateShapelet = checkCandidate(data, normalisedSubSeqs, candidate, i, j, qualityBound);

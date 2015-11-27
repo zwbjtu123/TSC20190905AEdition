@@ -7,9 +7,7 @@ package weka.filters.timeseries.shapelet_transforms.searchFuntions;
 
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.function.Function;
 import weka.core.Instance;
-import weka.core.Instances;
 import weka.core.shapelet.Shapelet;
 
 /**
@@ -25,9 +23,18 @@ public class ShapeletSearch implements Serializable{
     protected int minShapeletLength;
     protected int maxShapeletLength;
     
+    protected int lengthIncrement = 1;
+    protected int positionIncrement = 1;
+    
     public ShapeletSearch(int min, int max){
         minShapeletLength = min;
         maxShapeletLength = max;
+    }
+    
+    public ShapeletSearch(int min, int max, int lengthInc, int posInc){
+        this(min, max);
+        lengthIncrement = lengthInc;
+        positionIncrement = posInc;
     }
     
     public ArrayList<Shapelet> SearchForShapeletsInSeries(Instance timeSeries, ProcessCandidate checkCandidate){
@@ -35,9 +42,9 @@ public class ShapeletSearch implements Serializable{
 
         double[] series = timeSeries.toDoubleArray();
         
-        for (int length = minShapeletLength; length <= maxShapeletLength; length++) {
-            //for all possible starting positions of that length
-            for (int start = 0; start <= timeSeries.numAttributes() - length - 1; start++) {
+        for (int length = minShapeletLength; length <= maxShapeletLength; length+=lengthIncrement) {
+            //for all possible starting positions of that length. -1 to remove classValue
+            for (int start = 0; start <= timeSeries.numAttributes() - length - 1; start+=positionIncrement) {
                 Shapelet shapelet = checkCandidate.process(series, start, length);
 
                 if (shapelet != null) {

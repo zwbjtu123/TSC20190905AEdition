@@ -5,7 +5,7 @@
  */
 package papers;
 
-import AaronTest.LocalInfo;
+import development.Aaron.LocalInfo;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;

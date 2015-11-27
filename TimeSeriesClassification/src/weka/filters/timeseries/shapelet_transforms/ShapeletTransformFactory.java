@@ -17,7 +17,9 @@ import weka.core.Instances;
 import weka.core.shapelet.*;
 import weka.filters.timeseries.shapelet_transforms.classValue.BinarisedClassValue;
 import weka.filters.timeseries.shapelet_transforms.classValue.NormalClassValue;
+import weka.filters.timeseries.shapelet_transforms.searchFuntions.ShapeletSearch;
 import weka.filters.timeseries.shapelet_transforms.subsequenceDist.CachedSubSeqDistance;
+import weka.filters.timeseries.shapelet_transforms.subsequenceDist.ImprovedOnlineSubSeqDistance;
 import weka.filters.timeseries.shapelet_transforms.subsequenceDist.OnlineSubSeqDistance;
 
 /**
@@ -100,6 +102,7 @@ public class ShapeletTransformFactory
         return s;
     }
 
+    
     long getAvailableMemory()
     {
         Runtime runtime = Runtime.getRuntime();
@@ -140,7 +143,7 @@ public class ShapeletTransformFactory
         {
             randData.randomize(new Random());
             randSubset = new Instances(randData, 0, 10);
-            shapelets.addAll(st1.findBestKShapeletsCache(10, randSubset, 1, randSubset.numAttributes() - 1));
+            shapelets.addAll(st1.findBestKShapeletsCache(10, randSubset, 3, randSubset.numAttributes() - 1));
         }
 
         Collections.sort(shapelets, new ShapeletLengthComparator());

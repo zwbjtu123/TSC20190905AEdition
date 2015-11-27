@@ -10,6 +10,7 @@
  */
 package weka.filters.timeseries.shapelet_transforms;
 
+import development.Aaron.LocalInfo;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileReader;
@@ -21,11 +22,19 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Scanner;
 import java.util.TreeMap;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import utilities.ClassifierTools;
+import utilities.InstanceTools;
 import utilities.class_distributions.ClassDistribution;
+import weka.classifiers.meta.timeseriesensembles.WeightedEnsemble;
 import weka.core.*;
 import weka.core.shapelet.*;
 import weka.filters.SimpleBatchFilter;
+import weka.filters.timeseries.shapelet_transforms.classValue.BinarisedClassValue;
 import weka.filters.timeseries.shapelet_transforms.classValue.NormalClassValue;
+import weka.filters.timeseries.shapelet_transforms.searchFuntions.ShapeletSearch;
+import weka.filters.timeseries.shapelet_transforms.searchFuntions.ShapeletSearch.ProcessCandidate;
 import weka.filters.timeseries.shapelet_transforms.subsequenceDist.SubSeqDistance;
 
 /**
@@ -67,8 +76,10 @@ public class FullShapeletTransform extends SimpleBatchFilter {
     public final static int DEFAULT_MINSHAPELETLENGTH = 3;
     public final static int DEFAULT_MAXSHAPELETLENGTH = 23;
 
-    protected QualityMeasures.ShapeletQualityMeasure qualityMeasure;
-    protected QualityMeasures.ShapeletQualityChoice qualityChoice;
+    protected transient QualityMeasures.ShapeletQualityMeasure qualityMeasure;
+    protected transient QualityMeasures.ShapeletQualityChoice qualityChoice;
+    protected transient QualityBound.ShapeletQualityBound qualityBound;
+    
     protected boolean useCandidatePruning;
     protected boolean useRoundRobin;
 
@@ -76,7 +87,11 @@ public class FullShapeletTransform extends SimpleBatchFilter {
 
     protected SubSeqDistance subseqDistance;
     protected NormalClassValue classValue;
+    protected ShapeletSearch searchFunction;
     protected String serialName;
+    protected Shapelet worstShapelet;
+    
+    protected Instances inputData;
     
     protected ArrayList<Shapelet> kShapelets;
 
@@ -86,6 +101,10 @@ public class FullShapeletTransform extends SimpleBatchFilter {
 
     public void setClassValue(NormalClassValue cv) {
         classValue = cv;
+    }
+    
+    public void setSearchFunction(ShapeletSearch shapeletSearch) {
+        searchFunction = shapeletSearch;
     }
 
     public void setSerialName(String sName) {
@@ -178,6 +197,7 @@ public class FullShapeletTransform extends SimpleBatchFilter {
         setQualityMeasure(qualityChoice);
         this.subseqDistance = new SubSeqDistance();
         this.classValue = new NormalClassValue();
+        this.searchFunction = new ShapeletSearch(minShapeletLength, maxShapeletLength);
     }
 
     /**
@@ -319,6 +339,29 @@ public class FullShapeletTransform extends SimpleBatchFilter {
                 this.qualityMeasure = new QualityMeasures.InformationGain();
         }
     }
+    
+        /**
+     *
+     * @param classDist
+     * @return
+     */
+    protected void initQualityBound(ClassDistribution classDist) {
+        if (!useCandidatePruning) return;
+
+        switch (qualityChoice) {
+            case F_STAT:
+                this.qualityBound = new QualityBound.FStatBound(classDist, candidatePruningStartPercentage);
+                break;
+            case KRUSKALL_WALLIS:
+                this.qualityBound = new QualityBound.KruskalWallisBound(classDist, candidatePruningStartPercentage);
+                break;
+            case MOODS_MEDIAN:
+                this.qualityBound = new QualityBound.MoodsMedianBound(classDist, candidatePruningStartPercentage);
+                break;
+            default:
+                this.qualityBound = new QualityBound.InformationGainBound(classDist, candidatePruningStartPercentage);
+        }
+    }
 
     /**
      *
@@ -420,6 +463,8 @@ public class FullShapeletTransform extends SimpleBatchFilter {
      */
     @Override
     public Instances process(Instances data) throws IllegalArgumentException {
+        inputData = data;
+
         //check the input data is correct and assess whether the filter has been setup correctly.
         inputCheck(data);
 
@@ -519,28 +564,28 @@ public class FullShapeletTransform extends SimpleBatchFilter {
         int dataSize = data.numInstances();
         
         //for all possible time series.
-        while (dataSet < dataSize) {
+        for(; dataSet < dataSize; dataSet++) {
             outputPrint("data : " + dataSet);
 
-            double[] wholeCandidate = data.get(dataSet).toDoubleArray();
-
-            //changed to pass in the worst of the K-Shapelets.
-            Shapelet worstKShapelet = kShapelets.size() == numShapelets ? kShapelets.get(numShapelets - 1) : null;
+            //set the worst Shapelet so far, as long as the shapelet set is full.
+            worstShapelet = kShapelets.size() == numShapelets ? kShapelets.get(numShapelets - 1) : null;
 
             //set the series we're working with.
             subseqDistance.setSeries(dataSet);
             //set the clas value of the series we're working with.
             classValue.setShapeletValue(data.get(dataSet));
-
-            seriesShapelets = findShapeletCandidates(data, dataSet, wholeCandidate, worstKShapelet);
+           
+            seriesShapelets = searchFunction.SearchForShapeletsInSeries(data.get(dataSet), new ProcessCandidate(){
+            @Override
+            public Shapelet process(double[] candidate, int start, int length){
+               return checkCandidate(candidate, start, length);
+            }});
 
             Collections.sort(seriesShapelets, shapeletComparator);
 
             seriesShapelets = removeSelfSimilar(seriesShapelets);
 
             kShapelets = combine(numShapelets, kShapelets, seriesShapelets);
-            
-            dataSet++;
             
             createSerialFile();
         }
@@ -598,43 +643,229 @@ public class FullShapeletTransform extends SimpleBatchFilter {
         return findBestKShapeletsCache(data);
     }
 
-    protected ArrayList<Shapelet> findShapeletCandidates(Instances data, int i, double[] wholeCandidate, Shapelet worstKShapelet) {
-        //get our time series as a double array.
-        ArrayList<Shapelet> seriesShapelets = new ArrayList<>();
 
-        //for all possible lengths
-        for (int length = minShapeletLength; length <= maxShapeletLength; length++) {
-            double[] candidate = new double[length];
-            //for all possible starting positions of that length
-            for (int start = 0; start <= wholeCandidate.length - length - 1; start++) {
-                //-1 = avoid classVal - handle later for series with no class val
-                // CANDIDATE ESTABLISHED - got original series, length and starting position
-                // extract relevant part into a double[] for processing
-                System.arraycopy(wholeCandidate, start, candidate, 0, length);
 
-                // znorm candidate here so it's only done once, rather than in each distance calculation
-                candidate = subseqDistance.zNormalise(candidate, false);
+    /**
+     * Private method to combine two ArrayList collections of
+     * FullShapeletTransform objects.
+     *
+     * @param k the maximum number of shapelets to be returned after combining
+     * the two lists
+     * @param kBestSoFar the (up to) k best shapelets that have been observed so
+     * far, passed in to combine with shapelets from a new series (sorted)
+     * @param timeSeriesShapelets the shapelets taken from a new series that are
+     * to be merged in descending order of fitness with the kBestSoFar
+     * @return an ordered ArrayList of the best k (or less) (sorted)
+     * FullShapeletTransform objects from the union of the input ArrayLists
+     */
+    protected ArrayList<Shapelet> combine(int k, ArrayList<Shapelet> kBestSoFar, ArrayList<Shapelet> timeSeriesShapelets) {
+        //both kBestSofar and timeSeries are sorted so we can explot this.
+        //maintain a pointer for each list.
+        ArrayList<Shapelet> newBestSoFar = new ArrayList<>();
 
-                //Initialize bounding algorithm for current candidate
-                QualityBound.ShapeletQualityBound qualityBound = initializeQualityBound(classValue.getClassDistributions());
+        //best so far pointer
+        int bsfPtr = 0;
+        //new time seris pointer.
+        int tssPtr = 0;
 
-                //Set bound of the bounding algorithm
-                if (qualityBound != null && worstKShapelet != null) {
-                    qualityBound.setBsfQuality(worstKShapelet.qualityValue);
-                }
 
-                //compare the shapelet candidate to the other time series.
-                Shapelet candidateShapelet = checkCandidate(candidate, data, i, start, qualityBound);
+        for (int i = 0; i < k; i++) {
+            Shapelet shapelet1 = null, shapelet2 = null;
 
-                if (candidateShapelet != null) {
-                    seriesShapelets.add(candidateShapelet);
-                }
+            if (bsfPtr < kBestSoFar.size()) {
+                shapelet1 = kBestSoFar.get(bsfPtr);
             }
+            if (tssPtr < timeSeriesShapelets.size()) {
+                shapelet2 = timeSeriesShapelets.get(tssPtr);
+            }
+
+            boolean shapelet1Null = shapelet1 == null;
+            boolean shapelet2Null = shapelet2 == null;
+
+            //both lists have been explored, but we have less than K elements.
+            if (shapelet1Null && shapelet2Null) {
+                break;
+            }
+
+            //one list is expired keep adding the other list until we reach K.
+            if (shapelet1Null) {
+                newBestSoFar.add(shapelet2);
+                tssPtr++;
+                continue;
+            }
+
+            //one list is expired keep adding the other list until we reach K.
+            if (shapelet2Null) {
+                newBestSoFar.add(shapelet1);
+                bsfPtr++;
+                continue;
+            }
+
+            //if both lists are fine then we need to compare which one to use.
+            if (shapeletComparator.compare(shapelet1, shapelet2) == -1) {
+                newBestSoFar.add(shapelet1);
+                bsfPtr++;
+                shapelet1 = null;
+            } else {
+                newBestSoFar.add(shapelet2);
+                tssPtr++;
+                shapelet2 = null;
+            }
+            
+            
         }
-        return seriesShapelets;
+
+        return newBestSoFar;
     }
 
     /**
+     * protected method to remove self-similar shapelets from an ArrayList (i.e.
+     * if they come from the same series and have overlapping indicies)
+     *
+     * @param shapelets the input Shapelets to remove self similar
+     * FullShapeletTransform objects from
+     * @return a copy of the input ArrayList with self-similar shapelets removed
+     */
+    protected static ArrayList<Shapelet> removeSelfSimilar(ArrayList<Shapelet> shapelets) {
+        // return a new pruned array list - more efficient than removing
+        // self-similar entries on the fly and constantly reindexing
+        ArrayList<Shapelet> outputShapelets = new ArrayList<>();
+        int size = shapelets.size();
+        boolean[] selfSimilar = new boolean[size];
+
+        for (int i = 0; i < size; i++) {
+            if (selfSimilar[i]) {
+                continue;
+            }
+
+            outputShapelets.add(shapelets.get(i));
+
+            for (int j = i + 1; j < size; j++) {
+                // no point recalc'ing if already self similar to something
+                if ((!selfSimilar[j]) && selfSimilarity(shapelets.get(i), shapelets.get(j))) {
+                    selfSimilar[j] = true;
+                }
+            }
+        }
+        return outputShapelets;
+    }
+
+    protected Shapelet checkCandidate(double[] series, int start, int length) {
+        //init qualityBound.
+        
+        initQualityBound(classValue.getClassDistributions());        
+        
+        //Set bound of the bounding algorithm
+        if (qualityBound != null && worstShapelet != null) {
+            qualityBound.setBsfQuality(worstShapelet.qualityValue);
+        }
+        
+        double[] candidate = new double[length];
+        
+        //copy the data from the whole series into a candidate.
+        System.arraycopy(series, start, candidate, 0, length);
+
+        // znorm candidate here so it's only done once, rather than in each distance calculation
+        candidate = subseqDistance.zNormalise(candidate, false);
+
+        // create orderline by looping through data set and calculating the subsequence
+        // distance from candidate to all data, inserting in order.
+        ArrayList<OrderLineObj> orderline = new ArrayList<>();
+
+        int dataSize = inputData.numInstances();
+
+        subseqDistance.setCandidate(candidate, start);
+
+        for (int i = 0; i < dataSize; i++) {
+            //Check if it is possible to prune the candidate
+            if (qualityBound != null && qualityBound.pruneCandidate()) {
+                return null;
+            }
+
+            double distance = 0.0;
+            //don't compare the shapelet to the the time series it came from because we know it's 0.
+            if (i != dataSet) {
+                distance = subseqDistance.calculate(inputData.instance(i).toDoubleArray(), i);
+            }
+
+            //this could be binarised or normal. 
+            double classVal = classValue.getClassValue(inputData.instance(i));
+
+            // without early abandon, it is faster to just add and sort at the end
+            orderline.add(new OrderLineObj(distance, classVal));
+
+            //Update qualityBound - presumably each bounding method for different quality measures will have a different update procedure.
+            if (qualityBound != null) {
+                qualityBound.updateOrderLine(orderline.get(orderline.size() - 1));
+            }
+        }
+
+        Shapelet shapelet = new Shapelet(candidate, dataSourceIDs[dataSet], start, this.qualityMeasure);
+        //this class distribution could be binarised or normal.
+        shapelet.calculateQuality(orderline, classValue.getClassDistributions());
+        shapelet.classValue = classValue.getShapeletValue(); //set classValue of shapelet. (interesing to know).
+        return shapelet;
+    }
+    
+
+    /**
+     * Load a set of Instances from an ARFF
+     *
+     * @param fileName the file name of the ARFF
+     * @return a set of Instances from the ARFF
+     */
+    public static Instances loadData(String fileName) {
+        Instances data = null;
+        try {
+            FileReader r;
+            r = new FileReader(fileName);
+            data = new Instances(r);
+
+            data.setClassIndex(data.numAttributes() - 1);
+        } catch (IOException e) {
+            System.out.println(" Error =" + e + " in method loadData");
+        }
+        return data;
+    }
+
+    /**
+     * A private method to assess the self similarity of two
+     * FullShapeletTransform objects (i.e. whether they have overlapping
+     * indicies and are taken from the same time series).
+     *
+     * @param shapelet the first FullShapeletTransform object (in practice, this
+     * will be the dominant shapelet with quality >= candidate)
+     * @param candidate the second FullShapeletTransform
+     * @return
+     */
+    private static boolean selfSimilarity(Shapelet shapelet, Shapelet candidate) {
+        if (candidate.seriesId == shapelet.seriesId) {
+            if (candidate.startPos >= shapelet.startPos && candidate.startPos < shapelet.startPos + shapelet.content.length) { //candidate starts within exisiting shapelet
+                return true;
+            }
+            if (shapelet.startPos >= candidate.startPos && shapelet.startPos < candidate.startPos + candidate.content.length) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * A method to read in a FullShapeletTransform log file to reproduce a
+     * FullShapeletTransform
+     * <p>
+     * NOTE: assumes shapelets from log are Z-NORMALISED
+     *
+     * @param fileName the name and path of the log file
+     * @return a duplicate FullShapeletTransform to the object that created the
+     * original log file
+     * @throws Exception
+     */
+    public static FullShapeletTransform createFilterFromFile(String fileName) throws Exception {
+        return createFilterFromFile(fileName, Integer.MAX_VALUE);
+    }
+
+        /**
      * A method to obtain time taken to find a single best shapelet in the data
      * set
      *
@@ -703,266 +934,7 @@ public class FullShapeletTransform extends SimpleBatchFilter {
         }
 
     }
-
-    /**
-     * Private method to combine two ArrayList collections of
-     * FullShapeletTransform objects.
-     *
-     * @param k the maximum number of shapelets to be returned after combining
-     * the two lists
-     * @param kBestSoFar the (up to) k best shapelets that have been observed so
-     * far, passed in to combine with shapelets from a new series (sorted)
-     * @param timeSeriesShapelets the shapelets taken from a new series that are
-     * to be merged in descending order of fitness with the kBestSoFar
-     * @return an ordered ArrayList of the best k (or less) (sorted)
-     * FullShapeletTransform objects from the union of the input ArrayLists
-     */
-    protected ArrayList<Shapelet> combine(int k, ArrayList<Shapelet> kBestSoFar, ArrayList<Shapelet> timeSeriesShapelets) {
-        //both kBestSofar and timeSeries are sorted so we can explot this.
-        //maintain a pointer for each list.
-        ArrayList<Shapelet> newBestSoFar = new ArrayList<>();
-
-        //best so far pointer
-        int bsfPtr = 0;
-        //new time seris pointer.
-        int tssPtr = 0;
-
-        Shapelet shapelet1 = null, shapelet2 = null;
-
-        for (int i = 0; i < k; i++) {
-            if (bsfPtr < kBestSoFar.size()) {
-                shapelet1 = kBestSoFar.get(bsfPtr);
-            }
-            if (tssPtr < timeSeriesShapelets.size()) {
-                shapelet2 = timeSeriesShapelets.get(tssPtr);
-            }
-
-            boolean shapelet1Null = shapelet1 == null;
-            boolean shapelet2Null = shapelet2 == null;
-
-            //both lists have been explored, but we have less than K elements.
-            if (shapelet1Null && shapelet2Null) {
-                break;
-            }
-
-            //one list is expired keep adding the other list until we reach K.
-            if (shapelet1Null) {
-                newBestSoFar.add(shapelet2);
-                tssPtr++;
-                continue;
-            }
-
-            //one list is expired keep adding the other list until we reach K.
-            if (shapelet2Null) {
-                newBestSoFar.add(shapelet1);
-                bsfPtr++;
-                continue;
-            }
-
-            //if both lists are fine then we need to compare which one to use.
-            if (shapeletComparator.compare(shapelet1, shapelet2) == -1) {
-                newBestSoFar.add(shapelet1);
-                bsfPtr++;
-                shapelet1 = null;
-            } else {
-                newBestSoFar.add(shapelet2);
-                tssPtr++;
-                shapelet2 = null;
-            }
-        }
-
-        return newBestSoFar;
-    }
-
-    /**
-     *
-     * @param classDist
-     * @return
-     */
-    protected QualityBound.ShapeletQualityBound initializeQualityBound(ClassDistribution classDist) {
-        if (useCandidatePruning) {
-            if (qualityMeasure instanceof QualityMeasures.InformationGain) {
-                return new QualityBound.InformationGainBound(classDist, candidatePruningStartPercentage);
-            } else if (qualityMeasure instanceof QualityMeasures.MoodsMedian) {
-                return new QualityBound.MoodsMedianBound(classDist, candidatePruningStartPercentage);
-            } else if (qualityMeasure instanceof QualityMeasures.FStat) {
-                return new QualityBound.FStatBound(classDist, candidatePruningStartPercentage);
-            } else if (qualityMeasure instanceof QualityMeasures.KruskalWallis) {
-                return new QualityBound.KruskalWallisBound(classDist, candidatePruningStartPercentage);
-            }
-        }
-        return null;
-    }
-
-    /**
-     * protected method to remove self-similar shapelets from an ArrayList (i.e.
-     * if they come from the same series and have overlapping indicies)
-     *
-     * @param shapelets the input Shapelets to remove self similar
-     * FullShapeletTransform objects from
-     * @return a copy of the input ArrayList with self-similar shapelets removed
-     */
-    protected static ArrayList<Shapelet> removeSelfSimilar(ArrayList<Shapelet> shapelets) {
-        // return a new pruned array list - more efficient than removing
-        // self-similar entries on the fly and constantly reindexing
-        ArrayList<Shapelet> outputShapelets = new ArrayList<>();
-        int size = shapelets.size();
-        boolean[] selfSimilar = new boolean[size];
-
-        for (int i = 0; i < size; i++) {
-            if (selfSimilar[i]) {
-                continue;
-            }
-
-            outputShapelets.add(shapelets.get(i));
-
-            for (int j = i + 1; j < size; j++) {
-                // no point recalc'ing if already self similar to something
-                if ((!selfSimilar[j]) && selfSimilarity(shapelets.get(i), shapelets.get(j))) {
-                    selfSimilar[j] = true;
-                }
-            }
-        }
-        return outputShapelets;
-    }
-
-    /**
-     * protected method to check a candidate shapelet. Functions by passing in
-     * the raw data, and returning an assessed Shapelet object.
-     *
-     * @param candidate the data from the candidate FullShapeletTransform
-     * @param data the entire data set to compare the candidate to
-     * @param seriesId series id from the dataset that the candidate came from
-     * @param startPos start position in the series where candidate came from
-     * @param qualityBound
-     * @return a fully-computed FullShapeletTransform, including the quality of
-     * this candidate
-     */
-    protected Shapelet checkCandidate(double[] candidate, Instances data, int seriesId, int startPos, QualityBound.ShapeletQualityBound qualityBound) {
-        // create orderline by looping through data set and calculating the subsequence
-        // distance from candidate to all data, inserting in order.
-        ArrayList<OrderLineObj> orderline = new ArrayList<>();
-
-        int dataSize = data.numInstances();
-
-        subseqDistance.setCandidate(candidate, startPos);
-
-        for (int i = 0; i < dataSize; i++) {
-            //Check if it is possible to prune the candidate
-            if (qualityBound != null && qualityBound.pruneCandidate()) {
-                return null;
-            }
-
-            double distance = 0.0;
-            //don't compare the shapelet to the the time series it came from.
-            if (i != seriesId) {
-                distance = subseqDistance.calculate(data.instance(i).toDoubleArray(), i);
-            }
-
-            //this could be binarised or normal. 
-            double classVal = classValue.getClassValue(data.instance(i));
-
-            // without early abandon, it is faster to just add and sort at the end
-            orderline.add(new OrderLineObj(distance, classVal));
-
-            //Update qualityBound - presumably each bounding method for different quality measures will have a different update procedure.
-            if (qualityBound != null) {
-                qualityBound.updateOrderLine(orderline.get(orderline.size() - 1));
-            }
-        }
-
-        // note: early abandon entropy pruning would appear here, but has been ommitted
-        // in favour of a clear multi-class information gain calculation. Could be added in
-        // this method in the future for speed up, but distance early abandon is more important
-        // create a shapelet object to store all necessary info, i.e.
-        Shapelet shapelet = new Shapelet(candidate, dataSourceIDs[seriesId], startPos, this.qualityMeasure);
-        //this class distribution could be binarised or normal.
-        shapelet.calculateQuality(orderline, classValue.getClassDistributions());
-        shapelet.classValue = classValue.getShapeletValue(); //set classValue of shapelet. (interesing to know).
-        return shapelet;
-    }
-
-    public static double[] getInfoGain(Instances trans) {
-        double[] quals = new double[trans.numAttributes() - 1];
-
-        NormalClassValue ncv = new NormalClassValue();
-        ncv.init(trans);
-
-        for (int i = 0; i < quals.length; i++) {
-            ArrayList<OrderLineObj> orderline = new ArrayList<>();
-            double[] dists = trans.attributeToDoubleArray(i);
-
-            for (int j = 0; j < dists.length; j++) {
-                double distance = dists[j];
-                double classVal = ncv.getClassValue(trans.instance(j));
-                orderline.add(new OrderLineObj(distance, classVal));
-            }
-
-            QualityMeasures.InformationGain ig = new QualityMeasures.InformationGain();
-            double qual = ig.calculateQuality(orderline, ncv.getClassDistributions());
-            quals[i] = qual;
-        }
-
-        return quals;
-    }
-
-    /**
-     * Load a set of Instances from an ARFF
-     *
-     * @param fileName the file name of the ARFF
-     * @return a set of Instances from the ARFF
-     */
-    public static Instances loadData(String fileName) {
-        Instances data = null;
-        try {
-            FileReader r;
-            r = new FileReader(fileName);
-            data = new Instances(r);
-
-            data.setClassIndex(data.numAttributes() - 1);
-        } catch (IOException e) {
-            System.out.println(" Error =" + e + " in method loadData");
-        }
-        return data;
-    }
-
-    /**
-     * A private method to assess the self similarity of two
-     * FullShapeletTransform objects (i.e. whether they have overlapping
-     * indicies and are taken from the same time series).
-     *
-     * @param shapelet the first FullShapeletTransform object (in practice, this
-     * will be the dominant shapelet with quality >= candidate)
-     * @param candidate the second FullShapeletTransform
-     * @return
-     */
-    private static boolean selfSimilarity(Shapelet shapelet, Shapelet candidate) {
-        if (candidate.seriesId == shapelet.seriesId) {
-            if (candidate.startPos >= shapelet.startPos && candidate.startPos < shapelet.startPos + shapelet.content.length) { //candidate starts within exisiting shapelet
-                return true;
-            }
-            if (shapelet.startPos >= candidate.startPos && shapelet.startPos < candidate.startPos + candidate.content.length) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
-     * A method to read in a FullShapeletTransform log file to reproduce a
-     * FullShapeletTransform
-     * <p>
-     * NOTE: assumes shapelets from log are Z-NORMALISED
-     *
-     * @param fileName the name and path of the log file
-     * @return a duplicate FullShapeletTransform to the object that created the
-     * original log file
-     * @throws Exception
-     */
-    public static FullShapeletTransform createFilterFromFile(String fileName) throws Exception {
-        return createFilterFromFile(fileName, Integer.MAX_VALUE);
-    }
-
+    
     /**
      * Returns a list of the lengths of the shapelets found by this transform.
      *
@@ -1056,29 +1028,6 @@ public class FullShapeletTransform extends SimpleBatchFilter {
         sf.setShapeletMinAndMax(1, 1);
 
         return sf;
-    }
-
-    /**
-     * Outputs the log file to the appropriate location.
-     *
-     * @throws Exception
-     */
-    public void outputLog() throws Exception {
-        //just in case the file doesn't exist, or the directories.
-        File file = new File(this.ouputFileLocation);
-        file.getParentFile().mkdirs();
-
-        FileWriter out = new FileWriter(this.ouputFileLocation, file.exists());
-        for (Shapelet shapelet : this.shapelets) {
-            out.append(shapelet.qualityValue + "," + shapelet.seriesId + "," + shapelet.startPos + "\n");
-            double[] shapeletContent = shapelet.content;
-            for (int j = 0; j < shapeletContent.length; j++) {
-                out.append(shapeletContent[j] + ",");
-            }
-            out.append("\n");
-        }
-        out.close();
-
     }
 
     /**
@@ -1205,4 +1154,34 @@ public class FullShapeletTransform extends SimpleBatchFilter {
         return subseqDistOpCount;
     }
 
+    
+    public static void main(String[] args){
+        try {
+            final String resampleLocation = "../../resampled data sets";
+            final String dataset = "ItalyPowerDemand";
+            final int fold = 1;
+            final String filePath = resampleLocation + File.separator + dataset + File.separator + dataset + fold;
+            Instances test, train;
+            test = utilities.ClassifierTools.loadData(filePath + "_TEST");
+            train = utilities.ClassifierTools.loadData(filePath + "_TRAIN");
+            //use fold as the seed.
+            //train = InstanceTools.subSample(train, 100, fold);
+            FullShapeletTransform transform = new FullShapeletTransform();
+            //construct shapelet classifiers.
+            transform.setClassValue(new BinarisedClassValue());
+            transform.setSearchFunction(new ShapeletSearch(3, train.numAttributes() - 1, 2, 1));
+            transform.useCandidatePruning();
+            transform.setNumberOfShapelets(train.numInstances() * 10);
+            transform.setQualityMeasure(QualityMeasures.ShapeletQualityChoice.INFORMATION_GAIN);
+            Instances tranTrain = transform.process(train);
+            Instances tranTest = transform.process(test);
+            WeightedEnsemble we = new WeightedEnsemble();
+            we.buildClassifier(tranTrain);
+            double accuracy = ClassifierTools.accuracy(tranTest, we);
+            
+            System.out.println(accuracy);
+        } catch (Exception ex) {
+            Logger.getLogger(FullShapeletTransform.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
 }

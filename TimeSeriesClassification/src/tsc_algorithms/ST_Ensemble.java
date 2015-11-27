@@ -24,7 +24,7 @@ import weka.filters.timeseries.shapelet_transforms.classValue.BinarisedClassValu
 public class ST_Ensemble  extends AbstractClassifier implements SaveableEnsemble{
 
     private WeightedEnsemble weightedEnsemble;
-    private FullShapeletTransform transform;
+    private BalancedClassShapeletTransform transform;
     private Instances format;
     
     private boolean saveResults=false;

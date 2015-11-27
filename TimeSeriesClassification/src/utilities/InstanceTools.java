@@ -349,6 +349,8 @@ public class InstanceTools {
     //this wants to create a proportional sub sample 
     //but if you're sampling size is too small you could create a dodgy dataset.
     public static Instances subSample(Instances data, int amount, int seed){
+        if(amount < data.numClasses()) System.out.println("Error: too few instances compared to classes.");
+
         Map<Double, Instances> classBins = createClassInstancesMap(data);
         ClassDistribution trainDistribution = new TreeSetClassDistribution(data);
         
@@ -371,6 +373,48 @@ public class InstanceTools {
 
         return output;        
     }
-     
     
+    
+    public static Instances subSampleFixedProportion(Instances data, double proportion, int seed){
+        Map<Double, Instances> classBins = createClassInstancesMap(data);
+        ClassDistribution trainDistribution = new TreeSetClassDistribution(data);
+        
+        Random r = new Random(seed);
+
+        //empty instances.
+        Instances output = new Instances(data, 0);
+
+        Iterator<Double> keys = trainDistribution.keySet().iterator();
+        while(keys.hasNext()){
+            double classVal = keys.next();
+            int occurences = trainDistribution.get(classVal);
+            int numInstances = (int) (proportion * occurences);
+            Instances bin = classBins.get(classVal);
+            bin.randomize(r); //randomise the bin.
+
+            output.addAll(bin.subList(0,numInstances));//copy the first portion of the bin into the train set
+        }
+        return output; 
+     }
+ 
+    
+    public static int findSmallestClassAmount(Instances data){
+        ClassDistribution trainDistribution = new TreeSetClassDistribution(data);
+        
+        //find the smallest represented class.
+        Iterator<Double> keys = trainDistribution.keySet().iterator();
+        int small_sf = Integer.MAX_VALUE;
+        int occurences;
+        double key;
+        while(keys.hasNext()){
+            
+            key = keys.next();
+            occurences = trainDistribution.get(key);
+            
+            if(occurences < small_sf)
+                small_sf = occurences;
+        }
+        
+        return small_sf;
+    }
 }

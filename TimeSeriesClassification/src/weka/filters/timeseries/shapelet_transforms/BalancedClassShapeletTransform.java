@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.TreeMap;
 import weka.core.Instances;
 import weka.core.shapelet.Shapelet;
+import weka.filters.timeseries.shapelet_transforms.searchFuntions.ShapeletSearch;
 
 /**
  *
@@ -61,14 +62,18 @@ public class BalancedClassShapeletTransform extends FullShapeletTransform
             
             //we only want to pass in the worstKShapelet if we've found K shapelets. but we only care about this class values worst one.
             //this is due to the way we represent each classes shapelets in the map.
-            Shapelet kWorst = kShapelets.size() == proportion ? kShapelets.get(kShapelets.size()-1) : null;
+            worstShapelet = kShapelets.size() == proportion ? kShapelets.get(kShapelets.size()-1) : null;
 
             //set the series we're working with.
             subseqDistance.setSeries(dataSet);
             //set the clas value of the series we're working with.
             classValue.setShapeletValue(data.get(dataSet));
             
-            seriesShapelets = findShapeletCandidates(data, dataSet, wholeCandidate, kWorst);
+            seriesShapelets = searchFunction.SearchForShapeletsInSeries(data.get(dataSet), new ShapeletSearch.ProcessCandidate(){
+            @Override
+            public Shapelet process(double[] candidate, int start, int length){
+               return checkCandidate(candidate, start, length);
+            }});
 
             Collections.sort(seriesShapelets, shapeletComparator);
 

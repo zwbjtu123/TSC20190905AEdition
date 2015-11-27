@@ -5,7 +5,7 @@
  */
 package development;
 
-import AaronTest.LocalInfo;
+import development.Aaron.LocalInfo;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -14,6 +14,7 @@ import java.io.ObjectInputStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Scanner;
 import tsc_algorithms.LearnShapelets;
 import utilities.ClassifierTools;
@@ -25,6 +26,7 @@ import weka.core.Instances;
 import weka.core.shapelet.QualityMeasures;
 import weka.filters.timeseries.shapelet_transforms.*;
 import weka.filters.timeseries.shapelet_transforms.classValue.BinarisedClassValue;
+import weka.filters.timeseries.shapelet_transforms.searchFuntions.ShapeletSearch;
 import weka.filters.timeseries.shapelet_transforms.subsequenceDist.ImprovedOnlineSubSeqDistance;
 
 /**
@@ -42,6 +44,10 @@ public class ResamplingExperiments {
     private static final String serialLocation = dotdotSlash + dotdotSlash + "resampled serial files";
     
     
+    //private static final String[] subsample = {"Worms", "WormsTwoClass", "UWaveGestureLibraryX", "UWaveGestureLibraryY", "UWaveGestureLibraryZ", "yoga", "PhalangesOutlinesCorrect", "ScreenType", "SmallKitchenAppliances", "TwoPatterns", "ElectricDevices", "OSULeaf", "Strawberry", "wafer", "Computers", "Earthquakes"};
+    //private static final String[] subsample = {"MALLAT","CinCECGtorso","FordA", "FordB", "RefrigerationDevices","StarLightCurves", "UWaveGestureLibraryAll"};
+    private static final String[] subsample = {"NonInvasiveFatalECGThorax1", "NonInvasiveFatalECGThorax2", "Phoneme","Haptics", "ShapesAll", "HandOutlines", "InlineSkate"};
+
     private static String[] datasets;
 
     private static String classifierName;
@@ -52,8 +58,6 @@ public class ResamplingExperiments {
     public static final int noSamples = 100;
 
     public static void main(String args[]) {
-
-
         //ive already 
         //datasets = removeSubArray(DataSets.ucrNames, DataSets.ucrSmall);
         //datasets = DataSets.ucrSmall;
@@ -62,13 +66,17 @@ public class ResamplingExperiments {
         //arg2 is the fold number. 0-99.
         //arg1 is the algorithm Full is 0 and Binary is 1.
         //We could opt to not have our arguments come from command line and instead run the folds and datasets and algorithms in 3 nested loops.
-        currentDataSet = args[0];///*sometimes we need to use the array number*/DataSets.fileNames[Integer.parseInt(args[0])];
         
+        int num = Integer.parseInt(args[0]) - 1;
+        int index = num / 100;
+        int fold = num % 100;
+
+        currentDataSet = subsample[index];///*sometimes we need to use the array number*/DataSets.fileNames[Integer.parseInt(args[0])];
+
         classifier = Integer.parseInt(args[1]); //auto set this Balanced.
         setClassifierName(classifier);
 
-        //1-100. we want 0-99. Cluster thing.
-        int fold = 0;
+        /*//1-100. we want 0-99. Cluster thing.
         if (args.length >= 3) {
             fold = Integer.parseInt(args[2]) - 1;
         }
@@ -81,13 +89,31 @@ public class ResamplingExperiments {
         boolean complete = false;
         if(args.length >=5){
             complete =  Boolean.parseBoolean(args[4]);
-        }
+        }*/
         
-        System.out.println(currentDataSet + " " + fold + " " + currentSeries);
-
-
-        createShapeletsGrace(fold, currentSeries, complete);
+        createParameterShapelet(fold);
         
+        //System.out.println(currentDataSet + " " + fold + " " + currentSeries);
+        
+        /*String fileExtension = File.separator + currentDataSet + File.separator + currentDataSet;
+        String classifierDir = File.separator + classifierName + fileExtension;
+        String samplePath = resampleLocation + fileExtension + fold;
+        String transformPath = transformLocation + classifierDir + fold;
+        Instances train = utilities.ClassifierTools.loadData(samplePath + "_TRAIN");
+        GraceFullShapeletTransform.buildGraceBSUB(currentDataSet, train.numInstances(), fold, "long-eth", 8000);
+        */
+        
+        
+        //createShapeletsGrace(fold, currentSeries, complete);
+        
+        
+        /*File f = new File(transformLocation + File.separator + classifierName + File.separator + currentDataSet + File.separator+currentDataSet+fold+"_TRAIN.arff");
+        if(!f.exists())
+            createShapeletsSubsample(fold, 10);
+        else
+            System.out.println("already transformed");*/
+                
+                
         
         //createAllResamples();
         /*File f = new File(transformLocation + File.separator + classifierName + File.separator + currentDataSet + File.separator+currentDataSet+fold+"_TRAIN.arff");
@@ -145,7 +171,6 @@ public class ResamplingExperiments {
         }
     }
 
-    //rewrite
     public static void createShapelets(int fold) {
         FullShapeletTransform transform = null;
 
@@ -167,8 +192,8 @@ public class ResamplingExperiments {
             if (classifier == 0) {
                 transform = new FullShapeletTransform();
             } else {
-                transform = new BalancedClassShapeletTransform();
-                transform.setClassValue(new BinarisedClassValue());
+                //transform = new BalancedClassShapeletTransform();
+                //transform.setClassValue(new BinarisedClassValue());
             }
             
             transform.setSubSeqDistance(new ImprovedOnlineSubSeqDistance());
@@ -192,6 +217,61 @@ public class ResamplingExperiments {
         LocalInfo.saveDataset(transform.process(test), transformPath + "_TEST");
     }
 
+    
+        //rewrite
+    public static void createShapeletsSubsample(int fold, int resamplePercentage) {
+        
+        FullShapeletTransform transform = null;
+
+        String fileExtension = File.separator + currentDataSet + File.separator + currentDataSet;
+        String classifierDir = File.separator + classifierName + fileExtension;
+        String samplePath = resampleLocation + fileExtension + fold;
+        String transformPath = transformLocation + classifierDir + fold;
+        String serialiseName = classifierName+"_"+currentDataSet+fold+".ser";
+        
+        
+        try {
+            ObjectInputStream ois = new ObjectInputStream(new FileInputStream(serialiseName));
+            transform = (FullShapeletTransform) ois.readObject();            
+            System.out.println("Loaded from file");
+        } catch (IOException | ClassNotFoundException ex) {
+            System.out.println(ex);
+
+            //if we can't load our transform for whatever reason create a new one.
+            if (classifier == 0) {
+                transform = new FullShapeletTransform();
+            } else {
+                //transform = new BalancedClassShapeletTransform();
+                //transform.setClassValue(new BinarisedClassValue());
+            }
+            
+            transform.setSubSeqDistance(new ImprovedOnlineSubSeqDistance());
+            System.out.println("Create new classifier");
+        }
+        
+        Instances test, train;
+        test = utilities.ClassifierTools.loadData(samplePath + "_TEST");
+        train = utilities.ClassifierTools.loadData(samplePath + "_TRAIN");
+        
+        //subSample to 10%
+        Instances subSample = InstanceTools.subSample(train, train.numInstances() / resamplePercentage, fold);
+
+        //construct shapelet classifiers.
+        transform.useCandidatePruning();
+        transform.setSerialName(serialiseName);
+        transform.setNumberOfShapelets(subSample.numInstances() * 10);
+        transform.setShapeletMinAndMax(3, subSample.numAttributes() - 1);
+        transform.setQualityMeasure(QualityMeasures.ShapeletQualityChoice.INFORMATION_GAIN);
+        transform.setLogOutputFile(transformPath + "_shapelets.csv");
+
+        //saveLocation/FullShapeletTransform/ItalyPowerDemand/ItalyPowerDemandi_TRAIN
+        //do cheap processing.
+        transform.process(subSample);
+        
+        //then do proper datasets.
+        LocalInfo.saveDataset(transform.process(train), transformPath + "_TRAIN");
+        LocalInfo.saveDataset(transform.process(test), transformPath + "_TEST");
+    }
     
     public static void createShapeletsGrace(int fold, int currentSeries, boolean complete){
         
@@ -659,5 +739,105 @@ public class ResamplingExperiments {
         }
         //resampleLocation
         //serialLocation
+    }
+    
+    
+    public static void createParameterShapelet(int fold){
+        String sub = "_sub";
+        
+        String fileExtension = File.separator + currentDataSet + File.separator + currentDataSet;
+        String classifierDir = File.separator + classifierName + fileExtension;
+        String samplePath = resampleLocation + fileExtension + fold;
+        String transformPath = transformLocation + classifierDir + fold;
+        String serialiseName = classifierName+"_"+currentDataSet+fold+sub+".ser";
+        
+        FullShapeletTransform transform;
+        try {
+            ObjectInputStream ois = new ObjectInputStream(new FileInputStream(serialiseName));
+            transform = (FullShapeletTransform) ois.readObject();            
+            System.out.println("Loaded from file");
+        } catch (IOException | ClassNotFoundException ex) {
+            System.out.println(ex);
+
+            transform = new BalancedClassShapeletTransform();
+            transform.setSubSeqDistance(new ImprovedOnlineSubSeqDistance());
+            transform.setClassValue(new BinarisedClassValue());
+            System.out.println("Create new classifier");
+        }
+
+        Instances test, train;
+        test = utilities.ClassifierTools.loadData(samplePath + "_TEST");
+        train = utilities.ClassifierTools.loadData(samplePath + "_TRAIN");
+        
+        System.out.println(currentDataSet);
+        System.out.println(fold);
+        
+        //reduce number of instances 
+        int numInstances = train.numInstances();
+        int numAttributes = train.numAttributes()-1;
+   
+        transform.setSearchFunction(createSearch(numAttributes));
+
+        //construct shapelet classifiers.
+        transform.useCandidatePruning();
+        transform.setSerialName(serialiseName);
+        transform.setNumberOfShapelets(numInstances);
+        transform.setQualityMeasure(QualityMeasures.ShapeletQualityChoice.INFORMATION_GAIN);
+        transform.setLogOutputFile(transformPath + "_shapelets.csv");
+
+        //if we end up with less classes than we have instances.
+        Instances subSample = subSample(train, fold);
+            
+            //Instances subSample = InstanceTools.subSample(train, numInstances/sampling, fold);
+            if(subSample.numInstances()- 1 < numInstances)
+                transform.process(subSample);
+            
+        //then do proper datasets.
+        LocalInfo.saveDataset(transform.process(train), transformPath + sub + "_TRAIN");
+        LocalInfo.saveDataset(transform.process(test), transformPath  + sub + "_TEST");
+    }
+    
+    private static ShapeletSearch createSearch(int m){
+        int skipLength = 1;
+        
+        if (m>1500) 
+            skipLength =32;
+        else if (m>1000)
+            skipLength =16;
+        else if (m>500) 
+            skipLength =8;
+        else if (m>250)
+            skipLength =4;
+
+        int skipPos = 1;
+        if(m>2000)
+            skipPos= 8;
+        else if(m>1000)
+            skipPos= 4;
+        else if(m> 500)
+            skipPos= 2;
+
+        System.out.println("skipLength: " + skipLength);
+        System.out.println("skipPos: "+ skipPos);
+        
+        return new ShapeletSearch(3, m, skipLength, skipPos);
+    }
+    
+    private static Instances subSample(Instances train, int fold){
+        int small_sf = InstanceTools.findSmallestClassAmount(train);           
+        double proportion = 1;
+        int min=25;
+        if (small_sf>25){
+            proportion = (double)min/(double)small_sf;
+
+            if (proportion < 0.1)
+                proportion = 0.1;
+        }
+
+        Instances subSample = InstanceTools.subSampleFixedProportion(train, proportion, fold);
+
+        System.out.println(subSample.numInstances());
+        
+        return subSample;
     }
 }

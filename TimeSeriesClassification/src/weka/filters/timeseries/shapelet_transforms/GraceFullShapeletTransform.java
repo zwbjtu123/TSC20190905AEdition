@@ -5,7 +5,7 @@
  */
 package weka.filters.timeseries.shapelet_transforms;
 
-import AaronTest.LocalInfo;
+import development.Aaron.LocalInfo;
 import development.DataSets;
 import java.io.File;
 import java.io.FileInputStream;
@@ -22,6 +22,7 @@ import java.util.TreeMap;
 import weka.core.Instances;
 import weka.core.shapelet.Shapelet;
 import static weka.filters.timeseries.shapelet_transforms.FullShapeletTransform.removeSelfSimilar;
+import weka.filters.timeseries.shapelet_transforms.searchFuntions.ShapeletSearch;
 
 /**
  *
@@ -116,8 +117,12 @@ public class GraceFullShapeletTransform extends FullShapeletTransform {
         //set the clas value of the series we're working with.
         classValue.setShapeletValue(data.get(currentSeries));
 
-        seriesShapelets = findShapeletCandidates(data, currentSeries, wholeCandidate, null);
-
+        seriesShapelets = searchFunction.SearchForShapeletsInSeries(data.get(dataSet), new ShapeletSearch.ProcessCandidate(){
+        @Override
+        public Shapelet process(double[] candidate, int start, int length){
+           return checkCandidate(candidate, start, length);
+        }});
+        
         Collections.sort(seriesShapelets, shapeletComparator);
 
         seriesShapelets = removeSelfSimilar(seriesShapelets);
