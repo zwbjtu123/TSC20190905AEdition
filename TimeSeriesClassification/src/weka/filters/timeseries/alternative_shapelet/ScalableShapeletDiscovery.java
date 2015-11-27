@@ -6,8 +6,9 @@ package weka.filters.timeseries.alternative_shapelet;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
-import static utilities.InstanceTools.FromWekaInstances;
-import static utilities.StatisticalUtilities.Normalize2D;
+import utilities.InstanceTools;
+import static utilities.InstanceTools.fromWekaInstancesArray;
+import static utilities.StatisticalUtilities.normalize2D;
 import weka.classifiers.Classifier;
 import weka.core.Capabilities;
 import weka.core.Instance;
@@ -66,8 +67,8 @@ public class ScalableShapeletDiscovery implements Classifier{
     @Override
     public void buildClassifier(Instances train) {
         
-        trainSeriesData = FromWekaInstances(train);
-        Normalize2D(trainSeriesData, true);
+        trainSeriesData = fromWekaInstancesArray(train);
+        normalize2D(trainSeriesData, true);
         
         //TODO: SAX this data baased on the PAA ratio.
 

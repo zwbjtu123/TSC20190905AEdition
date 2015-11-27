@@ -18,6 +18,8 @@ import utilities.ClassifierTools;
 import utilities.InstanceTools;
 import weka.classifiers.AbstractClassifier;
 import weka.classifiers.Classifier;
+import weka.classifiers.bayes.BayesNet;
+import weka.classifiers.bayes.NaiveBayes;
 import weka.classifiers.functions.Logistic;
 import weka.classifiers.functions.MultilayerPerceptron;
 import weka.classifiers.functions.SMO;
@@ -90,12 +92,25 @@ public class Experiments extends Thread{
     static String[] dictionary={"BoP","SAXVSM","BOSS"};
     static String[] interval={"TSF","TSBF","LPS"};
     static String[] ensemble={"ACF","PS","EE","COTE"};
-    static String[] complexity={"CID_ED","CID_DTW","RPCD"};
+    static String[] complexity={"CID_ED","CID_DTW"};
     static String[][] classifiers={standard,elastic,shapelet,dictionary,interval,ensemble,complexity};
     static final String[] directoryNames={"standard","elastic","shapelet","dictionary","interval","ensemble","complexity"};
       //</editor-fold> 
-    
-  //  public static OutFile out;
+    public static int numClassifiers(){
+        int sum=classifiers[0].length;
+        for(int i=1;i<classifiers.length;i++)
+            sum+=classifiers[i].length;
+        return sum;
+    }
+    public static String[] allClassifiers(){
+        String[] all=new String[numClassifiers()];
+        int count=0;
+        for(int i=0;i<classifiers.length;i++){
+            for(int j=0;j<classifiers[i].length;j++)
+                all[count++]=classifiers[i][j];
+        }
+        return all;
+    }
     
     //<editor-fold defaultstate="collapsed" desc="unfinished problems">   
     static boolean doUnfinished=false;
@@ -119,14 +134,34 @@ static String[] unfinishedTSF={"CinCECGtorso","ElectricDevices","FordA","FordB",
     public static Classifier setClassifier(String classifier){
         Classifier c=null;
         switch(classifier){
-            case "SVMQ":
+            case "C45":
+                c=new J48();
+                break;
+//                SVML	SVMQ	Logistic	BayesNet	RandF	RotF	MLP
+            case "NB":
+                c=new NaiveBayes();
+                break;
+            case "SVML":
                 c=new SMO();
                 PolyKernel p=new PolyKernel();
-                p.setExponent(2);
+                p.setExponent(1);
                 ((SMO)c).setKernel(p);
+                break;
+            case "SVMQ":
+                c=new SMO();
+                PolyKernel p2=new PolyKernel();
+                p2.setExponent(2);
+                ((SMO)c).setKernel(p2);
+                break;
+            case "BN":
+                c=new BayesNet();
                 break;
             case "MLP":
                 c=new MultilayerPerceptron();
+                break;
+            case "RandF":
+                c= new RandomForest();
+                ((RandomForest)c).setNumTrees(500);
                 break;
             case "RotF":
                 c= new RotationForest();
@@ -254,6 +289,58 @@ static String[] unfinishedTSF={"CinCECGtorso","ElectricDevices","FordA","FordB",
         for (int i = 0; i < accs.length; i++) {
             accs[i]=thr[i].getAcc();
             out.writeString(accs[i]+",");
+        }
+    }
+ //Do a single  classifiers for zero fold   
+//Classifiers that need zero repeated    
+/*    static String[] standard={"NB","C45","SVML","SVMQ","Logistic","BayesNet","RandF","RotF","MLP"};
+    static String[] elastic = {"DD_DTW","DTD_C"};
+    static String[] interval={"TSF","TSBF","LPS"};
+    static String[] complexity={"CID_ED","CID_DTW","RPCD"};
+*/    
+    public static void threadedSingleClassifierZeroFold(String classifier) throws Exception{
+        System.out.println("ZERO FOLD FOR CLASSIFIER "+classifier);
+        String directory=getFolder(classifier);
+        Thread[] exp=new Thread[DataSets.fileNames.length];
+        for(int i=0;i<DataSets.fileNames.length;i++){
+            String problem=DataSets.fileNames[i];
+            File f=new File(DataSets.resultsPath+directory+"\\"+classifier);
+            if(!f.exists())
+                f.mkdir();
+            String predictions=DataSets.resultsPath+directory+"\\"+classifier+"\\Predictions";
+            f=new File(predictions);
+            if(!f.exists())
+                f.mkdir();
+            predictions=predictions+"/"+problem;
+            f=new File(predictions);
+            if(!f.exists())
+                f.mkdir();
+//                Instances[] data=InstanceTools.resampleTrainAndTestInstances(train,test, i);
+            f=new File(predictions+"/"+"fold0.csv");
+            if(f.exists()){
+                InFile inf=new InFile(predictions+"/fold0.csv");
+                int size=inf.countLines();
+                if(size<CollateResults.testSizes[i]){
+                    inf.closeFile();
+                    f.delete();
+                    Instances train=ClassifierTools.loadData(DataSets.problemPath+problem+"/"+problem+"_TRAIN");
+                    Instances test=ClassifierTools.loadData(DataSets.problemPath+problem+"/"+problem+"_TEST");
+                    exp[i]=new Experiments(train,test,classifier,problem,predictions,1,0);
+                    System.out.println("\t INCOMPLETE: starting problem "+problem);
+                    exp[i].start();
+                }
+            }
+            else{
+                Instances train=ClassifierTools.loadData(DataSets.problemPath+problem+"/"+problem+"_TRAIN");
+                Instances test=ClassifierTools.loadData(DataSets.problemPath+problem+"/"+problem+"_TEST");
+                exp[i]=new Experiments(train,test,classifier,problem,predictions,1,0);
+                System.out.println("\tUNSTARTED starting problem "+problem);
+                exp[i].start();
+            }
+        }
+        for(int i=0;i<DataSets.fileNames.length;i++){
+            if(exp[i]!=null)
+                exp[i].join();
         }
     }
     
@@ -652,43 +739,34 @@ static String[] unfinishedTSF={"CinCECGtorso","ElectricDevices","FordA","FordB",
  //       System.exit(0);
         try{
             if(args.length>0){ //Cluster run
-        System.out.println("ARGS[0] ="+args[0]+" ARGS LENGTH ="+args.length);
-
-            DataSets.resultsPath=DataSets.clusterPath+"Results/";
-            DataSets.problemPath=DataSets.clusterPath+"TSC Problems/";
-            clusterRun(args);
-
-         }
-         else{       
-//Local threaded run    
-             DataSets.resultsPath="C:/Users/ajb/Dropbox/Big TSC Bake Off/New Results/";
-             DataSets.problemPath=DataSets.dropboxPath+"TSC Problems/";
-            String classifier="LS";
-             String problem;
-// TSF    FordA 15, FordB 16, HandOutlines 15, Mallat 85, NonInvasiveFatalECGThorax1 13, NonInvasiveFatalECGThorax2 13,
-//     Phoneme 63, ShapesAll 53, StarlightCurves13,  UWaveGestureLibraryX 74, UWaveGestureLibraryY 75
-//     UWaveGestureLibraryZ 75, UWaveGestureLibraryAll22
-//             String problem="UWaveGestureLibraryY"; 68
-             problem="Wafer";
-             System.out.println("Problem ="+problem);
-             DataSets.resultsPath+=getFolder(classifier)+"/";
-/*             
-             String[] ar={classifier,problem,f+"",4+""};
-             singleClassifierAndFoldAndParameter(ar);
-             ar[3]=3+"";
-             singleClassifierAndFoldAndParameter(ar);
-             ar[3]=2+"";
-             singleClassifierAndFoldAndParameter(ar);
-             ar[3]=1+"";
-             singleClassifierAndFoldAndParameter(ar);
-            reconstruct(ar[0],ar[1],f,4);
-             System.exit(0); 
-*/             
-             threadedSingleClassifierSingleProblem(classifier,problem,100,1);
-             System.out.println("Finished");
-         }
+                System.out.println("ARGS[0] ="+args[0]+" ARGS LENGTH ="+args.length);
+                DataSets.resultsPath=DataSets.clusterPath+"Results/";
+                DataSets.problemPath=DataSets.clusterPath+"TSC Problems/";
+                clusterRun(args);
+            }
+            else{       
+   //Local threaded run    
+                DataSets.resultsPath="C:/Users/ajb/Dropbox/Big TSC Bake Off/New Results/";
+                DataSets.problemPath=DataSets.dropboxPath+"TSC Problems/";
+                for(String classifier:complexity){
+                    if(!classifier.equals("RPCD"))
+                        threadedSingleClassifierZeroFold(classifier);
+                }
+                System.exit(0);
+//                String problem;
+//// TSF    FordA 15, FordB 16, HandOutlines 15, Mallat 85, NonInvasiveFatalECGThorax1 13, NonInvasiveFatalECGThorax2 13,
+////     Phoneme 63, ShapesAll 53, StarlightCurves13,  UWaveGestureLibraryX 74, UWaveGestureLibraryY 75
+////     UWaveGestureLibraryZ 75, UWaveGestureLibraryAll22
+////             String problem="UWaveGestureLibraryY"; 68
+//                problem="Wafer";
+//                System.out.println("Problem ="+problem);
+//                DataSets.resultsPath+=getFolder(classifier)+"/";
+//                threadedSingleClassifierSingleProblem(classifier,problem,100,1);
+//                System.out.println("Finished");
+            }
         }catch(Exception e){
             System.out.println("Exception thrown ="+e);
+            e.printStackTrace();
             System.exit(0);
         }
     }

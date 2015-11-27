@@ -50,7 +50,7 @@ import java.util.logging.Logger;
 public class CollateResults {
    static final String[][] names={Experiments.standard,Experiments.elastic,Experiments.shapelet,Experiments.dictionary,Experiments.interval,Experiments.ensemble,Experiments.complexity};
    static String[] dirNames=Experiments.directoryNames;
-   static int[] trainSizes={391,175,30,20,20,60,900,3840,1380,28,250,390,390,390,306,276,139,139,139,100,4500,861,7711,1690,88,2050,455,175,1320,810,150,105,370,308,64,550,1980,1029,375,61,73,2345,60,760,291,154,154,1252,1965,1965,30,242,858,1896,105,291,205,205,375,375,180,600,375,601,953,8236,370,625,995,300,228,130,100,1139,4000,3582,3582,3582,3582,6164,54,638,77,77,3000,};
+   static int[] testSizes={391,175,30,20,20,60,900,3840,1380,28,250,390,390,390,306,276,139,139,139,100,4500,861,7711,1690,88,2050,455,175,1320,810,150,105,370,308,64,550,1980,1029,375,61,73,2345,60,760,291,154,154,1252,1965,1965,30,242,858,1896,105,291,205,205,375,375,180,600,375,601,953,8236,370,625,995,300,228,130,100,1139,4000,3582,3582,3582,3582,6164,54,638,77,77,3000,};
     static String[] c={"ST","ACF","PACF"};
     HashSet<String> finished=new HashSet<>();
 /** 
@@ -375,9 +375,9 @@ public class CollateResults {
             if(f2.exists()){
                 InFile f=new InFile(path+"\\fold"+i+".csv");
                 int lines=f.countLines();
-                if(lines!=trainSizes[problem]){
-                    of.writeLine(path+","+i+","+lines+","+trainSizes[problem]);
-//                    System.out.println("INCOMPLETE FOLD :"+path+","+i+","+lines+","+trainSizes[problem]);
+                if(lines!=testSizes[problem]){
+                    of.writeLine(path+","+i+","+lines+","+testSizes[problem]);
+//                    System.out.println("INCOMPLETE FOLD :"+path+","+i+","+lines+","+testSizes[problem]);
                     if(lines==0){
                         f.closeFile();
                         f2.delete();
@@ -433,7 +433,7 @@ public class CollateResults {
         OutFile outf2=new OutFile(dest+"\\UnstartedProblems.txt");
         File f=new File(dest+"\\Scripts");
         int mem=10000;
-        int maxMem=12000;
+        int maxMem=mem;
         int maxNum=100;
         String queue="short";
         String oldCluster= "java/jdk/1.8.0_31";
@@ -575,9 +575,12 @@ public class CollateResults {
         return(directory.delete());
     }    
     public static void main(String[] args){
+//        DataSets.resultsPath="C:\\Users\\ajb\\Dropbox\\Big TSC Bake Off\\New Results\\";
+//        collateFoldZero();
 //        findNumberPerSplit();
- //       System.exit(0);
-        String root="C:\\Users\\ajb\\Dropbox\\Big TSC Bake Off\\New Results";
+       String root="C:\\Users\\ajb\\Dropbox\\Big TSC Bake Off\\New Results";
+         System.exit(0);
+       generateScripts(root,root);        
         System.out.println("Combine singles ....");
         combineSingles(root);
         System.out.println("cluster results collation ....");
@@ -617,5 +620,109 @@ public class CollateResults {
             System.out.print(max+",");
         }
         System.out.print("};");
+    }
+    public static void collateFoldZero(){
+        double[][] trainTestAcc=new double[DataSets.fileNames.length][Experiments.numClassifiers()];
+        String[] allclassifiers=Experiments.allClassifiers();
+        for(int i=0;i<trainTestAcc.length;i++){
+            String prob=DataSets.fileNames[i];
+            int pos=0;
+//            for(int j=0;j<trainTestAcc[i].length;j++){
+            for(int j=0;j<Experiments.classifiers.length;j++){
+                for(int m=0;m<Experiments.classifiers[j].length;m++){
+                    String cls=Experiments.classifiers[j][m];
+        // Check to see if predictions 0 is present
+                    String foldFile=DataSets.resultsPath+Experiments.directoryNames[j]+"\\"+cls+"\\Predictions\\"+prob+"\\fold0.csv";
+                    System.out.println("Looking for "+foldFile);
+                    File f=new File(foldFile);
+                    int size=0;
+                    if(f.exists()){
+            // if yes, check all the predictions are there
+                        InFile inf=new InFile(foldFile);
+                        size=inf.countLines();
+                        inf.closeFile();
+                    }
+                    if(size==testSizes[i]){  // Complete fold
+                        System.out.println("fold 0 found ");
+                        trainTestAcc[i][pos]=0;
+                        InFile inf=new InFile(foldFile);
+                        for(int k=0;k<size;k++){
+                            String[] line=inf.readLine().split(",");
+                            if(line[0].equals(line[1]))
+                               trainTestAcc[i][pos]++;
+                        }
+                        trainTestAcc[i][pos]/=size;
+                    }else{  //Try to recover from the single problem file
+
+                        File f2=new File(DataSets.resultsPath+Experiments.directoryNames[j]+cls+"/"+prob+".csv");
+                        System.out.println("\t\t fold 0 NOT found looking for "+f2.getPath());
+                        if(f2.exists()){
+                            InFile inf2=new InFile(f2.getPath());
+                            String name=inf2.readString();
+                            if(!name.equals(prob)){ //Error in name match
+                                System.out.println("ERROR ALLIGNMENT FOR "+cls+" "+prob);
+                                System.exit(0);
+                            }
+                            trainTestAcc[i][pos]=inf2.readDouble();
+                        }
+                        else{   //Try to recover from full file! 
+ 
+                            File f3=new File(DataSets.resultsPath+Experiments.directoryNames[j]+"\\"+cls+".csv");
+                            System.out.println("\t\t"+f2.getName()+" NOT found looking for "+f3.getPath());
+                            if(f3.exists()){
+                            System.out.println("\t\t"+f3.getName()+" FOUND");
+                                InFile inf3=new InFile(f3.getPath());
+                                int lines=inf3.countLines();
+                                inf3=new InFile(f3.getPath());
+                                boolean found=false;
+                                for(int p=0;p<lines && !found;p++){
+                                    String temp=inf3.readLine();
+                                    if(temp!=null){
+                                        String[] names=temp.split(",");
+                                        if(names[0].equals(prob) && names.length>1){
+                                            trainTestAcc[i][pos]=Double.parseDouble(names[1]);
+                                            found=true;
+                                        }
+                                        else{
+                                            if(names==null){
+                                                trainTestAcc[i][pos]=-1;
+                                                found=true;
+                                                System.out.println("Error, "+cls+" "+prob+" not present in file"+f3.getName());
+                                            }
+                                        }
+                                    }else{
+                                        trainTestAcc[i][pos]=-1;
+                                        found=true;
+                                        System.out.println("Error, "+cls+" "+prob+" not present in file"+f3.getName());
+                                    }
+                                }
+                            }
+                            else{
+                                System.out.println("Error, "+cls+" "+prob+" not present at all"); 
+                                trainTestAcc[i][pos]=-1;
+                            }
+                         }
+
+                    }
+                        
+                    pos++;
+                }
+            }
+        }
+        OutFile outf=new OutFile(DataSets.resultsPath+"singleTrainTest.csv");
+        for(int i=0;i<allclassifiers.length;i++)
+            outf.writeString(","+allclassifiers[i]);
+        outf.writeString("\n");
+        for(int i=0;i<trainTestAcc.length;i++){
+            outf.writeString(DataSets.fileNames[i]);
+            for(int j=0;j<trainTestAcc[i].length;j++){
+                if(trainTestAcc[i][j]<=0)
+                    outf.writeString(",");
+                else
+                    outf.writeString(","+trainTestAcc[i][j]);
+            }
+            outf.writeString("\n");          
+        }
+//First        
     }
 }
