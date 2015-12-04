@@ -177,8 +177,6 @@ public class FullShapeletTransform extends SimpleBatchFilter {
      * filter
      */
     public FullShapeletTransform(int k, int minShapeletLength, int maxShapeletLength, weka.core.shapelet.QualityMeasures.ShapeletQualityChoice qualityChoice) {
-        
-        System.out.println("Constructing");
         this.minShapeletLength = minShapeletLength;
         this.maxShapeletLength = maxShapeletLength;
         this.numShapelets = k;

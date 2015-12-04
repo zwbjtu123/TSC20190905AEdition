@@ -67,11 +67,11 @@ public class ResamplingExperiments {
         //arg1 is the algorithm Full is 0 and Binary is 1.
         //We could opt to not have our arguments come from command line and instead run the folds and datasets and algorithms in 3 nested loops.
         
-        int num = Integer.parseInt(args[0]) - 1;
+        /*int num = Integer.parseInt(args[0]) - 1;
         int index = num / 100;
-        int fold = num % 100;
+        int fold = num % 100;*/
 
-        currentDataSet = subsample[index];///*sometimes we need to use the array number*/DataSets.fileNames[Integer.parseInt(args[0])];
+        //currentDataSet = subsample[index];///*sometimes we need to use the array number*/DataSets.fileNames[Integer.parseInt(args[0])];
 
         classifier = Integer.parseInt(args[1]); //auto set this Balanced.
         setClassifierName(classifier);
@@ -91,7 +91,11 @@ public class ResamplingExperiments {
             complete =  Boolean.parseBoolean(args[4]);
         }*/
         
-        createParameterShapelet(fold);
+        for(String data : DataSets.fileNames){
+            currentDataSet = data;
+            createParameterShapelet(0);
+        }
+       
         
         //System.out.println(currentDataSet + " " + fold + " " + currentSeries);
         
@@ -755,22 +759,22 @@ public class ResamplingExperiments {
         try {
             ObjectInputStream ois = new ObjectInputStream(new FileInputStream(serialiseName));
             transform = (FullShapeletTransform) ois.readObject();            
-            System.out.println("Loaded from file");
+            //System.out.println("Loaded from file");
         } catch (IOException | ClassNotFoundException ex) {
-            System.out.println(ex);
+           // System.out.println(ex);
 
             transform = new BalancedClassShapeletTransform();
             transform.setSubSeqDistance(new ImprovedOnlineSubSeqDistance());
             transform.setClassValue(new BinarisedClassValue());
-            System.out.println("Create new classifier");
+            //System.out.println("Create new classifier");
         }
 
         Instances test, train;
         test = utilities.ClassifierTools.loadData(samplePath + "_TEST");
         train = utilities.ClassifierTools.loadData(samplePath + "_TRAIN");
         
-        System.out.println(currentDataSet);
-        System.out.println(fold);
+        System.out.print(currentDataSet);
+        System.out.print(train.numInstances());
         
         //reduce number of instances 
         int numInstances = train.numInstances();
@@ -789,12 +793,12 @@ public class ResamplingExperiments {
         Instances subSample = subSample(train, fold);
             
             //Instances subSample = InstanceTools.subSample(train, numInstances/sampling, fold);
-            if(subSample.numInstances()- 1 < numInstances)
+            /*if(subSample.numInstances()- 1 < numInstances)
                 transform.process(subSample);
             
         //then do proper datasets.
         LocalInfo.saveDataset(transform.process(train), transformPath + sub + "_TRAIN");
-        LocalInfo.saveDataset(transform.process(test), transformPath  + sub + "_TEST");
+        LocalInfo.saveDataset(transform.process(test), transformPath  + sub + "_TEST");*/
     }
     
     private static ShapeletSearch createSearch(int m){
@@ -817,9 +821,7 @@ public class ResamplingExperiments {
         else if(m> 500)
             skipPos= 2;
 
-        System.out.println("skipLength: " + skipLength);
-        System.out.println("skipPos: "+ skipPos);
-        
+        System.out.print(","+skipLength+","+skipPos);
         return new ShapeletSearch(3, m, skipLength, skipPos);
     }
     
@@ -836,7 +838,7 @@ public class ResamplingExperiments {
 
         Instances subSample = InstanceTools.subSampleFixedProportion(train, proportion, fold);
 
-        System.out.println(subSample.numInstances());
+        System.out.print(","+subSample.numInstances()+"\n");
         
         return subSample;
     }
