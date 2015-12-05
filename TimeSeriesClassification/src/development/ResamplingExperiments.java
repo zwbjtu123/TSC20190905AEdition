@@ -16,6 +16,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Scanner;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import tsc_algorithms.FastShapelets;
 import tsc_algorithms.LearnShapelets;
 import utilities.ClassifierTools;
 import utilities.InstanceTools;
@@ -46,7 +49,7 @@ public class ResamplingExperiments {
     
     //private static final String[] subsample = {"Worms", "WormsTwoClass", "UWaveGestureLibraryX", "UWaveGestureLibraryY", "UWaveGestureLibraryZ", "yoga", "PhalangesOutlinesCorrect", "ScreenType", "SmallKitchenAppliances", "TwoPatterns", "ElectricDevices", "OSULeaf", "Strawberry", "wafer", "Computers", "Earthquakes"};
     //private static final String[] subsample = {"MALLAT","CinCECGtorso","FordA", "FordB", "RefrigerationDevices","StarLightCurves", "UWaveGestureLibraryAll"};
-    private static final String[] subsample = {"NonInvasiveFatalECGThorax1", "NonInvasiveFatalECGThorax2", "Phoneme","Haptics", "ShapesAll", "HandOutlines", "InlineSkate"};
+    //private static final String[] subsample = {"NonInvasiveFatalECGThorax1", "NonInvasiveFatalECGThorax2", "Phoneme","Haptics", "ShapesAll", "HandOutlines", "InlineSkate"};
 
     private static String[] datasets;
 
@@ -71,15 +74,18 @@ public class ResamplingExperiments {
         int index = num / 100;
         int fold = num % 100;*/
 
-        //currentDataSet = subsample[index];///*sometimes we need to use the array number*/DataSets.fileNames[Integer.parseInt(args[0])];
+        currentDataSet = DataSets.fileNames[Integer.parseInt(args[0])];
 
+        
+        System.out.println(currentDataSet);
         classifier = Integer.parseInt(args[1]); //auto set this Balanced.
         setClassifierName(classifier);
 
-        /*//1-100. we want 0-99. Cluster thing.
+        int fold =0;
+        //1-100. we want 0-99. Cluster thing.
         if (args.length >= 3) {
             fold = Integer.parseInt(args[2]) - 1;
-        }
+        }/*
         
         int currentSeries =0;
         if (args.length >= 4) {
@@ -91,10 +97,9 @@ public class ResamplingExperiments {
             complete =  Boolean.parseBoolean(args[4]);
         }*/
         
-        for(String data : DataSets.fileNames){
-            currentDataSet = data;
-            createParameterShapelet(0);
-        }
+
+        //createParameterShapelet(fold);
+        
        
         
         //System.out.println(currentDataSet + " " + fold + " " + currentSeries);
@@ -126,6 +131,8 @@ public class ResamplingExperiments {
         else
             System.out.println("already transformed");*/
         
+        createFastShapeletsAccuracies();
+        
         
         //createLearnShapeleteAccuracies(fold);
         
@@ -154,9 +161,11 @@ public class ResamplingExperiments {
             case 1:
                 classifierName = BalancedClassShapeletTransform.class.getSimpleName();
                 break;
-
             case 2:
                 classifierName = LearnShapelets.class.getSimpleName();
+                break;
+            case 3 :
+                classifierName = FastShapelets.class.getSimpleName();
                 break;
         }
     }
@@ -774,8 +783,6 @@ public class ResamplingExperiments {
         train = utilities.ClassifierTools.loadData(samplePath + "_TRAIN");
         
         System.out.print(currentDataSet);
-        System.out.print(train.numInstances());
-        
         //reduce number of instances 
         int numInstances = train.numInstances();
         int numAttributes = train.numAttributes()-1;
@@ -793,12 +800,12 @@ public class ResamplingExperiments {
         Instances subSample = subSample(train, fold);
             
             //Instances subSample = InstanceTools.subSample(train, numInstances/sampling, fold);
-            /*if(subSample.numInstances()- 1 < numInstances)
+            if(subSample.numInstances()- 1 < numInstances)
                 transform.process(subSample);
             
         //then do proper datasets.
         LocalInfo.saveDataset(transform.process(train), transformPath + sub + "_TRAIN");
-        LocalInfo.saveDataset(transform.process(test), transformPath  + sub + "_TEST");*/
+        LocalInfo.saveDataset(transform.process(test), transformPath  + sub + "_TEST");
     }
     
     private static ShapeletSearch createSearch(int m){
@@ -821,7 +828,6 @@ public class ResamplingExperiments {
         else if(m> 500)
             skipPos= 2;
 
-        System.out.print(","+skipLength+","+skipPos);
         return new ShapeletSearch(3, m, skipLength, skipPos);
     }
     
@@ -838,8 +844,51 @@ public class ResamplingExperiments {
 
         Instances subSample = InstanceTools.subSampleFixedProportion(train, proportion, fold);
 
-        System.out.print(","+subSample.numInstances()+"\n");
+        //System.out.print(","+subSample.numInstances()+"\n");
         
         return subSample;
+    }
+
+    private static void createFastShapeletsAccuracies() {
+        try {
+            String fileExtension = File.separator + currentDataSet + File.separator + currentDataSet;
+            String classifierDir = File.separator + classifierName + fileExtension;
+            String samplePath = resampleLocation + fileExtension;
+            String accuracyPath = resultsLocation + classifierDir;
+            
+            
+            double[] accuracies = new double[noSamples];
+            for(int i=0; i< noSamples; i++){
+                Instances train = utilities.ClassifierTools.loadData(samplePath + i + "_TRAIN");
+                Instances test = utilities.ClassifierTools.loadData(samplePath + i +"_TEST");
+                
+                FastShapelets fs = new FastShapelets();
+                
+                try {
+                    fs.buildClassifier(train);
+                    
+                    accuracies[i] = utilities.ClassifierTools.accuracy(test, fs);
+                    System.out.println("fold " + i + " acc: " + accuracies[i]);
+                } catch (Exception ex) {
+                    System.out.println("Exception " + ex);
+                }
+            }
+
+            
+            File f  = new File(accuracyPath+".csv");
+            f.getParentFile().mkdirs();
+            f.createNewFile();
+            try (PrintWriter pw = new PrintWriter(f)) {
+                pw.printf("%s,%s\n", "fold", "accuracy");
+                for (int fold = 0; fold < noSamples; fold++) {
+                    pw.printf("%d,%f\n", fold, accuracies[fold]);
+                }
+            }
+
+        } catch (IOException ex) {
+            Logger.getLogger(ResamplingExperiments.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        
+        
     }
 }

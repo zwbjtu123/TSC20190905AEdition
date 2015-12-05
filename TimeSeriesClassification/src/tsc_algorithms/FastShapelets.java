@@ -20,6 +20,7 @@ import weka.classifiers.Classifier;
 import weka.core.Capabilities;
 import weka.core.Instance;
 import weka.core.Instances;
+import java.lang.System.*;
 
 /**
  *
@@ -67,8 +68,57 @@ public class FastShapelets implements Classifier {
 
     @Override
     public void buildClassifier(Instances data) throws Exception {
-        int sax_max_len, sax_len, w, R, top_k;
-        int max_len = data.numAttributes() - 1, min_len = 5, step = 1; //consider whole search space.
+        int noFolds = 3;
+        double bsfAccuracy = 0;
+        int[] params = {10,10};
+        /*double accuracy = 0;
+        double sumAccuracy = 0;
+        
+        
+        int maxR = 20;
+        int maxK = 20;
+        //int[] paramsR = {10};
+        //int[] paramsTop_k =  {10};
+        
+        //build our test and train sets. for cross-validation.
+        for (int i = 10; i < maxR; i++) {
+            for (int j = 10; j < maxK; j++) {
+                for (int l = 0; l < noFolds; l++) {
+                    Instances trainCV = data.trainCV(noFolds, l);
+                    Instances testCV = data.testCV(noFolds, l);
+
+                    train(trainCV, i, j);
+
+                    //test on the remaining fold.
+                    int correct=0;
+                    for(Instance in : testCV){
+                        if(classifyInstance(in) == in.classValue())
+                            correct++;
+                    }
+
+                    accuracy = (double)correct/(double)testCV.numInstances();
+                    sumAccuracy += accuracy;
+                }
+                sumAccuracy/=noFolds;
+
+                //System.out.printf("%f,%d,%f,%f\n", paramsPercentageOfSeriesLength[j], paramsShapeletLengthScale[k], paramsLambdaW[i], sumAccuracy);
+
+                if(sumAccuracy > bsfAccuracy){
+                    int[] p = {i,j};
+                    params = p;
+                    bsfAccuracy = sumAccuracy;
+                }
+
+            }
+        }*/
+        
+        train(data, params[0], params[1]);
+    }
+    
+    public void train(Instances data, int R, int top_k){
+        int sax_max_len, sax_len, w;
+        int max_len = data.numAttributes() - 1, min_len = 10, step = 1; //consider whole search space.
+        
         double percent_mask;
         Shapelet sh;
 
@@ -77,10 +127,10 @@ public class FastShapelets implements Classifier {
         num_class = data.numClasses();
         num_obj = data.numInstances();
         
-        sax_max_len = 15;
-        R = 10;
+        sax_max_len = 15; 
         percent_mask = 0.25;
-        top_k = 10;
+        //R = 10;
+        //top_k = 10;
 
         ReadTrainData(data);
 
@@ -92,7 +142,7 @@ public class FastShapelets implements Classifier {
         Classify_list   = new ArrayList<>();
         
         /// Find Shapelet
-        for (int node_id = 1; (node_id == 1) || (node_id < Node_Obj_List.size()); node_id++) {
+        for (int node_id = 1; (node_id == 1) || (node_id < Node_Obj_List.size()); node_id++) {            
             Shapelet bsf_sh = new Shapelet();
             if (node_id <= 1) {
                 SetCurData(node_id);
@@ -114,14 +164,17 @@ public class FastShapelets implements Classifier {
                 /// Make w and sax_len both integer
                 w = (int) Math.ceil(1.0 * subseq_len / sax_len);
                 sax_len = (int) Math.ceil(1.0 * subseq_len / w);
-
+                 
                 CreateSAXList(subseq_len, sax_len, w);
 
                 RandomProjection(R, percent_mask, sax_len);
+                
 
                 ScoreAllSAX(R);
-
+                
+                
                 sh = FindBestSAX(top_k);
+                
 
                 if (bsf_sh.lessThan(sh)) {
                     bsf_sh = sh;
@@ -130,7 +183,7 @@ public class FastShapelets implements Classifier {
                 USAX_Map.clear();
                 Score_List.clear();
             }
-
+  
             if (bsf_sh.len > 0) {
                 double[] query = new double[bsf_sh.len];
                 for (int i = 0; i < bsf_sh.len; i++) {
@@ -140,6 +193,8 @@ public class FastShapelets implements Classifier {
                 bsf_sh.setTS(query);
                 Final_Sh.add(bsf_sh);
                 /// post-processing: create tree
+                //BUG IS IN HERE!!!!
+
                 SetNextNodeObj(node_id, bsf_sh);
             }
         }
@@ -161,10 +216,7 @@ public class FastShapelets implements Classifier {
         int label, kk, total_c_in, num_diff;
 
         Shapelet sh = new Shapelet(), bsf_sh = new Shapelet();
-        int[] c_in = new int[num_class];
-        int[] c_out = new int[num_class];
-        //init the array list with 0s
-        double[] query = new double[subseq_len];
+
 
         if (top_k > 0) {
             Collections.sort(Score_List, new ScoreComparator());
@@ -175,6 +227,11 @@ public class FastShapelets implements Classifier {
             word = Score_List.get(k).first;
             usax = USAX_Map.get(word);
             for (kk = 0; kk < Math.min(usax.sax_id.size(), 1); kk++) {
+                int[] c_in = new int[num_class];
+                int[] c_out = new int[num_class];
+                //init the array list with 0s
+                double[] query = new double[subseq_len];
+                
                 q_obj = usax.sax_id.get(kk).first;
                 q_pos = usax.sax_id.get(kk).second;
 
@@ -202,7 +259,7 @@ public class FastShapelets implements Classifier {
                     Pair<Integer, Double> pair_i = Dist.get(i);
                     Pair<Integer, Double> pair_ii = Dist.get(i + 1);
 
-                    dist_th = (pair_i.second + pair_ii.second) / 2;
+                    dist_th = (pair_i.second + pair_ii.second) / 2.0;
                     //gap = Dist[i+1].second - dist_th;
                     gap = ((double) (pair_ii.second - dist_th)) / Math.sqrt(subseq_len);
                     label = Label.get(pair_i.first);
@@ -285,6 +342,7 @@ public class FastShapelets implements Classifier {
 
         int num_mask = (int) Math.ceil(percent_mask * sax_len);
 
+
         for (int r = 0; r < R; r++) {
             mask_word = CreateMaskWord(num_mask, sax_len);
 
@@ -295,11 +353,10 @@ public class FastShapelets implements Classifier {
 
                 //put the new word and set combo in the hash_mark
                 new_word = word | mask_word;
-                
+
                 ptr = Hash_Mark.get(new_word);
                 
                 //TODO: NOT SURE ON THIS BLOCK!!! 
-                //ptr->insert(it.begin(), it.end());
                 if(ptr == null)
                     Hash_Mark.put(new_word, new HashSet<>(obj_set));
                 else{
@@ -316,10 +373,11 @@ public class FastShapelets implements Classifier {
                 //increase the histogram
                 for (Integer o_it : obj_set) {
                     Integer count = entry.getValue().obj_count.get(o_it);
-                    count = count == null ? 0 : count + 1;
+                    count = count == null ? 1 : count + 1;
                     entry.getValue().obj_count.put(o_it, count);
                 }
             }
+            
             Hash_Mark.clear();
         }
     }
@@ -330,7 +388,8 @@ public class FastShapelets implements Classifier {
 
         a = 0;
         for (int i = 0; i < num_mask; i++) {
-            b = 1 << (rand.nextInt()%word_len); //generate a random number between 0 and the word_len
+            b = 1 << (word_len / 2);
+            //b = 1 << (rand.nextInt()%word_len); //generate a random number between 0 and the word_len
             a = a | b;
         }
         return a;
@@ -379,7 +438,7 @@ public class FastShapelets implements Classifier {
         double en = 0;
         double a;
         for (int i = 0; i < num_class; i++) {
-            a = (double) A[i] / total;
+            a = (double) A[i] / (double) total;
             if (a > 0) {
                 en -= a * Math.log(a);
             }
@@ -458,8 +517,8 @@ public class FastShapelets implements Classifier {
 
             /// Case 2: Slightly Update
             for (j = j; (j <= (int) Data.get(series).size()); j++) {
+                
                 j_st = j - subseq_len;
-
                 mean = ex / subseq_len;
                 std = Math.sqrt(ex2 / subseq_len - mean * mean);
 
@@ -501,6 +560,7 @@ public class FastShapelets implements Classifier {
         }
     }
 
+    //BUG IS IN HERE!!!!
     void SetNextNodeObj(int node_id, Shapelet sh) {
         int q_obj = sh.obj;
         int q_pos = sh.pos;
@@ -513,12 +573,10 @@ public class FastShapelets implements Classifier {
         int real_obj;
 
         /// Memory Allocation
-        ArrayList<Integer> tmp = new ArrayList<>();
-        Shapelet tmp_sh = new Shapelet();
         while (Node_Obj_List.size() <= right_node_id) {
-            Node_Obj_List.add(tmp);
+            Node_Obj_List.add(new ArrayList<>());
             Classify_list.add(-2);
-            Final_Sh.add(tmp_sh);
+            Final_Sh.add(new Shapelet());
 
             if (Node_Obj_List.size() == 2) {   /// Note that Node_Obj_List[0] is not used
                 for (int i = 0; i < num_obj; i++) {
@@ -620,8 +678,6 @@ public class FastShapelets implements Classifier {
             d = nn.NearestNeighborSearch(node.ts, data, 0, Q, order);
             dist_th = node.dist_th;
 
-            //printf("  node_id: %d,  d=%f   dist_th=%f\n",node_id,d,dist_th);
-
             if (d <=dist_th)
                 node_id = 2*node_id;
             else
@@ -715,7 +771,7 @@ public class FastShapelets implements Classifier {
             this.dist_th = dist_th;
         }
 
-        void setValueAll(double gain, double gap, double dist_th, int obj, int pos, int len, int num_diff, int[] c_in, int[] c_out) {
+        void setValueAll(double gain, double gap, double dist_th, int obj, int pos, int len, int num_diff, int[] in, int[] out) {
             this.gain = gain;
             this.gap = gap;
             this.dist_th = dist_th;
@@ -723,8 +779,11 @@ public class FastShapelets implements Classifier {
             this.pos = pos;
             this.len = len;
             this.num_diff = num_diff;
-            this.c_in = c_in;
-            this.c_out = c_out;
+
+            c_in = new int[in.length];
+            c_out = new int[out.length];
+            System.arraycopy(in, 0, c_in, 0, in.length);
+            System.arraycopy(out, 0, c_out, 0, out.length);
         }
 
         void setTS(double[] ts) {
