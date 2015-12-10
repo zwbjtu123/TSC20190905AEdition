@@ -38,7 +38,7 @@ public class LPS extends AbstractClassifier implements ParameterSplittable{
     public static final int PARASEARCH_NOS_TREES=25;
     public static final int DEFAULT_NOS_TREES=200;    
     int nosTrees=DEFAULT_NOS_TREES;
-    int nosSegments=5;
+    int nosSegments=20;
     double[] ratioLevels={0.01,0.1,0.25,0.5};
     double[] segmentProps={0.05,0.1,0.25,0.5,0.75,0.95};
     double segmentProp=segmentProps[0];
@@ -157,7 +157,7 @@ public class LPS extends AbstractClassifier implements ParameterSplittable{
       //</editor-fold>  
     
 
-//<editor-fold defaultstate="collapsed" desc="results reported in PAMI paper">        
+//<editor-fold defaultstate="collapsed" desc="results reported in DAMI paper">        
     static double[] reportedResults={
         0.211,
         0.2,
@@ -293,7 +293,7 @@ public class LPS extends AbstractClassifier implements ParameterSplittable{
             int bestRatio=0;
             int bestTreeDepth=0;
             LPS trainer=new LPS();
-            trainer.nosTrees=25;
+            trainer.nosTrees=50;
             trainer.setParamSearch(false);
             int folds=10;
             for(int i=0;i<ratioLevels.length;i++){
@@ -413,8 +413,13 @@ public class LPS extends AbstractClassifier implements ParameterSplittable{
     public double distance(int[][] test, int[][] train){
         double d=0;
         for(int i=0;i<test.length;i++)
-            for(int j=0;j<test[i].length;j++)
-                d+=(test[i][j]-train[i][j])*(test[i][j]-train[i][j]);
+            for(int j=0;j<test[i].length;j++){
+                double x=(test[i][j]-train[i][j]);
+                if(x>0)
+                    d+=x;
+                else
+                    d+=-x;
+            }
         return d;
     }
     public double classifyInstance(Instance ins) throws Exception{

@@ -28,11 +28,11 @@ public class EnhancedRandomForest extends RandomForest{
     }
     double OOBError;
     double[][] OOBPredictions;
-/*This builds a random forest by forward selection addition of trees (in 
-    stepSize increments to minimize OOB error.    
+/*This builds a random forest with the facility to build by forward selection 
+    addition of trees to minimize OOB error.    
+    Enhanced to include OOB error estimates
+    
     */    
-    boolean stepwise=true;
-    int stepSize=50;
     @Override
     public void buildClassifier(Instances data) throws Exception{
     // can classifier handle the data?

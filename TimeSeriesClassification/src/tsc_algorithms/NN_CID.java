@@ -34,6 +34,7 @@ import weka.core.DistanceFunction;
 import weka.core.EuclideanDistance;
 import weka.core.Instance;
 import weka.core.Instances;
+import weka.core.TechnicalInformation;
 import weka.core.elastic_distance_measures.DTW;
 import weka.core.neighboursearch.PerformanceStats;
 
@@ -52,11 +53,121 @@ public class NN_CID  extends kNN{
     
     public void useDTW(){
         cid=new CIDDTWDistance();
-//        if(b)
-//            cid.baseDistance=new DTW();
- //       else
-//            cid.baseDistance=new EuclideanDistance();
     }
+    
+    public TechnicalInformation getTechnicalInformation() {
+        TechnicalInformation 	result;
+
+        result = new TechnicalInformation(TechnicalInformation.Type.ARTICLE);
+        result.setValue(TechnicalInformation.Field.AUTHOR, "G. Batista, E. Keogh, O. Tataw and X. Wang");
+        result.setValue(TechnicalInformation.Field.YEAR, "2014");
+        result.setValue(TechnicalInformation.Field.TITLE, "CID: an efficient complexity-invariant distance for time series");
+        result.setValue(TechnicalInformation.Field.JOURNAL, "Data Mining and Knowledge Discovery");
+        result.setValue(TechnicalInformation.Field.VOLUME, "28");
+        result.setValue(TechnicalInformation.Field.NUMBER, "3");
+        result.setValue(TechnicalInformation.Field.PAGES, "634--669");
+        return result;
+      }
+
+ //<editor-fold defaultstate="collapsed" desc="problems used in DAMI paper">   
+    public static String[] problems={
+        "FiftyWords",
+        "Adiac",
+        "Beef",
+        "CBF",
+        "ChlorineConcentration",
+        "CinCECGtorso",
+        "Coffee",
+        "CricketX",
+        "CricketY",
+        "CricketZ",
+        "DiatomSizeReduction",
+        "ECG200",
+        "ECGFiveDays",
+        "FaceAll",
+        "FaceFour",
+        "FacesUCR",
+        "Fish",
+        "GunPoint",
+        "Haptics",
+        "InlineSkate",
+        "ItalyPowerDemand",
+        "Lightning2",
+        "Lightning7",
+        "Mallat",
+        "MedicalImages",
+        "Motes",
+        "OSULeaf",
+        "OliveOil",
+        "SonyAIBORobotSurface1",
+        "SonyAIBORobotSurface2",
+        "StarLightCurves",
+        "SwedishLeaf",
+        "Symbols",
+        "SyntheticControl",
+        "Trace",
+        "TwoLeadECG",
+        "TwoPatterns",
+        "Wafer",
+        "WordsSynonyms",
+        "Yoga",
+        "uWaveGestureLibraryX",
+        "uWaveGestureLibraryY",
+        "uWaveGestureLibraryZ"
+    };
+      //</editor-fold>  
+    
+
+//<editor-fold defaultstate="collapsed" desc="ACCURACY for CID DTW reported in DAMI paper">        
+    static double[] reportedResults={
+        0.7736,
+        0.6215,
+        0.5333,
+        0.9989,
+        0.6487,
+        0.9457,
+        0.8214,
+        0.7513,
+        0.8026,
+        0.7949,
+        0.9346,
+        0.8900,
+        0.7816,
+        0.8556,
+        0.8750,
+        0.8985,
+        0.8457,
+        0.9267,
+        0.4286,
+        0.4145,
+        0.9563,
+        0.8689,
+        0.7397,
+        0.9254,
+        0.7421,
+        0.7955,
+        0.6281,
+        0.8333,
+        0.8153,
+        0.8772,
+        0.9343,
+        0.8832,
+        0.9407,
+        0.9733,
+        0.9900,
+        0.8622,
+        0.9958,
+        0.9945,
+        0.7571,
+        0.8443,
+        0.7889,
+        0.7217,
+        0.7066    
+    };
+      //</editor-fold>  
+    
+    
+    
     @Override
     public void buildClassifier(Instances train){      
         this.setDistanceFunction(cid);

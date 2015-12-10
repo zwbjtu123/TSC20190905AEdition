@@ -58,6 +58,56 @@ public class CollateResults {
  * NaiveBayes/Adiac.csv
  * NaiveBayes/ArrowHead.csv    
  * */
+    public static void generateAllScripts(String path, String classifier){
+       boolean oldCls=false;
+        int mem=12000;
+        int maxMem=mem+1000;
+        int maxNum=100;
+        String queue,java; 
+        if(oldCls){
+            queue="short";
+            java= "java/jdk/1.8.0_31";
+        }
+        else{
+            queue="long-eth";
+            java="java/jdk1.8.0_51";
+        }
+        File f=new File(path+"/"+classifier);
+        deleteDirectory(f);
+        if(!f.isDirectory())
+            f.mkdir();
+        for(int i=0;i<DataSets.fiveSplits.length;i++){
+            OutFile of2;
+            if(oldCls)
+                of2=new OutFile(path+"/"+classifier+(i+1)+"OldCls.txt");
+            else
+                of2=new OutFile(path+"/"+classifier+(i+1)+".txt");
+            for(int j=0;j<DataSets.fiveSplits[i].length;j++){
+                String prob=DataSets.fiveSplits[i][j];
+                OutFile of;
+                if(oldCls)
+                    of=new OutFile(path+"/"+classifier+"/"+prob+"OldCls.bsub");
+                else
+                    of=new OutFile(path+"/"+classifier+"/"+prob+".bsub");
+                of.writeString("#!/bin/csh\n" +
+                "#BSUB -q ");
+                of.writeString(queue+"\n#BSUB -J ");
+                of.writeLine(classifier+prob+"[1-100]");
+                of.writeString("#BSUB -oo output/"+classifier+prob+"%I.out\n" +
+                    "#BSUB -eo error/"+classifier+DataSets.fileNames[i]+"%I.err\n" +
+                    "#BSUB -R \"rusage[mem="+mem+"]\"\n" +
+                    "#BSUB -M "+maxMem);
+                of.writeLine("\n\n module add "+java);
+
+                of.writeLine("java -jar TimeSeriesClassification.jar "+classifier+" "+prob+" $LSB_JOBINDEX ");
+                if(oldCls)
+                    of2.writeLine("bsub < "+"Scripts/"+classifier+"/"+prob+"OldCls.bsub");                
+                else
+                    of2.writeLine("bsub < "+"Scripts/"+classifier+"/"+prob+".bsub");
+                of.closeFile();
+            }
+        }
+    }
     public static void clusterResultsCollation(String path){
         for(int i=0;i<dirNames.length;i++){
             for(int j=0;j<names[i].length;j++){
@@ -274,20 +324,26 @@ public class CollateResults {
     public static void combineFolds(String source, OutFile dest, int start, int end){
         for(int i=start;i<=end;i++){
             File inf=new File(source+"fold"+i+".csv");
+//            System.out.println(" Reading "+inf.getPath());
             if(inf.exists() && inf.length()>0){
                 InFile f=new InFile(source+"fold"+i+".csv");
                 int lines=f.countLines();
-                f=new InFile(source+"fold"+i+".csv");
-                double acc=0;
-                for(int j=0;j<lines;j++){
-                    double act=f.readDouble();
-                    double pred=f.readDouble();
-                    if(act==pred) acc++;
+                int testCount=0;
+                if(lines>testCount){//SHOULD CHECK HERE Error, fold not complete
+                    f=new InFile(source+"fold"+i+".csv");
+                    double acc=0;
+                    for(int j=0;j<lines;j++){
+                        double act=f.readDouble();
+                        double pred=f.readDouble();
+                        if(act==pred) acc++;
+                    }
+                    if(i<end)
+                        dest.writeString(acc/lines+",");
+                    else
+                        dest.writeLine(acc/lines+"");
+                }else{
+                    System.out.println("Error, "+inf.getPath()+" not complete only "+lines+" cases instead of "+testSizes[i]);
                 }
-                if(i<end)
-                    dest.writeString(acc/lines+",");
-                else
-                    dest.writeLine(acc/lines+"");
             }
         }
     }
@@ -319,7 +375,7 @@ public class CollateResults {
                                 InFile inf=new InFile(p+"\\"+s+".csv");
                                 String line=inf.readLine();                            
                                 inf.closeFile();
-    //                            System.out.println(directory+" "+cls+" "+s+" "+line);
+//                                System.out.println(directory+" "+cls+" "+s+" "+line);
                                 String[] res=null;
                                 if(line==null){ //Delete the file
                                     f=new File(p+"\\"+s+".csv");
@@ -358,7 +414,7 @@ public class CollateResults {
                         }
                     }
                 }
-                System.out.println("num folds for "+names[i][j]+" = "+numFolds+" complete data ="+completeCount);
+//                System.out.println("num folds for "+names[i][j]+" = "+numFolds+" complete data ="+completeCount);
             }
     /*        prob="MiddlePhalanxOutlineCorrect";
         of=new OutFile(root+"\\"+dir+"\\"+cls+"\\"+prob+"2.csv"); 
@@ -367,7 +423,7 @@ public class CollateResults {
         }
     }
     public static int checkPredictionLength(int problem, String path, OutFile of){
-//        System.out.println("Checking "+path);
+        System.out.println("Checking "+path);
         int count=0;
         boolean complete=true;
         for(int i=0;i<100;i++){
@@ -432,17 +488,23 @@ public class CollateResults {
         OutFile outf=new OutFile(dest+"\\AllProblems.txt");
         OutFile outf2=new OutFile(dest+"\\UnstartedProblems.txt");
         File f=new File(dest+"\\Scripts");
-        int mem=10000;
-        int maxMem=mem;
+        boolean oldCls=false;
+        int mem=8000;
+        int maxMem=mem+1000;
         int maxNum=100;
-        String queue="short";
-        String oldCluster= "java/jdk/1.8.0_31";
-        String newCluster="java/jdk1.8.0_51";
-        String java=oldCluster;
+        String queue,java; 
+        if(oldCls){
+            queue="short";
+            java= "java/jdk/1.8.0_31";
+        }
+        else{
+            queue="long-eth";
+            java="java/jdk1.8.0_51";
+        }
         deleteDirectory(f);
         if(!f.isDirectory())
             f.mkdir();
-        String[] algos=new String[39];
+        String[] algos=new String[Experiments.numClassifiers()];
         for(int i=0;i<algos.length;i++)
            algos[i]=inf.readString();
         String[] problems=new String[85];
@@ -492,7 +554,7 @@ public class CollateResults {
                             f.mkdir();
                         c++;
                         p+=(100-counts[i][j]);
-                        if(algos[j].equals("LS")){
+                        if(algos[j].equals("TSBF")){
                             OutFile runScript=new OutFile(dest+"\\Scripts\\"+algos[j]+"\\Unfinished"+problems[i]+"Script.txt");
                             int paras=getParas(algos[j]);
                             for(int k=1;k<=paras;k++){
@@ -551,9 +613,10 @@ public class CollateResults {
     }
     public static boolean generateScripts(String algo){
         switch(algo){
-            case "TSF":case "TSBF": case "Logistic": case "MLP": case "LS": 
-            case "FS": case "ACF": case "PS": case "DTD_C":
+            case "TSF":case "TSBF": case "LS": 
                 return true;
+            case "Logistic": case "MLP": 
+            case "FS": case "ACF": case "PS": case "DTD_C":
             default:
                 return false;
         }
@@ -575,12 +638,15 @@ public class CollateResults {
         return(directory.delete());
     }    
     public static void main(String[] args){
-//        DataSets.resultsPath="C:\\Users\\ajb\\Dropbox\\Big TSC Bake Off\\New Results\\";
-//        collateFoldZero();
+      DataSets.resultsPath="C:\\Users\\ajb\\Dropbox\\Big TSC Bake Off\\New Results\\";
+ //   generateAllScripts("C:\\Users\\ajb\\Dropbox\\Big TSC Bake Off\\New Results\\Scripts","LPS");
+
+        collateFoldZero();
+ //       System.exit(0);
 //        findNumberPerSplit();
-       String root="C:\\Users\\ajb\\Dropbox\\Big TSC Bake Off\\New Results";
-         System.exit(0);
-       generateScripts(root,root);        
+        String root="C:\\Users\\ajb\\Dropbox\\Big TSC Bake Off\\New Results";
+//        generateScripts(root,root);        
+//        System.exit(0);
         System.out.println("Combine singles ....");
         combineSingles(root);
         System.out.println("cluster results collation ....");
@@ -599,7 +665,7 @@ public class CollateResults {
            System.out.println("Error in fileCombineClassifiers");
            System.exit(0);
        }
-        generateScripts(root,root);
+//        generateScripts(root,root);
 
     }
     public static void findNumberPerSplit(){
@@ -725,4 +791,6 @@ public class CollateResults {
         }
 //First        
     }
+
+
 }

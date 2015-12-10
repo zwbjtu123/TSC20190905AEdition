@@ -86,7 +86,7 @@ public class Experiments extends Thread{
    
 //All classifier names  
     //<editor-fold defaultstate="collapsed" desc="Directory names for all classifiers">   
-    static String[] standard={"NB","C45","SVML","SVMQ","Logistic","BayesNet","RandF","RotF","MLP"};
+    static String[] standard={"NB","C45","SVML","SVMQ","Logistic","BN","RandF","RotF","MLP"};
     static String[] elastic = {"Euclidean_1NN","DTW_R1_1NN","DTW_Rn_1NN","DDTW_R1_1NN","DDTW_Rn_1NN","ERP_1NN","LCSS_1NN","MSM_1NN","TWE_1NN","WDDTW_1NN","WDTW_1NN","DD_DTW","DTD_C","DTW_F"};
     static String[] shapelet={"ST","LS","FS"};
     static String[] dictionary={"BoP","SAXVSM","BOSS"};
@@ -112,21 +112,6 @@ public class Experiments extends Thread{
         return all;
     }
     
-    //<editor-fold defaultstate="collapsed" desc="unfinished problems">   
-    static boolean doUnfinished=false;
-    static String[] unfinishedSVMQ={"FordA","FordB"};
-    static String[] unfinishedRotF={"StarlightCurves"};
-    static String[] unfinishedLogistic={"NonInvasiveFatalECGThorax1","NonInvasiveFatalECGThorax2","Phoneme","ShapesAll","StarlightCurves","UWaveGestureLibraryZ"};
-    static String[] unfinishedMLP={"HandOutlines","StarlightCurves"};
-
-    static String[] unfinishedCID_DTW={"FordA","FordB","HandOutlines","NonInvasiveFatalECGThorax1","NonInvasiveFatalECGThorax2","Phoneme","StarlightCurves","UWaveGestureLibraryX","UWaveGestureLibraryY","UWaveGestureLibraryZ","UWaveGestureLibraryAll"};
-    static int[] doneCIDCount={11,18,5,10,10,20,0,58,68,6,5};
-static String[] unfinishedTSF={"CinCECGtorso","ElectricDevices","FordA","FordB","HandOutlines","Mallat","NonInvasiveFatalECGThorax1","NonInvasiveFatalECGThorax2","Phoneme","ShapesAll","StarlightCurves","UWaveGestureLibraryX","UWaveGestureLibraryY","UWaveGestureLibraryZ","UWaveGestureLibraryAll"};
-    static int[] doneTSFCount={88,17,15,16,15,85,13,13,63,53,13,74,75,75,22};
-    
-    static String[] unfinishedDD_DTW={"StarlightCurves", "UWaveGestureLibraryZ"};
-    static String[] unfinishedDTD_C={"ElectricDevices","FordA","FordB","HandOutlines","InlineSkate","NonInvasiveFatalECGThorax1","NonInvasiveFatalECGThorax2","Phoneme","StarlightCurves", "UWaveGestureLibraryY","UWaveGestureLibraryZ","UWaveGestureLibraryAll"};
-      //</editor-fold> 
     
     //Global file to write to 
     static OutFile out;
@@ -344,6 +329,57 @@ static String[] unfinishedTSF={"CinCECGtorso","ElectricDevices","FordA","FordB",
         }
     }
     
+    public static void singleClassifierZeroFold(String classifier, int prob) throws Exception{
+        String problem=DataSets.fileNames[prob];
+        System.out.println("ZERO FOLD FOR CLASSIFIER "+classifier+" problem "+problem);
+        File f=new File(DataSets.resultsPath+"/"+classifier);
+        if(!f.exists())
+            f.mkdir();
+        String predictions=DataSets.resultsPath+"/"+classifier+"/Predictions";
+        f=new File(predictions);
+        if(!f.exists())
+            f.mkdir();
+        predictions=predictions+"/"+problem;
+        f=new File(predictions);
+        if(!f.exists())
+            f.mkdir();
+        f=new File(predictions+"/"+"fold0.csv");
+        if(f.exists())
+            f.delete();
+        Instances train=ClassifierTools.loadData(DataSets.problemPath+problem+"/"+problem+"_TRAIN");
+        Instances test=ClassifierTools.loadData(DataSets.problemPath+problem+"/"+problem+"_TEST");
+        OutFile p=new OutFile(predictions+"/"+"fold0.csv");
+// hack here to save internal CV for furhter ensembling         
+        Classifier c=setClassifier(classifier);
+        if(c instanceof SaveableEnsemble)
+           ((SaveableEnsemble)c).saveResults(predictions+"/internalCV_0.csv",predictions+"/internalTestPreds_0.csv");
+        try{              
+            c.buildClassifier(train);
+            double acc=0;
+            for(int j=0;j<test.numInstances();j++)
+            {
+                double act=test.instance(j).classValue();
+                double pred=c.classifyInstance(test.instance(j));
+                if(act==pred)
+                    acc++;
+                p.writeLine(act+","+pred);
+            }
+            acc/=test.numInstances();
+            System.out.println(classifier+" on "+problem+" fold 0 accuracy ="+acc);
+//            of.writeString(foldAcc[i]+",");
+
+        }catch(Exception e)
+        {
+                System.out.println(" Error ="+e+" in method simpleExperiment"+e);
+                e.printStackTrace();
+                System.out.println(" TRAIN "+train.relationName()+" has "+train.numAttributes()+" attributes and "+train.numInstances()+" instances");
+                System.out.println(" TEST "+test.relationName()+" has "+test.numAttributes()+" attributes"+test.numInstances()+" instances");
+
+                System.exit(0);
+        }
+        
+    }
+    
   
     public static void threadedSingleClassifierSingleProblem(Classifier c, String results,String problem, int reps) throws Exception{
          ThreadedClassifierExperiment[] thr=new ThreadedClassifierExperiment[reps]; 
@@ -441,8 +477,13 @@ static String[] unfinishedTSF={"CinCECGtorso","ElectricDevices","FordA","FordB",
         String s=args[1];
         int fold=Integer.parseInt(args[2])-1;
         int para=Integer.parseInt(args[3]);
-   
- 
+        String ser=args[4];
+        boolean serialise=false;
+        if(ser!=null){
+            if(ser.equals("TRUE") || ser.equals("1")|| ser.equals("true")) 
+             serialise=true;
+        }
+            
         File f=new File(DataSets.resultsPath+classifier);
         if(!f.exists())
             f.mkdir();
@@ -458,7 +499,6 @@ static String[] unfinishedTSF={"CinCECGtorso","ElectricDevices","FordA","FordB",
         ((ParameterSplittable)c).setParamSearch(false);
         ((ParameterSplittable)c).setPara(para);
         f=new File(predictions+"/fold"+fold+"_"+para+"TRAIN.csv");
-        File f2=new File(predictions+"/fold"+fold+"_"+para+"TRAIN.ser");
         
         if(!f.exists() || f.length()==0){
             Instances train=ClassifierTools.loadData(DataSets.problemPath+s+"/"+s+"_TRAIN");
@@ -470,10 +510,14 @@ static String[] unfinishedTSF={"CinCECGtorso","ElectricDevices","FordA","FordB",
             c.buildClassifier(train);
             OutFile of=new OutFile(predictions+"/fold"+fold+"_"+para+"TRAIN.csv");
             of.writeString(para+","+((ParameterSplittable)c).getParas()+","+((ParameterSplittable)c).getAcc());
-            FileOutputStream fos = new FileOutputStream(predictions+"/"+classifier+fold+"_"+para+"TRAIN.ser");
-            ObjectOutputStream outS = new ObjectOutputStream(fos);
-            outS.writeObject(c);
-            outS.close();
+            
+ 
+            if(serialise){
+                FileOutputStream fos = new FileOutputStream(predictions+"/"+classifier+fold+"_"+para+"TRAIN.ser");
+                ObjectOutputStream outS = new ObjectOutputStream(fos);
+                outS.writeObject(c);
+                outS.close();
+            }
         }
         else{
             System.out.println("File already exists "+f);
@@ -638,7 +682,8 @@ static String[] unfinishedTSF={"CinCECGtorso","ElectricDevices","FordA","FordB",
         
         
     }
-    public static void reconstruct(String classifier, String problem,  int fold, int paras) throws Exception{
+    public static void reconstruct(String classifier, String problem,  int fold, int paras) throws Exception
+     {
         String path=DataSets.resultsPath+classifier+"/Predictions/"+problem;
         System.out.println("PATH = "+path);
         boolean oneCompletePara=false;
@@ -648,7 +693,7 @@ static String[] unfinishedTSF={"CinCECGtorso","ElectricDevices","FordA","FordB",
         for (int j = 1; j <= paras; j++) {
 //Check file exists 
             File f=new File(path+"/fold"+fold+"_"+j+"TRAIN.csv");
-            if(!f.exists()){//Fold is not complete Skip this fold
+            if(!f.exists()){//Fold is not complete
                 System.out.println("Fold "+fold+" paras "+j+" incomplete on "+path+"/fold"+fold+"_"+j+"TRAIN.csv");
                 
             }            
@@ -667,49 +712,60 @@ static String[] unfinishedTSF={"CinCECGtorso","ElectricDevices","FordA","FordB",
             }
         }
 //Load best classifier if all paras have been tested
+        Classifier cls=null;
+        Instances train=ClassifierTools.loadData(DataSets.problemPath+problem+"/"+problem+"_TRAIN");
+        Instances test=ClassifierTools.loadData(DataSets.problemPath+problem+"/"+problem+"_TEST");
+        Instances[] data=InstanceTools.resampleTrainAndTestInstances(train, test, fold);
+        test=data[1];
+        train=data[0];
         if(oneCompletePara){
             System.out.println("Best Train Accuracy="+bestAcc+" with param setting"+bestC);
             File f=new File(path+"/"+classifier+fold+"_"+bestC+"TRAIN.ser");
             if(f.exists()){
                  FileInputStream fis = new FileInputStream(path+"/"+classifier+fold+"_"+bestC+"TRAIN.ser");
                  ObjectInputStream inS = new ObjectInputStream(fis);
-                 Classifier cls = (Classifier)inS.readObject();
+                 cls = (Classifier)inS.readObject();
                  System.out.println("Classifier "+classifier+" loaded");
                  inS.close();
- //Load test data
-                 Instances train=ClassifierTools.loadData(DataSets.problemPath+problem+"/"+problem+"_TRAIN");
-                 Instances test=ClassifierTools.loadData(DataSets.problemPath+problem+"/"+problem+"_TEST");
-                 Instances[] data=InstanceTools.resampleTrainAndTestInstances(train, test, fold);
-                 test=data[1];
-                 data=null;
-                 train=null;
- //Write                 
-                 OutFile p=new OutFile(path+"/fold"+fold+".csv");
- // hack here to save internal CV for furhter ensembling
-                 double acc=0;
-                 for(int j=0;j<test.numInstances();j++)
-                 {
-                     double act=test.instance(j).classValue();
-                     double pred=cls.classifyInstance(test.instance(j));
-                     p.writeLine(act+","+pred);
-                     if(act==pred)
-                         acc++;
-                 }
-                 acc/=test.numInstances();
-                 System.out.println(" TEST ACC ="+acc);
             }
             else{
-                System.out.println("ERROR: SER fILE "+f+" does not exist");
+                System.out.println("SER fILE "+f+" does not exist need to rebuild the classifier");
+                cls=setClassifier(classifier);
+//need to set the right parameters
+                if(cls instanceof ParameterSplittable){
+                    ((ParameterSplittable)cls).setPara(bestC);
+                    ((ParameterSplittable)cls).setParamSearch(false);
+                    cls.buildClassifier(train);
+                }
+                else{
+                    System.out.println("ERROR: "+classifier+" NOT SPLITTABLE");
+                    System.exit(0);
+                }
             }
+             OutFile p=new OutFile(path+"/fold"+fold+".csv");
+// hack here to save internal CV for furhter ensembling
+             double acc=0;
+             for(int j=0;j<test.numInstances();j++)
+             {
+                 double act=test.instance(j).classValue();
+                 double pred=cls.classifyInstance(test.instance(j));
+                 p.writeLine(act+","+pred);
+                 if(act==pred)
+                     acc++;
+             }
+             acc/=test.numInstances();
+             System.out.println(" TEST ACC ="+acc);
         }
 //            
     }
     
-    public static void main(String[] args) throws Exception{
+    
+
+
+
+public static void main(String[] args) throws Exception{
         
-/*       DataSets.resultsPath=DataSets.clusterPath+"Results/";
-       DataSets.problemPath=DataSets.clusterPath+"TSC Problems/";
-       String cls=args[0];
+/*     String cls=args[0];
        Classifier c=setClassifier(cls);
         String prob=DataSets.fileNames[Integer.parseInt(args[1])-1];
         Instances train=ClassifierTools.loadData(DataSets.problemPath+prob+"/"+prob+"_TRAIN");
@@ -728,30 +784,34 @@ static String[] unfinishedTSF={"CinCECGtorso","ElectricDevices","FordA","FordB",
         double acc =singleSampleExperiment(train,test,c,0,predictions);
         System.out.println(cls+" ACC FOR "+prob+" = "+acc);
         System.exit(0);
-*/
-//       allProblemsforSingleFold()
-//       int fold=Integer.parseInt(args[2]);
-//       int paras=Integer.parseInt(args[3]);
-//        reconstruct(args[0],args[1],fold,paras);
-//        System.exit(0);
+ //      allProblemsforSingleFold()
+       DataSets.resultsPath=DataSets.clusterPath+"Results/";
+       DataSets.problemPath=DataSets.clusterPath+"TSC Problems/";
+       int fold=Integer.parseInt(args[2]);
+       int paras=Integer.parseInt(args[3]);
+        reconstruct(args[0],args[1],fold,paras);
 
+        System.exit(0);
+*/
 //       reconstruct("C:/Users/ajb/Dropbox/Big TSC Bake Off/New Results/interval/TSBF/Predictions/FordB","TSBF",4,1);
  //       System.exit(0);
         try{
             if(args.length>0){ //Cluster run
-                System.out.println("ARGS[0] ="+args[0]+" ARGS LENGTH ="+args.length);
+                for (int i = 0; i < args.length; i++) {
+                    System.out.println("ARGS ="+i+" = "+args[i]);
+                }
                 DataSets.resultsPath=DataSets.clusterPath+"Results/";
                 DataSets.problemPath=DataSets.clusterPath+"TSC Problems/";
+//                int prob=Integer.parseInt(args[1])-1;
+//                singleClassifierZeroFold(args[0],prob);
                 clusterRun(args);
             }
             else{       
    //Local threaded run    
                 DataSets.resultsPath="C:/Users/ajb/Dropbox/Big TSC Bake Off/New Results/";
                 DataSets.problemPath=DataSets.dropboxPath+"TSC Problems/";
-                for(String classifier:complexity){
-                    if(!classifier.equals("RPCD"))
-                        threadedSingleClassifierZeroFold(classifier);
-                }
+                String classifier="TSBF";
+                threadedSingleClassifierZeroFold(classifier);
                 System.exit(0);
 //                String problem;
 //// TSF    FordA 15, FordB 16, HandOutlines 15, Mallat 85, NonInvasiveFatalECGThorax1 13, NonInvasiveFatalECGThorax2 13,

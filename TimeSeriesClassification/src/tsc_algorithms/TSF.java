@@ -1,25 +1,6 @@
 package tsc_algorithms;
-/**
- * Basic implementation of Deng's Time Series Forest
- * without the discretisation or the resulting tie deciding entropy measure
- * 
- */
-
-import java.util.Random;
-import utilities.ClassifierTools;
-import weka.classifiers.AbstractClassifier;
-import weka.classifiers.trees.RandomForest;
-import weka.classifiers.trees.RandomTree;
-import weka.core.Attribute;
-import weka.core.DenseInstance;
-import weka.core.FastVector;
-import weka.core.Instance;
-import weka.core.Instances;
-
-/*
+/** * Implementation of Deng's Time Series Forest
  Time Series Forest (TimeSeriesForest) Deng 2013: 
-
-package other_peoples_algorithms;
 @article{deng13forest,
 author = {H. Deng and G. Runger and E. Tuv and M. Vladimir},
  title = {A time series forest for classification and feature extraction},
@@ -52,23 +33,155 @@ to the closest data. So if the split value for feature f=f_1,...f_n is v the mar
 as
 
 margin= min{ |f_i-v| } 
+ **/ 
+
+import java.util.ArrayList;
+import java.util.Random;
+import utilities.ClassifierTools;
+import weka.classifiers.AbstractClassifier;
+import weka.classifiers.trees.RandomForest;
+import weka.classifiers.trees.RandomTree;
+import weka.core.Attribute;
+import weka.core.DenseInstance;
+import weka.core.FastVector;
+import weka.core.Instance;
+import weka.core.Instances;
+import weka.core.TechnicalInformation;
+
+/*
 
 
  */
-public class TimeSeriesForest extends AbstractClassifier{
+public class TSF extends AbstractClassifier{
     RandomTree[] trees;
     int numTrees=500;
     int numFeatures;
     int[][][] intervals;
     Random rand;
     Instances testHolder;
-    public TimeSeriesForest(){
+    public TSF(){
         rand=new Random();
     }
-    public TimeSeriesForest(int seed){
+    public TSF(int seed){
         rand=new Random();
         rand.setSeed(seed);
     }
+//<editor-fold defaultstate="collapsed" desc="results reported in Info Sciences paper">        
+    static double[] reportedResults={
+        0.2659,
+        0.2302,
+        0.2333,
+        0.0256,
+        0.2537,
+        0.0391,
+        0.0357,
+        0.2897,
+        0.2,
+        0.2436,
+        0.049,
+        0.08,
+        0.0557,
+        0.2325,
+        0.0227,
+        0.101,
+        0.1543,
+        0.0467,
+        0.552,
+        0.6818,
+        0.0301,
+        0.1803,
+        0.2603,
+        0.0448,
+        0.2237,
+        0.119,
+        0.0987,
+        0.0865,
+        0.0667,
+        0.4339,
+        0.233,
+        0.1868,
+        0.0357,
+        0.1056,
+        0.1116,
+        0.0267,
+        0.02,
+        0.1177,
+        0.0543,
+        0.2102,
+        0.2876,
+        0.2624,
+        0.0054,
+        0.3793,
+        0.1513
+    };
+      //</editor-fold>  
+    
+//<editor-fold defaultstate="collapsed" desc="problems used in Info Sciences paper">   
+    static String[] problems={
+            "FiftyWords",
+            "Adiac",
+            "Beef",
+            "CBF",
+            "ChlorineConcentration",
+            "CinCECGtorso",
+            "Coffee",
+            "CricketX",
+            "CricketY",
+            "CricketZ",
+            "DiatomSizeReduction",
+            "ECG",
+            "ECGFiveDays",
+            "FaceAll",
+            "FaceFour",
+            "FacesUCR",
+            "Fish",
+            "GunPoint",
+            "Haptics",
+            "InlineSkate",
+            "ItalyPowerDemand",
+            "Lightning2",
+            "Lightning7",
+            "Mallat",
+            "MedicalImages",
+            "MoteStrain",
+            "NonInvasiveFetalECGThorax1",
+            "NonInvasiveFetalECGThorax2",
+            "OliveOil",
+            "OSULeaf",
+            "SonyAIBORobotSurface1",
+            "SonyAIBORobot Surface2",
+            "StarLightCurves",
+            "SwedishLeaf",
+            "Symbols",
+            "Synthetic Control",
+            "Trace",
+            "TwoLeadECG",
+            "TwoPatterns",
+            "UWaveGestureLibraryX",
+            "UWaveGestureLibraryY",
+            "UWaveGestureLibraryZ",
+            "Wafer",
+            "WordsSynonyms",
+            "Yoga"
+        };
+      //</editor-fold>  
+              
+    public TechnicalInformation getTechnicalInformation() {
+    TechnicalInformation 	result;
+    result = new TechnicalInformation(TechnicalInformation.Type.ARTICLE);
+    result.setValue(TechnicalInformation.Field.AUTHOR, "H. Deng, G. Runger, E. Tuv and M. Vladimir");
+    result.setValue(TechnicalInformation.Field.YEAR, "2013");
+    result.setValue(TechnicalInformation.Field.TITLE, "A time series forest for classification and feature extraction");
+    result.setValue(TechnicalInformation.Field.JOURNAL, "Information Sciences");
+    result.setValue(TechnicalInformation.Field.VOLUME, "239");
+    result.setValue(TechnicalInformation.Field.PAGES, "142-153");
+    
+    return result;
+  }
+
+    
+    
+      
     @Override
     public void buildClassifier(Instances data) throws Exception {
         numFeatures=(int)Math.sqrt(data.numAttributes()-1);
@@ -109,7 +222,7 @@ public class TimeSeriesForest extends AbstractClassifier{
             intervals[i]=new int[numFeatures][2];  //Start and end
             for(int j=0;j<numFeatures;j++){
                intervals[i][j][0]=rand.nextInt(data.numAttributes()-1);       //Start point
-               int length=rand.nextInt(data.numAttributes()-1-intervals[i][j][0]);//Max length 3
+               int length=rand.nextInt(data.numAttributes()-1-intervals[i][j][0]);//Min length 3
                intervals[i][j][1]=intervals[i][j][0]+length;
             }
         //2. Generate and store random attributes            
@@ -222,7 +335,7 @@ public class TimeSeriesForest extends AbstractClassifier{
         FastVector atts=new FastVector();
         Instances train=ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\TSC Problems\\ItalyPowerDemand\\ItalyPowerDemand_TRAIN");
         Instances test=ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\TSC Problems\\ItalyPowerDemand\\ItalyPowerDemand_TEST");
-        TimeSeriesForest tsf = new TimeSeriesForest();
+        TSF tsf = new TSF();
         tsf.buildClassifier(train);
         System.out.println("build ok: original atts="+train.numAttributes()+" new atts ="+tsf.testHolder.numAttributes());
         double a=ClassifierTools.accuracy(test, tsf);

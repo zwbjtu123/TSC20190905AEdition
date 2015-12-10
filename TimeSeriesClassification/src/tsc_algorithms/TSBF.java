@@ -176,7 +176,26 @@ public class TSBF extends AbstractClassifier implements ParameterSplittable{
 "Yoga"};
       //</editor-fold>  
     
-          
+public static void recreatePublishedResults() throws Exception{
+        OutFile of=new OutFile(DataSets.resultsPath+"RecreateTSBF.csv");
+        System.out.println("problem,published,recreated");
+        double meanDiff=0;
+        int publishedBetter=0;
+    for(int i=0;i<problems.length;i++){
+        Instances train = ClassifierTools.loadData(DataSets.problemPath+problems[i]+"/"+problems[i]+"_TRAIN");
+        Instances test = ClassifierTools.loadData(DataSets.problemPath+problems[i]+"/"+problems[i]+"_TEST");
+        TSBF tsbf=new TSBF();
+        tsbf.searchParameters(true);
+        double a=ClassifierTools.singleTrainTestSplitAccuracy(tsbf, train, test);
+        System.out.println(problems[i]+","+reportedResults[i]+","+(1-a));
+        of.writeLine(problems[i]+","+reportedResults[i]+","+(1-a));
+        meanDiff+=reportedResults[i]-(1-a);
+        if(reportedResults[i]<(1-a))
+            publishedBetter++;
+    }
+    System.out.println("Mean diff ="+meanDiff/problems.length+" Published better ="+publishedBetter);
+        of.writeLine(",,,,Mean diff ="+meanDiff/problems.length+" Published better ="+publishedBetter);
+}          
     public TechnicalInformation getTechnicalInformation() {
     TechnicalInformation 	result;
     
@@ -196,7 +215,9 @@ public class TSBF extends AbstractClassifier implements ParameterSplittable{
     
     int minIntervalLength=5;   
     int numBins=10;      //bin size for codebook generation   
-    double[] zLevels={0.1,0.25,0.5,0.75}; //minimum subsequence length factors (z) to be evaluated
+    int numReps=10;
+    double oobError;
+    static double[] zLevels={0.1,0.25,0.5,0.75}; //minimum subsequence length factors (z) to be evaluated
     double z=zLevels[0];
     int folds=10;
 //Variables, dont need to be global, can be local to buildClassifier
@@ -219,6 +240,9 @@ public class TSBF extends AbstractClassifier implements ParameterSplittable{
     static double TOLERANCE =0.05;
     public void seedRandom(int s){
         rand=new Random(s);
+    }
+    public void searchParameters(boolean b){
+        paramSearch=b;
     }
     public void setZLevel(double zLevel){ z=zLevel;}
     public void setPara(int x){z=zLevels[x-1];}
@@ -362,123 +386,167 @@ public class TSBF extends AbstractClassifier implements ParameterSplittable{
         }
         return rf;
     }
-    
+
+    private void cloneToThis(TSBF other){
+        numBins=other.numBins;      //bin size for codebook generation   
+        oobError=other.oobError;
+        z=other.z;
+//Variables, dont need to be global, can be local to buildClassifier
+        folds=other.folds;
+        seriesLength=other.seriesLength;   //data specific       
+        numIntervals=other.numIntervals;   //nos intervals per sub series=(int)((zLevel*seriesLength)/minIntervalLength);  
+        numSubSeries=other.numSubSeries;         //nos subseries =  (int)(seriesLength/minIntervalLength)-numIntervals;
+        minSubLength=other.minSubLength;   // min series length = zlevel*seriesLength
+        numOfTreeStep=other.numOfTreeStep; //step size for tree building process
+        paramSearch=other.paramSearch;
+        trainAcc=other.trainAcc;
+        stepWise=other.stepWise;
+        subSeries=other.subSeries;
+        intervals=other.intervals;
+        subseriesRandomForest=other.subseriesRandomForest;
+        finalRandForest=other.finalRandForest;
+        first=other.first;        
+    }
     @Override
     public void buildClassifier(Instances data) throws Exception {
-        first=new Instances(data,0);
-        double bestZ=0;
-        double maxAcc=0;
-        RandomForest bestFinalModel=null;
-        RandomForest bestSubseriesModel=null;
-        int[][] bestSubSeries=null;
-        int[][][] bestIntervals=null;
-        seriesLength=data.numAttributes()-1;
-        double [] paras;
-        if(paramSearch)
-            paras=zLevels;
-        else{
-            paras=new double[1];
-            paras[0]=z;
+        if(numReps>1){
+            double bestOOB=1;
+            TSBF bestRun=this;
+            int r=0;
+            for(int i=0;i<numReps;i++){
+                TSBF reps=new TSBF();
+                reps.numReps=1;
+                reps.paramSearch=true;
+                reps.buildClassifier(data);
+                System.out.println("REP "+i+" ACC = "+reps.trainAcc);
+                if(bestOOB>(1-reps.trainAcc)){
+                    bestOOB=(1-reps.trainAcc);
+                    bestRun=reps;
+                    r=i;
+                }
+                reps=null;
+                System.gc();    //Try reduce the memory footprint!
+            }
+                cloneToThis(bestRun);
+                System.out.println("BEST TRAIN ACC="+trainAcc+" REP ="+r);
         }
-        for(double zLevel:paras){
-            System.out.println(" ZLEVEL ="+zLevel+" paramSearch ="+paramSearch);
-            numIntervals=(int)((zLevel*seriesLength)/minIntervalLength);
-            if(numIntervals==0) //Skip this z setting?
+        else{
+            first=new Instances(data,0);
+            double bestZ=0;
+            double maxAcc=0;
+            RandomForest bestFinalModel=null;
+            RandomForest bestSubseriesModel=null;
+            int[][] bestSubSeries=null;
+            int[][][] bestIntervals=null;
+            seriesLength=data.numAttributes()-1;
+            double [] paras;
+            if(paramSearch)
+                paras=zLevels;
+            else{
+                paras=new double[1];
+                paras[0]=z;
+            }
+            for(double zLevel:paras){
+//                System.out.println(" ZLEVEL ="+zLevel+" paramSearch ="+paramSearch);
+                numIntervals=(int)((zLevel*seriesLength)/minIntervalLength);
+                if(numIntervals==0) //Skip this z setting?
+                    numIntervals=1;
+                minSubLength=minIntervalLength*numIntervals;// Same as  (int)((zLevel*seriesLength)) but clearer
+                numSubSeries=  (int)(seriesLength/minIntervalLength)-numIntervals;  //r -d in the paper, very large!
+                if(minSubLength<minIntervalLength)  //if minimum subsequence length is smaller than wmin skip this z value 
+                    continue;
+    //1. Select subsequences and intervals        
+                selectSubsequencesAndIntervals();
+        //2. Build first transform
+                Instances features=formatIntervalInstances(data);
+                buildFirstClassificationProblem(data,features);
+        //3. Generate class probability estimate for each new instance with a random forest through cross validation
+        //  CHANGE THIS TO MATCH PAPER ALGORITHM
+    //            subseriesRandomForest=findIncrementalClassifier(features);
+         /*       int iteration=1;
+                double currentOOBError;
+                double prevOOBError=1;
+                double TOLERANCE=0.05; 
+                                while(iter<20&&cur_OOBerror<(1-tolerance)*prev_OOBerror){    
+        */
+                double[][] probs;
+                if(stepWise){
+                    subseriesRandomForest = new EnhancedRandomForest();
+                    subseriesRandomForest.buildClassifier(features);
+                    double currentOOBError=subseriesRandomForest.measureOutOfBagError();
+                    double prevOOBError=1;
+                    int iter=1;
+                    while(iter<20&&currentOOBError<(1-TOLERANCE)*prevOOBError){    
+    //This implementation is faithful to the original
+                        prevOOBError=currentOOBError;
+                        ((EnhancedRandomForest)subseriesRandomForest).addTrees(numOfTreeStep, features);
+                        currentOOBError=subseriesRandomForest.measureOutOfBagError();
+                    } 
+                    probs=((EnhancedRandomForest)subseriesRandomForest).getOBProbabilities();
+                }   
+                else{
+                    subseriesRandomForest=new RandomForest();
+                    subseriesRandomForest.setNumTrees(500);
+                    probs=ClassifierTools.crossValidate(features,subseriesRandomForest,folds); 
+                    subseriesRandomForest.buildClassifier(features);
+                }
+
+
+        //4. Discretise probabilities into equal width bins, form counts for each instance
+        //then concatinate class probabilies to form new set of instances
+                int[][][] counts = new int[data.numInstances()][data.numClasses()-1][numBins];
+                double[][] classProbs = new double[data.numInstances()][data.numClasses()];
+                countsFormat(counts,classProbs,probs,data.numClasses(),data.numInstances());         
+                Instances second= formatFrequencyBinInstances(counts,classProbs,data);
+
+    //5. Train a final classifier (random forest). Paper results generated with rand forest 
+
+                double acc=0;    
+                if(stepWise){
+                     finalRandForest = new EnhancedRandomForest();
+                     finalRandForest.buildClassifier(second);
+                     double currentOOBError=finalRandForest.measureOutOfBagError();
+                     double prevOOBError=1;
+                     int iter=1;
+                     while(iter<20&&currentOOBError<(1-TOLERANCE)*prevOOBError){    //The way he has coded it will add in too many trees!
+                         prevOOBError=currentOOBError;
+                         ((EnhancedRandomForest)finalRandForest).addTrees(numOfTreeStep, second);
+                         currentOOBError=finalRandForest.measureOutOfBagError();
+                     } 
+                     acc=1-currentOOBError;
+                }   
+                else{
+                    finalRandForest=new RandomForest();    
+                    finalRandForest.setNumTrees(500);
+                //6. Form a CV estimate of accuracy to choose z value 
+                    Random r= new Random();
+                    acc=ClassifierTools.stratifiedCrossValidation(data, finalRandForest, 10,r.nextInt());
+                }
+                if(acc>maxAcc){
+                   if(!stepWise)
+                        finalRandForest.buildClassifier(second);
+                   bestSubseriesModel=subseriesRandomForest;
+                   bestFinalModel= finalRandForest;
+                   maxAcc=acc;
+                   bestZ=zLevel;
+                   bestIntervals=intervals;
+                   bestSubSeries=subSeries;
+
+                }
+            }
+    //Reset to the best model
+//            System.out.println("Best acc="+maxAcc+" for level "+bestZ+" has "+finalRandForest.getNumTrees()+" trees");
+            numIntervals=(int)((bestZ*seriesLength)/minIntervalLength);
+            if(numIntervals==0)
                 numIntervals=1;
             minSubLength=minIntervalLength*numIntervals;// Same as  (int)((zLevel*seriesLength)) but clearer
             numSubSeries=  (int)(seriesLength/minIntervalLength)-numIntervals;  //r -d in the paper, very large!
-            if(minSubLength<minIntervalLength)  //if minimum subsequence length is smaller than wmin skip this z value 
-                continue;
-//1. Select subsequences and intervals        
-            selectSubsequencesAndIntervals();
-    //2. Build first transform
-            Instances features=formatIntervalInstances(data);
-            buildFirstClassificationProblem(data,features);
-    //3. Generate class probability estimate for each new instance with a random forest through cross validation
-    //  CHANGE THIS TO MATCH PAPER ALGORITHM
-//            subseriesRandomForest=findIncrementalClassifier(features);
-     /*       int iteration=1;
-            double currentOOBError;
-            double prevOOBError=1;
-            double TOLERANCE=0.05; 
-                            while(iter<20&&cur_OOBerror<(1-tolerance)*prev_OOBerror){    
-    */
-            double[][] probs;
-            if(stepWise){
-                subseriesRandomForest = new EnhancedRandomForest();
-                subseriesRandomForest.buildClassifier(features);
-                double currentOOBError=subseriesRandomForest.measureOutOfBagError();
-                double prevOOBError=1;
-                int iter=1;
-                while(iter<20&&currentOOBError<(1-TOLERANCE)*prevOOBError){    //The way he has coded it will add in too many trees!
-                    prevOOBError=currentOOBError;
-                    ((EnhancedRandomForest)subseriesRandomForest).addTrees(numOfTreeStep, features);
-                    currentOOBError=subseriesRandomForest.measureOutOfBagError();
-                } 
-                probs=((EnhancedRandomForest)subseriesRandomForest).getOBProbabilities();
-            }   
-            else{
-                subseriesRandomForest=new RandomForest();
-                subseriesRandomForest.setNumTrees(500);
-                probs=ClassifierTools.crossValidate(features,subseriesRandomForest,folds); 
-                subseriesRandomForest.buildClassifier(features);
-            }
-            
-
-    //4. Discretise probabilities into equal width bins, form counts for each instance
-    //then concatinate class probabilies to form new set of instances
-            int[][][] counts = new int[data.numInstances()][data.numClasses()-1][numBins];
-            double[][] classProbs = new double[data.numInstances()][data.numClasses()];
-            countsFormat(counts,classProbs,probs,data.numClasses(),data.numInstances());         
-            Instances second= formatFrequencyBinInstances(counts,classProbs,data);
-
-//5. Train a final classifier (random forest). Paper results generated with rand forest 
-           
-            double acc=0;    
-            if(stepWise){
-                 finalRandForest = new EnhancedRandomForest();
-                 finalRandForest.buildClassifier(second);
-                 double currentOOBError=finalRandForest.measureOutOfBagError();
-                 double prevOOBError=1;
-                 int iter=1;
-                 while(iter<20&&currentOOBError<(1-TOLERANCE)*prevOOBError){    //The way he has coded it will add in too many trees!
-                     prevOOBError=currentOOBError;
-                     ((EnhancedRandomForest)finalRandForest).addTrees(numOfTreeStep, second);
-                     currentOOBError=finalRandForest.measureOutOfBagError();
-                 } 
-                 acc=1-currentOOBError;
-            }   
-            else{
-                finalRandForest=new RandomForest();    
-                finalRandForest.setNumTrees(500);
-            //6. Form a CV estimate of accuracy to choose z value 
-                Random r= new Random();
-                acc=ClassifierTools.stratifiedCrossValidation(data, finalRandForest, 10,r.nextInt());
-            }
-            if(acc>maxAcc){
-               if(!stepWise)
-                    finalRandForest.buildClassifier(second);
-               bestSubseriesModel=subseriesRandomForest;
-               bestFinalModel= finalRandForest;
-               maxAcc=acc;
-               bestZ=zLevel;
-               bestIntervals=intervals;
-               bestSubSeries=subSeries;
-               
-            }
+            intervals=bestIntervals;
+            subSeries=bestSubSeries;
+            subseriesRandomForest=bestSubseriesModel;
+            finalRandForest=bestFinalModel;
+            trainAcc=maxAcc;        
         }
-//Reset to the best model
-        System.out.println("Best acc="+maxAcc+" for level "+bestZ+" has "+finalRandForest.getNumTrees()+" trees");
-        numIntervals=(int)((bestZ*seriesLength)/minIntervalLength);
-        if(numIntervals==0)
-            numIntervals=1;
-        minSubLength=minIntervalLength*numIntervals;// Same as  (int)((zLevel*seriesLength)) but clearer
-        numSubSeries=  (int)(seriesLength/minIntervalLength)-numIntervals;  //r -d in the paper, very large!
-        intervals=bestIntervals;
-        subSeries=bestSubSeries;
-        subseriesRandomForest=bestSubseriesModel;
-        finalRandForest=bestFinalModel;
-        trainAcc=maxAcc;        
     }
     public void countsFormat(int[][][] counts,double[][] classProbs,double[][] probs,int numClasses, int numInstances){
         for(int i=0;i<numInstances;i++){
@@ -679,41 +747,34 @@ public class TSBF extends AbstractClassifier implements ParameterSplittable{
  //      Instances second= formatFrequencyBinInstances(counts,classProbs);
 
     }
-        public static void compareToPublished() {
-            OutFile of = new OutFile("TSBF_Test.csv");
-            DecimalFormat df = new DecimalFormat("##.###");
-            for(int i=1;i<problems.length;i++){
-                String s=problems[i];
-                 System.out.println(" PROBLEM ="+s);
-                Instances train=ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\TSC Problems\\"+s+"\\"+s+"_TRAIN");
-                Instances test=ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\TSC Problems\\"+s+"\\"+s+"_TEST");
-//                RandomForest rf=new RandomForest();
- //               rf.buildClassifier(train);
-//                System.out.println(" bag percent ="+rf.getBaggingPercent()+" OOB error "+rf.measureOutOfBagError());
-//                System.exit(0);
-                TSBF tsbf=new TSBF();
-                double a =ClassifierTools.singleTrainTestSplitAccuracy(tsbf, train, test);
-                System.out.println("reported error ="+reportedResults[i]+" our error ="+df.format(1-a)+" diff ="+(reportedResults[i]-(1-a)));
-                of.writeLine(s+","+reportedResults[i]+","+df.format(1-a));
-            }
-        }
-    public static void main(String[] args) {
-        compareToPublished();
+    public static void main(String[] args) throws Exception {
+        String s= "Beef";
+        System.out.println(" PROBLEM ="+s);
+        Instances train=ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\TSC Problems\\"+s+"\\"+s+"_TRAIN");
+        Instances test=ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\TSC Problems\\"+s+"\\"+s+"_TEST");
+        TSBF tsbf=new TSBF();
+        double a =ClassifierTools.singleTrainTestSplitAccuracy(tsbf, train, test);
+        System.out.println(" TEST Acc ="+a);
+
+        
+//        DataSets.resultsPath=DataSets.clusterPath+"Results/";
+//        DataSets.problemPath=DataSets.clusterPath+"TSC Problems/";        
+//        recreatePublishedResults();
   //      testBinMaker();
         System.exit(0);
         DecimalFormat df = new DecimalFormat("##.###");
         try{
             for(int i=1;i<2;i++){
-                String s="TwoLeadECG";
+                s="TwoLeadECG";
                 System.out.println(" PROBLEM ="+s);
-                Instances train=ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\TSC Problems\\"+s+"\\"+s+"_TRAIN");
-                Instances test=ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\TSC Problems\\"+s+"\\"+s+"_TEST");
+                train=ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\TSC Problems\\"+s+"\\"+s+"_TRAIN");
+                test=ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\TSC Problems\\"+s+"\\"+s+"_TEST");
 //                RandomForest rf=new RandomForest();
  //               rf.buildClassifier(train);
 //                System.out.println(" bag percent ="+rf.getBaggingPercent()+" OOB error "+rf.measureOutOfBagError());
 //                System.exit(0);
-                TSBF tsbf=new TSBF();
-                double a =ClassifierTools.singleTrainTestSplitAccuracy(tsbf, train, test);
+                tsbf=new TSBF();
+                a =ClassifierTools.singleTrainTestSplitAccuracy(tsbf, train, test);
                 System.out.println(" error ="+df.format(1-a));
 //                tsbf.buildClassifier(train);
  //               double c=tsbf.classifyInstance(test.instance(0));
