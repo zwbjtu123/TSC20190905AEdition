@@ -415,19 +415,11 @@ public class BOSS implements Classifier {
      public static void basicTest() {
         System.out.println("BOSSBasicTest\n\n");
         try {
-//            Instances train = ClassifierTools.loadData("C:\\tempbakeoff\\Car\\Car_TRAIN.arff");
-//            Instances test = ClassifierTools.loadData("C:\\tempbakeoff\\Car\\Car_TEST.arff");
-            Instances train = ClassifierTools.loadData("C:\\tempbakeoff\\TSC Problems\\BeetleFly\\BeetleFly_TRAIN.arff");
-            Instances test = ClassifierTools.loadData("C:\\tempbakeoff\\TSC Problems\\BeetleFly\\BeetleFly_TEST.arff");
-//            Instances train = ClassifierTools.loadData("C:\\tempbakeoff\\StrawBerry\\StrawBerry_TRAIN.arff");
-//            Instances test = ClassifierTools.loadData("C:\\tempbakeoff\\StrawBerry\\StrawBerry_TEST.arff");
-//            Instances train = ClassifierTools.loadData("C:\\tempbakeoff\\SwedishLeaf\\SwedishLeaf_TRAIN.arff");
-//            Instances test = ClassifierTools.loadData("C:\\tempbakeoff\\SwedishLeaf\\SwedishLeaf_TEST.arff");
-//            Instances train = ClassifierTools.loadData("C:\\tempbakeoff\\Yoga\\Yoga_TRAIN.arff");
-//            Instances test = ClassifierTools.loadData("C:\\tempbakeoff\\Yoga\\Yoga_TEST.arff");
-//            Instances train = ClassifierTools.loadData("C:\\tempbakeoff\\Herring\\Herring_TRAIN.arff");
-//            Instances test = ClassifierTools.loadData("C:\\tempbakeoff\\Herring\\Herring_TEST.arff");
-            
+            Instances train = ClassifierTools.loadData("C:\\tempbakeoff\\TSC Problems\\Car\\Car_TRAIN.arff");
+            Instances test = ClassifierTools.loadData("C:\\tempbakeoff\\TSC Problems\\Car\\Car_TEST.arff");
+//            Instances train = ClassifierTools.loadData("C:\\tempbakeoff\\TSC Problems\\BeetleFly\\BeetleFly_TRAIN.arff");
+//            Instances test = ClassifierTools.loadData("C:\\tempbakeoff\\TSC Problems\\BeetleFly\\BeetleFly_TEST.arff");
+
             System.out.println(train.relationName());
             
             BOSS boss = new BOSS(8,4,100,true);

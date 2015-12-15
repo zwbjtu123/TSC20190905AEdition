@@ -24,9 +24,7 @@ import weka.filters.SimpleBatchFilter;
  * Resulting in a bag (histogram) of patterns (SAX words) describing the high-level
  * structure of each timeseries
  *
- * default sliding window size = 100
- * default paainterval size = 6
- * default saxalphabetsize = 3
+ * Params: wordLength, alphabetSize, windowLength
  * 
  * @author James
  */
@@ -108,10 +106,9 @@ public class BagOfPatternsFilter extends SimpleBatchFilter {
             
             try {
                 NormalizeCase.standardNorm(pattern);
-            } catch(Exception e) { //TONY COMMENT: Adapt this so catches a specific exception (ArithmeticException)?
+            } catch(Exception e) {
                 //throws exception if zero variance
                 //if zero variance, all values in window the same 
-                //'normalised' version should essentially be all 0s? 
                 for (int j = 0; j < pattern.length; ++j)
                     pattern[j] = 0;
             }
@@ -133,36 +130,7 @@ public class BagOfPatternsFilter extends SimpleBatchFilter {
         
         return window;
     }
-    
-//    private double[][] slidingWindow(double[] data) {
-//        double[][] subSequences = new double[data.length-windowSize+1][windowSize];
-//        
-//        for (int windowStart = 0; windowStart+windowSize-1 < data.length; ++windowStart) { 
-//            //copy the elements windowStart to windowStart+windowSize from data into 
-//            //the subsequence matrix at position windowStart
-//            System.arraycopy(data,windowStart,subSequences[windowStart],0,windowSize);
-//        }
-//        
-//        return subSequences;
-//    }
-    
-//    public double[][] removeTrivialMatches(double[][] patterns) {
-//        ArrayList<Integer> toKeep = new ArrayList<>(patterns.length);
-//        
-//        toKeep.add(0); 
-//        
-//        for (int i = 1; i < patterns.length; ++i)
-//            if (!identicalPattern(patterns[i], patterns[i-1]))
-//                toKeep.add(i);
-//            
-//        double[][] keptPatterns = new double[toKeep.size()][];
-//        
-//        for (int i = 0; i < keptPatterns.length; ++i)
-//            keptPatterns[i] = patterns[toKeep.get(i)];
-//        
-//        return keptPatterns;
-//    }
-    
+
     private boolean identicalPattern(double[] a, double[] b) {
         for (int i = 0; i < a.length; ++i)
             if (a[i] != b[i])
@@ -263,19 +231,19 @@ public class BagOfPatternsFilter extends SimpleBatchFilter {
     public static void main(String[] args) {
         System.out.println("BoPtest\n\n");
 
-//        try {
-//            Instances test = ClassifierTools.loadData("C:\\\\Temp\\\\TESTDATA\\\\TwoClassV1.arff");
-//            test.deleteAttributeAt(0); //just name of bottle
-//          
-//            BagOfPatterns bop = new BagOfPatterns(6,3,100);  
-//            bop.useRealValuedAttributes(false);
-//            Instances result = bop.process(test);
-//            
-//            System.out.println(result);
-//        }
-//        catch (Exception e) {
-//            System.out.println(e);
-//            e.printStackTrace();
-//        }
+        try {
+            Instances test = ClassifierTools.loadData("C:\\tempbakeoff\\TSC Problems\\Car\\Car_TRAIN.arff");
+            test.deleteAttributeAt(0); //just name of bottle
+          
+            BagOfPatternsFilter bop = new BagOfPatternsFilter(8,4,50);  
+            bop.useRealValuedAttributes(false);
+            Instances result = bop.process(test);
+            
+            System.out.println(result);
+        }
+        catch (Exception e) {
+            System.out.println(e);
+            e.printStackTrace();
+        }
     }
 }

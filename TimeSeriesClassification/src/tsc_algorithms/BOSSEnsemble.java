@@ -19,6 +19,8 @@ import weka.classifiers.Classifier;
  */
 public class BOSSEnsemble implements Classifier {
 
+    private static boolean debug = false;
+    
     private List<BOSSWindow> classifiers;
     
     //private final double minWindowFactor = 1.0/10.0;
@@ -108,7 +110,7 @@ public class BOSSEnsemble implements Classifier {
             BOSS bestClassifierForWinSize = null; 
             double bestAccForWinSize = -1.0;
             
-            System.out.println("\n\tWindow size: " + winSize);
+            printDebug("\n\tWindow size: " + winSize);
             
             //find best word length for this window size
             for (Integer wordLen : wordLengths) {            
@@ -123,7 +125,7 @@ public class BOSSEnsemble implements Classifier {
                 
                 double acc = (double)correct/(double)numSeries;
                 
-                System.out.println("wl " + wordLen + " acc: " + acc);
+                printDebug("wl " + wordLen + " acc: " + acc);
                 
                 if (acc > bestAccForWinSize) {
                     bestAccForWinSize = acc;
@@ -131,7 +133,7 @@ public class BOSSEnsemble implements Classifier {
                 }
             }
             
-            System.out.println("bestAcc: " + bestAccForWinSize);
+            printDebug("bestAcc: " + bestAccForWinSize);
             
             //if not within correct threshold of the CURRENT max, dont bother storing at all
             //will still likely be some by the end of this build that dont fall within threshold
@@ -170,6 +172,8 @@ public class BOSSEnsemble implements Classifier {
     @Override
     public double[] distributionForInstance(Instance instance) throws Exception {
         double[] classHist = new double[instance.numClasses()];
+        
+        //get votes from all windows 
         double sum = 0;
         for (BOSSWindow classifier : classifiers) {
             double classification = classifier.classifyInstance(instance);
@@ -196,10 +200,12 @@ public class BOSSEnsemble implements Classifier {
     public static void basicTest() {
         System.out.println("BOSSEnsembleBasicTest\n");
         try {
-            Instances train = ClassifierTools.loadData("C:\\bakeoff\\TSC Problems\\Car\\Car_TRAIN.arff");
-            Instances test = ClassifierTools.loadData("C:\\bakeoff\\TSC Problems\\Car\\Car_TEST.arff");
-//            Instances train = ClassifierTools.loadData("C:\\bakeoff\\TSC Problems\\BeetleFly\\BeetleFly_TRAIN.arff");
-//            Instances test = ClassifierTools.loadData("C:\\bakeoff\\TSC Problems\\BeetleFly\\BeetleFly_TEST.arff");
+            debug = true;
+            
+            Instances train = ClassifierTools.loadData("C:\\tempbakeoff\\TSC Problems\\Car\\Car_TRAIN.arff");
+            Instances test = ClassifierTools.loadData("C:\\tempbakeoff\\TSC Problems\\Car\\Car_TEST.arff");
+//            Instances train = ClassifierTools.loadData("C:\\tempbakeoff\\TSC Problems\\BeetleFly\\BeetleFly_TRAIN.arff");
+//            Instances test = ClassifierTools.loadData("C:\\tempbakeoff\\TSC Problems\\BeetleFly\\BeetleFly_TEST.arff");
             
             System.out.println(train.relationName());
             
@@ -228,5 +234,10 @@ public class BOSSEnsemble implements Classifier {
             System.out.println(e);
             e.printStackTrace();
         }
+    }
+    
+    public static void printDebug(String msg) {
+        if (debug)
+            System.out.println(msg);
     }
 }

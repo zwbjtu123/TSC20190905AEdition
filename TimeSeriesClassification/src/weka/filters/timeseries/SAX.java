@@ -12,19 +12,20 @@ import weka.filters.SimpleBatchFilter;
 import weka.filters.unsupervised.attribute.Normalize;
 
 /**
- * Filter to reduce dimensionality of and discretise a normalised time series into SAX form. 
+ * Filter to reduce dimensionality of and discretise a time series into SAX form, 
+ * does not normalize, must be done separately if wanted. 
  * 
  * Output attributes can be in two forms - discrete alphabet or real values 0 to alphabetsize-1
  * 
- * Default num of intervals = 6
- * Default alphabet size = 3
+ * Default number of intervals = 8
+ * Default alphabet size = 4
  *
  * @author James
  */
 public class SAX extends SimpleBatchFilter {
 
-    private int numIntervals = 6;
-    private int alphabetSize = 3;
+    private int numIntervals = 8;
+    private int alphabetSize = 4;
     private boolean useRealAttributes = false;
     private FastVector alphabet = null;
     
@@ -159,7 +160,7 @@ public class SAX extends SimpleBatchFilter {
 
     @Override
     public String globalInfo() {
-        return null;
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
     @Override
@@ -197,21 +198,8 @@ public class SAX extends SimpleBatchFilter {
             else
                 newInstance = new DenseInstance(numIntervals);
 
-            for (int j = 0; j < numIntervals; j++) {
+            for (int j = 0; j < numIntervals; j++)
                 newInstance.setValue(j, data[j]);
-                
-                
-                //from doc:
-                //'setValue(attIndex, value).. 
-                //...
-                //...
-                //value - the new attribute value (If the corresponding attribute is nominal (or a string) 
-                //      then this is the new value's index as a double).'
-                
-                //so shouldnt need to do any checks or anything for useRealAttribute, 
-                //should be handled automatically based on whatever happened in 
-                //determineOutputFormat
-            }
                 
             if (inputCopy.classIndex() >= 0)
                 newInstance.setValue(output.classIndex(), inputCopy.instance(i).classValue());
@@ -227,7 +215,6 @@ public class SAX extends SimpleBatchFilter {
         double[] gaussianBreakpoints = generateBreakpoints(alphabetSize);
         
         for (int i = 0; i < numIntervals; ++i) {
-            //SAX conversion
             //find symbol corresponding to each mean
             for (int j = 0; j < alphabetSize; ++j)
                 if (data[i] < gaussianBreakpoints[j]) {
@@ -238,9 +225,8 @@ public class SAX extends SimpleBatchFilter {
     }
     
     /**
-     * Will perform a PAA -> SAX transformation on a single data series passed as a double[]
+     * Will perform a SAX transformation on a single series passed as a double[]
      * 
-     * @param data
      * @param alphabetSize size of SAX alphabet
      * @param numIntervals size of resulting word
      * @throws Exception 
@@ -258,12 +244,15 @@ public class SAX extends SimpleBatchFilter {
     }
     
     /**
-     * Will perform a PAA -> SAX transformation on a single data series passed as a double[]
-     * BuildClassifier must have been called beforehand. Generally to be used 
+     * Will perform a SAX transformation on a single data series passed as a double[], input format
+     * must already be known. 
+     * 
+     * Generally to be used 
      * in the SAX_1NN classifier (essentially a wrapper classifier that just feeds SAX-filtered
      * data to a 1NN classifier) to filter individual instances during testing
      * 
-     * @param data
+     * Instance objects need the header info as well as the basic data
+     * 
      * @param alphabetSize size of SAX alphabet
      * @param numIntervals size of resulting word
      * @throws Exception 
@@ -279,15 +268,14 @@ public class SAX extends SimpleBatchFilter {
     }
 
     public String getRevision() {
-        // TODO Auto-generated method stub
-        return null;
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
     public static void main(String[] args) {
         System.out.println("SAXtest\n\n");
         
         try {
-            Instances test = ClassifierTools.loadData("C:\\\\Temp\\\\TESTDATA\\\\Sheet2_Train2.arff");
+            Instances test = ClassifierTools.loadData("C:\\tempbakeoff\\TSC Problems\\Car\\Car_TEST.arff");
             
             new NormalizeCase().standardNorm(test);
             

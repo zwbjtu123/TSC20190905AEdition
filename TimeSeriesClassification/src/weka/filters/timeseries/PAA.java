@@ -10,13 +10,13 @@ import weka.filters.SimpleBatchFilter;
 
 /**
  * Filter to reduce dimensionality of a time series into Piecewise Aggregate Approximation (PAA) form. 
- * Default number of intervals = 10
+ * Default number of intervals = 8
  *
  * @author James
  */
 public class PAA extends SimpleBatchFilter {
 
-    private int numIntervals = 10;
+    private int numIntervals = 8;
     
     private static final long serialVersionUID = 1L;
     
@@ -68,7 +68,7 @@ public class PAA extends SimpleBatchFilter {
 
     @Override
     public String globalInfo() {
-        return null;
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
     @Override
@@ -163,28 +163,14 @@ public class PAA extends SimpleBatchFilter {
     }
 
     public String getRevision() {
-        // TODO Auto-generated method stub
-        return null;
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
     public static void main(String[] args) {
-        /**
-         * Debug code to test SummaryStats generation:          *
-         *
-         * try{ Instances
-         * test=ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\TSC
-         * Problems\\Beef\\Beef_TRAIN"); // Instances filter=new
-         * SummaryStats().process(test); SummaryStats m=new SummaryStats();
-         * m.setInputFormat(test); Instances filter=Filter.useFilter(test,m);
-         * System.out.println(filter); } catch(Exception e){
-         * System.out.println("Exception thrown ="+e); e.printStackTrace();
-         *
-         * }*
-         */
         System.out.println("PAAtest\n\n");
         
         try {
-            Instances test = ClassifierTools.loadData("C:\\Temp\\TESTDATA\\Sheet2_Train.arff");
+            Instances test = ClassifierTools.loadData("C:\\tempbakeoff\\TSC Problems\\Car\\Car_TEST.arff");
             PAA paa = new PAA();
             paa.setNumIntervals(2);
             Instances result = paa.process(test);
@@ -195,7 +181,6 @@ public class PAA extends SimpleBatchFilter {
         }
         catch (Exception e) {
             System.out.println(e);
-            e.printStackTrace();
         }
     }
 
