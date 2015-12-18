@@ -121,30 +121,40 @@ public class BOSS implements Classifier {
     private double[][] performDFT(double[][] windows) {
         double[][] dfts = new double[windows.length][wordLength];
         for (int i = 0; i < windows.length; ++i) {
-            double[] dft = DFT(windows[i]);
-            int startIndex = norm ? 2 : 0; //drop first fourier coeff (mean value) if normalising 
-            System.arraycopy(dft, startIndex, dfts[i], 0, wordLength); 
-            //take first 'wordlength' (WL) values, i.e WL/2 real values, WL/2 imag values
+            dfts[i] = DFT(windows[i]);
         }
         return dfts;
     }
     
-    public double[] DFT(double[] series) {
+    /**
+     * Performs DFT but calculates only wordLength/2 coefficients instead of the 
+     * full transform, and skips the first coefficient if it is to be normalised
+     * 
+     * @return double[] size wordLength, { real1, imag1, ... realwl/2, imagwl/2 }
+     */
+    private double[] DFT(double[] series) {
         //taken from FFT.java but 
-        //converted to return just a double[] size n, { real1, imag1, ... realn/2, imagn/2 }
+        //return just a double[] size n, { real1, imag1, ... realn/2, imagn/2 }
         //instead of Complex[] size n/2
-    
+        
+        //also, only calculating first wordlength/2 coefficients (output values) instead of 
+        //entire transform, as it will be low pass filtered anyway, and skipping first coefficient
+        //if the data is to be normalised
         int n=series.length;
-        double[] dft=new double[n*2];
-        for (int k = 0; k < n; k++) {  // For each output element
+        int outputLength = wordLength/2;
+        int start = (norm ? 1 : 0);
+        
+        double[] dft=new double[outputLength*2];
+        
+        for (int k = start; k < start + outputLength; k++) {  // For each output element
             float sumreal = 0;
             float sumimag = 0;
-            for (int t = 0; t < series.length; t++) {  // For each input element
-                    sumreal +=  series[t]*Math.cos(2*Math.PI * t * k / n);
-                    sumimag += -series[t]*Math.sin(2*Math.PI * t * k / n);
+            for (int t = 0; t < n; t++) {  // For each input element
+                sumreal +=  series[t]*Math.cos(2*Math.PI * t * k / n);
+                sumimag += -series[t]*Math.sin(2*Math.PI * t * k / n);
             }
-            dft[k*2]=sumreal;
-            dft[k*2+1]=sumimag;
+            dft[(k-start)*2]   = sumreal;
+            dft[(k-start)*2+1] = sumimag;
         }
         return dft;
     }
@@ -185,7 +195,6 @@ public class BOSS implements Classifier {
             for (int inst = 0; inst < numInsts; ++inst)
                 for (int window = 0; window < numWindowsPerInst; ++window) 
                     column[(inst * numWindowsPerInst) + window] = dfts[inst][window][letter];
-                    //column[window] = dfts[inst][window][letter];
             
             //sort, and run through to find breakpoints for equi-depth bins
             Arrays.sort(column);
@@ -197,18 +206,7 @@ public class BOSS implements Classifier {
                 binIndex += targetBinDepth;
                 breakpoints[letter][bp] = column[(int)binIndex];
             }
-            
-                        
-//            double binDepth = 0;
-//            int bin = 0;
-//            double targetBinDepth = (double)totalNumWindows / (double)alphabetSize; 
-//            
-//            for (int window = 0; window < column.length; ++window) {
-//                if (binDepth++ >= targetBinDepth) {
-//                    breakpoints[letter][bin++] = column[window];
-//                    binDepth -= targetBinDepth;
-//                }
-//            }
+
             breakpoints[letter][alphabetSize-1] = Double.MAX_VALUE; //last one can always = infinity
         }
     
@@ -254,7 +252,7 @@ public class BOSS implements Classifier {
      * Assumes class index, if present, is last
      * @return data of passed instance in a double array with the class value removed if present
      */
-    public static double[] toArrayNoClass(Instance inst) {
+    private static double[] toArrayNoClass(Instance inst) {
         int length = inst.numAttributes();
         if (inst.classIndex() >= 0)
             --length;
@@ -268,6 +266,9 @@ public class BOSS implements Classifier {
         return data;
     }
     
+    /**
+     * @return BOSSTransform-ed bag, built using current parameters
+     */
     public Bag BOSSTransform(Instance inst) {
         double[][] dfts = performDFT(slidingWindow(toArrayNoClass(inst))); //approximation     
         Bag bag = createBag(dfts); //discretisation
@@ -301,7 +302,7 @@ public class BOSS implements Classifier {
         return newBoss;
     }
     
-    public static Bag shortenHistogram(int newWordLength, Bag oldBag) {
+    private static Bag shortenHistogram(int newWordLength, Bag oldBag) {
         Bag newBag = new Bag();
         
         for (Entry<String, Integer> origWord : oldBag.entrySet()) {
@@ -313,6 +314,8 @@ public class BOSS implements Classifier {
 
             newBag.put(shortWord, val + origWord.getValue());
         }
+        
+        newBag.setClassVal(oldBag.getClassVal());
         
         return newBag;
     }
@@ -331,7 +334,7 @@ public class BOSS implements Classifier {
 
     /**
      * Computes BOSS distance between two bags d(test, train), is NON-SYMETRIC operation, ie d(a,b) != d(b,a)
-     * @return distance FROM testInst TO trainInst
+     * @return distance FROM instA TO instB
      */
     public double BOSSdistance(Bag instA, Bag instB) {
         double dist = 0.0;

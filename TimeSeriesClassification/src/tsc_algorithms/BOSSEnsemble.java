@@ -22,9 +22,7 @@ public class BOSSEnsemble implements Classifier {
     private static boolean debug = false;
     
     private List<BOSSWindow> classifiers;
-    
-    //private final double minWindowFactor = 1.0/10.0;
-    //private final double maxWindowFactor = 10.0/10.0;
+
     private final double correctThreshold = 0.92;
     private final Integer[] wordLengths = { 16, 14, 12, 10, 8 };
     private final int alphabetSize = 4;
@@ -34,7 +32,7 @@ public class BOSSEnsemble implements Classifier {
         norm = normalise;
     }
 
-    private static class BOSSWindow implements Comparable<BOSSWindow> { 
+    public static class BOSSWindow implements Comparable<BOSSWindow> { 
         private BOSS classifier;
         public final double accuracy;
 
@@ -79,15 +77,15 @@ public class BOSSEnsemble implements Classifier {
     }
     
     @Override
-    public void buildClassifier(Instances data) throws Exception {
+    public void buildClassifier(final Instances data) throws Exception {
         if (data.classIndex() != data.numAttributes()-1)
             throw new Exception("BOSSEnsemble_BuildClassifier: Class attribute not set as last attribute in dataset");
         
         classifiers = new LinkedList<BOSSWindow>();
         
-        int seriesLength = data.numAttributes()-1;
-        //int minWindow = (int)(seriesLength * minWindowFactor);
-        //int maxWindow = (int)(seriesLength * maxWindowFactor); 
+        int numSeries = data.numInstances();
+        
+        int seriesLength = data.numAttributes()-1; //minus class attribute
         int minWindow = 10;
         int maxWindow = seriesLength; 
 
@@ -109,32 +107,25 @@ public class BOSSEnsemble implements Classifier {
             
             BOSS bestClassifierForWinSize = null; 
             double bestAccForWinSize = -1.0;
-            
-            printDebug("\n\tWindow size: " + winSize);
-            
+
             //find best word length for this window size
             for (Integer wordLen : wordLengths) {            
                 boss = BOSS.shortenHistograms(wordLen, boss); //in first iteration, same lengths (wordLengths[0] == max length), will do nothing
 
-                int correct = 0, numSeries = data.numInstances(); 
+                int correct = 0; 
                 for (int i = 0; i < numSeries; ++i) {
                     double c = boss.classifyInstance(i); //classify series i, while ignoring its corresponding histogram i
                     if (c == data.get(i).classValue())
                         ++correct;
                 }
                 
-                double acc = (double)correct/(double)numSeries;
-                
-                printDebug("wl " + wordLen + " acc: " + acc);
-                
+                double acc = (double)correct/(double)numSeries;     
                 if (acc > bestAccForWinSize) {
                     bestAccForWinSize = acc;
                     bestClassifierForWinSize = boss;
                 }
             }
-            
-            printDebug("bestAcc: " + bestAccForWinSize);
-            
+ 
             //if not within correct threshold of the CURRENT max, dont bother storing at all
             //will still likely be some by the end of this build that dont fall within threshold
             //because classifiers at the start may have passed a lower threshold than the later ones 
@@ -234,10 +225,5 @@ public class BOSSEnsemble implements Classifier {
             System.out.println(e);
             e.printStackTrace();
         }
-    }
-    
-    public static void printDebug(String msg) {
-        if (debug)
-            System.out.println(msg);
     }
 }
