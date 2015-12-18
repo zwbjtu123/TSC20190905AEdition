@@ -1,17 +1,12 @@
 package tsc_algorithms;
 
-import static JamesStuff.BasicExperiments.UCRvsmdata;
-import fileIO.OutFile;
 import utilities.ClassifierTools;
 import weka.classifiers.Classifier;
-import weka.classifiers.lazy.kNN;
 import weka.core.Capabilities;
-import weka.core.FastVector;
 import weka.core.Instance;
 import weka.core.Instances;
 import weka.core.SparseInstance;
 import weka.filters.timeseries.BagOfPatternsFilter;
-import weka.filters.timeseries.SAX;
 
 /**
  * Classifier using SAX and Vector Space Model.

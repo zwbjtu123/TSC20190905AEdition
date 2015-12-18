@@ -5,7 +5,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.TreeSet;
-import javax.swing.InputVerifier;
 import utilities.ClassifierTools;
 import weka.core.Attribute;
 import weka.core.FastVector;

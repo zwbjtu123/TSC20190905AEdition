@@ -1,6 +1,5 @@
 package tsc_algorithms;
 
-import fileIO.OutFile;
 import utilities.ClassifierTools;
 import weka.classifiers.Classifier;
 import weka.classifiers.lazy.kNN;
@@ -9,7 +8,6 @@ import weka.core.FastVector;
 import weka.core.Instance;
 import weka.core.Instances;
 import weka.core.SparseInstance;
-import weka.filters.NormalizeCase;
 import weka.filters.timeseries.BagOfPatternsFilter;
 import weka.filters.timeseries.SAX;
 
