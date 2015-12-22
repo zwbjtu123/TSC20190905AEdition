@@ -59,8 +59,8 @@ public class CollateResults {
  * NaiveBayes/ArrowHead.csv    
  * */
     public static void generateAllScripts(String path, String classifier){
-       boolean oldCls=false;
-        int mem=12000;
+       boolean oldCls=true;
+        int mem=4000;
         int maxMem=mem+1000;
         int maxNum=100;
         String queue,java; 
@@ -639,10 +639,10 @@ public class CollateResults {
     }    
     public static void main(String[] args){
       DataSets.resultsPath="C:\\Users\\ajb\\Dropbox\\Big TSC Bake Off\\New Results\\";
- //   generateAllScripts("C:\\Users\\ajb\\Dropbox\\Big TSC Bake Off\\New Results\\Scripts","LPS");
+//    generateAllScripts("C:\\Users\\ajb\\Dropbox\\Big TSC Bake Off\\New Results\\Scripts","RotF");
 
         collateFoldZero();
- //       System.exit(0);
+//       System.exit(0);
 //        findNumberPerSplit();
         String root="C:\\Users\\ajb\\Dropbox\\Big TSC Bake Off\\New Results";
 //        generateScripts(root,root);        

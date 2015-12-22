@@ -5,6 +5,7 @@ package bakeOffExperiments;
 
 import tsc_algorithms.*;
 import development.DataSets;
+import development.Jay.DD_DTW_EfficientWithoutKNN;
 import fileIO.InFile;
 import fileIO.OutFile;
 import java.io.File;
@@ -26,6 +27,7 @@ import weka.classifiers.functions.SMO;
 import weka.classifiers.functions.supportVector.PolyKernel;
 import weka.classifiers.lazy.DTW_1NN;
 import weka.classifiers.lazy.kNN;
+import weka.classifiers.meta.OptimisedRotationForest;
 import weka.classifiers.meta.RotationForest;
 import weka.classifiers.trees.J48;
 import weka.classifiers.trees.RandomForest;
@@ -92,7 +94,7 @@ public class Experiments extends Thread{
     static String[] dictionary={"BoP","SAXVSM","BOSS"};
     static String[] interval={"TSF","TSBF","LPS"};
     static String[] ensemble={"ACF","PS","EE","COTE"};
-    static String[] complexity={"CID_ED","CID_DTW"};
+    static String[] complexity={"CID_DTW"};
     static String[][] classifiers={standard,elastic,shapelet,dictionary,interval,ensemble,complexity};
     static final String[] directoryNames={"standard","elastic","shapelet","dictionary","interval","ensemble","complexity"};
       //</editor-fold> 
@@ -146,17 +148,15 @@ public class Experiments extends Thread{
                 break;
             case "RandF":
                 c= new RandomForest();
-                ((RandomForest)c).setNumTrees(500);
+//                ((RandomForest)c).setNumTrees(500);
                 break;
             case "RotF":
-                c= new RotationForest();
-                ((RotationForest)c).setNumIterations(50);
+                  c= new OptimisedRotationForest();
+//              c= new RotationForest();
+  //              ((RotationForest)c).setNumIterations(50);
                 break;
             case "Logistic":
                 c= new Logistic();
-                break;
-            case "CID_ED":
-                c=new NN_CID();
                 break;
             case "CID_DTW":
                 c=new NN_CID();
@@ -183,7 +183,7 @@ public class Experiments extends Thread{
                 ((DTW_1NN)c).optimiseWindow(true);
                 break;
             case "DD_DTW":
-                c=new DD_DTW();
+                c=new DD_DTW_EfficientWithoutKNN();
                 break;
             case "DTD_C":
                 c=new DTD_C();
@@ -765,36 +765,6 @@ public class Experiments extends Thread{
 
 public static void main(String[] args) throws Exception{
         
-/*     String cls=args[0];
-       Classifier c=setClassifier(cls);
-        String prob=DataSets.fileNames[Integer.parseInt(args[1])-1];
-        Instances train=ClassifierTools.loadData(DataSets.problemPath+prob+"/"+prob+"_TRAIN");
-        Instances test=ClassifierTools.loadData(DataSets.problemPath+prob+"/"+prob+"_TEST");
-        File f=new File(DataSets.resultsPath+cls);
-        if(!f.exists())
-            f.mkdir();
-        String predictions=DataSets.resultsPath+cls+"/Predictions";
-        f=new File(predictions);
-        if(!f.exists())
-            f.mkdir();
-        predictions=predictions+"/"+prob;
-        f=new File(predictions);
-        if(!f.exists())
-            f.mkdir();
-        double acc =singleSampleExperiment(train,test,c,0,predictions);
-        System.out.println(cls+" ACC FOR "+prob+" = "+acc);
-        System.exit(0);
- //      allProblemsforSingleFold()
-       DataSets.resultsPath=DataSets.clusterPath+"Results/";
-       DataSets.problemPath=DataSets.clusterPath+"TSC Problems/";
-       int fold=Integer.parseInt(args[2]);
-       int paras=Integer.parseInt(args[3]);
-        reconstruct(args[0],args[1],fold,paras);
-
-        System.exit(0);
-*/
-//       reconstruct("C:/Users/ajb/Dropbox/Big TSC Bake Off/New Results/interval/TSBF/Predictions/FordB","TSBF",4,1);
- //       System.exit(0);
         try{
             if(args.length>0){ //Cluster run
                 for (int i = 0; i < args.length; i++) {

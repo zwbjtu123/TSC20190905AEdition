@@ -1,5 +1,7 @@
 package tsc_algorithms;
 
+import development.DataSets;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import weka.core.Capabilities;
@@ -412,9 +414,42 @@ public class BOSS implements Classifier {
     }
     
     public static void main(String[] args){
-        basicTest();
+//        basicTest();      
+        tonyTest();
     }
-    
+     public static void tonyTest() {
+        System.out.println("BOSS Sanity Checks\n");
+        DecimalFormat df = new DecimalFormat("##.####");
+        int[] p={8,10,12,14,16}; 
+        try {
+            String pr="ItalyPowerDemand";
+            Instances train = ClassifierTools.loadData(DataSets.problemPath+pr+"/"+pr+"_TRAIN.arff");
+            Instances test = ClassifierTools.loadData(DataSets.problemPath+pr+"/"+pr+"_TEST.arff");
+            System.out.println("Problem ="+pr+" has "+(train.numAttributes()-1)+" atts");
+            double maxAcc=0;
+            int bestP=0;
+            int bestW=0;
+            for(int k:p){
+                for(int w=10;w<train.numAttributes()-1;w+=1){
+                    BOSS b=new BOSS(k,4,w,false);
+                    double a=ClassifierTools.stratifiedCrossValidation(train, b, 10, w);
+                    if(a>maxAcc){
+                        maxAcc=a;
+                        bestP=k;
+                        bestW=w;
+                        System.out.println("Current best train p="+k+" w ="+w+" acc = "+a);
+                    }
+                }
+            }
+            BOSS b=new BOSS(bestP,4,bestW,false);
+            System.out.println("BEST p="+bestP+" w = "+bestW+" acc ="+ClassifierTools.singleTrainTestSplitAccuracy(b, train, test));
+                
+        }
+        catch (Exception e) {
+            System.out.println(e);
+            e.printStackTrace();
+        }
+     }
      public static void basicTest() {
         System.out.println("BOSSBasicTest\n\n");
         try {

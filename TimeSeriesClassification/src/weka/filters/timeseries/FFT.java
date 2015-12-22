@@ -1007,6 +1007,20 @@ public class FFT extends SimpleBatchFilter {
         
         public static void main(String[] args){
 //            basicTest();
+            FFT fft=new FFT();
+            int size=8;
+            double[] testSeries=new double[size];
+            for(int i=0;i<size;i++){
+                testSeries[i]=Math.random();
+            }
+            Complex[] dft=fft.dft(testSeries);
+            Complex[] dft2=new Complex[size];
+            for(int i=0;i<size;i++)
+                dft2[i]=new Complex(testSeries[i],0);
+            Complex[] dft3=fft.dft(dft2);
+            for(int i=0;i<size;i++)
+                System.out.println(dft[i]+"   :::   "+dft3[i]);
+            System.exit(0);
 
            matlabComparison();		
 	}
@@ -1023,8 +1037,6 @@ public class FFT extends SimpleBatchFilter {
 // Case 2:           1,2,...16
 // Case 3:           -8,-7, -6,...,0,1,...7
 //Case 4:           0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1              
-            FFT fft=new FFT();
- 
 //           Instances test1=ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\TSC Problems\\TestData\\FFT_test1");
 /*            Instances test2=ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\TSC Problems\\TestData\\FFT_test2");
             Instances t2;
