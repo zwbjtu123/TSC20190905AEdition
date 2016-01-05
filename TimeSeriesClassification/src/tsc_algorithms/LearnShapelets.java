@@ -21,7 +21,7 @@ import weka.core.Instances;
 
 public class LearnShapelets extends AbstractClassifier implements ParameterSplittable{
 
-    int seed;
+    long seed;
     
     // length of a time-series 
     public int seriesLength;
@@ -76,7 +76,7 @@ public class LearnShapelets extends AbstractClassifier implements ParameterSplit
     double Psi_test[][];
     double sigY_test[];
 
-    Random rand=new Random();
+    Random rand = new Random();
 
     List<Integer> instanceIdxs;
     List<Integer> rIdxs;
@@ -118,7 +118,7 @@ public class LearnShapelets extends AbstractClassifier implements ParameterSplit
     public LearnShapelets() {
     }
     
-    public void setSeed(int seed)
+    public void setSeed(long seed)
     {
         this.seed = seed;
         rand = new Random(seed);
@@ -189,7 +189,7 @@ public class LearnShapelets extends AbstractClassifier implements ParameterSplit
         // initialize the weights
         W = new double[numClasses][shapeletLengthScale][numLatentPatterns];
         biasW = new double[numClasses];
-
+        
         for (int c = 0; c < numClasses; c++) {
             for (int r = 0; r < shapeletLengthScale; r++) {
                 for (int k = 0; k < numLatentPatterns; k++) {
@@ -221,6 +221,7 @@ public class LearnShapelets extends AbstractClassifier implements ParameterSplit
 
     // create one-cs-all targets
     public void createOneVsAllTargets() {
+        
         numClasses = nominalLabels.size();
 
         classValuePredictions_train = new double[train.length][numClasses];
@@ -233,7 +234,6 @@ public class LearnShapelets extends AbstractClassifier implements ParameterSplit
             }
 
             // then set the real label index to 1
-            //the label is at the end of the series. not the beginning.
             int indexLabel = nominalLabels.indexOf(trainSet.get(i).classValue());
             classValuePredictions_train[i][indexLabel] = 1.0;
         }
@@ -263,15 +263,16 @@ public class LearnShapelets extends AbstractClassifier implements ParameterSplit
             }
 
             Instances ins = InstanceTools.toWekaInstances(segmentsR); 
+            
             SimpleKMeans skm = new SimpleKMeans();
             skm.setNumClusters(numLatentPatterns);
             skm.setMaxIterations(100);
-            skm.setSeed( (int) (rand.nextDouble() * 1000) ); 
-            skm.setInitializeUsingKMeansPlusPlusMethod(true); 
+            skm.setSeed((int) (rand.nextDouble() * 1000)); 
+            //skm.setInitializeUsingKMeansPlusPlusMethod(true); 
             skm.buildClusterer( ins );
             Instances centroidsWeka = skm.getClusterCentroids();
             Shapelets[r] =  InstanceTools.fromWekaInstancesArray(centroidsWeka);
-            
+              
             if (Shapelets[r] == null) {
                 System.out.println("P not set");
             }
@@ -298,31 +299,34 @@ public class LearnShapelets extends AbstractClassifier implements ParameterSplit
         for (int r = 0; r < shapeletLengthScale; r++) {
             //in most cases Shapelets[r].length == numLatentPatterns, this is not always true.
             for (int k = 0; k < Shapelets[r].length; k++) { 
-                Psi[r][k] = 0;
-                M[r][k] = 0;
-                
-                for (int j = 0; j < numberOfSegments[r]; j++) {
+                for(int j = 0; j < numberOfSegments[r]; j++)
+                {
                     // precompute D
                     D[r][k][j] = 0;
-                    double err;
-                    
-                    //find a shapelet, what is the difference between it and the centroid shapelet.
-                    for (int l = 0; l < lengthsOfShapelet[r]; l++) {
-                        err = series[j + l] - Shapelets[r][k][l];
-                        D[r][k][j] += err * err;
+                    double err = 0;
+
+                    for(int l = 0; l < lengthsOfShapelet[r]; l++)
+                    {
+                            err = series[j + l] - Shapelets[r][k][l];
+                            D[r][k][j] += err*err; 
                     }
 
-                    D[r][k][j] /= (double) lengthsOfShapelet[r];
+                    D[r][k][j] /= (double)lengthsOfShapelet[r]; 
 
                     // precompute E
                     E[r][k][j] = Math.exp(alpha * D[r][k][j]);
-                
-                    //precompute Psi
-                    Psi[r][k] += E[r][k][j];
-                
-                    //precompute M
-                    M[r][k] += D[r][k][j] * E[r][k][j];
                 }
+
+                // precompute Psi 
+                Psi[r][k] = 0; 
+                for(int j = 0; j < numberOfSegments[r]; j++) 
+                        Psi[r][k] +=  Math.exp( alpha * D[r][k][j] );
+
+                // precompute M 
+                M[r][k] = 0;
+
+                for(int j = 0; j < numberOfSegments[r]; j++)
+                        M[r][k] += D[r][k][j]* E[r][k][j];
 
                 M[r][k] /= Psi[r][k];
             }
@@ -421,6 +425,7 @@ public class LearnShapelets extends AbstractClassifier implements ParameterSplit
                             Shapelets[r][k][l] -= eta * (dLdY * W[c][r][k] * dMdS);
 
                         }
+                        
                     }
                 }
 
@@ -544,9 +549,7 @@ public class LearnShapelets extends AbstractClassifier implements ParameterSplit
         
         //convert the training set into a 2D Matrix.
         train = fromWekaInstancesArray(trainSet);
-//Not necessary, already normalised
-//        normalize2D(train, true);
-        
+
         // initialize the data structures
         initialize();
 
@@ -720,65 +723,19 @@ public class LearnShapelets extends AbstractClassifier implements ParameterSplit
     public static void main(String[] args) throws Exception{
         
         //resample 1 of the italypowerdemand dataset
-        String dataset = "ItalyPowerDemand";
+        String dataset = "Beef";
         String fileExtension = File.separator + dataset + File.separator + dataset;
-        String samplePath = "../../resampled data sets" + fileExtension + 13;
-        String samplePath1 = "../../resampled data sets" + fileExtension + 14;
-        
+        String samplePath = "C:\\LocalData\\time-series-datasets\\TSC Problems (1)\\" + fileExtension;
+
         //load the train and test.
         Instances testSet = utilities.ClassifierTools.loadData(samplePath + "_TEST");
-        Instances trainSet = utilities.ClassifierTools.loadData(samplePath + "_TRAIN");
-        
-        Instances testSet1 = utilities.ClassifierTools.loadData(samplePath1 + "_TEST");
-        Instances trainSet1 = utilities.ClassifierTools.loadData(samplePath1 + "_TRAIN");
-        
-        /*int numTrainInstances = trainSet.numInstances();
-        int numTestInstances = testSet.numInstances();
-        
-        Instances combined0 = new Instances(trainSet);
-        combined0.addAll(testSet);
-        
-        Instances combined1 = new Instances(trainSet);
-        combined1.addAll(testSet);
-        
-        //predictor variables T
-        double[][] T = FromWekaInstances(combined0);
-        normalize2D(T, true);
-        
-        double[][] Y = FromWekaInstances(combined1);
-        normalize2D(Y, true);
-        
-        //verificatiom
-        
-        //both have the same seed.
-        LearnShapeletsGeneralized lsg = new LearnShapeletsGeneralized();
-        lsg.Q = trainSet.numAttributes()-1;
-        lsg.lambdaW = 0.01;
-        lsg.L_min = (int)(0.1 * (trainSet.numAttributes() - 1));
-        lsg.R = 2;
-        lsg.ITrain = numTrainInstances;
-        lsg.ITest = numTestInstances;
-        
-        lsg.T = T;
-        lsg.Y = Y;
-        lsg.maxIter = 1000;
-        lsg.eta = 0.1;
-        lsg.alpha = -30;
-        lsg.nominalLabels = readNominalTargets(trainSet);
-        double error = lsg.Learn();
-        System.out.println("LSG: " + error);*/
-        
+        Instances trainSet = utilities.ClassifierTools.loadData(samplePath + "_TRAIN");        
 
         LearnShapelets ls = new LearnShapelets();
-        ls.setSeed(13);
+        ls.setSeed(0);
         ls.buildClassifier(trainSet);
         double accuracy = utilities.ClassifierTools.accuracy(testSet, ls);
-        System.out.println("LS: " + accuracy);
+        System.out.println("LS: " + (1 - accuracy));
         
-        
-        ls.setSeed(14);
-        ls.buildClassifier(trainSet1);
-        accuracy = utilities.ClassifierTools.accuracy(testSet1, ls);
-        System.out.println("LS: " + accuracy);
     }
 }

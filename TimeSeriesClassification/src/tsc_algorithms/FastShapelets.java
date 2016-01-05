@@ -574,7 +574,7 @@ public class FastShapelets implements Classifier {
 
         /// Memory Allocation
         while (Node_Obj_List.size() <= right_node_id) {
-            Node_Obj_List.add(new ArrayList<>());
+            Node_Obj_List.add(new ArrayList<Integer>());
             Classify_list.add(-2);
             Final_Sh.add(new Shapelet());
 
