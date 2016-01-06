@@ -16,6 +16,7 @@ import weka.core.shapelet.QualityMeasures;
 import weka.filters.timeseries.shapelet_transforms.BalancedClassShapeletTransform;
 import weka.filters.timeseries.shapelet_transforms.FullShapeletTransform;
 import weka.filters.timeseries.shapelet_transforms.classValue.BinarisedClassValue;
+import weka.filters.timeseries.shapelet_transforms.searchFuntions.ShapeletSearch;
 import weka.filters.timeseries.shapelet_transforms.subsequenceDist.ImprovedOnlineSubSeqDistance;
 
 /**
@@ -80,9 +81,9 @@ public class ST_Ensemble  extends AbstractClassifier implements SaveableEnsemble
         transform = new BalancedClassShapeletTransform();
         transform.setClassValue(new BinarisedClassValue());
         transform.setSubSeqDistance(new ImprovedOnlineSubSeqDistance());
+        transform.setSearchFunction(new ShapeletSearch(3, data.numAttributes() - 1, 1, 1));
         transform.useCandidatePruning();
         transform.setNumberOfShapelets(data.numInstances() * 10);
-        transform.setShapeletMinAndMax(3, data.numAttributes() - 1);
         transform.setQualityMeasure(QualityMeasures.ShapeletQualityChoice.INFORMATION_GAIN);
         
         return transform.process(data);
