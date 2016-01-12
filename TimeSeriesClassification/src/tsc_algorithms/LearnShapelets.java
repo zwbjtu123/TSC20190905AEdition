@@ -50,7 +50,7 @@ public class LearnShapelets extends AbstractClassifier implements ParameterSplit
     public Instances trainSet;
     public Instance testSet;
     // time series data and the label 
-    public double[][] train, classValuePredictions_train;
+    public double[][] train, classValues_train;
     public double[] test;
 
     // the number of iterations
@@ -64,10 +64,10 @@ public class LearnShapelets extends AbstractClassifier implements ParameterSplit
     public List<Double> nominalLabels;
 
     // structures for storing the precomputed terms
-    double D_train[][][][]; //mean square error for each shapelet compared with each shapelet centroid.
-    double E_train[][][][];
-    double M_train[][][];
-    double Psi_train[][][];
+    double D_train[][][][]; //mean square error for each shapelet compared with each shapelet centroid. Formula 20
+    double E_train[][][][]; // e^alpha*D_r,i,k,j part of Formula 23.
+    double M_train[][][];   //Generalised Soft Minimum. Formula 19.
+    double Psi_train[][][]; //Sum 1->j(e^alpha*D_r,i,k,j'). Denominator of Formula 23.
     double sigY_train[][];
     
     double D_test[][][];
@@ -204,8 +204,6 @@ public class LearnShapelets extends AbstractClassifier implements ParameterSplit
         for (int i = 0; i < train.length; i++) {
             preCompute(D_train[i], E_train[i], Psi_train[i], M_train[i], sigY_train[i], train[i]);
         }
-        
-        
 
         // initialize W by learning the model on the centroid data
         learnFOnlyW();
@@ -224,18 +222,18 @@ public class LearnShapelets extends AbstractClassifier implements ParameterSplit
         
         numClasses = nominalLabels.size();
 
-        classValuePredictions_train = new double[train.length][numClasses];
+        classValues_train = new double[train.length][numClasses];
 
         // initialize the extended representation  
         for (int i = 0; i < train.length; i++) {
             // firts set everything to zero
             for (int c = 0; c < numClasses; c++) {
-                classValuePredictions_train[i][c] =  0;
+                classValues_train[i][c] =  0;
             }
 
             // then set the real label index to 1
             int indexLabel = nominalLabels.indexOf(trainSet.get(i).classValue());
-            classValuePredictions_train[i][indexLabel] = 1.0;
+            classValues_train[i][indexLabel] = 1.0;
         }
     }
 
@@ -307,8 +305,8 @@ public class LearnShapelets extends AbstractClassifier implements ParameterSplit
 
                     for(int l = 0; l < lengthsOfShapelet[r]; l++)
                     {
-                            err = series[j + l] - Shapelets[r][k][l];
-                            D[r][k][j] += err*err; 
+                        err = series[j + l] - Shapelets[r][k][l];
+                        D[r][k][j] += err*err; 
                     }
 
                     D[r][k][j] /= (double)lengthsOfShapelet[r]; 
@@ -373,6 +371,7 @@ public class LearnShapelets extends AbstractClassifier implements ParameterSplit
         double Y_hat_ic = predict_i(M, c);
         double sig_y_ic = calculateSigmoid(Y_hat_ic);
 
+        //L(Y,Y_hat) = -Y ln(sig_y_hat) - (1-Y)ln(1-sig_y_hat) - Formula 3 in the paper.
         return -classValues[c] * Math.log(sig_y_ic) - (1 - classValues[c]) * Math.log(1 - sig_y_ic);
     }
 
@@ -384,17 +383,14 @@ public class LearnShapelets extends AbstractClassifier implements ParameterSplit
             preCompute(D_train[i], E_train[i], Psi_train[i], M_train[i], sigY_train[i], train[i]);
 
             for (int c = 0; c < numClasses; c++) {
-                accuracyLoss += accuracyLoss(M_train[i], classValuePredictions_train[i], c);
+                accuracyLoss += accuracyLoss(M_train[i], classValues_train[i], c);
             }
         }
 
         return accuracyLoss;
     }
 
-    public void learnF() {
-        // parallel implementation of the learning, one thread per instance
-        // up to as much threads as JVM allows
-        
+    public void learnF() {       
         //instanceIdxs is a random reordering of the trin set.
         for (Integer i : instanceIdxs) {
             double regWConst = ((double) 2.0 * lambdaW) / ((double) train.length);
@@ -405,7 +401,7 @@ public class LearnShapelets extends AbstractClassifier implements ParameterSplit
 
             for (int c = 0; c < numClasses; c++) {
                 //difference beteen our classes predicted and our actual values.
-                dLdY = -(classValuePredictions_train[i][c] - sigY_train[i][c]);
+                dLdY = -(classValues_train[i][c] - sigY_train[i][c]);
 
                 for (int r = 0; r < shapeletLengthScale; r++) {
                     //in most cases Shapelets[r].length == numLatentPatterns, this is not always true.
@@ -444,11 +440,11 @@ public class LearnShapelets extends AbstractClassifier implements ParameterSplit
 
                     for (int r = 0; r < shapeletLengthScale; r++) {
                         for (int k = 0; k < numLatentPatterns; k++) {
-                            W[c][r][k] -= eta * (-(classValuePredictions_train[i][c] - sigY_train[i][c]) * M_train[i][r][k] + regWConst * W[c][r][k]);
+                            W[c][r][k] -= eta * (-(classValues_train[i][c] - sigY_train[i][c]) * M_train[i][r][k] + regWConst * W[c][r][k]);
                         }
                     }
 
-                    biasW[c] -= eta * (-(classValuePredictions_train[i][c] - sigY_train[i][c]));
+                    biasW[c] -= eta * (-(classValues_train[i][c] - sigY_train[i][c]));
                 }
             }
         }
@@ -671,7 +667,7 @@ public class LearnShapelets extends AbstractClassifier implements ParameterSplit
         for (int i = 0; i < train.length; i++) {
             preCompute(D_train[i], E_train[i], Psi_train[i], M_train[i], sigY_train[i], train[i]);
             
-            System.out.print(classValuePredictions_train[i][c] + " ");
+            System.out.print(classValues_train[i][c] + " ");
 
             for (int k = 0; k < numLatentPatterns; k++) {
                 System.out.print(M_train[i][r][k] + " ");

@@ -58,8 +58,6 @@ public class BalancedClassShapeletTransform extends FullShapeletTransform
             //get the Shapelets list based on the classValue of our current time series.
             kShapelets = kShapeletsMap.get(data.get(dataSet).classValue());
 
-            double[] wholeCandidate = data.get(dataSet).toDoubleArray();
-            
             //we only want to pass in the worstKShapelet if we've found K shapelets. but we only care about this class values worst one.
             //this is due to the way we represent each classes shapelets in the map.
             worstShapelet = kShapelets.size() == proportion ? kShapelets.get(kShapelets.size()-1) : null;
