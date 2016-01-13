@@ -124,7 +124,6 @@ public class Experiments extends Thread{
             case "C45":
                 c=new J48();
                 break;
-//                SVML	SVMQ	Logistic	BayesNet	RandF	RotF	MLP
             case "NB":
                 c=new NaiveBayes();
                 break;
@@ -171,7 +170,7 @@ public class Experiments extends Thread{
             case "ShapeletTransform": case "ST": case "ST_Ensemble":
 //Assumes the transformed files will be loaded from the new data path
                 c=new ST_Ensemble();
-                ((ST_Ensemble)c).doSTransform(false);
+                ((ST_Ensemble)c).doSTransform(true);
                 break;
             case "DTW":
                 c=new DTW_1NN();

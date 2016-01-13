@@ -13,11 +13,16 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import tsc_algorithms.ST_Ensemble;
 import tsc_algorithms.SaveableEnsemble;
 import utilities.ClassifierTools;
 import utilities.InstanceTools;
 import weka.classifiers.Classifier;
+import weka.classifiers.meta.timeseriesensembles.WeightedEnsemble;
 import weka.core.Instances;
+import weka.core.shapelet.QualityMeasures;
+import weka.filters.timeseries.shapelet_transforms.BalancedClassShapeletTransform;
+import weka.filters.timeseries.shapelet_transforms.classValue.BinarisedClassValue;
 
 /**
  *
@@ -71,7 +76,8 @@ public class ShapeletExperiments {
         int fold=Integer.parseInt(args[1])-1;
 //        String problem=unfinished[Integer.parseInt(args[1])-1];
 //        System.out.println("Classifier ="+classifier+" problem ="+s);
-        Classifier c=Experiments.setClassifier(classifier);
+        Classifier c=new ST_Ensemble();
+        ((ST_Ensemble)c).doSTransform(false);
         File f=new File(DataSets.resultsPath+classifier);
         if(!f.exists())
             f.mkdir();
@@ -268,7 +274,8 @@ public class ShapeletExperiments {
         String s=DataSets.fileNames[Integer.parseInt(args[0])-1];        
 //        String problem=unfinished[Integer.parseInt(args[1])-1];
         System.out.println("Classifier ="+classifier+" problem ="+s);
-        Classifier c=Experiments.setClassifier(classifier);
+        Classifier c=new ST_Ensemble();
+        ((ST_Ensemble)c).doSTransform(false);
         File f=new File(DataSets.resultsPath+classifier);
         if(!f.exists())
             f.mkdir();
@@ -340,9 +347,10 @@ public class ShapeletExperiments {
     }
      
     public static void main(String[] args) throws Exception{
-        rename();
-        System.exit(0);
-generateScripts();
+//        rename();
+//        basicTest();
+//        System.exit(0);
+//        generateScripts();
 //        countFiles();
         try{
             if(args.length>0){ //Cluster run
@@ -359,4 +367,40 @@ generateScripts();
             System.exit(0);
         }
     }
+    public static void basicTest() throws Exception{
+//        Instances train=ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\Temp\\BeetleFly\\BeetleFly0_TRAIN");
+//        Instances test=ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\Temp\\BeetleFly\\BeetleFly0_TEST");
+//        WeightedEnsemble we=new WeightedEnsemble();
+//        we.setWeightType("prop");
+//        double acc=ClassifierTools.singleTrainTestSplitAccuracy(we, train, test);
+//        System.out.println(" FROM FILE ACC ="+acc);
+  
+        Instances train2=ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\Temp\\BeetleFly_TRAIN");
+        Instances test2=ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\Temp\\BeetleFly_TEST");
+//        BalancedClassShapeletTransform transform=new BalancedClassShapeletTransform();
+//        transform = new BalancedClassShapeletTransform();
+        BalancedClassShapeletTransform transform=new BalancedClassShapeletTransform();
+        transform.setClassValue(new BinarisedClassValue());
+        transform.useCandidatePruning();
+        transform.setNumberOfShapelets(train2.numInstances() * 10);
+        transform.setShapeletMinAndMax(3, train2.numAttributes() - 1);
+        transform.setQualityMeasure(QualityMeasures.ShapeletQualityChoice.INFORMATION_GAIN);
+        transform.turnOffLog();
+        Instances temp=transform.process(train2);
+        OutFile out1=new OutFile("C:\\Users\\ajb\\Dropbox\\Temp\\TrainNonNormed1.arff");
+        out1.writeLine(temp.toString());
+        temp=transform.process(test2);
+        OutFile out2=new OutFile("C:\\Users\\ajb\\Dropbox\\Temp\\TrainNonNormed1.arff");
+        out2.writeLine(temp.toString());
+
+        
+        ST_Ensemble st=new ST_Ensemble();
+        st.doSTransform(true);
+
+        double acc2=ClassifierTools.singleTrainTestSplitAccuracy(st, train2, test2);
+        System.out.println(" WITH TRANSFORM ACC ="+acc2);
+        
+    }
+    
+    
 }

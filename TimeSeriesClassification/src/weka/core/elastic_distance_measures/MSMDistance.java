@@ -105,58 +105,54 @@ public class MSMDistance extends EuclideanDistance{
      * @param cutOffValue used for early abandon
      * @return distance between instances
      */
-	public double MSM_Distance(double[] X, double[] Y){
+    public double MSM_Distance(double[] a, double[] b){
 
-		int m, n, i, j;
+        int m, n, i, j;
+        m = a.length;
+        n = b.length;
 
-		m = X.length;
-		n = Y.length;
+        double[][] cost = new double[m][n];
 
-		double Cost[][] = new double[m][n];
+        // Initialization
+        cost[0][0] = Math.abs(a[0] - b[0]);
 
-		// Initialization
-		Cost[0][0] = Math.abs(X[0] - Y[0]);
+        for (i = 1; i< m; i++) {
+            cost[i][0] = cost[i-1][0] + editCost(a[i], a[i-1], b[0]);
+        }
 
-		for (i = 1; i< m; i++) {
-			Cost[i][0] = Cost[i-1][0] + C(X[i], X[i-1], Y[0]);
-		}
+        for (j = 1; j < n; j++) {
+            cost[0][j] = cost[0][j-1] + editCost(b[j], a[0], b[j-1]);
+        }
 
-		for (j = 1; j < n; j++) {
-			Cost[0][j] = Cost[0][j-1] + C(Y[j], X[0], Y[j-1]);
-		}
+        // Main Loop
+        for( i = 1; i < m; i++){
+            for ( j = 1; j < n; j++){
+                double d1,d2, d3;
+                d1 = cost[i-1][j-1] + Math.abs(a[i] - b[j] );
+                d2 = cost[i-1][j] + editCost(a[i], a[i-1], b[j]);
+                d3 = cost[i][j-1] + editCost(b[j], a[i], b[j-1]);
+                cost[i][j] = Math.min( d1, Math.min(d2,d3) );
+            }
+        }
 
-		// Main Loop
-		for( i = 1; i < m; i++){
-			for ( j = 1; j < n; j++){
-				double d1,d2, d3;
-				d1 = Cost[i-1][j-1] + Math.abs( X[i] - Y[j] );
-				d2 = Cost[i-1][j] + C( X[i], X[i-1], Y[j]);
-				d3 = Cost[i][j-1] + C( Y[j], X[i], Y[j-1]);
-				Cost[i][j] = Math.min( d1, Math.min(d2,d3) );
-			}
-		}
-
-		// Output
-		return Cost[m-1][n-1];
-	}
-
-
-	public double C( double new_point, double x, double y){
+        // Output
+        return cost[m-1][n-1];
+    }
 
 
+    public double editCost( double new_point, double x, double y){
+        double dist = 0;
 
-		double dist = 0;
+        if ( ( (x <= new_point) && (new_point <= y) ) ||
+             ( (y <= new_point) && (new_point <= x) ) ) {
+            dist = c;
+        }
+        else{
+                dist = c + Math.min( Math.abs(new_point - x) , Math.abs(new_point - y) );
+        }
 
-		if ( ( (x <= new_point) && (new_point <= y) ) ||
-			 ( (y <= new_point) && (new_point <= x) ) ) {
-			dist = c;
-		}
-		else{
-			dist = c + Math.min( Math.abs(new_point - x) , Math.abs(new_point - y) );
-		}
-
-		return dist;
-	}
+        return dist;
+    }
 
 
 

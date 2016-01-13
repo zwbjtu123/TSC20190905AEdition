@@ -85,7 +85,7 @@ public class ST_Ensemble  extends AbstractClassifier implements SaveableEnsemble
         transform.useCandidatePruning();
         transform.setNumberOfShapelets(data.numInstances() * 10);
         transform.setQualityMeasure(QualityMeasures.ShapeletQualityChoice.INFORMATION_GAIN);
-        
+        transform.turnOffLog();
         return transform.process(data);
     }
     

@@ -163,7 +163,7 @@ public class DD_DTW extends kNN{
     // defaults to Euclidean distance
     public DD_DTW(){
         super();
-        this.distanceFunction = new GoreckiDerivativesEuclideanDistance();
+        this.distanceFunction = new GoreckiDerivativesDTW();
         this.paramsSet = false;
         
     }

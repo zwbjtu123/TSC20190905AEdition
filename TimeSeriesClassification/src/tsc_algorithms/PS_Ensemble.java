@@ -1,5 +1,6 @@
 package tsc_algorithms;
 
+import utilities.ClassifierTools;
 import utilities.InstanceTools;
 import weka.classifiers.AbstractClassifier;
 import weka.classifiers.Classifier;
@@ -120,4 +121,33 @@ public class PS_Ensemble extends AbstractClassifier implements SaveableEnsemble{
         format.remove(0);
         return baseClassifier.classifyInstance(trans);
     }
+    
+//
+ public static void brokenFiles() throws Exception{
+//Empty file: ElectricDevices/internalCv_0.csv
+     Instances train=ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\TSC Problems\\ElectricDevices\\ElectricDevices_TRAIN");
+     Instances test=ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\TSC Problems\\ElectricDevices\\ElectricDevices_TEST");
+     PS_Ensemble ps=new PS_Ensemble();
+     ps.saveResults(null, null);
+     ps.buildClassifier(train);
+     System.out.println("Build finished");
+
+     
+     //Empty file: Lightning7/internalCv_66.csv
+     train=ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\TSC Problems\\Lightning7\\Lightning7_TRAIN");
+     test=ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\TSC Problems\\Lightning7\\Lightning7_TEST");
+     Instances[] data=InstanceTools.resampleTrainAndTestInstances(train, test, 66);
+//Empty file: ProximalPhalanxOutlineAgeGroup/internalCv_34.csv
+//Empty file: ProximalPhalanxOutlineAgeGroup/internalCv_42.csv
+     train=ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\TSC Problems\\ProximalPhalanxOutlineAgeGroup\\ProximalPhalanxOutlineAgeGroup_TRAIN");
+     data=InstanceTools.resampleTrainAndTestInstances(train, test, 34);
+     test=ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\TSC Problems\\ProximalPhalanxOutlineAgeGroup\\ProximalPhalanxOutlineAgeGroup_TEST");
+    data=InstanceTools.resampleTrainAndTestInstances(train, test, 42);
+     
+ }
+    public static void main(String[] args) throws Exception {
+        brokenFiles();
+    }
+ 
+    
 }

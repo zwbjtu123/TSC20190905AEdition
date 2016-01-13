@@ -386,7 +386,8 @@ public class ClassifierTools {
             int correct=0;
             for(Instance ins:test){
                 int pred=(int)c.classifyInstance(ins);
-                if(pred==ins.classValue())
+                System.out.println((int)ins.classValue()+","+pred);
+                if(pred==(int)ins.classValue())
                     correct++;
             }
             acc=correct/(double)test.numInstances();
