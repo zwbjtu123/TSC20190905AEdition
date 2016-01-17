@@ -107,12 +107,12 @@ public class BOSSEnsemble implements Classifier {
         int minWindow = 10;
         int maxWindow = seriesLength; 
 
-//        int winInc = 1; //check every window size in range
+        int winInc = 1; //check every window size in range
         
 //        //whats the max number of window sizes that should be searched through
-        double maxWindowSearches = Math.min(200, Math.sqrt(seriesLength)); 
-        int winInc = (int)((maxWindow - minWindow) / maxWindowSearches); 
-        if (winInc < 1) winInc = 1;
+//        double maxWindowSearches = Math.min(200, Math.sqrt(seriesLength)); 
+//        int winInc = (int)((maxWindow - minWindow) / maxWindowSearches); 
+//        if (winInc < 1) winInc = 1;
         
         
         //keep track of current max window size accuracy, constantly check for correctthreshold to discard to save space
