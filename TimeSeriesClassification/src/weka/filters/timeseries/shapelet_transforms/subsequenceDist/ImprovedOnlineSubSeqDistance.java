@@ -46,7 +46,7 @@ public class ImprovedOnlineSubSeqDistance extends OnlineSubSeqDistance{
         boolean[] traverse = {true,true};
         
         int bestPos=startPos;
-        
+                
         while(traverse[0] || traverse[1])
         {
             //i will be 0 and 1.
@@ -59,18 +59,18 @@ public class ImprovedOnlineSubSeqDistance extends OnlineSubSeqDistance{
                 //if we're going left check we're greater than 0 if we're going right check we've got room to move.
                 traverse[j] = j==0 ? pos[j] >= 0 : pos[j] < timeSeries.length - candidate.length;
                 
+
                 //if we can't traverse in that direction. skip it.
                 if(!traverse[j] )
                     continue;
                 
+                
                 //either take off nothing, or take off 1. This gives us our offset.
                 double start = timeSeries[pos[j]-j];
                 double end   = timeSeries[pos[j]-j + candidate.length];
-
+                                
                 sum[j] = sum[j] + (modifier*end) - (modifier*start);
                 sumsq[j] = sumsq[j] + (modifier *(end * end)) - (modifier*(start * start));
-                
-                //<maths is correct upto this point>
 
                 currentDist = calculateBestDistance(pos[j], timeSeries, bestDist, sum[j], sumsq[j]);  
                 

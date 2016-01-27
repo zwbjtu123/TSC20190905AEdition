@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Random;
+import utilities.ClassifierTools;
 import weka.core.Instances;
 import weka.core.shapelet.*;
 import weka.filters.timeseries.shapelet_transforms.classValue.BinarisedClassValue;
@@ -169,5 +170,36 @@ public class ShapeletTransformFactory
 
             return Integer.compare(shapelet1Length, shapelet2Length);  
         }
+    }
+    
+    public static int calculateNumberOfShapelets(Instances train, int minShapeletLength, int maxShapeletLength){      
+        return calculateNumberOfShapelets(train.numInstances(), train.numAttributes()-1, minShapeletLength, maxShapeletLength);
+    }
+    
+    //verified on Trace dataset from Ye2011 with 7,480,200 shapelets : page 158.
+    //we assume as fixed length.
+    public static int calculateNumberOfShapelets(int numInstances, int numAttributes, int minShapeletLength, int maxShapeletLength){
+        int numShapelets=0;
+        
+        //calculate number of shapelets in a single instance.
+        for (int length = minShapeletLength; length <= maxShapeletLength; length++) {
+            numShapelets += numAttributes - length + 1;
+        }
+        
+        numShapelets*=numInstances;
+        
+        return numShapelets;
+    }
+    
+    public static void main(String[] args)
+    {
+        Instances train = ClassifierTools.loadData("C:\\LocalData\\time-series-datasets\\TSC Problems (1)\\StarLightCurves\\StarLightCurves_TRAIN.arff");
+        
+        int shapeletCount = calculateNumberOfShapelets(train, 3, train.numAttributes()-1);
+        System.out.println(shapeletCount);
+        
+        
+        shapeletCount = calculateNumberOfShapelets(200, 275, 3, 275);
+        System.out.println(shapeletCount);
     }
 }

@@ -53,8 +53,7 @@ public class SubSeqDistance implements Serializable{
         double[] subseq;
         double temp;
 
-        // for all possible subsequences of two
-        for (int i = 0; i < timeSeries.length - candidate.length; i++)
+        for (int i = 0; i < timeSeries.length - candidate.length - 1; i++)
         {
             sum = 0;
             // get subsequence of two that is the same lengh as one

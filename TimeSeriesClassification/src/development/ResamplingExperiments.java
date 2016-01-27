@@ -73,8 +73,7 @@ public class ResamplingExperiments {
         /*int num = Integer.parseInt(args[0]) - 1;
         int index = num / 100;
         int fold = num % 100;*/
-
-        currentDataSet = DataSets.fileNames[Integer.parseInt(args[0])];
+        currentDataSet = args[0];
 
         
         System.out.println(currentDataSet);
@@ -85,8 +84,10 @@ public class ResamplingExperiments {
         //1-100. we want 0-99. Cluster thing.
         if (args.length >= 3) {
             fold = Integer.parseInt(args[2]) - 1;
-        }/*
+        }
         
+        createLearnShapelets(fold);
+        /*
         int currentSeries =0;
         if (args.length >= 4) {
             currentSeries = Integer.parseInt(args[3]) - 1;
@@ -131,7 +132,7 @@ public class ResamplingExperiments {
         else
             System.out.println("already transformed");*/
         
-        createFastShapeletsAccuracies();
+        //createFastShapeletsAccuracies();
         
         
         //createLearnShapeleteAccuracies(fold);
@@ -147,7 +148,6 @@ public class ResamplingExperiments {
         //createAndWriteAccuracies();
         //createAccuracyTable();
         //createAccuracies();
-        //collateData(resultsLocation, simpleName);
         //checkStatus();
         
     }
@@ -341,11 +341,11 @@ public class ResamplingExperiments {
         return list.toArray(new String[list.size()]);
     }
 
-    public static void collateData(String resultsLocation, String simpleName) {
+    public static void collateData() {
         try {
             String resultsPath;
 
-            String classifierDir = File.separator + simpleName;
+            String classifierDir = File.separator + classifierName;
 
             //create the file.
             File output = new File(resultsLocation + classifierDir + "results.csv");
@@ -358,7 +358,7 @@ public class ResamplingExperiments {
                 String fileExtension = File.separator + smallDataset + File.separator + smallDataset;
                 resultsPath = resultsLocation + classifierDir + fileExtension;
 
-                File f = new File(resultsPath + "_RF500.csv");
+                File f = new File(resultsPath + ".csv");
 
                 //if the file doesn't exist skip it.
                 if (!f.exists()) {
@@ -562,7 +562,7 @@ public class ResamplingExperiments {
             Scanner sc;
             
             PrintWriter pw;
-            File save = new File(directory + "_RF500.csv");
+            File save = new File(directory + ".csv");
             save.getParentFile().mkdirs();
             save.createNewFile();
             pw = new PrintWriter(save);
@@ -573,7 +573,7 @@ public class ResamplingExperiments {
                 String name = dataset.getName();
 
                 //get the accuracy file.
-                File csv = new File(dataset.getAbsolutePath() + File.separator + name + "_RF500.csv");
+                File csv = new File(dataset.getAbsolutePath() + File.separator + name + ".csv");
                 System.out.println(name + "------------------------------------------");
                 
                 sc = new Scanner(csv);
@@ -771,7 +771,6 @@ public class ResamplingExperiments {
             //System.out.println("Loaded from file");
         } catch (IOException | ClassNotFoundException ex) {
            // System.out.println(ex);
-
             transform = new BalancedClassShapeletTransform();
             transform.setSubSeqDistance(new ImprovedOnlineSubSeqDistance());
             transform.setClassValue(new BinarisedClassValue());
@@ -835,7 +834,7 @@ public class ResamplingExperiments {
         int small_sf = InstanceTools.findSmallestClassAmount(train);           
         double proportion = 1;
         int min=25;
-        if (small_sf>25){
+        if (small_sf>min){
             proportion = (double)min/(double)small_sf;
 
             if (proportion < 0.1)
@@ -890,5 +889,42 @@ public class ResamplingExperiments {
         }
         
         
+    }
+    
+    private static void createLearnShapelets(int fold) {
+        try {
+            String fileExtension = File.separator + currentDataSet + File.separator + currentDataSet;
+            String classifierDir = File.separator + classifierName + fileExtension;
+            String samplePath = resampleLocation + fileExtension + fold;
+            String resultsPath = resultsLocation + classifierDir + fold;
+            
+            Instances test, train;
+            test = utilities.ClassifierTools.loadData(samplePath + "_TEST");
+            train = utilities.ClassifierTools.loadData(samplePath + "_TRAIN");
+            
+            System.out.print(currentDataSet);
+            //reduce number of instances
+            //if we end up with less classes than we have instances.
+            train = subSample(train, fold);
+
+            LearnShapelets ls = new LearnShapelets();
+            ls.setSeed(fold);
+            ls.buildClassifier(train);
+            double accuracy = ClassifierTools.accuracy(test, ls);
+            
+            System.out.println(accuracy);
+            
+            //create our accuracy file.
+            File f = new File(resultsPath + ".csv");
+            f.getParentFile().mkdirs();
+            f.createNewFile();
+            PrintWriter pw = new PrintWriter(f);
+            pw.print(accuracy);
+            pw.close();
+            
+        } catch (Exception ex) {
+            Logger.getLogger(ResamplingExperiments.class.getName()).log(Level.SEVERE, null, ex);
+
+        }
     }
 }
