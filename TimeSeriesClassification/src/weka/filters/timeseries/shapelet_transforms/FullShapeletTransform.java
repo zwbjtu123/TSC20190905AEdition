@@ -301,9 +301,10 @@ public class FullShapeletTransform extends SimpleBatchFilter {
      * @param minShapeletLength minimum length of shapelets
      * @param maxShapeletLength maximum length of shapelets
      */
-    public void setShapeletMinAndMax(int minShapeletLength, int maxShapeletLength) {
-        this.minShapeletLength = minShapeletLength;
-        this.maxShapeletLength = maxShapeletLength;
+    public void setShapeletMinAndMax(int min, int max) {
+        minShapeletLength = min;
+        maxShapeletLength = max;
+        searchFunction.setMinAndMax(min, max);
     }
 
     /**

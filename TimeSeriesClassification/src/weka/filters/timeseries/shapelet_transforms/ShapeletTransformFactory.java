@@ -9,6 +9,8 @@
  */
 package weka.filters.timeseries.shapelet_transforms;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -176,6 +178,7 @@ public class ShapeletTransformFactory
         return calculateNumberOfShapelets(train.numInstances(), train.numAttributes()-1, minShapeletLength, maxShapeletLength);
     }
     
+    //Aaron
     //verified on Trace dataset from Ye2011 with 7,480,200 shapelets : page 158.
     //we assume as fixed length.
     public static int calculateNumberOfShapelets(int numInstances, int numAttributes, int minShapeletLength, int maxShapeletLength){
@@ -191,15 +194,47 @@ public class ShapeletTransformFactory
         return numShapelets;
     }
     
-    public static void main(String[] args)
-    {
-        Instances train = ClassifierTools.loadData("C:\\LocalData\\time-series-datasets\\TSC Problems (1)\\StarLightCurves\\StarLightCurves_TRAIN.arff");
+    
+    public static long calculateOperations(Instances train, int minShapeletLength, int maxShapeletLength){      
+        return calculateOperations(train.numInstances(), train.numAttributes()-1, minShapeletLength, maxShapeletLength);
+    }
+    
+    //verified correct by counting ops in transform
+    public static long calculateOperations(int numInstances, int numAttributes, int minShapeletLength, int maxShapeletLength){
+        long numOps=0;
         
-        int shapeletCount = calculateNumberOfShapelets(train, 3, train.numAttributes()-1);
-        System.out.println(shapeletCount);
+        //calculate number of shapelets in a single instance.
+        for (int length = minShapeletLength; length <= maxShapeletLength; length++) {
+            long shapeletsLength = numAttributes - length + 1;
+            
+            //each shapelet gets compared to all other subsequences, and they make l operations per comparison for every series..
+            long comparisonPerSeries = shapeletsLength * shapeletsLength * length * (numInstances-1);
+            
+            numOps +=comparisonPerSeries; 
+        }
+
+        //for every series.
+        numOps *= numInstances;
+        return numOps;
+    }
+    
+    
+    public static void main(String[] args) throws IOException
+    {       
+        String dirPath = "C:\\LocalData\\time-series-datasets\\TSC Problems (1)\\";
+        File dir  = new File(dirPath);
+        for(File dataset : dir.listFiles()){
+            if(!dataset.isDirectory()) continue;
+            
+            String f = dataset.getPath()+ File.separator + dataset.getName() + "_TRAIN.arff";
         
+            Instances train = ClassifierTools.loadData(f);
+            
+            int shapelets = calculateNumberOfShapelets(train, 3, train.numAttributes()-1);
+            long ops = calculateOperations(train, 3, train.numAttributes()-1);
+            
+            System.out.printf("%s,%d,%d\n",dataset.getName(),shapelets, ops);
+        }
         
-        shapeletCount = calculateNumberOfShapelets(200, 275, 3, 275);
-        System.out.println(shapeletCount);
     }
 }

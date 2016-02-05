@@ -22,10 +22,9 @@ public class SubSeqDistance implements Serializable{
     protected double[] candidate;
     protected int      seriesId;
     protected int      startPos;
-
+    
     public void init(Instances data)
     {
-        
     }
     
     public void setShapelet(Shapelet shp) {
@@ -53,7 +52,7 @@ public class SubSeqDistance implements Serializable{
         double[] subseq;
         double temp;
 
-        for (int i = 0; i < timeSeries.length - candidate.length - 1; i++)
+        for (int i = 0; i < timeSeries.length - candidate.length; i++)
         {
             sum = 0;
             // get subsequence of two that is the same lengh as one

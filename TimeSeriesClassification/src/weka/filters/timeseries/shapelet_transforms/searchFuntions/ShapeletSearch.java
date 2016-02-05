@@ -37,6 +37,11 @@ public class ShapeletSearch implements Serializable{
         positionIncrement = posInc;
     }
     
+    public void setMinAndMax(int min, int max){
+        minShapeletLength = min;
+        maxShapeletLength = max;
+    }
+    
     public ArrayList<Shapelet> SearchForShapeletsInSeries(Instance timeSeries, ProcessCandidate checkCandidate){
         ArrayList<Shapelet> seriesShapelets = new ArrayList<>();
 
