@@ -18,6 +18,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Scanner;
@@ -35,6 +36,7 @@ import weka.filters.timeseries.shapelet_transforms.classValue.BinarisedClassValu
 import weka.filters.timeseries.shapelet_transforms.classValue.NormalClassValue;
 import weka.filters.timeseries.shapelet_transforms.searchFuntions.ShapeletSearch;
 import weka.filters.timeseries.shapelet_transforms.searchFuntions.ShapeletSearch.ProcessCandidate;
+import weka.filters.timeseries.shapelet_transforms.subsequenceDist.ImprovedOnlineSubSeqDistance;
 import weka.filters.timeseries.shapelet_transforms.subsequenceDist.SubSeqDistance;
 
 /**
@@ -94,9 +96,15 @@ public class FullShapeletTransform extends SimpleBatchFilter {
     protected Instances inputData;
     
     protected ArrayList<Shapelet> kShapelets;
+    
+    protected long count;
 
     public void setSubSeqDistance(SubSeqDistance ssd) {
         subseqDistance = ssd;
+    }
+    
+    public long getCount() {
+        return count;
     }
 
     public void setClassValue(NormalClassValue cv) {
@@ -117,6 +125,10 @@ public class FullShapeletTransform extends SimpleBatchFilter {
 
     public void setUseRoundRobin(boolean b) {
         useRoundRobin = b;
+    }
+    
+    public SubSeqDistance getSubSequenceDistance(){
+        return subseqDistance;
     }
 
     protected int candidatePruningStartPercentage;
@@ -469,46 +481,50 @@ public class FullShapeletTransform extends SimpleBatchFilter {
 
         //setup classsValue
         classValue.init(data);
+        
         //setup subseqDistance
         subseqDistance.init(data);
-
+        
         //checks if the shapelets haven't been found yet, finds them if it needs too.
         if (!shapeletsTrained) {
             trainShapelets(data);
         }
+        
+        //we log the count from the subseqdistance before we reset it in the transform.
+        count = subseqDistance.getCount();
 
         //build the transformed dataset with the shapelets we've found either on this data, or the previous training data
         return buildTansformedDataset(data, shapelets);
     }
 
     protected void trainShapelets(Instances data) {
-        initDataSouce(data);
-        shapelets = findBestKShapeletsCache(data); // get k shapelets
+        //we might round robin the data in here. So we return the changed dataset.
+        Instances dataset = initDataSouce(data);
+        shapelets = findBestKShapeletsCache(dataset); // get k shapelets
         shapeletsTrained = true;
 
         outputPrint(shapelets.size() + " Shapelets have been generated");
-
-        //Reorder the training data and reset the shapelet indexes
-        if (roundRobin) {
-            resetDataOrder(data, dataSourceIDs);
-            resetShapeletIndices(shapelets, dataSourceIDs);
-        }
-
+        
+        //we don't need to undo the roundRobin because we clone the data into a different order.
     }
 
-    private void initDataSouce(Instances data) {
+    private Instances initDataSouce(Instances data) {
 
         int dataSize = data.numInstances();
         // shapelets discovery has not yet been caried out, so this must be training data
         dataSourceIDs = new int[dataSize];
+        
+        Instances dataset = data;
         if (roundRobin) {
             //Reorder the data in round robin order
-            data = roundRobinData(data, dataSourceIDs);
+            dataset = roundRobinData(data, dataSourceIDs);
         } else {
             for (int i = 0; i < dataSize; i++) {
                 dataSourceIDs[i] = i;
             }
         }
+        
+        return dataset;
     }
 
     protected Instances buildTansformedDataset(Instances data, ArrayList<Shapelet> shapelets) {
@@ -574,11 +590,7 @@ public class FullShapeletTransform extends SimpleBatchFilter {
             //set the clas value of the series we're working with.
             classValue.setShapeletValue(data.get(dataSet));
            
-            seriesShapelets = searchFunction.SearchForShapeletsInSeries(data.get(dataSet), new ProcessCandidate(){
-            @Override
-            public Shapelet process(double[] candidate, int start, int length){
-               return checkCandidate(candidate, start, length);
-            }});
+            seriesShapelets = searchFunction.SearchForShapeletsInSeries(data.get(dataSet), this::checkCandidate);
 
             Collections.sort(seriesShapelets, shapeletComparator);
 
@@ -1030,43 +1042,6 @@ public class FullShapeletTransform extends SimpleBatchFilter {
     }
 
     /**
-     * Method to reset shapelet indices into the values given in sourcePos
-     *
-     * @param shapelets
-     * @param sourcePos Pointer to array of ints, where old positions of
-     * instances are to be stored.
-     */
-    public static void resetShapeletIndices(ArrayList<Shapelet> shapelets, int[] sourcePos) {
-        for (Shapelet s : shapelets) {
-            int pos = s.getSeriesId();
-            s.setSeriesID(sourcePos[pos]);
-        }
-    }
-
-    /**
-     * Method to reorder the given Instances into the order given in sourcePos
-     *
-     * @param data Instances to be reordered
-     * @param sourcePos Pointer to array of ints, where old positions of
-     * instances are to be stored.
-     */
-    public static void resetDataOrder(Instances data, int[] sourcePos) {
-        int dataSize = data.numInstances();
-        if (dataSize != sourcePos.length) {//ERROR
-            System.out.println(" ERROR, cannot reorder, because the series are different lengths");
-            return;
-        }
-        Instance[] newOrder = new Instance[sourcePos.length];
-        for (int i = 0; i < sourcePos.length; i++) {
-            newOrder[sourcePos[i]] = data.instance(i);
-        }
-        for (int i = 0; i < dataSize; i++) {
-            data.set(i, newOrder[i]);
-        }
-
-    }
-
-    /**
      * Method to reorder the given Instances in round robin order
      *
      * @param data Instances to be reordered
@@ -1075,8 +1050,6 @@ public class FullShapeletTransform extends SimpleBatchFilter {
      * @return Instances in round robin order
      */
     public static Instances roundRobinData(Instances data, int[] sourcePos) {
-        //TODO: Fix this.
-
         //Count number of classes 
         TreeMap<Double, ArrayList<Instance>> instancesByClass = new TreeMap<>();
         TreeMap<Double, ArrayList<Integer>> positionsByClass = new TreeMap<>();
@@ -1090,8 +1063,8 @@ public class FullShapeletTransform extends SimpleBatchFilter {
         //Allocate arrays for instances of every class
         for (int i = 0; i < classDistribution.size(); i++) {
             int frequency = classDistribution.get(i);
-            instancesByClass.put((double) i, new ArrayList<Instance>(frequency));
-            positionsByClass.put((double) i, new ArrayList<Integer>(frequency));
+            instancesByClass.put((double) i, new ArrayList<>(frequency));
+            positionsByClass.put((double) i, new ArrayList<>(frequency));
         }
 
         int dataSize = data.numInstances();
@@ -1166,19 +1139,23 @@ public class FullShapeletTransform extends SimpleBatchFilter {
             //use fold as the seed.
             //train = InstanceTools.subSample(train, 100, fold);
             FullShapeletTransform transform = new FullShapeletTransform();
+            transform.setRoundRobin(true);
             //construct shapelet classifiers.
             transform.setClassValue(new BinarisedClassValue());
-            transform.setSearchFunction(new ShapeletSearch(3, train.numAttributes() - 1, 2, 1));
+            transform.setSubSeqDistance(new ImprovedOnlineSubSeqDistance());
+            transform.setShapeletMinAndMax(3, train.numAttributes() - 1);
             transform.useCandidatePruning();
             transform.setNumberOfShapelets(train.numInstances() * 10);
             transform.setQualityMeasure(QualityMeasures.ShapeletQualityChoice.INFORMATION_GAIN);
             Instances tranTrain = transform.process(train);
             Instances tranTest = transform.process(test);
-            WeightedEnsemble we = new WeightedEnsemble();
+            
+            System.out.println(tranTrain);
+            /*WeightedEnsemble we = new WeightedEnsemble();
             we.buildClassifier(tranTrain);
             double accuracy = ClassifierTools.accuracy(tranTest, we);
             
-            System.out.println(accuracy);
+            System.out.println(accuracy);*/
         } catch (Exception ex) {
             Logger.getLogger(FullShapeletTransform.class.getName()).log(Level.SEVERE, null, ex);
         }

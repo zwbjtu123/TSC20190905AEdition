@@ -20,9 +20,7 @@ import weka.core.Instances;
 import weka.core.shapelet.*;
 import weka.filters.timeseries.shapelet_transforms.classValue.BinarisedClassValue;
 import weka.filters.timeseries.shapelet_transforms.classValue.NormalClassValue;
-import weka.filters.timeseries.shapelet_transforms.searchFuntions.ShapeletSearch;
 import weka.filters.timeseries.shapelet_transforms.subsequenceDist.CachedSubSeqDistance;
-import weka.filters.timeseries.shapelet_transforms.subsequenceDist.ImprovedOnlineSubSeqDistance;
 import weka.filters.timeseries.shapelet_transforms.subsequenceDist.OnlineSubSeqDistance;
 
 /**
@@ -174,15 +172,15 @@ public class ShapeletTransformFactory
         }
     }
     
-    public static int calculateNumberOfShapelets(Instances train, int minShapeletLength, int maxShapeletLength){      
+    public static long calculateNumberOfShapelets(Instances train, int minShapeletLength, int maxShapeletLength){      
         return calculateNumberOfShapelets(train.numInstances(), train.numAttributes()-1, minShapeletLength, maxShapeletLength);
     }
     
     //Aaron
     //verified on Trace dataset from Ye2011 with 7,480,200 shapelets : page 158.
     //we assume as fixed length.
-    public static int calculateNumberOfShapelets(int numInstances, int numAttributes, int minShapeletLength, int maxShapeletLength){
-        int numShapelets=0;
+    public static long calculateNumberOfShapelets(int numInstances, int numAttributes, int minShapeletLength, int maxShapeletLength){
+        long numShapelets=0;
         
         //calculate number of shapelets in a single instance.
         for (int length = minShapeletLength; length <= maxShapeletLength; length++) {
@@ -221,7 +219,7 @@ public class ShapeletTransformFactory
     
     public static void main(String[] args) throws IOException
     {       
-        String dirPath = "C:\\LocalData\\time-series-datasets\\TSC Problems (1)\\";
+        String dirPath = "D:\\Dropbox\\TSC Problems (1)\\";
         File dir  = new File(dirPath);
         for(File dataset : dir.listFiles()){
             if(!dataset.isDirectory()) continue;
@@ -230,11 +228,10 @@ public class ShapeletTransformFactory
         
             Instances train = ClassifierTools.loadData(f);
             
-            int shapelets = calculateNumberOfShapelets(train, 3, train.numAttributes()-1);
+            long shapelets = calculateNumberOfShapelets(train, 3, train.numAttributes()-1);
             long ops = calculateOperations(train, 3, train.numAttributes()-1);
             
             System.out.printf("%s,%d,%d\n",dataset.getName(),shapelets, ops);
-        }
-        
+        } 
     }
 }

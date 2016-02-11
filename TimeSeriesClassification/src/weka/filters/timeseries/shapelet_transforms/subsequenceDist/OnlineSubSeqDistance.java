@@ -103,6 +103,9 @@ public class OnlineSubSeqDistance extends SubSeqDistance {
 
         while (j < candidate.length  && currentDist < bestDist)
         {
+            //count ops
+            incrementCount();
+            
             reordedIndex = (int) sortedIndices[j][0];
             //if our stdv isn't done then make it 0.
             normalisedVal = dontStdv ? 0.0 : ((timeSeries[i + reordedIndex] - mean) / stdv);

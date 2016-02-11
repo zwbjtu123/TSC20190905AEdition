@@ -23,9 +23,17 @@ public class SubSeqDistance implements Serializable{
     protected int      seriesId;
     protected int      startPos;
     
+    
+    protected long count;
+    
     public void init(Instances data)
     {
+        count =0;
     }
+    
+    protected void incrementCount(){ count++;}
+    
+    public long getCount() {return count;}
     
     public void setShapelet(Shapelet shp) {
         shapelet = shp;
@@ -63,6 +71,8 @@ public class SubSeqDistance implements Serializable{
 
             for (int j = 0; j < candidate.length; j++)
             {
+                //count ops
+                incrementCount();
                 temp = (candidate[j] - subseq[j]);
                 sum = sum + (temp * temp);
             }
