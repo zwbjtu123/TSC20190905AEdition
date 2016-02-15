@@ -8,6 +8,7 @@ package tsc_algorithms;
 import bakeOffExperiments.Experiments;
 import java.io.File;
 import utilities.ClassifierTools;
+import utilities.InstanceTools;
 import weka.classifiers.AbstractClassifier;
 import weka.classifiers.meta.timeseriesensembles.WeightedEnsemble;
 import weka.core.Instance;
@@ -28,7 +29,7 @@ public class ST_Ensemble  extends AbstractClassifier implements SaveableEnsemble
     private WeightedEnsemble weightedEnsemble;
     private BalancedClassShapeletTransform transform;
     private Instances format;
-    
+    int[] redundantFeatures;
     private boolean saveResults=false;
     private String trainCV="";
     private String testPredictions="";
@@ -57,6 +58,7 @@ public class ST_Ensemble  extends AbstractClassifier implements SaveableEnsemble
                 
         format = doTransform ? createTransformData(data) : data;
         
+        redundantFeatures=InstanceTools.removeRedundantTrainAttributes(format);
         if(saveResults){
             weightedEnsemble.saveTrainCV(trainCV);
             weightedEnsemble.saveTestPreds(testPredictions);
@@ -71,6 +73,10 @@ public class ST_Ensemble  extends AbstractClassifier implements SaveableEnsemble
         format.add(ins);
         
         Instances temp  = doTransform ? transform.process(format) : format;
+//Delete redundant
+        for(int del:redundantFeatures)
+            temp.deleteAttributeAt(del);
+        
         Instance test  = temp.get(0);
         format.remove(0);
         return weightedEnsemble.classifyInstance(test);

@@ -6,7 +6,6 @@ package development;
 
 import development.DataSets;
 import fileIO.OutFile;
-import tsc_algorithms.RecreateResults;
 import utilities.ClassifierTools;
 import weka.classifiers.lazy.kNN;
 import weka.core.EuclideanDistance;
@@ -17,10 +16,9 @@ import weka.core.elastic_distance_measures.MSMDistance;
 
 
 
-public class StefanMSM extends RecreateResults{
+public class StefanMSM{
 
     /* Compares MSM to cDTW, DTW, ERP, Euclid*/
-    @Override
     public void recreatePublishedResults(String path){
         OutFile of=new OutFile(path);
        String[] names= DataSets.stefan13movesplit;
@@ -30,8 +28,8 @@ public class StefanMSM extends RecreateResults{
        for(int i=0;i<names.length;i++){
             System.out.println(" Problem ="+names[i]);
             of.writeString(names[i]+",");
-            Instances train=ClassifierTools.loadData(dataPath+names[i]+"\\"+names[i]+"_TRAIN");
-            Instances test=ClassifierTools.loadData(dataPath+names[i]+"\\"+names[i]+"_TEST");
+            Instances train=ClassifierTools.loadData(DataSets.problemPath+names[i]+"\\"+names[i]+"_TRAIN");
+            Instances test=ClassifierTools.loadData(DataSets.problemPath+names[i]+"\\"+names[i]+"_TEST");
 //Build clean classifiers. 
             for(int j=0;j<c.length;j++)
                c[j]=new kNN(1);
@@ -86,11 +84,6 @@ public class StefanMSM extends RecreateResults{
             of.writeString(testAcc[cCount-1]+"\n");
   */         
        }
-
-    @Override
-    public void runOnAllDataSets(String path) {
-        throw new UnsupportedOperationException("Not supported yet.");
-    }
        
        
     

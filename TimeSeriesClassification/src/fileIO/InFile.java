@@ -139,9 +139,9 @@ public class InFile{
             }
             catch(IOException exception)
             {
-                    System.out.println("ERROR: Attempting to read WHAT??");
+                    System.out.println("ERROR: Attempting to read WHAT??"+exception);
                     System.out.println("Current token is >"+token.sval);
-                    System.exit(0); //return(-999);
+                    System.out.println("File name ="+fileName);
             }
             return o;
     }
@@ -156,7 +156,8 @@ public class InFile{
                     {
                             System.out.println("ERROR: Attempting to read a non integer");
                             System.out.println("Current token is >"+token.sval);
-                            System.exit(0); //return(-999);
+                            System.out.println("File name ="+fileName);
+                           System.exit(0); //return(-999);
                     }
                     v= (int)token.nval;
             }
@@ -178,8 +179,8 @@ public class InFile{
                     {
                             System.out.println("ERROR: Attempting to read a non double");
                             System.out.println("Current token is >"+token.sval);
+                            System.out.println("File name ="+fileName);
                             System.exit(0);
-                            return(-999);
                     }
                     v= token.nval;
             }
@@ -192,25 +193,26 @@ public class InFile{
     }
     public float readFloat()
     {
-            double v=0;
-            try
+        double v=0;
+        try
+        {
+            int t =token.nextToken();
+            if(t!=StreamTokenizer.TT_NUMBER)
             {
-                    int t =token.nextToken();
-                    if(t!=StreamTokenizer.TT_NUMBER)
-                    {
-                            System.out.println("ERROR: Attempting to read a non double");
-                            System.out.println("Current token is >"+token.sval);
-                            System.exit(0);
-                            return(-999);
-                    }
-                    v= token.nval;
+                System.out.println("ERROR: Attempting to read a non double");
+                System.out.println("Current token is >"+token.sval);
+            System.out.println("File name ="+fileName);
+                System.exit(0);
             }
-            catch(IOException exception)
-            {
-                    System.out.println("ERROR: wrong Format");
-                    return(-999);
-            }
-            return((float)v);
+            v= token.nval;
+        }
+        catch(IOException exception)
+        {
+                System.out.println("ERROR: wrong Format");
+                System.out.println("File name ="+fileName);
+                return(-999);
+        }
+        return((float)v);
     }
 
 
@@ -277,7 +279,8 @@ public class InFile{
                     {
                             System.out.println("ERROR: Attempting to read a non string");
                             System.out.println("Current token is >"+token.sval+"\t t ="+token.nval+"\t"+token.toString());
-                            return("");
+                        System.out.println("File name ="+fileName);
+                            System.exit(0);
                     }
                     v= token.sval;
             }

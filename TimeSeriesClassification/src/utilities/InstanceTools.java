@@ -308,7 +308,7 @@ public class InstanceTools {
                 return true;
        return false;
     }
-     //Returns the *shifted* indexes, so just deleting them should work
+     //Deletes the attributes by *shifted* index
     public static void removeConstantAttributes(Instances test, int[] features){
         for(int del:features)
             test.deleteAttributeAt(del);
@@ -343,6 +343,54 @@ public class InstanceTools {
         return del;
         
     }
+    
+     //Returns the *shifted* indexes, so just deleting them should work
+//Removes all constant attributes or attributes with just a single value
+    public static int[] removeRedundantTrainAttributes(Instances train){
+        int i=0;
+        int minNumDifferent=2;
+        boolean remove=false;
+        LinkedList<Integer> list= new LinkedList<>();
+        int count=0;
+        while(i<train.numAttributes()-1){ //Dont test class
+            remove=false;
+// Test if constant
+            int j=1;
+            if(train.instance(j-1).value(i)==train.instance(j).value(i))
+            while(j<train.numInstances() && train.instance(j-1).value(i)==train.instance(j).value(i))
+                j++;
+            if(j==train.numInstances())
+                remove=true;
+            else{
+//Test if just a single value to remove
+                count =0;
+                for(j=1;j<train.numInstances();j++){
+                    if(train.instance(j-1).value(i)==train.instance(j).value(i))
+                        count++;
+                }
+                if(train.numInstances()-count<minNumDifferent+1)
+                    remove=true;
+            }
+            if(remove)
+            {
+    // Remove from train
+                train.deleteAttributeAt(i);
+                list.add(i);
+    // Remove from test            
+            }else{
+                i++;
+            }
+            count++;
+        }
+        int[] del=new int[list.size()];
+        count=0;
+        for(Integer in:list){
+            del[count++]=in;
+        }
+        return del;
+        
+    }
+    
     
     
     //be careful using this function. 

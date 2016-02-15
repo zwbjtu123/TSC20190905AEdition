@@ -347,9 +347,10 @@ public class ShapeletExperiments {
     }
      
     public static void main(String[] args) throws Exception{
+        singleWorms();
+        System.exit(0);
 //        rename();
 //        basicTest();
-//        System.exit(0);
 //        generateScripts();
 //        countFiles();
         try{
@@ -401,6 +402,16 @@ public class ShapeletExperiments {
         System.out.println(" WITH TRANSFORM ACC ="+acc2);
         
     }
-    
+    public static void singleWorms(){
+        Instances train=ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\Temp\\Worms7_TRAIN");
+        Instances test=ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\Temp\\Worms7_TEST");
+        WeightedEnsemble we=new WeightedEnsemble();
+        we.setWeightType("prop");
+        we.saveTrainCV("C:\\Users\\ajb\\Dropbox\\Big TSC Bake Off\\New Results\\shapelet\\ST\\Predictions\\Worms\\"+"internalCV_7.csv");
+        we.saveTestPreds("C:\\Users\\ajb\\Dropbox\\Big TSC Bake Off\\New Results\\shapelet\\ST\\Predictions\\Worms\\"+"internalTestPreds_7.csv");
+        double acc=ClassifierTools.singleTrainTestSplitAccuracy(we, train, test);
+        System.out.println(" FROM FILE ACC ="+acc);
+        
+    }
     
 }

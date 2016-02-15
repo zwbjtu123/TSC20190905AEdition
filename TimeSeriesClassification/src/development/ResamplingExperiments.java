@@ -19,7 +19,7 @@ import java.util.Scanner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import tsc_algorithms.FastShapelets;
-import tsc_algorithms.LearnShapelets;
+import tsc_algorithms.LearnShapeletsFeb2015Version;
 import utilities.ClassifierTools;
 import utilities.InstanceTools;
 import weka.classifiers.meta.timeseriesensembles.WeightedEnsemble;
@@ -162,7 +162,7 @@ public class ResamplingExperiments {
                 classifierName = BalancedClassShapeletTransform.class.getSimpleName();
                 break;
             case 2:
-                classifierName = LearnShapelets.class.getSimpleName();
+                classifierName = LearnShapeletsFeb2015Version.class.getSimpleName();
                 break;
             case 3 :
                 classifierName = FastShapelets.class.getSimpleName();
@@ -496,7 +496,7 @@ public class ResamplingExperiments {
             Instances test = utilities.ClassifierTools.loadData(samplePath + "_TEST");
             Instances train = utilities.ClassifierTools.loadData(samplePath + "_TRAIN");
             
-            LearnShapelets ls = new LearnShapelets();
+            LearnShapeletsFeb2015Version ls = new LearnShapeletsFeb2015Version();
             ls.setSeed(fold);
             ls.buildClassifier(train);
             double accuracy = ClassifierTools.accuracy(test, ls);

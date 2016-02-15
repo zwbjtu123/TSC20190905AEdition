@@ -196,7 +196,8 @@ public static void recreatePublishedResults() throws Exception{
     System.out.println("Mean diff ="+meanDiff/problems.length+" Published better ="+publishedBetter);
         of.writeLine(",,,,Mean diff ="+meanDiff/problems.length+" Published better ="+publishedBetter);
 }          
-    public TechnicalInformation getTechnicalInformation() {
+
+public TechnicalInformation getTechnicalInformation() {
     TechnicalInformation 	result;
     
     result = new TechnicalInformation(TechnicalInformation.Type.ARTICLE);

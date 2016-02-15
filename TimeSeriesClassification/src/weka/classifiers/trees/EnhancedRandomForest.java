@@ -1,7 +1,7 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+This classifier is enhanced so that classifier builds a random forest with the 
+facility to build by forward selection addition of trees to minimize OOB error.    
+Further enhanced to include OOB error estimates and predictions
  */
 package weka.classifiers.trees;
 
@@ -28,10 +28,7 @@ public class EnhancedRandomForest extends RandomForest{
     }
     double OOBError;
     double[][] OOBPredictions;
-/*This builds a random forest with the facility to build by forward selection 
-    addition of trees to minimize OOB error.    
-    Enhanced to include OOB error estimates
-    
+/*This 
     */    
     @Override
     public void buildClassifier(Instances data) throws Exception{

@@ -8,7 +8,7 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Random;
-import tsc_algorithms.LearnShapelets;
+import tsc_algorithms.LearnShapeletsFeb2015Version;
 import utilities.ClassifierTools;
 import weka.core.Instances;
 
@@ -163,7 +163,7 @@ public class GrabockaReproduction {
     //params come in the order = {K,lambdaW,maxEpochs,alpha,eta,L,R};
     public static double createLearnShapeletsGeneralized(Instances train, Instances test, double[] params) throws Exception {
         
-        LearnShapelets ls = new LearnShapelets();
+        LearnShapeletsFeb2015Version ls = new LearnShapeletsFeb2015Version();
         //{PercentageOfSeriesLength,shapeletLengthScale, weights}; 
         ls.percentageOfSeriesLength = params[0];
         ls.shapeletLengthScale = (int) params[1];

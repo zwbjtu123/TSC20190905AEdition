@@ -1,5 +1,6 @@
 package tsc_algorithms;
 
+import fileIO.OutFile;
 import utilities.ClassifierTools;
 import utilities.InstanceTools;
 import weka.classifiers.AbstractClassifier;
@@ -95,9 +96,13 @@ public class PS_Ensemble extends AbstractClassifier implements SaveableEnsemble{
         else
              psTrain=data;
         constantFeatures=InstanceTools.removeConstantTrainAttributes(psTrain);
-
+        System.out.println(" Number of constant attributes removed ="+constantFeatures.length);
+        
+        
+        
         if(saveResults && c==ClassifierType.WeightedEnsemble){
 //Set up the file space here
+            System.out.println("SAVING RESULTS FOR TRAIN to "+trainCV+" "+testPredictions);
             ((WeightedEnsemble) baseClassifier).saveTrainCV(trainCV);
             ((WeightedEnsemble) baseClassifier).saveTestPreds(testPredictions);
         }
@@ -128,22 +133,79 @@ public class PS_Ensemble extends AbstractClassifier implements SaveableEnsemble{
      Instances train=ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\TSC Problems\\ElectricDevices\\ElectricDevices_TRAIN");
      Instances test=ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\TSC Problems\\ElectricDevices\\ElectricDevices_TEST");
      PS_Ensemble ps=new PS_Ensemble();
-     ps.saveResults(null, null);
-     ps.buildClassifier(train);
-     System.out.println("Build finished");
-
+//     preds+"/internalCV_"+sample+".csv",preds+"/internalTestPreds_"+sample+".csv");
+//     
+//     ps.saveResults(null, null);
+//     ps.buildClassifier(train);
+//     System.out.println("Build finished");
+//     double a = ClassifierTools.accuracy(test, ps);
+//     System.out.println("Test finished acc = "+a);
+     
+     int fold=0;
+     Instances[] data=InstanceTools.resampleTrainAndTestInstances(train, test, fold);
+     ps=new PS_Ensemble();
+     ps.setClassifierType("WE");
+//     preds+"/internalCV_"+sample+".csv",preds+"/internalTestPreds_"+sample+".csv");
+     String preds="C:\\Users\\ajb\\Dropbox\\Big TSC Bake Off\\New Results\\ensemble\\PS\\Predictions\\ElectricDevices";
+     
+     ps.saveResults(preds+"\\internalCV_"+fold+".csv", preds+"\\internalTestPreds_"+fold+".csv");
+     ps.buildClassifier(data[0]);
+     System.out.println("Build finished for fold "+fold);
+     OutFile of=new OutFile(preds+"\\fold"+fold+".csv");
+     for(Instance ins:data[1]){
+         int act=(int)ins.classValue();
+         int pred=(int)ps.classifyInstance(ins);
+         of.writeLine(act+","+pred);
+     }
+//     double a = ClassifierTools.accuracy(data[1], ps);
+     System.out.println("Test finished ");
      
      //Empty file: Lightning7/internalCv_66.csv
-     train=ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\TSC Problems\\Lightning7\\Lightning7_TRAIN");
-     test=ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\TSC Problems\\Lightning7\\Lightning7_TEST");
-     Instances[] data=InstanceTools.resampleTrainAndTestInstances(train, test, 66);
-//Empty file: ProximalPhalanxOutlineAgeGroup/internalCv_34.csv
-//Empty file: ProximalPhalanxOutlineAgeGroup/internalCv_42.csv
-     train=ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\TSC Problems\\ProximalPhalanxOutlineAgeGroup\\ProximalPhalanxOutlineAgeGroup_TRAIN");
-     data=InstanceTools.resampleTrainAndTestInstances(train, test, 34);
-     test=ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\TSC Problems\\ProximalPhalanxOutlineAgeGroup\\ProximalPhalanxOutlineAgeGroup_TEST");
-    data=InstanceTools.resampleTrainAndTestInstances(train, test, 42);
      
+////Empty file: ProximalPhalanxOutlineAgeGroup/internalCv_34.csv
+////Empty file: ProximalPhalanxOutlineAgeGroup/internalCv_42.csv
+//     fold=34;
+//     train=ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\TSC Problems\\ProximalPhalanxOutlineAgeGroup\\ProximalPhalanxOutlineAgeGroup_TRAIN");
+//     test=ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\TSC Problems\\ProximalPhalanxOutlineAgeGroup\\ProximalPhalanxOutlineAgeGroup_TEST");
+//     preds="C:\\Users\\ajb\\Dropbox\\Big TSC Bake Off\\New Results\\ensemble\\PS\\Predictions\\ProximalPhalanxOutlineAgeGroup";
+//     data=InstanceTools.resampleTrainAndTestInstances(train, test, fold);
+//     ps=new PS_Ensemble();
+//     ps.setClassifierType("WE");
+////     preds+"/internalCV_"+sample+".csv",preds+"/internalTestPreds_"+sample+".csv");
+//     
+//     ps.saveResults(preds+"\\internalCV_"+fold+".csv", preds+"\\internalTestPreds_"+fold+".csv");
+//     ps.buildClassifier(data[0]);
+//     System.out.println("Build finished for fold "+fold);
+//     OutFile of=new OutFile(preds+"\\fold"+fold+".csv");
+//     for(Instance ins:data[1]){
+//         int act=(int)ins.classValue();
+//         int pred=(int)ps.classifyInstance(ins);
+//         of.writeLine(act+","+pred);
+//     }
+////     double a = ClassifierTools.accuracy(data[1], ps);
+//     System.out.println("Test finished ");
+//     fold=42;
+//     data=InstanceTools.resampleTrainAndTestInstances(train, test, fold);
+//     ps=new PS_Ensemble();
+//     ps.setClassifierType("WE");
+////     preds+"/internalCV_"+sample+".csv",preds+"/internalTestPreds_"+sample+".csv");
+//     
+//     ps.saveResults(preds+"\\internalCV_"+fold+".csv", preds+"\\internalTestPreds_"+fold+".csv");
+//     ps.buildClassifier(data[0]);
+//     System.out.println("Build finished for fold "+fold);
+//     of=new OutFile(preds+"\\fold"+fold+".csv");
+//     for(Instance ins:data[1]){
+//         int act=(int)ins.classValue();
+//         int pred=(int)ps.classifyInstance(ins);
+//         of.writeLine(act+","+pred);
+//     }
+////     double a = ClassifierTools.accuracy(data[1], ps);
+//     System.out.println("Test finished ");
+//
+
+
+//    data=InstanceTools.resampleTrainAndTestInstances(train, test, 42);
+//     
  }
     public static void main(String[] args) throws Exception {
         brokenFiles();

@@ -205,21 +205,21 @@ public class DataSets {
                         "WordSynonyms", // 267,638,270,25
 			"Worms", //77, 181,900,5
                         "WormsTwoClass",//77, 181,900,5
-                        "Yoga" // 300,3000,426,2
-      },
-      {
-      			"ElectricDevices", // 8926,7711,96,7
-			"FaceAll", // 560,1690,131,14
-			"FordA", // 3601,1320,500,2
-			"FordB", // 3636,810,500,2
-                        "HandOutlines", // 1000,370,2709,2
+                        "Yoga", // 300,3000,426,2
                         "InlineSkate", // 100,550,1882,7
                         "InsectWingbeatSound",//1980,220,256
-			"NonInvasiveFatalECGThorax1", // 1800,1965,750,42
-			"NonInvasiveFatalECGThorax2", // 1800,1965,750,42
+			"FaceAll", // 560,1690,131,14
 			"PhalangesOutlinesCorrect", // 1800,858,80,2
                         "Phoneme", //1896,214, 1024
 			"ShapesAll", // 600,600,512,60
+      },
+      {
+      			"ElectricDevices", // 8926,7711,96,7
+			"FordA", // 3601,1320,500,2
+			"FordB", // 3636,810,500,2
+                        "HandOutlines", // 1000,370,2709,2
+			"NonInvasiveFatalECGThorax1", // 1800,1965,750,42
+			"NonInvasiveFatalECGThorax2", // 1800,1965,750,42
 			"StarlightCurves", // 1000,8236,1024,3
 			"UWaveGestureLibraryAll", // 896,3582,945,8
       }
@@ -768,18 +768,23 @@ public static void dataDescription(String[] fileNames){
 
         try{
             for(int i=0;i<fileNames.length;i++){
-                Instances test=ClassifierTools.loadData(problemPath+fileNames[i]+"/"+fileNames[i]+"_TRAIN");
-                Instances train=ClassifierTools.loadData(problemPath+fileNames[i]+"/"+fileNames[i]+"_TEST");			
+                Instances test=ClassifierTools.loadData(problemPath+fileNames[i]+"/"+fileNames[i]+"_TEST");
+                Instances train=ClassifierTools.loadData(problemPath+fileNames[i]+"/"+fileNames[i]+"_TRAIN");			
                 Instances allData =new Instances(test);
                 for(int j=0;j<train.numInstances();j++)
                     allData.add(train.instance(j));
-                allData.randomize(new Random());
-                OutFile combo=new OutFile(problemPath+fileNames[i]+"/"+fileNames[i]+".arff");    
-                combo.writeString(allData.toString());
+//                allData.randomize(new Random());
+//                OutFile combo=new OutFile(problemPath+fileNames[i]+"/"+fileNames[i]+".arff");    
+//                combo.writeString(allData.toString());
                 boolean normalised=true;
                 if(nm.contains(fileNames[i]))
                     normalised=false;
-                all[i]=new MetaData(fileNames[i],train.numInstances(),test.numInstances(),test.numAttributes()-1,test.numClasses(),normalised);
+                int[] classCounts=new int[allData.numClasses()*2];
+                for(Instance ins: train)
+                    classCounts[(int)(ins.classValue())]++;
+                for(Instance ins: test)
+                    classCounts[allData.numClasses()+(int)(ins.classValue())]++;
+                all[i]=new MetaData(fileNames[i],train.numInstances(),test.numInstances(),test.numAttributes()-1,test.numClasses(),classCounts,normalised);
                 f.writeLine(all[i].toString());
             }
         }catch(Exception e){
@@ -810,6 +815,7 @@ public static void dataDescription(String[] fileNames){
 public static void main(String[] args) throws Exception{
 
     dataDescription(fileNames);
+    System.exit(0);
     listNotNormalisedList();  
     processUCRData();
     Instances train = ClassifierTools.loadData(problemPath+"wafer/wafer_TRAIN");
@@ -837,18 +843,23 @@ public static void main(String[] args) throws Exception{
         int testSetSize;
         int seriesLength;
         int nosClasses;
+        int[] classDistribution;
         boolean normalised=true;
-        public MetaData(String n, int t1, int t2, int s, int c, boolean norm){
+        public MetaData(String n, int t1, int t2, int s, int c, int[] dist,boolean norm){
             fileName=n;
             trainSetSize=t1;
             testSetSize=t2;
             seriesLength=s;
             nosClasses=c;
+            classDistribution=dist;
             normalised=norm;
         }
         @Override
         public String toString(){
-            return fileName+","+trainSetSize+","+testSetSize+","+seriesLength+","+nosClasses+","+normalised;
+            String str= fileName+","+trainSetSize+","+testSetSize+","+seriesLength+","+nosClasses+","+normalised;
+            for(int i:classDistribution)
+                str+=","+i;
+            return str;
         }
     @Override
         public int compareTo(MetaData o) {

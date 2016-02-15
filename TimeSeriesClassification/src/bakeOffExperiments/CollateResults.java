@@ -60,12 +60,12 @@ public class CollateResults {
  * */
     public static void generateAllScripts(String path, String classifier){
        boolean oldCls=true;
-        int mem=6000;
-        int maxMem=mem+1000;
-        int maxNum=100;
+        int mem=8000;
+        int maxMem=mem+2000;
         String queue,java; 
+        String jar="LS.jar";
         if(oldCls){
-            queue="short";
+            queue="long";
             java= "java/jdk/1.8.0_31";
         }
         else{
@@ -94,12 +94,12 @@ public class CollateResults {
                 of.writeString(queue+"\n#BSUB -J ");
                 of.writeLine(classifier+prob+"[1-100]");
                 of.writeString("#BSUB -oo output/"+classifier+prob+"%I.out\n" +
-                    "#BSUB -eo error/"+classifier+DataSets.fileNames[i]+"%I.err\n" +
+                    "#BSUB -eo error/"+classifier+prob+"%I.err\n" +
                     "#BSUB -R \"rusage[mem="+mem+"]\"\n" +
                     "#BSUB -M "+maxMem);
                 of.writeLine("\n\n module add "+java);
 
-                of.writeLine("java -jar TimeSeriesClassification.jar "+classifier+" "+prob+" $LSB_JOBINDEX ");
+                of.writeLine("java -jar "+jar+" "+classifier+" "+prob+" $LSB_JOBINDEX ");
                 if(oldCls)
                     of2.writeLine("bsub < "+"Scripts/"+classifier+"/"+prob+"OldCls.bsub");                
                 else
@@ -119,8 +119,18 @@ public class CollateResults {
                         File f= new File(path+"\\"+dirNames[i]+"\\"+names[i][j]+"\\"+s+".csv");
                         if(f.exists()){
                             InFile f2=new InFile(path+"\\"+dirNames[i]+"\\"+names[i][j]+"\\"+s+".csv");
+// Limit to a max of 100 here                          
                             String str=f2.readLine();
-                            results.writeLine(str);
+                            String[] spl=str.split(",");
+                            int k;
+//                            System.out.println("SPL length ="+spl.length);
+                            for(k=0;k<spl.length && k<100;k++)
+                                results.writeString(spl[k]+",");
+                            if(k<spl.length&&k==100)
+                                results.writeString(spl[k]+"\n");
+                            else
+                                results.writeString("\n");
+                                
                         }
                     }
                     results.closeFile();
@@ -352,8 +362,6 @@ public class CollateResults {
         OutFile out = new OutFile(root+"IncompleteFolds.csv");
         for(int i=0;i<dirNames.length;i++){
             for(int j=0;j<names[i].length;j++){
-                int completeCount=0;
-                int numFolds=0;
 //Check for directory of
                 File dir= new File(root+"\\"+dirNames[i]+"\\"+names[i][j]);
                 if(dir.isDirectory()){    //Proceed if there is a directory of results
@@ -375,7 +383,6 @@ public class CollateResults {
                                 InFile inf=new InFile(p+"\\"+s+".csv");
                                 String line=inf.readLine();                            
                                 inf.closeFile();
-//                                System.out.println(directory+" "+cls+" "+s+" "+line);
                                 String[] res=null;
                                 if(line==null){ //Delete the file
                                     f=new File(p+"\\"+s+".csv");
@@ -455,6 +462,7 @@ public class CollateResults {
     public static void generateParameterSplitScripts(String root, String dest,String classifier,String problem,int paras,int folds){
         InFile inf=new InFile(root+"\\SampleSizes.csv");
         File f=new File(dest+"\\Scripts\\"+problem);
+        String jar="TimeSeriesClassification.jar";
         deleteDirectory(f);
         if(!f.isDirectory())
             f.mkdir();
@@ -470,7 +478,7 @@ public class CollateResults {
               "#BSUB -R \"rusage[mem=2000]\"\n" +
               "#BSUB -M 3000");
             of.writeLine("\n\n module add java/jdk/1.8.0_31");
-            of.writeLine("java -jar TimeSeriesClassification.jar "+classifier+" " +problem+" $LSB_JOBINDEX"+j);
+            of.writeLine("java -jar "+jar+" "+classifier+" " +problem+" $LSB_JOBINDEX"+j);
             of2.writeLine("bsub < "+"Scripts/"+classifier+"/Unstarted/"+problem+".bsub");
             of.closeFile();
         }
@@ -492,6 +500,7 @@ public class CollateResults {
         int mem=8000;
         int maxMem=mem+1000;
         int maxNum=100;
+        String jar="TimeSeriesClassification.jar";
         String queue,java; 
         if(oldCls){
             queue="short";
@@ -543,7 +552,7 @@ public class CollateResults {
                                 "#BSUB -M "+maxMem);
                             of.writeLine("\n\n module add "+java);
 
-                            of.writeLine("java -jar TimeSeriesClassification.jar "+algos[j]+" " +problems[i]+" $LSB_JOBINDEX "+k);
+                            of.writeLine("java -jar "+jar+" "+algos[j]+" " +problems[i]+" $LSB_JOBINDEX "+k);
                             outf2.writeLine("bsub < "+"Scripts/"+algos[j]+"/Unstarted/"+problems[i]+"_"+k+".bsub");
                             of.closeFile();
                         }
@@ -573,7 +582,7 @@ public class CollateResults {
                               "#BSUB -M "+maxMem);
                                 of.writeLine("\n\n module add "+java);
 
-                                of.writeLine("java -jar TimeSeriesClassification.jar "+algos[j]+" " +problems[i]+" $LSB_JOBINDEX "+k);
+                                of.writeLine("java -jar "+jar+" "+algos[j]+" " +problems[i]+" $LSB_JOBINDEX "+k);
                                 outf2.writeLine("bsub < "+"Scripts/"+algos[j]+"/Unstarted/"+problems[i]+"_"+k+".bsub");
                                 of.closeFile();
                             }
@@ -599,7 +608,7 @@ public class CollateResults {
                                   "#BSUB -M "+maxMem);
                             }                            
                             of.writeLine("\n\n module add "+java);
-                            of.writeLine("java -jar TimeSeriesClassification.jar "+algos[j]+" " +problems[i]+" $LSB_JOBINDEX");
+                            of.writeLine("java -jar "+jar+" "+algos[j]+" " +problems[i]+" $LSB_JOBINDEX");
                             outf.writeLine("bsub < "+"Scripts/"+algos[j]+"/"+problems[i]+".bsub");
                             of.closeFile();
                         }
@@ -639,10 +648,10 @@ public class CollateResults {
     }    
     public static void main(String[] args){
       DataSets.resultsPath="C:\\Users\\ajb\\Dropbox\\Big TSC Bake Off\\New Results\\";
-//    generateAllScripts("C:\\Users\\ajb\\Dropbox\\Big TSC Bake Off\\New Results\\Scripts","LS");
-        collateFoldZero();
+    generateAllScripts("C:\\Users\\ajb\\Dropbox\\Big TSC Bake Off\\New Results\\Scripts","LS");
+ //       collateFoldZero();
 
-//       System.exit(0);
+      System.exit(0);
 //        findNumberPerSplit();
         String root="C:\\Users\\ajb\\Dropbox\\Big TSC Bake Off\\New Results";
 //        generateScripts(root,root);        
@@ -699,7 +708,7 @@ public class CollateResults {
                     String cls=Experiments.classifiers[j][m];
         // Check to see if predictions 0 is present
                     String foldFile=DataSets.resultsPath+Experiments.directoryNames[j]+"\\"+cls+"\\Predictions\\"+prob+"\\fold0.csv";
-                    System.out.println("Looking for "+foldFile);
+//                    System.out.println("Looking for "+foldFile);
                     File f=new File(foldFile);
                     int size=0;
                     if(f.exists()){
@@ -709,7 +718,7 @@ public class CollateResults {
                         inf.closeFile();
                     }
                     if(size==testSizes[i]){  // Complete fold
-                        System.out.println("fold 0 found ");
+//                        System.out.println("fold 0 found ");
                         trainTestAcc[i][pos]=0;
                         InFile inf=new InFile(foldFile);
                         for(int k=0;k<size;k++){
@@ -721,7 +730,7 @@ public class CollateResults {
                     }else{  //Try to recover from the single problem file
 
                         File f2=new File(DataSets.resultsPath+Experiments.directoryNames[j]+cls+"/"+prob+".csv");
-                        System.out.println("\t\t fold 0 NOT found looking for "+f2.getPath());
+  //                      System.out.println("\t\t fold 0 NOT found looking for "+f2.getPath());
                         if(f2.exists()){
                             InFile inf2=new InFile(f2.getPath());
                             String name=inf2.readString();
@@ -734,9 +743,9 @@ public class CollateResults {
                         else{   //Try to recover from full file! 
  
                             File f3=new File(DataSets.resultsPath+Experiments.directoryNames[j]+"\\"+cls+".csv");
-                            System.out.println("\t\t"+f2.getName()+" NOT found looking for "+f3.getPath());
+//                            System.out.println("\t\t"+f2.getName()+" NOT found looking for "+f3.getPath());
                             if(f3.exists()){
-                            System.out.println("\t\t"+f3.getName()+" FOUND");
+//                            System.out.println("\t\t"+f3.getName()+" FOUND");
                                 InFile inf3=new InFile(f3.getPath());
                                 int lines=inf3.countLines();
                                 inf3=new InFile(f3.getPath());

@@ -10,8 +10,6 @@ the COTE Classifier implementation in package
 weka.classifiers.meta.timeseriesensembles 
 
 */
-
-
 package papers;
 
 import tsc_algorithms.ElasticEnsemble;

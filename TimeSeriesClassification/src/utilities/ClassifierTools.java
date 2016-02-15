@@ -267,7 +267,8 @@ public class ClassifierTools {
                 }
            }catch(Exception e){
                System.err.println("ERROR BUILDING FOLD "+n+" for data set "+data.relationName());
-               System.exit(0);
+               e.printStackTrace();
+               System.exit(1);
            }
         }            
         return ((double)correct)/total;

@@ -6,7 +6,6 @@ package development;
 
 import development.DataSets;
 import fileIO.OutFile;
-import tsc_algorithms.RecreateResults;
 import utilities.ClassifierTools;
 import weka.classifiers.Classifier;
 import weka.classifiers.lazy.kNN;
@@ -17,7 +16,7 @@ import weka.core.elastic_distance_measures.*;
  *
  * @author ajb
  */
-public class MarteauTWED extends RecreateResults{
+public class MarteauTWED{
 
     public void recreatePublishedResults(String path){
         OutFile of=new OutFile(path);
@@ -28,8 +27,8 @@ public class MarteauTWED extends RecreateResults{
        for(int i=0;i<names.length;i++){
             System.out.println(" Problem ="+names[i]);
             of.writeString(names[i]+",");
-            Instances train=ClassifierTools.loadData(dataPath+names[i]+"\\"+names[i]+"_TRAIN");
-            Instances test=ClassifierTools.loadData(dataPath+names[i]+"\\"+names[i]+"_TEST");
+            Instances train=ClassifierTools.loadData(DataSets.problemPath+names[i]+"\\"+names[i]+"_TRAIN");
+            Instances test=ClassifierTools.loadData(DataSets.problemPath+names[i]+"\\"+names[i]+"_TEST");
 //Build clean classifiers. 
             for(int j=0;j<c.length;j++)
                c[j]=new kNN(1);

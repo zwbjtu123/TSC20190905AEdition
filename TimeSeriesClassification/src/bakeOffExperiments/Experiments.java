@@ -3,6 +3,8 @@
  */
 package bakeOffExperiments;
 
+import PS_ACF_experiments.FixedIntervalForest;
+import utilities.SaveCVAccuracy;
 import tsc_algorithms.*;
 import development.DataSets;
 import development.Jay.DD_DTW_EfficientWithoutKNN;
@@ -10,11 +12,9 @@ import fileIO.InFile;
 import fileIO.OutFile;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.util.*;
 import utilities.ClassifierTools;
 import utilities.InstanceTools;
 import weka.classifiers.AbstractClassifier;
@@ -31,10 +31,15 @@ import weka.classifiers.meta.OptimisedRotationForest;
 import weka.classifiers.meta.RotationForest;
 import weka.classifiers.trees.J48;
 import weka.classifiers.trees.RandomForest;
+import weka.core.Attribute;
+import weka.core.DenseInstance;
+import weka.core.FastVector;
 import weka.core.Instance;
 import weka.core.Instances;
+import weka.core.SparseInstance;
 import weka.filters.NormalizeCase;
 import weka.filters.timeseries.ACF;
+import weka.filters.timeseries.BagOfPatternsFilter;
 import weka.filters.timeseries.PowerSpectrum;
 
 /**
@@ -55,6 +60,9 @@ public class Experiments extends Thread{
     String preds;
     double acc;
     public static boolean removeUseless=false;
+    
+        
+    
     public Experiments(Instances tr, Instances te, String cls, String prob, String predictions,int res, int f){
         train=tr;
         test=te;
@@ -121,6 +129,9 @@ public class Experiments extends Thread{
     public static Classifier setClassifier(String classifier){
         Classifier c=null;
         switch(classifier){
+            case "PS_TSF":
+                c=new FixedIntervalForest();
+                break;
             case "C45":
                 c=new J48();
                 break;
@@ -163,6 +174,7 @@ public class Experiments extends Thread{
                 break;
             case "LearnShapelets": case "LS":
                 c=new LearnShapelets();
+                ((LearnShapelets)c).setParamSearch(true);
                 break;
             case "FastShapelets": case "FS":
                 c=new FastShapelets();
@@ -188,7 +200,7 @@ public class Experiments extends Thread{
                 c=new DTD_C();
                 break;
             case "TSF":
-                c=new TimeSeriesForest();
+                c=new TSF();
                 break;
             case "ACF":
                 c=new ACF_Ensemble();
@@ -205,7 +217,7 @@ public class Experiments extends Thread{
                 c=new BagOfPatterns();
                 break;
              case "BOSS": case "BOSSEnsemble": 
-                c=new BOSSEnsemble(true);
+                c=new BOSSEnsemble();
                 break;
              case "SAXVSM": case "SAX": 
                 c=new SAXVSM();
@@ -347,7 +359,7 @@ public class Experiments extends Thread{
             f.delete();
         Instances train=ClassifierTools.loadData(DataSets.problemPath+problem+"/"+problem+"_TRAIN");
         Instances test=ClassifierTools.loadData(DataSets.problemPath+problem+"/"+problem+"_TEST");
-        OutFile p=new OutFile(predictions+"/"+"fold0.csv");
+        OutFile p=new OutFile(predictions+"/"+"TestFold0.csv");
 // hack here to save internal CV for furhter ensembling         
         Classifier c=setClassifier(classifier);
         if(c instanceof SaveableEnsemble)
@@ -461,7 +473,6 @@ public class Experiments extends Thread{
         folds=resampleExperiment(train,test,c,100,of,predictions);
         of.writeString("\n");
     }
-    
     public static void singleClassifierAndFoldAndParameter(String[] args) throws Exception{
 //first gives the problem file      
         String classifier=args[0];
@@ -524,6 +535,7 @@ public class Experiments extends Thread{
             
     }
     
+    
     public static void singleClassifierAndFold(String[] args){
 //first gives the problem file      
         String classifier=args[0];
@@ -545,13 +557,22 @@ public class Experiments extends Thread{
         if(!f.exists())
             f.mkdir();
 //Check whether fold already exists, if so, dont do it, just quit
-        f=new File(predictions+"/fold"+fold+".csv");
+        f=new File(predictions+"/TestFold"+fold+".csv");
         if(!f.exists() || f.length()==0){
       //      of.writeString(problem+","); );
             double acc=0;
             acc =singleSampleExperiment(train,test,c,fold,predictions);
-            
-            
+            if(c instanceof BagOfPatterns){//Save parameters
+                String params=DataSets.resultsPath+classifier+"/Params";
+                f=new File(params);
+                if(!f.exists())
+                   f.mkdir();
+                OutFile outp=new OutFile(params+"/paramsFold"+fold+".csv");
+                int[] p=((BagOfPatterns)c).getParameters();
+                for(int pa:p)
+                    outp.writeString(pa+",");
+                outp.closeFile();
+            }
  //       of.writeString("\n");
         }
     }
@@ -576,7 +597,7 @@ public class Experiments extends Thread{
 
        double[] foldAcc=new double[resamples];
         for(int i=0;i<resamples;i++){
-            File f=new File(preds+"/fold"+i+".csv");
+            File f=new File(preds+"/TestFold"+i+".csv");
             if(!f.exists() || f.length()==0){
             foldAcc[i]=singleSampleExperiment(train,test,c,i,preds);
                 of.writeString(foldAcc[i]+",");
@@ -593,10 +614,12 @@ public class Experiments extends Thread{
         
         double acc=0;
         double act,pred;
-        OutFile p=new OutFile(preds+"/fold"+sample+".csv");
+        OutFile p=new OutFile(preds+"/TestFold"+sample+".csv");
 // hack here to save internal CV for furhter ensembling         
         if(c instanceof SaveableEnsemble)
            ((SaveableEnsemble)c).saveResults(preds+"/internalCV_"+sample+".csv",preds+"/internalTestPreds_"+sample+".csv");
+        if(c instanceof SaveCVAccuracy)
+           ((SaveCVAccuracy)c).setCVPath(preds+"/TrainFold"+sample+"CV.csv");
         try{              
             c.buildClassifier(data[0]);
             for(int j=0;j<data[1].numInstances();j++)
@@ -619,26 +642,37 @@ public class Experiments extends Thread{
          return acc;
     }
 
-
     public static double singleSampleExperiment(Instances train, Instances test, Classifier c, int sample,String preds){
         Instances[] data=InstanceTools.resampleTrainAndTestInstances(train, test, sample);
         double acc=0;
-        double act,pred;
-        OutFile p=new OutFile(preds+"/fold"+sample+".csv");
-// hack here to save internal CV for furhter ensembling         
+        OutFile p=new OutFile(preds+"/TestFold"+sample+".csv");
+        p.writeLine(c.getClass().getName());
+        if(c instanceof SaveCVAccuracy)
+            p.writeLine(((SaveCVAccuracy)c).getParameters());
+        else
+            p.writeLine("NoParameterInfo");
+
+// hack here to save internal CV for furhter ensembling   
+        if(c instanceof SaveCVAccuracy)
+           ((SaveCVAccuracy)c).setCVPath(preds+"/TrainFold"+sample+"CV.csv");
+        
         if(c instanceof SaveableEnsemble)
            ((SaveableEnsemble)c).saveResults(preds+"/internalCV_"+sample+".csv",preds+"/internalTestPreds_"+sample+".csv");
         try{              
             c.buildClassifier(data[0]);
+            int[][] predictions=new int[data[1].numInstances()][2];
             for(int j=0;j<data[1].numInstances();j++)
             {
-                act=data[1].instance(j).classValue();
-                pred=c.classifyInstance(data[1].instance(j));
-                if(act==pred)
+                predictions[j][0]=(int)data[1].instance(j).classValue();
+                predictions[j][1]=(int)c.classifyInstance(data[1].instance(j));
+                if(predictions[j][0]==predictions[j][1])
                     acc++;
-                p.writeLine(act+","+pred);
             }
             acc/=data[1].numInstances();
+            p.writeLine(acc+"");
+            for(int j=0;j<data[1].numInstances();j++)
+                p.writeLine(predictions[j][0]+","+predictions[j][1]);
+            
 //            of.writeString(foldAcc[i]+",");
 
         }catch(Exception e)
@@ -646,12 +680,13 @@ public class Experiments extends Thread{
                 System.out.println(" Error ="+e+" in method simpleExperiment"+e);
                 e.printStackTrace();
                 System.out.println(" TRAIN "+train.relationName()+" has "+train.numAttributes()+" attributes and "+train.numInstances()+" instances");
-                System.out.println(" TEST "+test.relationName()+" has "+test.numAttributes()+" attributes"+test.numInstances()+" instances");
+                System.out.println(" TEST "+test.relationName()+" has "+test.numAttributes()+" attributes and "+test.numInstances()+" instances");
 
                 System.exit(0);
         }
          return acc;
     }
+
     public static void testACC() throws Exception{
 //Load a classifier
         String problem="ItalyPowerDemand";
@@ -763,7 +798,7 @@ public class Experiments extends Thread{
 
 
 public static void main(String[] args) throws Exception{
-        
+     
         try{
             if(args.length>0){ //Cluster run
                 for (int i = 0; i < args.length; i++) {
@@ -779,18 +814,18 @@ public static void main(String[] args) throws Exception{
    //Local threaded run    
                 DataSets.resultsPath="C:/Users/ajb/Dropbox/Big TSC Bake Off/New Results/";
                 DataSets.problemPath=DataSets.dropboxPath+"TSC Problems/";
-                String classifier="TSBF";
-                threadedSingleClassifierZeroFold(classifier);
-                System.exit(0);
+                String classifier="PS_TSF";
+//                threadedSingleClassifierZeroFold(classifier);
+//                System.exit(0);
 //                String problem;
 //// TSF    FordA 15, FordB 16, HandOutlines 15, Mallat 85, NonInvasiveFatalECGThorax1 13, NonInvasiveFatalECGThorax2 13,
 ////     Phoneme 63, ShapesAll 53, StarlightCurves13,  UWaveGestureLibraryX 74, UWaveGestureLibraryY 75
 ////     UWaveGestureLibraryZ 75, UWaveGestureLibraryAll22
 ////             String problem="UWaveGestureLibraryY"; 68
-//                problem="Wafer";
+                String problem="ItalyPowerDemand";
 //                System.out.println("Problem ="+problem);
 //                DataSets.resultsPath+=getFolder(classifier)+"/";
-//                threadedSingleClassifierSingleProblem(classifier,problem,100,1);
+                threadedSingleClassifierSingleProblem(classifier,problem,100,1);
 //                System.out.println("Finished");
             }
         }catch(Exception e){
@@ -805,6 +840,42 @@ public static void main(String[] args) throws Exception{
                 if(classifiers[i][j].equals(classifier))
                     return directoryNames[i];
         return null;
+    }
+    public static void sparseInstanceCheck() throws Exception{
+        Instances train=ClassifierTools.loadData(DataSets.problemPath+"ItalyPowerDemand\\ItalyPowerDemand_TRAIN");
+        BagOfPatternsFilter bop=new  BagOfPatternsFilter(2,4,8);
+        Instances transformedBOP = bop.process(train);
+        System.out.println("SAX Instances atts: "+transformedBOP.numAttributes());
+        System.out.println("SAX Single Instance atts: "+transformedBOP.instance(0).numAttributes());
+        System.exit(0);
+
+
+//  Check to see if numAttributes() is broken in Instances with SparseInstance
+        int numFeatures=4; 
+        //Set up instances size and format. 
+        FastVector atts=new FastVector();
+        String name;
+        for(int j=0;j<numFeatures;j++){
+                name = "Feature"+j;
+                atts.addElement(new Attribute(name));
+        }
+        //Get the class values as a fast vector			
+        Attribute target =new Attribute("classValue");
+        atts.addElement(target);
+//create blank instances with a class value              
+        Instances result = new Instances("Temp",atts,0);
+        result.setClassIndex(result.numAttributes()-1);
+        for(int i=0;i<20;i++){
+            SparseInstance in=new SparseInstance(result.numAttributes());
+            result.add(in);
+        }
+        System.out.println("SPARSE: number of atts ="+result.numAttributes());
+        System.out.println("SPARSE: number of atts instance 0 ="+result.instance(0).numAttributes());
+        System.out.println("SPARSE: class index ="+result.instance(0).classIndex());
+        
+        
+        
+        
     }
 
 }

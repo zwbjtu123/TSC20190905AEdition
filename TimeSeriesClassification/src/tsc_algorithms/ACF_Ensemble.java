@@ -17,18 +17,6 @@ import weka.filters.timeseries.ACF;
 
 /**
  *
- * @author ajb
- * 
- * Need to save the WE components in :
- * [path]ACF/[classifier]
-  * TRAINACC
-  * index, actual/predicted
-  * 
-e.g.
-0.969
-0,0.0/0.0
-1,0.0/0.0
-
 easiest way to generate these is to deconstruct the weighted ensemble.  
  */
 public class ACF_Ensemble extends AbstractClassifier implements SaveableEnsemble{

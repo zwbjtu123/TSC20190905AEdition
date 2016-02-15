@@ -23,6 +23,7 @@ import weka.classifiers.functions.SMO;
 import weka.classifiers.functions.supportVector.PolyKernel;
 import weka.classifiers.lazy.kNN;
 import weka.classifiers.meta.RotationForest;
+import weka.classifiers.rules.ZeroR;
 import weka.classifiers.trees.EnhancedRandomForest;
 import weka.classifiers.trees.J48;
 import weka.classifiers.trees.RandomForest;
@@ -137,7 +138,9 @@ tation Forest [30] (with 10 trees), and a Bayesian network.
             
             classifiers.add(new NaiveBayes());
             names.add("NB");
-            classifiers.add(new J48());
+            J48 tree = new J48();
+//            tree.setMinNumObj(5);
+            classifiers.add(tree);
             names.add("C45");
             SMO svm=new SMO();
             PolyKernel kernel = new PolyKernel();
@@ -193,6 +196,8 @@ tation Forest [30] (with 10 trees), and a Bayesian network.
     @Override
     public void buildClassifier(Instances data) throws Exception {
         train = data;
+        
+        
         if(data.numInstances()>500 || data.numAttributes()>500)
             MAX_NOS_FOLDS=10;
         OutFile of=null;
@@ -250,10 +255,33 @@ tation Forest [30] (with 10 trees), and a Bayesian network.
                         folds=MAX_NOS_FOLDS;
 //Hugely memory intensive, so clean up if required
 //The CV could be done much more efficiently in memory
-                    eval.crossValidateModel(c[i],train,folds,r);
-                    cvAccs[i]=1-eval.errorRate();
+/*There is an unusual problem with NB  and BN. If a subsample has a flat feature
+(or almost flat) the discretisation fails. The hack to sort this is just to ignore
+   these classifiers if it is the case
+                    */
+                    try{    
+                        eval.crossValidateModel(c[i],train,folds,r);
+                        cvAccs[i]=1-eval.errorRate();
+                        c[i].buildClassifier(train);
+                    }catch(Exception e){
+                        System.out.println("Caught illegal argument exception "+e);
+                        cvAccs[i]=0;    //Dont use the classifier
+//Need something there just so it does not crash later
+//But it will never be used                        
+                        c[i]=new ZeroR();
+                        c[i].buildClassifier(train);
+                    }
+/*                    catch(Error e){
+// This is really bad practice, but WEKA ibk throws one of these for 
+//reasons I'm not sure. However, it might completely screw up the system if an 
+//out of memory error is thrown? DONT LEAVE THIS IN                        
+                        System.out.println("Caught an ERROR!?! "+e);
+                        cvAccs[i]=0;               
+                        c[i]=new J48();
+                        c[i].buildClassifier(train);
+                    }
+                        */                         
                     sum+=cvAccs[i];
-                    c[i].buildClassifier(train);
                     if(memoryClean)
                         System.gc();
                 }

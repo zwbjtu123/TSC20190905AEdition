@@ -19,7 +19,7 @@ import weka.core.Capabilities;
 import weka.core.Instance;
 import weka.core.Instances;
 
-public class LearnShapelets extends AbstractClassifier implements ParameterSplittable{
+public class LearnShapeletsFeb2015Version extends AbstractClassifier implements ParameterSplittable{
 
     long seed;
     
@@ -115,7 +115,7 @@ public class LearnShapelets extends AbstractClassifier implements ParameterSplit
     double maxAcc;
     
     // constructor
-    public LearnShapelets() {
+    public LearnShapeletsFeb2015Version() {
     }
     
     public void setSeed(long seed)
@@ -463,10 +463,7 @@ public class LearnShapelets extends AbstractClassifier implements ParameterSplit
             paramsLambdaW=lambdaWRange;
             paramsPercentageOfSeriesLength=percentageOfSeriesLengthRange;
             paramsShapeletLengthScale=shapeletLengthScaleRange;
-            Random r=new Random();
-            sample=InstanceTools.subSample(data,data.numInstances()/10, r.nextInt());
-//Hope to speed it up!            
-//            maxIter = 200;
+            sample=data;
         }else{// Hack to minimize changes to the method below
             paramsLambdaW=new double[1];
             paramsLambdaW[0]=lambdaW;
@@ -727,7 +724,7 @@ public class LearnShapelets extends AbstractClassifier implements ParameterSplit
         Instances testSet = utilities.ClassifierTools.loadData(samplePath + "_TEST");
         Instances trainSet = utilities.ClassifierTools.loadData(samplePath + "_TRAIN");        
 
-        LearnShapelets ls = new LearnShapelets();
+        LearnShapeletsFeb2015Version ls = new LearnShapeletsFeb2015Version();
         ls.setSeed(0);
         ls.buildClassifier(trainSet);
         double accuracy = utilities.ClassifierTools.accuracy(testSet, ls);

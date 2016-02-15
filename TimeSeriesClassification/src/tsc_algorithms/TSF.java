@@ -35,10 +35,13 @@ as
 margin= min{ |f_i-v| } 
  **/ 
 
+import fileIO.OutFile;
 import java.util.ArrayList;
 import java.util.Random;
 import utilities.ClassifierTools;
+import utilities.SaveCVAccuracy;
 import weka.classifiers.AbstractClassifier;
+import weka.classifiers.Evaluation;
 import weka.classifiers.trees.RandomForest;
 import weka.classifiers.trees.RandomTree;
 import weka.core.Attribute;
@@ -52,13 +55,20 @@ import weka.core.TechnicalInformation;
 
 
  */
-public class TSF extends AbstractClassifier{
+public class TSF extends AbstractClassifier implements SaveCVAccuracy{
     RandomTree[] trees;
     int numTrees=500;
     int numFeatures;
     int[][][] intervals;
     Random rand;
     Instances testHolder;
+    boolean trainCV=false;//Cannot do this unless the strings below are set
+/* Train results are overwritten with each call to buildClassifier
+    File opened on this path.   */    
+    String trainCVPath;
+   
+    
+    
     public TSF(){
         rand=new Random();
     }
@@ -66,6 +76,20 @@ public class TSF extends AbstractClassifier{
         rand=new Random();
         rand.setSeed(seed);
     }
+    
+    @Override
+    public void setCVPath(String train) {
+        trainCVPath=train;
+        trainCV=true;
+    }
+
+    @Override
+    public String getParameters() {
+        return "numTrees,"+numTrees+"numFeatures,"+numFeatures;
+    }
+    
+    
+    
 //<editor-fold defaultstate="collapsed" desc="results reported in Info Sciences paper">        
     static double[] reportedResults={
         0.2659,
@@ -184,6 +208,24 @@ public class TSF extends AbstractClassifier{
       
     @Override
     public void buildClassifier(Instances data) throws Exception {
+        
+         if(trainCV){
+            int folds=setNumberOfFolds(data);
+            OutFile of=new OutFile(trainCVPath);
+           of.writeLine("TSF");
+    //Estimate train accuracy HERE
+            TSF tsf=new TSF();
+            double[][] results=ClassifierTools.crossValidationWithStats(tsf, data, folds);
+            of.writeLine(getParameters());
+            of.writeLine(results[0][0]+"");
+            for(int i=1;i<results.length;i++)
+                of.writeLine(results[0][i]+","+results[1][i]);
+            System.out.println("CV acc ="+results[0][0]);
+        }
+       
+        
+        
+        
         numFeatures=(int)Math.sqrt(data.numAttributes()-1);
         intervals =new int[numTrees][][];
         trees=new RandomTree[numTrees];
@@ -249,10 +291,10 @@ public class TSF extends AbstractClassifier{
     }
 
     @Override
-    public double classifyInstance(Instance data) throws Exception {
-        int[] votes=new int[data.numClasses()];
+    public double classifyInstance(Instance ins) throws Exception {
+        int[] votes=new int[ins.numClasses()];
 //Build instance
-        double[] series=data.toDoubleArray();
+        double[] series=ins.toDoubleArray();
         for(int i=0;i<trees.length;i++){
             for(int j=0;j<numFeatures;j++){
                     //extract the interval
@@ -272,20 +314,8 @@ public class TSF extends AbstractClassifier{
                maxVote=i;
         return maxVote;
     }
-  
-    
-    public static class DengTree extends AbstractClassifier{
-        int numIntervals=20;
-        int[][] boundaries; 
-        @Override
-        public void buildClassifier(Instances data) throws Exception {
-            boundaries=new int[data.numAttributes()-1][numIntervals];
-        }
-    
-        
-        
-    }
-    
+
+
     public static class FeatureSet{
         double mean;
         double stDev;
@@ -336,6 +366,9 @@ public class TSF extends AbstractClassifier{
         Instances train=ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\TSC Problems\\ItalyPowerDemand\\ItalyPowerDemand_TRAIN");
         Instances test=ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\TSC Problems\\ItalyPowerDemand\\ItalyPowerDemand_TEST");
         TSF tsf = new TSF();
+        tsf.setCVPath("C:\\Users\\ajb\\Dropbox\\Spectral Interval Experiments\\RIF\\Predictions\\InternalCV0.csv");
+        
+        
         tsf.buildClassifier(train);
         System.out.println("build ok: original atts="+train.numAttributes()+" new atts ="+tsf.testHolder.numAttributes());
         double a=ClassifierTools.accuracy(test, tsf);
