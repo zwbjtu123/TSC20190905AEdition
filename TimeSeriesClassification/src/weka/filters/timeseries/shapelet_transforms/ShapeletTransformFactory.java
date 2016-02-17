@@ -14,8 +14,11 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Random;
 import utilities.ClassifierTools;
+import utilities.Pair;
 import weka.core.Instances;
 import weka.core.shapelet.*;
 import weka.filters.timeseries.shapelet_transforms.classValue.BinarisedClassValue;
@@ -29,10 +32,95 @@ import weka.filters.timeseries.shapelet_transforms.subsequenceDist.OnlineSubSeqD
  */
 public class ShapeletTransformFactory
 {
-
+    
+    //we create the Map using params jon found.
+    //lazy way to avoid reading a text file. 
+    //i did not write this code by hand.
+    //it is immutable.
+    public static final Map<String, Pair<Integer, Integer>> shapeletParams;
+    static{
+        shapeletParams = new HashMap<>();
+        shapeletParams.put("Adiac", new Pair(3,10));
+        shapeletParams.put("ArrowHead", new Pair(17,90));
+        shapeletParams.put("Beef", new Pair(8,30));
+        shapeletParams.put("BeetleFly", new Pair(30,101));
+        shapeletParams.put("BirdChicken", new Pair(30,101));
+        shapeletParams.put("Car", new Pair(16,57));
+        shapeletParams.put("CBF", new Pair(46,90));
+        shapeletParams.put("ChlorineConcentration", new Pair(7,20));
+        shapeletParams.put("CinCECGtorso", new Pair(697,814));
+        shapeletParams.put("Coffee", new Pair(18,30));
+        shapeletParams.put("Computers", new Pair(15,267));
+        shapeletParams.put("CricketX", new Pair(120,255));
+        shapeletParams.put("CricketY", new Pair(132,262));
+        shapeletParams.put("CricketZ", new Pair(118,257));
+        shapeletParams.put("DiatomSizeReduction", new Pair(7,16));
+        shapeletParams.put("DistalPhalanxOutlineAgeGroup", new Pair(7,31));
+        shapeletParams.put("DistalPhalanxOutlineCorrect", new Pair(6,16));
+        shapeletParams.put("DistalPhalanxTW", new Pair(17,31));
+        shapeletParams.put("Earthquakes", new Pair(24,112));
+        shapeletParams.put("ECGFiveDays", new Pair(24,76));
+        shapeletParams.put("FaceAll", new Pair(70,128));
+        shapeletParams.put("FaceFour", new Pair(20,120));
+        shapeletParams.put("FacesUCR", new Pair(47,128));
+        shapeletParams.put("Fiftywords", new Pair(170,247));
+        shapeletParams.put("Fish", new Pair(22,60));
+        shapeletParams.put("FordA", new Pair(50,298));
+        shapeletParams.put("FordB", new Pair(38,212));
+        shapeletParams.put("GunPoint", new Pair(24,55));
+        shapeletParams.put("Haptics", new Pair(21,103));
+        shapeletParams.put("Herrings", new Pair(30,101));
+        shapeletParams.put("InlineSkate", new Pair(750,896));
+        shapeletParams.put("ItalyPowerDemand", new Pair(7,14));
+        shapeletParams.put("LargeKitchenAppliances", new Pair(13,374));
+        shapeletParams.put("Lightning2", new Pair(47,160));
+        shapeletParams.put("Lightning7", new Pair(20,80));
+        shapeletParams.put("Mallat", new Pair(52,154));
+        shapeletParams.put("MedicalImages", new Pair(9,35));
+        shapeletParams.put("MiddlePhalanxOutlineAgeGroup", new Pair(8,31));
+        shapeletParams.put("MiddlePhalanxOutlineCorrect", new Pair(5,12));
+        shapeletParams.put("MiddlePhalanxTW", new Pair(7,31));
+        shapeletParams.put("MoteStrain", new Pair(16,31));
+        shapeletParams.put("NonInvasiveFatalECGThorax1", new Pair(5,61));
+        shapeletParams.put("NonInvasiveFatalECGThorax2", new Pair(12,58));
+        shapeletParams.put("OliveOil", new Pair(8,27));
+        shapeletParams.put("OSULeaf", new Pair(141,330));
+        shapeletParams.put("PhalangesOutlinesCorrect", new Pair(5,14));
+        shapeletParams.put("Plane", new Pair(18,109));
+        shapeletParams.put("ProximalPhalanxOutlineAgeGroup", new Pair(7,31));
+        shapeletParams.put("ProximalPhalanxOutlineCorrect", new Pair(5,12));
+        shapeletParams.put("ProximalPhalanxTW", new Pair(9,31));
+        shapeletParams.put("PtNDeviceGroups", new Pair(51,261));
+        shapeletParams.put("PtNDevices", new Pair(100,310));
+        shapeletParams.put("RefrigerationDevices", new Pair(13,65));
+        shapeletParams.put("ScreenType", new Pair(11,131));
+        shapeletParams.put("ShapeletSim", new Pair(25,35));
+        shapeletParams.put("SmallKitchenAppliances", new Pair(31,443));
+        shapeletParams.put("SonyAIBORobotSurface1", new Pair(15,36));
+        shapeletParams.put("SonyAIBORobotSurface2", new Pair(22,57));
+        shapeletParams.put("StarlightCurves", new Pair(68,650));
+        shapeletParams.put("SwedishLeaf", new Pair(11,45));
+        shapeletParams.put("Symbols", new Pair(52,155));
+        shapeletParams.put("SyntheticControl", new Pair(20,56));
+        shapeletParams.put("ToeSegmentation1", new Pair(39,153));
+        shapeletParams.put("ToeSegmentation2", new Pair(100,248));
+        shapeletParams.put("Trace", new Pair(62,232));
+        shapeletParams.put("TwoLeadECG", new Pair(7,13));
+        shapeletParams.put("TwoPatterns", new Pair(20,71));
+        shapeletParams.put("UWaveGestureLibraryX", new Pair(113,263));
+        shapeletParams.put("UWaveGestureLibraryY", new Pair(122,273));
+        shapeletParams.put("UWaveGestureLibraryZ", new Pair(135,238));
+        shapeletParams.put("Wafer", new Pair(29,152));
+        shapeletParams.put("WordSynonyms", new Pair(137,238));
+        shapeletParams.put("Worms", new Pair(93,382));
+        shapeletParams.put("WormsTwoClass", new Pair(46,377));
+        shapeletParams.put("Yoga", new Pair(12,132));
+        Collections.unmodifiableMap(shapeletParams);
+    }
+    
     public static final double MEM_CUTOFF = 0.5;
-    public static final int MAX_NOS_SHAPELETS = 1000;
-
+    public static final int MAX_NOS_SHAPELETS = 1000;    
+    
     public FullShapeletTransform createCachedTransform()
     {
         FullShapeletTransform st = new FullShapeletTransform();
@@ -47,6 +135,7 @@ public class ShapeletTransformFactory
         return st;
     }
     
+    //TODO: Improve heavily.
     public FullShapeletTransform createTransform(Instances train)
     {
         //Memory in bytes available        
@@ -160,7 +249,7 @@ public class ShapeletTransformFactory
         return estimateMinAndMax(data, new FullShapeletTransform());
     }
     
-        //Class implementing comparator which compares shapelets according to their length
+    //Class implementing comparator which compares shapelets according to their length
     public static class ShapeletLengthComparator implements Comparator<Shapelet>{
    
         @Override
@@ -217,8 +306,11 @@ public class ShapeletTransformFactory
     }
     
     
+    
+    
+    
     public static void main(String[] args) throws IOException
-    {       
+    {                 
         String dirPath = "D:\\Dropbox\\TSC Problems (1)\\";
         File dir  = new File(dirPath);
         for(File dataset : dir.listFiles()){
@@ -232,6 +324,7 @@ public class ShapeletTransformFactory
             long ops = calculateOperations(train, 3, train.numAttributes()-1);
             
             System.out.printf("%s,%d,%d\n",dataset.getName(),shapelets, ops);
-        } 
+        }
     }
+    
 }

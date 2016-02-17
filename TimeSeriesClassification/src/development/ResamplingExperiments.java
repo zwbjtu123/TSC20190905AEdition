@@ -19,6 +19,7 @@ import java.util.Scanner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import tsc_algorithms.FastShapelets;
+import tsc_algorithms.LearnShapelets;
 import tsc_algorithms.LearnShapeletsFeb2015Version;
 import utilities.ClassifierTools;
 import utilities.InstanceTools;

@@ -18,10 +18,9 @@ import java.util.Scanner;
 public class ProcessSpeedAndAccuracyFiles {
     
     public static void main(String[] args) throws IOException{
-        String filePath = "D:/Experiments";
+        String filePath = "C:/LocalData/Experiments";
         File dir = new File(filePath);
-        
-        
+
         File output = new File(filePath + "/accuracy.csv");
         output.createNewFile();
         PrintWriter outputAccuracy = new PrintWriter(output);

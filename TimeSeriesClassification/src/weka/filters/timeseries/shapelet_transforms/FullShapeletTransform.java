@@ -10,7 +10,6 @@
  */
 package weka.filters.timeseries.shapelet_transforms;
 
-import development.Aaron.LocalInfo;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileReader;
@@ -18,24 +17,19 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Scanner;
 import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import utilities.ClassifierTools;
-import utilities.InstanceTools;
 import utilities.class_distributions.ClassDistribution;
-import weka.classifiers.meta.timeseriesensembles.WeightedEnsemble;
 import weka.core.*;
 import weka.core.shapelet.*;
 import weka.filters.SimpleBatchFilter;
 import weka.filters.timeseries.shapelet_transforms.classValue.BinarisedClassValue;
 import weka.filters.timeseries.shapelet_transforms.classValue.NormalClassValue;
 import weka.filters.timeseries.shapelet_transforms.searchFuntions.ShapeletSearch;
-import weka.filters.timeseries.shapelet_transforms.searchFuntions.ShapeletSearch.ProcessCandidate;
 import weka.filters.timeseries.shapelet_transforms.subsequenceDist.ImprovedOnlineSubSeqDistance;
 import weka.filters.timeseries.shapelet_transforms.subsequenceDist.SubSeqDistance;
 

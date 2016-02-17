@@ -12,12 +12,14 @@ import java.io.PrintWriter;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import utilities.ClassifierTools;
+import utilities.Pair;
 import weka.classifiers.meta.timeseriesensembles.WeightedEnsemble;
 import weka.core.Instances;
 import weka.filters.timeseries.shapelet_transforms.BalancedClassShapeletTransform;
 import weka.filters.timeseries.shapelet_transforms.FullShapeletTransform;
 import static weka.filters.timeseries.shapelet_transforms.ShapeletTransformFactory.calculateNumberOfShapelets;
 import static weka.filters.timeseries.shapelet_transforms.ShapeletTransformFactory.calculateOperations;
+import static weka.filters.timeseries.shapelet_transforms.ShapeletTransformFactory.shapeletParams;
 import weka.filters.timeseries.shapelet_transforms.classValue.BinarisedClassValue;
 import weka.filters.timeseries.shapelet_transforms.classValue.NormalClassValue;
 import weka.filters.timeseries.shapelet_transforms.subsequenceDist.ImprovedOnlineSubSeqDistance;
@@ -35,7 +37,7 @@ public class SpeedAndAccuracyExperiments {
     public static final long opCountThreshold = 10000000000000l; 
     
     protected static enum Parameters{
-        standard, prune, pruneRobin, pruneRobinOnline, pruneRobinImpOnline, pruneRobinImpOnlineBinary, all
+        standard, prune, pruneRobin, pruneRobinOnline, pruneRobinImpOnline, pruneRobinImpOnlineBinary, all, jonParams
     }
     
     
@@ -44,7 +46,7 @@ public class SpeedAndAccuracyExperiments {
         String dataset = development.DataSets.fileNames[Integer.parseInt(args[0])-1];
         int value = Integer.parseInt(args[1]);
         
-        String windowsDir = "";//Dropbox/";
+        String windowsDir = "Dropbox/";
         
         String dirPath = "../../" + windowsDir + "TSC Problems (1)/";
         File dir  = new File(dirPath);
@@ -65,13 +67,13 @@ public class SpeedAndAccuracyExperiments {
             logFile.createNewFile();
         }
         
-        experiments(logFile, train, test, value);
+        experiments(logFile, train, test, value, dataset);
     }
     
     
-    public static void experiments(File logFile, Instances train, Instances test, int value){
+    public static void experiments(File logFile, Instances train, Instances test, int value, String dataset){
         try {
-            FullShapeletTransform fst = constructTransform(Parameters.values()[value], train);
+            FullShapeletTransform fst = constructTransform(Parameters.values()[value], train, dataset);
             
             Instances processedTrain    = fst.process(train);
             
@@ -95,7 +97,7 @@ public class SpeedAndAccuracyExperiments {
         }
     }
     
-    public static FullShapeletTransform constructTransform(Parameters value, Instances train){
+    public static FullShapeletTransform constructTransform(Parameters value, Instances train, String dataset){
         switch(value)  {    
             case standard:
                 return createTransform(train, new FullShapeletTransform(), false, false, new NormalClassValue(), new SubSeqDistance());
@@ -109,6 +111,11 @@ public class SpeedAndAccuracyExperiments {
                 return createTransform(train, new FullShapeletTransform(), true, true, new NormalClassValue(), new ImprovedOnlineSubSeqDistance());
             case pruneRobinImpOnlineBinary:
                 return createTransform(train, new FullShapeletTransform(), true, true, new BinarisedClassValue(), new ImprovedOnlineSubSeqDistance());
+            case jonParams:
+                FullShapeletTransform fst =  createTransform(train, new FullShapeletTransform(), false, false, new NormalClassValue(), new SubSeqDistance());  
+                Pair<Integer, Integer> p = shapeletParams.get(dataset);
+                fst.setShapeletMinAndMax(p.var1, p.var2);
+                return fst;
             default: case all:
                 return createTransform(train, new BalancedClassShapeletTransform(), true, true, new BinarisedClassValue(), new ImprovedOnlineSubSeqDistance());
         }
