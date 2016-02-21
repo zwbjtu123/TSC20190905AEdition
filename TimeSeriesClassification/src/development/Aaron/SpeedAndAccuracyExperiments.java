@@ -9,6 +9,9 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import utilities.ClassifierTools;
@@ -46,7 +49,7 @@ public class SpeedAndAccuracyExperiments {
         String dataset = development.DataSets.fileNames[Integer.parseInt(args[0])-1];
         int value = Integer.parseInt(args[1]);
         
-        String windowsDir = "Dropbox/";
+        String windowsDir = "";//Dropbox/";
         
         String dirPath = "../../" + windowsDir + "TSC Problems (1)/";
         File dir  = new File(dirPath);
@@ -67,30 +70,34 @@ public class SpeedAndAccuracyExperiments {
             logFile.createNewFile();
         }
         
-        experiments(logFile, train, test, value, dataset);
+        //transform
+        FullShapeletTransform fst = constructTransform(Parameters.values()[value], train, dataset);
+        Instances processedTrain    = fst.process(train);
+
+        String write = Parameters.values()[value] + "," + fst.getCount();
+        Instances processedTest =  fst.process(test);
+        
+        //write out the data to a file.
+        Files.write(Paths.get(logFile.getAbsolutePath()), write.getBytes(), StandardOpenOption.APPEND);
+        
+        //run the accuracys 30times.
+        for(int i=0; i<30; i++)
+            experiments(logFile, processedTrain, processedTest, value);
     }
     
     
-    public static void experiments(File logFile, Instances train, Instances test, int value, String dataset){
+    public static void experiments(File logFile, Instances train, Instances test, int value){
         try {
-            FullShapeletTransform fst = constructTransform(Parameters.values()[value], train, dataset);
-            
-            Instances processedTrain    = fst.process(train);
-            
-            String write = Parameters.values()[value] + "," + fst.getCount();
-            Instances processedTest     =  fst.process(test);
-            
+
             WeightedEnsemble we = new WeightedEnsemble();
             we.setWeightType("prop");
-            we.buildClassifier(processedTrain);
+            we.buildClassifier(train);
             
-            double accuracy = utilities.ClassifierTools.accuracy(processedTest, we);
-            write += "," + accuracy;
+            double accuracy = utilities.ClassifierTools.accuracy(test, we);
+            String write = "," + accuracy;
             System.out.print(write);
             
-            try (PrintWriter pw = new PrintWriter(logFile)) {
-                pw.print(write);
-            }
+            Files.write(Paths.get(logFile.getAbsolutePath()), write.getBytes(), StandardOpenOption.APPEND);
                 
         } catch (Exception ex) {
             System.out.println("Exception " + ex);
