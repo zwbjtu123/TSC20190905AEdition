@@ -1,19 +1,21 @@
 /*
 
  */
-package bakeOffExperiments;
+package PS_ACF_experiments;
 
-import PS_ACF_experiments.FixedIntervalForest;
 import utilities.SaveCVAccuracy;
+import bakeOffExperiments.*;
 import tsc_algorithms.*;
 import development.DataSets;
 import fileIO.InFile;
 import fileIO.OutFile;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.util.*;
 import utilities.ClassifierTools;
 import utilities.InstanceTools;
 import weka.classifiers.AbstractClassifier;
@@ -90,37 +92,16 @@ public class Experiments extends Thread{
             of.writeString(problem+",");
             double[] folds=resampleExperiment(train,test,c,100,of,preds);
             of.writeString("\n");
+            double mean=0;
+            for(double d:folds)
+                mean+=d;
+            System.out.println(" mean acc="+mean/folds.length);
         }
     }
    
 //All classifier names  
     //<editor-fold defaultstate="collapsed" desc="Directory names for all classifiers">   
-    static String[] standard={"NB","C45","SVML","SVMQ","Logistic","BN","RandF","RotF","MLP"};
-    static String[] elastic = {"Euclidean_1NN","DTW_R1_1NN","DTW_Rn_1NN","DDTW_R1_1NN","DDTW_Rn_1NN","ERP_1NN","LCSS_1NN","MSM_1NN","TWE_1NN","WDDTW_1NN","WDTW_1NN","DD_DTW","DTD_C","DTW_F"};
-    static String[] shapelet={"ST","LS","FS"};
-    static String[] dictionary={"BoP","SAXVSM","BOSS"};
-    static String[] interval={"TSF","TSBF","LPS"};
-    static String[] ensemble={"ACF","PS","EE","COTE"};
-    static String[] complexity={"CID_DTW"};
-    static String[][] classifiers={standard,elastic,shapelet,dictionary,interval,ensemble,complexity};
-    static final String[] directoryNames={"standard","elastic","shapelet","dictionary","interval","ensemble","complexity"};
-      //</editor-fold> 
-    public static int numClassifiers(){
-        int sum=classifiers[0].length;
-        for(int i=1;i<classifiers.length;i++)
-            sum+=classifiers[i].length;
-        return sum;
-    }
-    public static String[] allClassifiers(){
-        String[] all=new String[numClassifiers()];
-        int count=0;
-        for(int i=0;i<classifiers.length;i++){
-            for(int j=0;j<classifiers[i].length;j++)
-                all[count++]=classifiers[i][j];
-        }
-        return all;
-    }
-    
+
     
     //Global file to write to 
     static OutFile out;
@@ -128,78 +109,17 @@ public class Experiments extends Thread{
     public static Classifier setClassifier(String classifier){
         Classifier c=null;
         switch(classifier){
-            case "PS_TSF":
+            case "RIF_PS":
+                c=new RandomIntervalForest();
+                ((RandomIntervalForest)c).setFilter("PS");
+                break;
+            case "RIF_ACF":
+                c=new RandomIntervalForest();
+                ((RandomIntervalForest)c).setFilter("ACF");
+                break;
+            case "FixedIntervalForest":
                 c=new FixedIntervalForest();
-                break;
-            case "C45":
-                c=new J48();
-                break;
-            case "NB":
-                c=new NaiveBayes();
-                break;
-            case "SVML":
-                c=new SMO();
-                PolyKernel p=new PolyKernel();
-                p.setExponent(1);
-                ((SMO)c).setKernel(p);
-                break;
-            case "SVMQ":
-                c=new SMO();
-                PolyKernel p2=new PolyKernel();
-                p2.setExponent(2);
-                ((SMO)c).setKernel(p2);
-                break;
-            case "BN":
-                c=new BayesNet();
-                break;
-            case "MLP":
-                c=new MultilayerPerceptron();
-                break;
-            case "RandF":
-                c= new RandomForest();
-//                ((RandomForest)c).setNumTrees(500);
-                break;
-            case "RotF":
-                  c= new OptimisedRotationForest();
-//              c= new RotationForest();
-  //              ((RotationForest)c).setNumIterations(50);
-                break;
-            case "Logistic":
-                c= new Logistic();
-                break;
-            case "CID_DTW":
-                c=new NN_CID();
-                ((NN_CID)c).useDTW();
-                break;
-            case "LearnShapelets": case "LS":
-                c=new LearnShapelets();
-                ((LearnShapelets)c).setParamSearch(false);
-                break;
-            case "FastShapelets": case "FS":
-                c=new FastShapelets();
-                break;
-            case "ShapeletTransform": case "ST": case "ST_Ensemble":
-//Assumes the transformed files will be loaded from the new data path
-                c=new ST_Ensemble();
-                ((ST_Ensemble)c).doSTransform(true);
-                break;
-            case "DTW":
-                c=new DTW_1NN();
-                ((DTW_1NN)c).setR(1.0);
-                ((DTW_1NN)c).optimiseWindow(false);
-                break;
-            case "DTWCV":
-                c=new DTW_1NN();
-                ((DTW_1NN)c).optimiseWindow(true);
-                break;
-            case "DD_DTW":
-                c=new DD_DTW();
-                break;
-            case "DTD_C":
-                c=new DTD_C();
-                break;
-            case "TSF":
-                c=new TSF();
+                ((FixedIntervalForest)c).useCV(true);
                 break;
             case "ACF":
                 c=new ACF_Ensemble();
@@ -209,17 +129,8 @@ public class Experiments extends Thread{
                 c=new PS_Ensemble();
                 ((PS_Ensemble)c).setClassifierType("WE");
                 break;
-            case "TSBF":
-                c=new TSBF();
-                break;
-            case "BOP": case "BoP": case "BagOfPatterns":
-                c=new BagOfPatterns();
-                break;
              case "BOSS": case "BOSSEnsemble": 
                 c=new BOSSEnsemble();
-                break;
-             case "SAXVSM": case "SAX": 
-                c=new SAXVSM();
                 break;
              case "LPS":
                 c=new LPS();
@@ -286,59 +197,6 @@ public class Experiments extends Thread{
             out.writeString(accs[i]+",");
         }
     }
- //Do a single  classifiers for zero fold   
-//Classifiers that need zero repeated    
-/*    static String[] standard={"NB","C45","SVML","SVMQ","Logistic","BayesNet","RandF","RotF","MLP"};
-    static String[] elastic = {"DD_DTW","DTD_C"};
-    static String[] interval={"TSF","TSBF","LPS"};
-    static String[] complexity={"CID_ED","CID_DTW","RPCD"};
-*/    
-    public static void threadedSingleClassifierZeroFold(String classifier) throws Exception{
-        System.out.println("ZERO FOLD FOR CLASSIFIER "+classifier);
-        String directory=getFolder(classifier);
-        Thread[] exp=new Thread[DataSets.fileNames.length];
-        for(int i=0;i<DataSets.fileNames.length;i++){
-            String problem=DataSets.fileNames[i];
-            File f=new File(DataSets.resultsPath+directory+"\\"+classifier);
-            if(!f.exists())
-                f.mkdir();
-            String predictions=DataSets.resultsPath+directory+"\\"+classifier+"\\Predictions";
-            f=new File(predictions);
-            if(!f.exists())
-                f.mkdir();
-            predictions=predictions+"/"+problem;
-            f=new File(predictions);
-            if(!f.exists())
-                f.mkdir();
-//                Instances[] data=InstanceTools.resampleTrainAndTestInstances(train,test, i);
-            f=new File(predictions+"/"+"fold0.csv");
-            if(f.exists()){
-                InFile inf=new InFile(predictions+"/fold0.csv");
-                int size=inf.countLines();
-                if(size<CollateResults.testSizes[i]){
-                    inf.closeFile();
-                    f.delete();
-                    Instances train=ClassifierTools.loadData(DataSets.problemPath+problem+"/"+problem+"_TRAIN");
-                    Instances test=ClassifierTools.loadData(DataSets.problemPath+problem+"/"+problem+"_TEST");
-                    exp[i]=new Experiments(train,test,classifier,problem,predictions,1,0);
-                    System.out.println("\t INCOMPLETE: starting problem "+problem);
-                    exp[i].start();
-                }
-            }
-            else{
-                Instances train=ClassifierTools.loadData(DataSets.problemPath+problem+"/"+problem+"_TRAIN");
-                Instances test=ClassifierTools.loadData(DataSets.problemPath+problem+"/"+problem+"_TEST");
-                exp[i]=new Experiments(train,test,classifier,problem,predictions,1,0);
-                System.out.println("\tUNSTARTED starting problem "+problem);
-                exp[i].start();
-            }
-        }
-        for(int i=0;i<DataSets.fileNames.length;i++){
-            if(exp[i]!=null)
-                exp[i].join();
-        }
-    }
-    
     public static void singleClassifierZeroFold(String classifier, int prob) throws Exception{
         String problem=DataSets.fileNames[prob];
         System.out.println("ZERO FOLD FOR CLASSIFIER "+classifier+" problem "+problem);
@@ -353,7 +211,7 @@ public class Experiments extends Thread{
         f=new File(predictions);
         if(!f.exists())
             f.mkdir();
-        f=new File(predictions+"/"+"fold0.csv");
+        f=new File(predictions+"/"+"TestFold0.csv");
         if(f.exists())
             f.delete();
         Instances train=ClassifierTools.loadData(DataSets.problemPath+problem+"/"+problem+"_TRAIN");
@@ -361,6 +219,8 @@ public class Experiments extends Thread{
         OutFile p=new OutFile(predictions+"/"+"TestFold0.csv");
 // hack here to save internal CV for furhter ensembling         
         Classifier c=setClassifier(classifier);
+        if(c instanceof SaveCVAccuracy)
+           ((SaveCVAccuracy)c).setCVPath(predictions+"/internalCV_0.csv");
         if(c instanceof SaveableEnsemble)
            ((SaveableEnsemble)c).saveResults(predictions+"/internalCV_0.csv",predictions+"/internalTestPreds_0.csv");
         try{              
@@ -403,7 +263,7 @@ public class Experiments extends Thread{
                 Instances test=ClassifierTools.loadData(problem+"_TEST");
 //Check results directory exists                
                 thr[count]=new ThreadedClassifierExperiment(train,test,cls,problem,results);
-                thr[count].resamples=1;
+//                thr[count].resamples=1;
                 thr[count].start();
                 System.out.println(" started rep="+count);
                 count++;
@@ -472,6 +332,7 @@ public class Experiments extends Thread{
         folds=resampleExperiment(train,test,c,100,of,predictions);
         of.writeString("\n");
     }
+    
     public static void singleClassifierAndFoldAndParameter(String[] args) throws Exception{
 //first gives the problem file      
         String classifier=args[0];
@@ -534,7 +395,6 @@ public class Experiments extends Thread{
             
     }
     
-    
     public static void singleClassifierAndFold(String[] args){
 //first gives the problem file      
         String classifier=args[0];
@@ -556,22 +416,13 @@ public class Experiments extends Thread{
         if(!f.exists())
             f.mkdir();
 //Check whether fold already exists, if so, dont do it, just quit
-        f=new File(predictions+"/TestFold"+fold+".csv");
+        f=new File(predictions+"/fold"+fold+".csv");
         if(!f.exists() || f.length()==0){
       //      of.writeString(problem+","); );
             double acc=0;
             acc =singleSampleExperiment(train,test,c,fold,predictions);
-            if(c instanceof BagOfPatterns){//Save parameters
-                String params=DataSets.resultsPath+classifier+"/Params";
-                f=new File(params);
-                if(!f.exists())
-                   f.mkdir();
-                OutFile outp=new OutFile(params+"/paramsFold"+fold+".csv");
-                int[] p=((BagOfPatterns)c).getParameters();
-                for(int pa:p)
-                    outp.writeString(pa+",");
-                outp.closeFile();
-            }
+            
+            
  //       of.writeString("\n");
         }
     }
@@ -596,7 +447,7 @@ public class Experiments extends Thread{
 
        double[] foldAcc=new double[resamples];
         for(int i=0;i<resamples;i++){
-            File f=new File(preds+"/TestFold"+i+".csv");
+            File f=new File(preds+"/fold"+i+".csv");
             if(!f.exists() || f.length()==0){
             foldAcc[i]=singleSampleExperiment(train,test,c,i,preds);
                 of.writeString(foldAcc[i]+",");
@@ -613,12 +464,12 @@ public class Experiments extends Thread{
         
         double acc=0;
         double act,pred;
-        OutFile p=new OutFile(preds+"/TestFold"+sample+".csv");
-// hack here to save internal CV for furhter ensembling         
+        OutFile p=new OutFile(preds+"/fold"+sample+".csv");
+// hack here to save internal CV for furhter ensembling   
+        if(c instanceof SaveCVAccuracy)
+           ((SaveCVAccuracy)c).setCVPath(preds+"/internalCV_"+sample+".csv");       
         if(c instanceof SaveableEnsemble)
            ((SaveableEnsemble)c).saveResults(preds+"/internalCV_"+sample+".csv",preds+"/internalTestPreds_"+sample+".csv");
-        if(c instanceof SaveCVAccuracy)
-           ((SaveCVAccuracy)c).setCVPath(preds+"/TrainFold"+sample+"CV.csv");
         try{              
             c.buildClassifier(data[0]);
             for(int j=0;j<data[1].numInstances();j++)
@@ -641,6 +492,7 @@ public class Experiments extends Thread{
          return acc;
     }
 
+
     public static double singleSampleExperiment(Instances train, Instances test, Classifier c, int sample,String preds){
         Instances[] data=InstanceTools.resampleTrainAndTestInstances(train, test, sample);
         double acc=0;
@@ -653,7 +505,7 @@ public class Experiments extends Thread{
 
 // hack here to save internal CV for furhter ensembling   
         if(c instanceof SaveCVAccuracy)
-           ((SaveCVAccuracy)c).setCVPath(preds+"/TrainFold"+sample+"CV.csv");
+           ((SaveCVAccuracy)c).setCVPath(preds+"/internalCV_"+sample+".csv");
         
         if(c instanceof SaveableEnsemble)
            ((SaveableEnsemble)c).saveResults(preds+"/internalCV_"+sample+".csv",preds+"/internalTestPreds_"+sample+".csv");
@@ -685,7 +537,6 @@ public class Experiments extends Thread{
         }
          return acc;
     }
-
     public static void testACC() throws Exception{
 //Load a classifier
         String problem="ItalyPowerDemand";
@@ -791,55 +642,41 @@ public class Experiments extends Thread{
         }
 //            
     }
-    
-    
-
 
 
 public static void main(String[] args) throws Exception{
-     
-        try{
-            if(args.length>0){ //Cluster run
-                for (int i = 0; i < args.length; i++) {
-                    System.out.println("ARGS ="+i+" = "+args[i]);
-                }
-                DataSets.resultsPath=DataSets.clusterPath+"Results/";
-                DataSets.problemPath=DataSets.clusterPath+"TSC Problems/";
+    String version="RandomIntervalForest";
+    try{
+        if(args.length>0){ //Cluster run
+            for (int i = 0; i < args.length; i++) {
+                System.out.println("ARGS ="+i+" = "+args[i]);
+            }
+            DataSets.resultsPath=DataSets.clusterPath+"Results/"+version+"/";
+            File f= new File(DataSets.resultsPath);
+            if(!f.exists())
+                f.mkdir();
+            DataSets.problemPath=DataSets.clusterPath+"TSC Problems/";
 //                int prob=Integer.parseInt(args[1])-1;
 //                singleClassifierZeroFold(args[0],prob);
-                clusterRun(args);
-            }
-            else{       
-   //Local threaded run    
-                DataSets.resultsPath="C:/Users/ajb/Dropbox/Big TSC Bake Off/New Results/";
-                DataSets.problemPath=DataSets.dropboxPath+"TSC Problems/";
-                String classifier="PS_TSF";
-//                threadedSingleClassifierZeroFold(classifier);
-//                System.exit(0);
-//                String problem;
-//// TSF    FordA 15, FordB 16, HandOutlines 15, Mallat 85, NonInvasiveFatalECGThorax1 13, NonInvasiveFatalECGThorax2 13,
-////     Phoneme 63, ShapesAll 53, StarlightCurves13,  UWaveGestureLibraryX 74, UWaveGestureLibraryY 75
-////     UWaveGestureLibraryZ 75, UWaveGestureLibraryAll22
-////             String problem="UWaveGestureLibraryY"; 68
-                String problem="ItalyPowerDemand";
-//                System.out.println("Problem ="+problem);
-//                DataSets.resultsPath+=getFolder(classifier)+"/";
-                threadedSingleClassifierSingleProblem(classifier,problem,100,1);
-//                System.out.println("Finished");
+            clusterRun(args);
+        }
+        else{       
+//Local threaded run    
+            DataSets.resultsPath=DataSets.dropboxPath+"Spectral Interval Experiments/";
+            DataSets.problemPath=DataSets.dropboxPath+"TSC Problems/";
+//            System.exit(0);
+            String problem="ItalyPowerDemand";
+            String probID="38";
+            
+            String[] ar={version,probID};
+            clusterRun(ar);
             }
         }catch(Exception e){
             System.out.println("Exception thrown ="+e);
             e.printStackTrace();
-            System.exit(0);
         }
     }
-    public static String getFolder(String classifier){
-        for(int i=0;i<classifiers.length;i++)
-            for(int j=0;j<classifiers[i].length;j++)
-                if(classifiers[i][j].equals(classifier))
-                    return directoryNames[i];
-        return null;
-    }
+
     public static void sparseInstanceCheck() throws Exception{
         Instances train=ClassifierTools.loadData(DataSets.problemPath+"ItalyPowerDemand\\ItalyPowerDemand_TRAIN");
         BagOfPatternsFilter bop=new  BagOfPatternsFilter(2,4,8);

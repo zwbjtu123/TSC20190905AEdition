@@ -10,7 +10,6 @@ import java.io.FileReader;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import development.Gorecki14nonisometric;
 import utilities.ClassifierTools;
 import weka.classifiers.lazy.DTW_1NN;
 import weka.classifiers.lazy.kNN;
@@ -106,7 +105,8 @@ public class Cosine extends SimpleBatchFilter {
 
                 
             } catch (Exception ex) {
-                Logger.getLogger(Gorecki14nonisometric.class.getName()).log(Level.SEVERE, null, ex);
+                  System.out.println("ERROR in Cosine");
+            
             }
         
 	}

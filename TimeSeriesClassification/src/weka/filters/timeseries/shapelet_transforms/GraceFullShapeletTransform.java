@@ -5,7 +5,6 @@
  */
 package weka.filters.timeseries.shapelet_transforms;
 
-import development.Aaron.LocalInfo;
 import development.DataSets;
 import java.io.File;
 import java.io.FileInputStream;
@@ -305,8 +304,8 @@ public class GraceFullShapeletTransform extends FullShapeletTransform {
         String classifierDir = File.separator + st.getClass().getSimpleName() + fileExtension;
         String savePath = transformLocation + classifierDir;
 
-        LocalInfo.saveDataset(st.processFromSubFile(train), savePath + "_TRAIN");
-        LocalInfo.saveDataset(st.process(test), savePath + "_TEST");
+//        LocalInfo.saveDataset(st.processFromSubFile(train), savePath + "_TRAIN");
+//        LocalInfo.saveDataset(st.process(test), savePath + "_TEST");
         /**/
     }
 

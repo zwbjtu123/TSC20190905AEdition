@@ -3,20 +3,21 @@ package tsc_algorithms;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map.Entry;
+
+import utilities.ClassifierTools;
+import weka.classifiers.Classifier;
 import weka.core.Capabilities;
 import weka.core.Instance;
 import weka.core.Instances;
-import java.util.HashMap;
-import java.util.Map.Entry;
-import utilities.ClassifierTools;
-import weka.classifiers.Classifier;
 
 /**
  * BOSS classifier to be used with known parameters, for boss with parameter search, use BOSSEnsemble.
  * 
  * Params: wordLength, alphabetSize, windowLength, normalise?
  * 
- * @author James
+ * @author James Large. Enhanced by original author Patrick Schaefer
  */
 public class BOSS implements Classifier {
     
@@ -179,6 +180,46 @@ public class BOSS implements Classifier {
         return variance > 0 ? Math.sqrt(variance) : 1.0;
     }
     
+//    /**
+//     * Performs DFT but calculates only wordLength/2 coefficients instead of the 
+//     * full transform, and skips the first coefficient if it is to be normalised
+//     * 
+//     * @return double[] size wordLength, { real1, imag1, ... realwl/2, imagwl/2 }
+//     */
+//    private double[] DFT(double[] series) {
+//        //taken from FFT.java but 
+//        //return just a double[] size n, { real1, imag1, ... realn/2, imagn/2 }
+//        //instead of Complex[] size n/2
+//        
+//        //also, only calculating first wordlength/2 coefficients (output values) instead of 
+//        //entire transform, as it will be low pass filtered anyway, and skipping first coefficient
+//        //if the data is to be normalised
+//        int n=series.length;
+//        int outputLength = wordLength/2;
+//        int start = (norm ? 1 : 0);
+//        
+//        //normalize the disjoint windows and sliding windows by dividing them by their standard deviation 
+//        //all Fourier coefficients are divided by sqrt(windowSize)
+//
+//        double normalisingFactor = inverseSqrtWindowSize / stdDev(series);
+//        
+//        double[] dft=new double[outputLength*2];
+//        double twoPi = 2*Math.PI / n;
+//        
+//        for (int k = start; k < start + outputLength; k++) {  // For each output element
+//            float sumreal = 0;
+//            float sumimag = 0;
+//            for (int t = 0; t < n; t++) {  // For each input element
+//                sumreal +=  series[t]*Math.cos(twoPi * t * k);
+//                sumimag += -series[t]*Math.sin(twoPi * t * k);
+//            }
+//            dft[(k-start)*2]   = sumreal * normalisingFactor;
+//            dft[(k-start)*2+1] = sumimag * normalisingFactor;
+//        }
+//        return dft;
+//    }
+    
+    
     /**
      * Performs DFT but calculates only wordLength/2 coefficients instead of the 
      * full transform, and skips the first coefficient if it is to be normalised
@@ -186,6 +227,17 @@ public class BOSS implements Classifier {
      * @return double[] size wordLength, { real1, imag1, ... realwl/2, imagwl/2 }
      */
     private double[] DFT(double[] series) {
+        double[] dft = DFTunnormed(series);
+        return normalizeDFT(dft, stdDev(series));
+    }
+    
+    /**
+     * Performs DFT but calculates only wordLength/2 coefficients instead of the 
+     * full transform, and skips the first coefficient if it is to be normalised
+     * 
+     * @return double[] size wordLength, { real1, imag1, ... realwl/2, imagwl/2 }
+     */
+    private double[] DFTunnormed(double[] series) {
         //taken from FFT.java but 
         //return just a double[] size n, { real1, imag1, ... realn/2, imagn/2 }
         //instead of Complex[] size n/2
@@ -199,22 +251,126 @@ public class BOSS implements Classifier {
         
         //normalize the disjoint windows and sliding windows by dividing them by their standard deviation 
         //all Fourier coefficients are divided by sqrt(windowSize)
-
-        double normalisingFactor = inverseSqrtWindowSize / stdDev(series);
         
-        double[] dft=new double[outputLength*2];
+        double[] dft = new double[outputLength*2];
+        double twoPi = 2*Math.PI / n;
         
         for (int k = start; k < start + outputLength; k++) {  // For each output element
             float sumreal = 0;
             float sumimag = 0;
             for (int t = 0; t < n; t++) {  // For each input element
-                sumreal +=  series[t]*Math.cos(2*Math.PI * t * k / n);
-                sumimag += -series[t]*Math.sin(2*Math.PI * t * k / n);
+                sumreal +=  series[t]*Math.cos(twoPi * t * k);
+                sumimag += -series[t]*Math.sin(twoPi * t * k);
             }
-            dft[(k-start)*2]   = sumreal * normalisingFactor;
-            dft[(k-start)*2+1] = sumimag * normalisingFactor;
+            dft[(k-start)*2]   = sumreal;
+            dft[(k-start)*2+1] = sumimag;
         }
         return dft;
+    }
+    
+    private double[] normalizeDFT(double[] dft, double std) {
+      double normalisingFactor = (std > 0? 1.0 / std : 1.0) * inverseSqrtWindowSize;
+      for (int i = 0; i < dft.length; i++) {
+        dft[i] *= normalisingFactor;
+      }
+      return dft;
+    }
+    
+    private double[][] performMFT(double[] series) {
+      // ignore DC value?
+      int startOffset = norm? 2 : 0;
+
+      int l = wordLength;    
+      l = l + l % 2; // make it even
+      double[] phis = new double[l];
+
+      for (int u = 0; u < phis.length; u+=2) {
+        double uHalve = -(u+startOffset)/2;
+        phis[u] = realephi(uHalve, windowSize);
+        phis[u+1] = complexephi(uHalve, windowSize);
+      }
+
+      // means and stddev for each sliding window
+      int end = Math.max(1,series.length-windowSize+1);
+      double[] means = new double[end];
+      double[] stds = new double[end];
+      calcIncreamentalMeanStddev(windowSize, series, means, stds);
+
+      // holds the DFT of each sliding window
+      double[][] transformed = new double[end][];
+      double[] mftData = null;
+
+      for (int t = 0; t < end; t++) {
+        // use the MFT
+        if (t > 0) {
+          for (int k = 0; k < l; k+=2) {
+            double real1 = (mftData[k] + series[t+windowSize-1] - series[t-1]);
+            double imag1 = (mftData[k+1]);
+
+            double real = complexMulReal(real1, imag1, phis[k], phis[k+1]);
+            double imag = complexMulImag(real1, imag1, phis[k], phis[k+1]);
+
+            mftData[k] = real;
+            mftData[k+1] = imag;
+          }
+        }
+        // use the DFT for the first offset
+        else {
+          mftData = Arrays.copyOf(series, windowSize);
+          mftData = DFTunnormed(mftData);
+        }
+
+        // normalization for lower bounding
+        transformed[t] = normalizeDFT(Arrays.copyOf(mftData, l), stds[t]);
+      }
+
+      return transformed;
+    }
+
+    private void calcIncreamentalMeanStddev(
+        int windowLength,
+        double[] series,
+        double[] means,
+        double[] stds) {
+      double sum = 0;
+      double squareSum = 0;
+
+      // it is faster to multiply than to divide
+      double rWindowLength = 1.0 / (double)windowLength;
+
+      double[] tsData = series;
+      for (int ww = 0; ww < windowLength; ww++) {
+        sum += tsData[ww];
+        squareSum += tsData[ww]*tsData[ww];
+      }
+      means[0] = sum * rWindowLength;
+      double buf = squareSum * rWindowLength - means[0]*means[0];
+      stds[0] = buf > 0? Math.sqrt(buf) : 0;
+
+      for (int w = 1, end = tsData.length-windowLength+1; w < end; w++) {
+        sum += tsData[w+windowLength-1] - tsData[w-1];
+        means[w] = sum * rWindowLength;
+
+        squareSum += tsData[w+windowLength-1]*tsData[w+windowLength-1] - tsData[w-1]*tsData[w-1];
+        buf = squareSum * rWindowLength - means[w]*means[w];
+        stds[w] = buf > 0? Math.sqrt(buf) : 0;
+      }
+    }
+    
+    private static double complexMulReal(double r1, double im1, double r2, double im2) {
+      return r1*r2 - im1*im2;
+    }
+
+    private static double complexMulImag(double r1, double im1, double r2, double im2) {
+      return r1*im2 + r2*im1;
+    }
+
+    private static double realephi(double u, double M) {
+      return Math.cos(2*Math.PI*u/M);
+    }
+
+    private static double complexephi(double u, double M) {
+      return -Math.sin(2*Math.PI*u/M);
     }
     
     private double[][] disjointWindows(double [] data) {
@@ -290,7 +446,7 @@ public class BOSS implements Classifier {
             for (int inst = 0; inst < numInsts; ++inst)
                 for (int window = 0; window < numWindowsPerInst; ++window) {
                     //rounding dft coefficients to reduce noise
-                    column[(inst * numWindowsPerInst) + window] = Math.round(dfts[inst][window][letter]);   
+                    column[(inst * numWindowsPerInst) + window] = Math.round(dfts[inst][window][letter] * 100.0)/100.0;
                 }
             
             //sort, and run through to find breakpoints for equi-depth bins
@@ -341,7 +497,7 @@ public class BOSS implements Classifier {
         String word = "";
         for (int l = 0; l < wordLength; ++l) {//for each letter
             for (int bp = 0; bp < alphabetSize; ++bp) {//run through breakpoints until right one found
-                if (dft[l] <= breakpoints[l][bp]) {
+                if (dft[l] < breakpoints[l][bp]) {
                     word += alphabet[bp]; //add corresponding letter to word
                     break;
                 }
@@ -373,12 +529,20 @@ public class BOSS implements Classifier {
      * @return BOSSTransform-ed bag, built using current parameters
      */
     public Bag BOSSTransform(Instance inst) {
-        double[][] dfts = performDFT(slidingWindow(toArrayNoClass(inst))); //approximation     
-        Bag bag = createBagSingle(dfts); //discretisation/bagging
-        bag.setClassVal(inst.classValue());
-        return bag;
+//        double[][] dfts = performDFT(slidingWindow(toArrayNoClass(inst))); //approximation     
+//        Bag bag = createBagSingle(dfts); //discretisation/bagging
+//        bag.setClassVal(inst.classValue());
+        
+        double[][] mfts = performMFT(toArrayNoClass(inst)); //approximation     
+        Bag bag2 = createBagSingle(mfts); //discretisation/bagging
+        bag2.setClassVal(inst.classValue());
+        
+//        if (!bag2.equals(bag)) {
+//          System.err.println("Error!");
+//        }
+        return bag2;
     }
-    
+        
 //    /**
 //     * Creates and returns new boss instance with shortened wordLength and corresponding
 //     * histograms, the boss instance passed in is UNCHANGED, if wordLengths are same, does nothing,
@@ -493,12 +657,17 @@ public class BOSS implements Classifier {
     }
     
     private String[] createSFAwords(Instance inst) throws Exception {
-        double[][] dfts = performDFT(slidingWindow(toArrayNoClass(inst))); //approximation     
-        String[] words = new String[dfts.length];
-        for (int window = 0; window < dfts.length; ++window) 
-            words[window] = createWord(dfts[window]);//discretisation
+//        double[][] dfts = performDFT(slidingWindow(toArrayNoClass(inst))); //approximation     
+//        String[] words = new String[dfts.length];
+//        for (int window = 0; window < dfts.length; ++window) 
+//            words[window] = createWord(dfts[window]);//discretisation
             
-        return words;
+        double[][] dfts2 = performMFT(toArrayNoClass(inst)); //approximation     
+        String[] words2 = new String[dfts2.length];
+        for (int window = 0; window < dfts2.length; ++window) 
+            words2[window] = createWord(dfts2[window]);//discretisation
+        
+        return words2;
     }
     
     @Override
@@ -633,10 +802,11 @@ public class BOSS implements Classifier {
      public static void basicTest() {
         System.out.println("BOSSBasicTest\n\n");
         try {
+          String path = "/Users/bzcschae/workspace/TSC_Bagnall/datasets/";
 //            Instances train = ClassifierTools.loadData("C:\\tempbakeoff\\TSC Problems\\ItalyPowerDemand\\ItalyPowerDemand_TRAIN.arff");
 //            Instances test = ClassifierTools.loadData("C:\\tempbakeoff\\TSC Problems\\ItalyPowerDemand\\ItalyPowerDemand_TEST.arff");
-            Instances train = ClassifierTools.loadData("C:\\tempbakeoff\\TSC Problems\\Car\\Car_TRAIN.arff");
-            Instances test = ClassifierTools.loadData("C:\\tempbakeoff\\TSC Problems\\Car\\Car_TEST.arff");
+            Instances train = ClassifierTools.loadData(path+"Coffee/Coffee_TEST.arff");
+            Instances test = ClassifierTools.loadData(path+"Coffee/Coffee_TRAIN.arff");
 //            Instances train = ClassifierTools.loadData("C:\\tempbakeoff\\TSC Problems\\BeetleFly\\BeetleFly_TRAIN.arff");
 //            Instances test = ClassifierTools.loadData("C:\\tempbakeoff\\TSC Problems\\BeetleFly\\BeetleFly_TEST.arff");
 
@@ -680,8 +850,8 @@ public class BOSS implements Classifier {
         int[] p={8,10,12,14,16};
         try {
             String pr="ItalyPowerDemand";
-            Instances train = ClassifierTools.loadData("C:\\tempbakeoff\\TSC Problems\\"+pr+"\\"+pr+"_TRAIN.arff");
-            Instances test = ClassifierTools.loadData("C:\\tempbakeoff\\TSC Problems\\"+pr+"\\"+pr+"_TEST.arff");
+            Instances train = ClassifierTools.loadData("/Users/bzcschae/workspace/TSC_Bagnall/datasets/"+pr+"/"+pr+"_TRAIN.arff");
+            Instances test = ClassifierTools.loadData("/Users/bzcschae/workspace/TSC_Bagnall/datasets/"+pr+"/"+pr+"_TEST.arff");
             System.out.println("Problem ="+pr+" has "+(train.numAttributes()-1)+" atts");
             double maxAcc=0;
             int bestP=0;
