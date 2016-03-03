@@ -10,7 +10,6 @@ import weka.core.Instances;
 public interface SaveCVAccuracy {
     public static int LENGTH_TRESH=300;
     public static int INSTANCES_TRESH=500;
-    
     void setCVPath(String train);
     String getParameters();
      default int setNumberOfFolds(Instances data){

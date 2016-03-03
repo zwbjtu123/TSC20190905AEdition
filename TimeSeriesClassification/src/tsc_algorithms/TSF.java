@@ -212,7 +212,7 @@ public class TSF extends AbstractClassifier implements SaveCVAccuracy{
          if(trainCV){
             int folds=setNumberOfFolds(data);
             OutFile of=new OutFile(trainCVPath);
-           of.writeLine("TSF");
+           of.writeLine(data.relationName()+",TSF,train");
     //Estimate train accuracy HERE
             TSF tsf=new TSF();
             double[][] results=ClassifierTools.crossValidationWithStats(tsf, data, folds);

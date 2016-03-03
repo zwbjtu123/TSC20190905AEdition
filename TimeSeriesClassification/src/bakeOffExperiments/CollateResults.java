@@ -497,7 +497,7 @@ public class CollateResults {
         OutFile outf2=new OutFile(dest+"\\UnstartedProblems.txt");
         File f=new File(dest+"\\Scripts");
         boolean oldCls=false;
-        int mem=8000;
+        int mem=9000;
         int maxMem=mem+1000;
         int maxNum=100;
         String jar="TimeSeriesClassification.jar";
@@ -648,10 +648,10 @@ public class CollateResults {
     }    
     public static void main(String[] args){
       DataSets.resultsPath="C:\\Users\\ajb\\Dropbox\\Big TSC Bake Off\\New Results\\";
-    generateAllScripts("C:\\Users\\ajb\\Dropbox\\Big TSC Bake Off\\New Results\\Scripts","LS");
+//    generateAllScripts("C:\\Users\\ajb\\Dropbox\\Big TSC Bake Off\\New Results\\Scripts","LS");
         collateFoldZero();
 
-//      System.exit(0);
+      System.exit(0);
 //        findNumberPerSplit();
         String root="C:\\Users\\ajb\\Dropbox\\Big TSC Bake Off\\New Results";
 //        generateScripts(root,root);        
