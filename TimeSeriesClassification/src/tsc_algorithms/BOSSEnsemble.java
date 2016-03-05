@@ -1,36 +1,66 @@
 package tsc_algorithms;
 
 import fileIO.OutFile;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream; 
+import java.io.IOException; 
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.Serializable;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import utilities.ClassifierTools;
 import utilities.InstanceTools;
+import utilities.SaveCVAccuracy;
 import weka.core.Capabilities;
 import weka.core.Instance;
 import weka.core.Instances;
 import weka.classifiers.Classifier;
 
 /**
- * BOSS classifier with parameter search, if parameters are known, use 'BOSS' classifier and directly provide them.
+ * BOSS classifier with parameter search and ensembling, if parameters are known, use 'BOSS' classifier and directly provide them.
  * 
  * Params: normalise? (i.e should first fourier coefficient(mean value) be discarded)
  * Alphabetsize fixed to four
  * 
- * @author James
+ * @author James Large
  */
-public class BOSSEnsemble implements Classifier {
-
-    private static boolean debug = false;
+public class BOSSEnsemble implements Classifier, SaveCVAccuracy {
     
-    private List<BOSSWindow> classifiers;
+    private List<BOSSWindow> classifiers; 
 
     private final double correctThreshold = 0.92;
     private final Integer[] wordLengths = { 16, 14, 12, 10, 8 };
     private final int alphabetSize = 4;
     //private boolean norm;
+    
+    public enum SerialiseOptions { 
+        //dont do any seriealising, run as normal
+        NONE, 
+        
+        //serialise the final boss classifiers which made it into ensemble (does not serialise the entire BOSSEnsemble object)
+        //slight runtime cost 
+        STORE, 
+        
+        //serialise the final boss classifiers, and delete from main memory. reload each from ser file when needed in classification. 
+        //the most memory used at any one time is therefore ~2 individual boss classifiers during training. 
+        //massive runtime cost, order of magnitude 
+        STORE_LOAD 
+    };
+    
+    
+    private SerialiseOptions serOption = SerialiseOptions.NONE;
+    private static String serFileLoc = "BOSSWindowSers\\";
      
     private boolean[] normOptions;
+    
+    private String trainCVPath;
+    private boolean trainCV=false;
     
     /**
      * Providing a particular value for normalisation will force that option, if 
@@ -48,19 +78,97 @@ public class BOSSEnsemble implements Classifier {
      */
     public BOSSEnsemble() {
         normOptions = new boolean[] { true, false };
-    }
+    }  
 
-    public static class BOSSWindow implements Comparable<BOSSWindow> { 
+    public static class BOSSWindow implements Comparable<BOSSWindow>, Serializable { 
         private BOSS classifier;
-        public final double accuracy;
+        public double accuracy;
+        public String filename;
+        
+        private static final long serialVersionUID = 2L;
 
-        public BOSSWindow(BOSS classifer, double accuracy) {
+        public BOSSWindow(String filename) {
+            this.filename = filename;
+        }
+        
+        public BOSSWindow(BOSS classifer, double accuracy, String dataset) {
             this.classifier = classifer;
             this.accuracy = accuracy;
+            buildFileName(dataset);
         }
 
         public double classifyInstance(Instance inst) throws Exception { 
             return classifier.classifyInstance(inst); 
+        }
+        
+        public double classifyInstance(int test) throws Exception { 
+            return classifier.classifyInstance(test); 
+        }
+        
+        private void buildFileName(String dataset) {
+            filename = serFileLoc + dataset + "_" + classifier.windowSize + "_" + classifier.wordLength + "_" + classifier.alphabetSize + "_" + classifier.norm + ".ser";
+        }
+        
+        public boolean storeAndClearClassifier() {
+            try {
+                ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(filename));
+                out.writeObject(this);
+                out.close();   
+                clearClassifier();
+                return true;
+            }catch(IOException e) {
+                System.out.print("Error serialiszing to " + filename);
+                e.printStackTrace();
+                return false;
+            }
+        }
+        
+        public boolean store() {
+            try {
+                ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(filename));
+                out.writeObject(this);
+                out.close();         
+                return true;
+            }catch(IOException e) {
+                System.out.print("Error serialiszing to " + filename);
+                e.printStackTrace();
+                return false;
+            }
+        }
+        
+        public void clearClassifier() {
+            classifier = null;
+        }
+        
+        public boolean load() {
+            BOSSWindow bw = null;
+            try {
+                ObjectInputStream in = new ObjectInputStream(new FileInputStream(filename));
+                bw = (BOSSWindow) in.readObject();
+                in.close();
+                this.accuracy = bw.accuracy;
+                this.classifier = bw.classifier;
+                return true;
+            }catch(IOException i) {
+                System.out.print("Error deserialiszing from " + filename);
+                i.printStackTrace();
+                return false;
+            }catch(ClassNotFoundException c) {
+                System.out.println("BOSSWindow class not found");
+                c.printStackTrace();
+                return false;
+            }
+        }
+        
+        public boolean deleteSerFile() {
+            try {
+                File f = new File(filename);
+                return f.delete();
+            } catch(SecurityException s) {
+                System.out.println("Unable to delete, access denied: " + filename);
+                s.printStackTrace();
+                return false;
+            }
         }
         
         /**
@@ -82,10 +190,38 @@ public class BOSSEnsemble implements Classifier {
         }
     }
     
+    @Override
+    public void setCVPath(String train) {
+        trainCVPath=train;
+        trainCV=true;
+    }
+
+    @Override
+    public String getParameters() {
+        StringBuilder sb = new StringBuilder();
+        
+        BOSSWindow first = classifiers.get(0);
+        sb.append("windowSize=").append(first.getWindowSize()).append("/wordLength=").append(first.getWordLength());
+        sb.append("/alphabetSize=").append(first.getAlphabetSize()).append("/norm=").append(first.isNorm());
+            
+        for (int i = 1; i < classifiers.size(); ++i) {
+            BOSSWindow boss = classifiers.get(i);
+            sb.append(",windowSize=").append(boss.getWindowSize()).append("/wordLength=").append(boss.getWordLength());
+            sb.append("/alphabetSize=").append(boss.getAlphabetSize()).append("/norm=").append(boss.isNorm());
+        }
+        
+        return sb.toString();
+    }
+    
+    @Override
+    public int setNumberOfFolds(Instances data){
+        return data.numInstances();
+    }
+    
      /**
      * @return { numIntervals(word length), alphabetSize, slidingWindowSize } for each BOSSWindow in this *built* classifier
      */
-    public int[][] getParameters() {
+    public int[][] getParametersValues() {
         int[][] params = new int[classifiers.size()][];
         int i = 0;
         for (BOSSWindow boss : classifiers) 
@@ -94,12 +230,30 @@ public class BOSSEnsemble implements Classifier {
         return params;
     }
     
+    public void setSerOption(SerialiseOptions option) { 
+        serOption = option;
+    }
+    
+    public void setSerFileLoc(String path) {
+        serFileLoc = path;
+    }
+    
     @Override
     public void buildClassifier(final Instances data) throws Exception {
         if (data.classIndex() != data.numAttributes()-1)
             throw new Exception("BOSSEnsemble_BuildClassifier: Class attribute not set as last attribute in dataset");
+ 
+        if (serOption == SerialiseOptions.STORE || serOption == SerialiseOptions.STORE_LOAD) {
+            DateFormat dateFormat = new SimpleDateFormat("yyyyMMddHHmmss");
+            Date date = new Date();
+            serFileLoc += data.relationName() + "_" + dateFormat.format(date) + "\\";
+            File f = new File(serFileLoc);
+            if (!f.isDirectory())
+                f.mkdirs();
+        }
         
         classifiers = new LinkedList<BOSSWindow>();
+        
         
         int numSeries = data.numInstances();
         
@@ -107,12 +261,13 @@ public class BOSSEnsemble implements Classifier {
         int minWindow = 10;
         int maxWindow = seriesLength; 
 
-        int winInc = 1; //check every window size in range
+        //int winInc = 1; //check every window size in range
         
 //        //whats the max number of window sizes that should be searched through
-//        double maxWindowSearches = Math.min(200, Math.sqrt(seriesLength)); 
-//        int winInc = (int)((maxWindow - minWindow) / maxWindowSearches); 
-//        if (winInc < 1) winInc = 1;
+        //double maxWindowSearches = Math.min(200, Math.sqrt(seriesLength)); 
+        double maxWindowSearches = seriesLength/4.0;
+        int winInc = (int)((maxWindow - minWindow) / maxWindowSearches); 
+        if (winInc < 1) winInc = 1;
         
         
         //keep track of current max window size accuracy, constantly check for correctthreshold to discard to save space
@@ -144,27 +299,108 @@ public class BOSSEnsemble implements Classifier {
                     }
                 }
 
-                //if not within correct threshold of the CURRENT max, dont bother storing at all
-                //will still likely be some by the end of this build that dont fall within threshold
-                //because classifiers at the start may have passed a lower threshold than the later ones 
+                //if not within correct threshold of the current max, dont bother storing at all
                 if (bestAccForWinSize >= maxAcc * correctThreshold) {
-                    classifiers.add(new BOSSWindow(bestClassifierForWinSize, bestAccForWinSize));
-
-                    if (bestAccForWinSize > maxAcc)
+                    BOSSWindow bw = new BOSSWindow(bestClassifierForWinSize, bestAccForWinSize, data.relationName());
+                    bw.classifier.clean();
+                    
+                    if (serOption == SerialiseOptions.STORE)
+                        bw.store();
+                    else if (serOption == SerialiseOptions.STORE_LOAD)
+                        bw.storeAndClearClassifier();
+                        
+                    classifiers.add(bw);
+                    
+                    if (bestAccForWinSize > maxAcc) {
                         maxAcc = bestAccForWinSize;       
+                        //get rid of any extras that dont fall within the final max threshold
+                        Iterator<BOSSWindow> it = classifiers.iterator();
+                        while (it.hasNext()) {
+                            BOSSWindow b = it.next();
+                            if (b.accuracy < maxAcc * correctThreshold) {
+                                if (serOption == SerialiseOptions.STORE || serOption == SerialiseOptions.STORE_LOAD)
+                                    b.deleteSerFile();
+                                it.remove();
+                            }
+                        }
+                    }
                 }
             }
         }
         
-         //get rid of any extras that dont fall within the final max threshold
-        Iterator<BOSSWindow> it = classifiers.iterator();
-        while (it.hasNext()) {
-            BOSSWindow boss = it.next();
-            if (boss.accuracy < maxAcc * correctThreshold)
-                it.remove();
+        if (trainCV) {
+            int folds=setNumberOfFolds(data);
+            OutFile of=new OutFile(trainCVPath);
+            of.writeLine(data.relationName()+",BOSSEnsemble,train");
+           
+            double[][] results = findEnsembleTrainAcc(data);
+            of.writeLine(getParameters());
+            of.writeLine(results[0][0]+"");
+            for(int i=1;i<results[0].length;i++)
+                of.writeLine(results[0][i]+","+results[1][i]);
+            System.out.println("CV acc ="+results[0][0]);
         }
     }
 
+    private double[][] findEnsembleTrainAcc(Instances data) throws Exception {
+        
+        double[][] results = new double[2][data.numInstances() + 1];
+        
+        double correct = 0; 
+        for (int i = 0; i < data.numInstances(); ++i) {
+            double c = classifyInstance(i, data.numClasses()); //classify series i, while ignoring its corresponding histogram i
+            if (c == data.get(i).classValue())
+                ++correct;
+            
+            results[0][i+1] = data.get(i).classValue();
+            results[1][i+1] = c;
+        }
+        
+        results[0][0] = correct / data.numInstances();
+        //TODO fill results[1][0]
+        
+        return results;
+    }
+    
+    /**
+     * Classify the train instance at index 'test', whilst ignoring the corresponding bags 
+     * in each of the members of the ensemble, for use in CV of BOSSEnsemble
+     */
+    public double classifyInstance(int test, int numclasses) throws Exception {
+        double[] dist = distributionForInstance(test, numclasses);
+        
+        double maxFreq=dist[0], maxClass=0;
+        for (int i = 1; i < dist.length; ++i) 
+            if (dist[i] > maxFreq) {
+                maxFreq = dist[i];
+                maxClass = i;
+            }
+        
+        return maxClass;
+    }
+
+    public double[] distributionForInstance(int test, int numclasses) throws Exception {
+        double[] classHist = new double[numclasses];
+        
+        //get votes from all windows 
+        double sum = 0;
+        for (BOSSWindow classifier : classifiers) {
+            if (serOption == SerialiseOptions.STORE_LOAD)
+                classifier.load();
+            double classification = classifier.classifyInstance(test);
+            if (serOption == SerialiseOptions.STORE_LOAD)
+                classifier.clearClassifier();
+            classHist[(int)classification]++;
+            sum++;
+        }
+        
+        if (sum != 0)
+            for (int i = 0; i < classHist.length; ++i)
+                classHist[i] /= sum;
+        
+        return classHist;
+    }
+    
     @Override
     public double classifyInstance(Instance instance) throws Exception {
         double[] dist = distributionForInstance(instance);
@@ -186,7 +422,11 @@ public class BOSSEnsemble implements Classifier {
         //get votes from all windows 
         double sum = 0;
         for (BOSSWindow classifier : classifiers) {
+            if (serOption == SerialiseOptions.STORE_LOAD)
+                classifier.load();
             double classification = classifier.classifyInstance(instance);
+            if (serOption == SerialiseOptions.STORE_LOAD)
+                classifier.clearClassifier();
             classHist[(int)classification]++;
             sum++;
         }
@@ -204,20 +444,19 @@ public class BOSSEnsemble implements Classifier {
     }
 
     public static void main(String[] args) throws Exception{
-        basicTest();
-        //ensembleMemberTest();
-        //resampleTest();
+//        basicTest();
+//        ensembleMemberTest();
+        resampleTest();
     }
     
     public static void basicTest() {
         System.out.println("BOSSEnsembleBasicTest\n");
         try {
-            debug = true;
             
-//            Instances train = ClassifierTools.loadData("C:\\tempbakeoff\\TSC Problems\\Car\\Car_TRAIN.arff");
-//            Instances test = ClassifierTools.loadData("C:\\tempbakeoff\\TSC Problems\\Car\\Car_TEST.arff");
-            Instances train = ClassifierTools.loadData("C:\\tempbakeoff\\TSC Problems\\BeetleFly\\BeetleFly_TRAIN.arff");
-            Instances test = ClassifierTools.loadData("C:\\tempbakeoff\\TSC Problems\\BeetleFly\\BeetleFly_TEST.arff");
+            Instances train = ClassifierTools.loadData("C:\\tempbakeoff\\TSC Problems\\Car\\Car_TRAIN.arff");
+            Instances test = ClassifierTools.loadData("C:\\tempbakeoff\\TSC Problems\\Car\\Car_TEST.arff");
+//            Instances train = ClassifierTools.loadData("C:\\tempbakeoff\\TSC Problems\\BeetleFly\\BeetleFly_TRAIN.arff");
+//            Instances test = ClassifierTools.loadData("C:\\tempbakeoff\\TSC Problems\\BeetleFly\\BeetleFly_TEST.arff");
             
             System.out.println(train.relationName());
             
@@ -230,7 +469,7 @@ public class BOSSEnsemble implements Classifier {
             
             System.out.println("Ensemble Size: " + boss.classifiers.size());
             System.out.println("Param sets: ");
-            int[][] params = boss.getParameters();
+            int[][] params = boss.getParametersValues();
             for (int i = 0; i < params.length; ++i)
                 System.out.println(i + ": " + params[i][0] + " " + params[i][1] + " " + params[i][2] + " " + boss.classifiers.get(i).isNorm());
             
@@ -251,7 +490,6 @@ public class BOSSEnsemble implements Classifier {
         public static void ensembleMemberTest() {
         System.out.println("BOSSEnsembleEnsembleMemberTest\n");
         try {
-            debug = true;
             
 //            Instances train = ClassifierTools.loadData("C:\\tempbakeoff\\TSC Problems\\ItalyPowerDemand\\ItalyPowerDemand_TRAIN.arff");
 //            Instances test = ClassifierTools.loadData("C:\\tempbakeoff\\TSC Problems\\ItalyPowerDemand\\ItalyPowerDemand_TEST.arff");
@@ -271,7 +509,7 @@ public class BOSSEnsemble implements Classifier {
             
             System.out.println("Ensemble Size: " + boss.classifiers.size());
             System.out.println("Param sets: ");
-            int[][] params = boss.getParameters();
+            int[][] params = boss.getParametersValues();
             for (int i = 0; i < params.length; ++i)
                 System.out.println(i + ": " + params[i][0] + " " + params[i][1] + " " + params[i][2] + " " + boss.classifiers.get(i).isNorm());
             
@@ -308,12 +546,19 @@ public class BOSSEnsemble implements Classifier {
         
         
      public static void resampleTest() throws Exception {
-         Instances train = ClassifierTools.loadData("C:\\tempbakeoff\\TSC Problems\\BeetleFly\\BeetleFly_TRAIN.arff");
-         Instances test = ClassifierTools.loadData("C:\\tempbakeoff\\TSC Problems\\BeetleFly\\BeetleFly_TEST.arff");
+//         Instances train = ClassifierTools.loadData("C:\\tempbakeoff\\TSC Problems\\BeetleFly\\BeetleFly_TRAIN.arff");
+//         Instances test = ClassifierTools.loadData("C:\\tempbakeoff\\TSC Problems\\BeetleFly\\BeetleFly_TEST.arff");
+         Instances train = ClassifierTools.loadData("C:\\tempbakeoff\\TSC Problems\\Car\\Car_TRAIN.arff");
+         Instances test = ClassifierTools.loadData("C:\\tempbakeoff\\TSC Problems\\Car\\Car_TEST.arff");
          
          BOSSEnsemble c = new BOSSEnsemble(true);
          
-         int resamples = 5;
+         //c.setSerOption(SerialiseOptions.STORE);
+         //c.setSerOption(SerialiseOptions.STORE_LOAD);
+         
+         //c.setCVPath("C:\\tempproject\\BOSSEnsembleCVtest.csv");
+         
+         int resamples = 10;
          double [] accs = new double[resamples];
          
          for(int i=0;i<resamples;i++){
@@ -340,6 +585,6 @@ public class BOSSEnsemble implements Classifier {
              mean += accs[i];
          }
          mean/=resamples;
-         System.out.println("Mean acc over 5 resamples: " + mean);
+         System.out.println("Mean acc over " + resamples + " resamples: " + mean);
      }   
 }
