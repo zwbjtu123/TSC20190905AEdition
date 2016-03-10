@@ -36,6 +36,20 @@ public class OutFile{
 			System.out.println(" File "+ name+" Not found");
 		}
 	}
+        public OutFile(String name, boolean append)
+	{
+		try
+		{
+			fw = new FileWriter(name, append);
+			bw = new BufferedWriter(fw);
+			outFile = new PrintWriter(fw);
+			delimit=' ';
+		}
+		catch(IOException exception)
+		{	
+			System.out.println(" File "+ name+" Not found");
+		}
+	}
 //Reads and returns single line
 	public boolean writeString(String v)
 	{
