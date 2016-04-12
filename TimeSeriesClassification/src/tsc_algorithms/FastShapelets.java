@@ -461,7 +461,7 @@ public class FastShapelets implements Classifier {
             }
 
             /// Case 2: Slightly Update
-            for (j = j; (j <= (int) Data.get(series).size()); j++) {
+            for (; (j <= (int) Data.get(series).size()); j++) {
 
                 j_st = j - subseq_len;
                 mean = ex / subseq_len;

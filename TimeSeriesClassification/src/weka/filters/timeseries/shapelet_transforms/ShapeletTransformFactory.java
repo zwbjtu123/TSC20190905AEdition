@@ -18,12 +18,15 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 import utilities.ClassifierTools;
+import utilities.InstanceTools;
 import utilities.Pair;
 import weka.core.Instances;
 import weka.core.shapelet.*;
 import weka.filters.timeseries.shapelet_transforms.classValue.BinarisedClassValue;
 import weka.filters.timeseries.shapelet_transforms.classValue.NormalClassValue;
+import weka.filters.timeseries.shapelet_transforms.searchFuntions.ShapeletSearch;
 import weka.filters.timeseries.shapelet_transforms.subsequenceDist.CachedSubSeqDistance;
+import weka.filters.timeseries.shapelet_transforms.subsequenceDist.ImprovedOnlineSubSeqDistance;
 import weka.filters.timeseries.shapelet_transforms.subsequenceDist.OnlineSubSeqDistance;
 
 /**
@@ -32,6 +35,10 @@ import weka.filters.timeseries.shapelet_transforms.subsequenceDist.OnlineSubSeqD
  */
 public class ShapeletTransformFactory
 {
+    //this is an arbritary cutoff value for whether we should start subsampling. It's about 7 days(ish). TODO: test.
+    public static final long opCountThreshold = 1000000000000000l; 
+    
+    
     
     //we create the Map using params jon found.
     //lazy way to avoid reading a text file. 
@@ -136,7 +143,7 @@ public class ShapeletTransformFactory
     }
     
     //TODO: Improve heavily.
-    public FullShapeletTransform createTransform(Instances train)
+    /*public FullShapeletTransform createTransform(Instances train)
     {
         //Memory in bytes available        
         //1. distance caching or not 
@@ -190,8 +197,35 @@ public class ShapeletTransformFactory
         System.out.println("Spare memory =" + (spareMem / 1000000) + " shapelet memory required =" + (nosShapelets * memPerShapelet) / 1000000);
 
         return s;
-    }
+    }*/
 
+    
+    public static FullShapeletTransform createTransform(Instances train){
+        
+        int numClasses = train.numClasses();
+        int numInstances = train.numInstances();
+        int numAttributes = train.numAttributes()-1;
+        
+        FullShapeletTransform transform;
+        if(numClasses == 2){
+            transform = new FullShapeletTransform();
+        }else{
+            transform = new BalancedClassShapeletTransform();
+            transform.setClassValue(new BinarisedClassValue());
+        }
+        
+        System.out.println(calculateSkipLength(numAttributes) + " " + calculateSkipPos(numAttributes));
+        
+        transform.setSubSeqDistance(new ImprovedOnlineSubSeqDistance());
+        transform.setSearchFunction(new ShapeletSearch(3, numAttributes, calculateSkipLength(numAttributes), calculateSkipPos(numAttributes)));
+        transform.setShapeletMinAndMax(3, numAttributes);
+        transform.setNumberOfShapelets(numInstances*10);
+        transform.useCandidatePruning();
+        transform.turnOffLog();
+        
+        return transform;
+    }
+    
     
     long getAvailableMemory()
     {
@@ -306,6 +340,33 @@ public class ShapeletTransformFactory
     }
     
     
+    static int calculateSkipPos(int m){
+        int skipPos = 1;
+        if(m>2000)
+            skipPos= 8;
+        else if(m>1000)
+            skipPos= 4;
+        else if(m> 500)
+            skipPos= 2;
+        
+        return skipPos;
+    }
+    
+    static int calculateSkipLength(int m){
+        int skipLength = 1;
+        
+        if (m>1500) 
+            skipLength =32;
+        else if (m>1000)
+            skipLength =16;
+        else if (m>500) 
+            skipLength =8;
+        else if (m>250)
+            skipLength =4;
+        return skipLength;
+    }
+    
+
     
     
     

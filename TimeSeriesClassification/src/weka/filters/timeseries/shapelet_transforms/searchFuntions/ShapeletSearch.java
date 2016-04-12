@@ -8,6 +8,7 @@ package weka.filters.timeseries.shapelet_transforms.searchFuntions;
 import java.io.Serializable;
 import java.util.ArrayList;
 import weka.core.Instance;
+import weka.core.Instances;
 import weka.core.shapelet.Shapelet;
 
 /**
@@ -26,6 +27,8 @@ public class ShapeletSearch implements Serializable{
     protected int lengthIncrement = 1;
     protected int positionIncrement = 1;
     
+    protected Instances inputData;
+    
     public ShapeletSearch(int min, int max){
         minShapeletLength = min;
         maxShapeletLength = max;
@@ -40,6 +43,10 @@ public class ShapeletSearch implements Serializable{
     public void setMinAndMax(int min, int max){
         minShapeletLength = min;
         maxShapeletLength = max;
+    }
+    
+    public void init(Instances input){
+        inputData = input;
     }
     
     public ArrayList<Shapelet> SearchForShapeletsInSeries(Instance timeSeries, ProcessCandidate checkCandidate){

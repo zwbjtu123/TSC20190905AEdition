@@ -7,18 +7,17 @@ package tsc_algorithms;
 
 import bakeOffExperiments.Experiments;
 import java.io.File;
+import java.util.Random;
 import utilities.ClassifierTools;
 import utilities.InstanceTools;
 import weka.classifiers.AbstractClassifier;
 import weka.classifiers.meta.timeseriesensembles.WeightedEnsemble;
 import weka.core.Instance;
 import weka.core.Instances;
-import weka.core.shapelet.QualityMeasures;
-import weka.filters.timeseries.shapelet_transforms.BalancedClassShapeletTransform;
 import weka.filters.timeseries.shapelet_transforms.FullShapeletTransform;
-import weka.filters.timeseries.shapelet_transforms.classValue.BinarisedClassValue;
-import weka.filters.timeseries.shapelet_transforms.searchFuntions.ShapeletSearch;
-import weka.filters.timeseries.shapelet_transforms.subsequenceDist.ImprovedOnlineSubSeqDistance;
+import weka.filters.timeseries.shapelet_transforms.ShapeletTransformFactory;
+import static weka.filters.timeseries.shapelet_transforms.ShapeletTransformFactory.calculateOperations;
+import static weka.filters.timeseries.shapelet_transforms.ShapeletTransformFactory.opCountThreshold;
 
 /**
  *
@@ -27,7 +26,7 @@ import weka.filters.timeseries.shapelet_transforms.subsequenceDist.ImprovedOnlin
 public class ST_Ensemble  extends AbstractClassifier implements SaveableEnsemble{
 
     private WeightedEnsemble weightedEnsemble;
-    private BalancedClassShapeletTransform transform;
+    private FullShapeletTransform transform;
     private Instances format;
     int[] redundantFeatures;
     private boolean saveResults=false;
@@ -52,12 +51,11 @@ public class ST_Ensemble  extends AbstractClassifier implements SaveableEnsemble
     
     @Override
     public void buildClassifier(Instances data) throws Exception {
+        format = doTransform ? createTransformData(data) : data;
         
         weightedEnsemble=new WeightedEnsemble();
         weightedEnsemble.setWeightType("prop");
                 
-        format = doTransform ? createTransformData(data) : data;
-        
         redundantFeatures=InstanceTools.removeRedundantTrainAttributes(format);
         if(saveResults){
             weightedEnsemble.saveTrainCV(trainCV);
@@ -83,15 +81,22 @@ public class ST_Ensemble  extends AbstractClassifier implements SaveableEnsemble
     }
 
     public Instances createTransformData(Instances data){
-        //construct shapelet classifiers.
-        transform = new BalancedClassShapeletTransform();
-        transform.setClassValue(new BinarisedClassValue());
-        transform.setSubSeqDistance(new ImprovedOnlineSubSeqDistance());
-        transform.setSearchFunction(new ShapeletSearch(3, data.numAttributes() - 1, 1, 1));
-        transform.useCandidatePruning();
-        transform.setNumberOfShapelets(data.numInstances() * 10);
-        transform.setQualityMeasure(QualityMeasures.ShapeletQualityChoice.INFORMATION_GAIN);
-        transform.turnOffLog();
+        int numInstances = data.numInstances();
+        int numAttributes = data.numAttributes()-1;
+        
+        //construct shapelet classifiers from the factory.
+        transform = ShapeletTransformFactory.createTransform(data);
+        
+        //here we should check whether we need to subsample.
+        //we should only subsample if our time cutoff is exceeded. 
+        //TODO: this needs to be a bit smarter
+        if(opCountThreshold <= calculateOperations(numInstances,numAttributes, 3, numAttributes)){
+            System.out.println("using subsampling");
+            double proportion = utilities.InstanceTools.calculateSubSampleProportion(data, 25);
+            Instances subsample = utilities.InstanceTools.subSampleFixedProportion(data, proportion, new Random().nextInt());
+            transform.process(subsample);
+        }
+        
         return transform.process(data);
     }
     
@@ -109,7 +114,7 @@ public class ST_Ensemble  extends AbstractClassifier implements SaveableEnsemble
 
         ST_Ensemble st= new ST_Ensemble();
         st.saveResults(trainS, testS);
-        st.doSTransform(false);
+        st.doSTransform(true);
         double a = Experiments.singleSampleExperiment(train, test, st, fold, preds);
         System.out.println("accuracy: " + a);
     }    

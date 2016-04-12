@@ -444,6 +444,22 @@ public class InstanceTools {
         }
         return output; 
      }
+    
+        
+    //use in conjunction with subSampleFixedProportion.
+    //Instances subSample = InstanceTools.subSampleFixedProportion(train, proportion, fold);
+    public static double calculateSubSampleProportion(Instances train, int min){
+        int small_sf = InstanceTools.findSmallestClassAmount(train);           
+        double proportion = 1;
+        if (small_sf>min){
+            proportion = (double)min/(double)small_sf;
+
+            if (proportion < 0.1)
+                proportion = 0.1;
+        }
+        
+        return proportion;
+    }
  
     
     public static int findSmallestClassAmount(Instances data){
@@ -464,5 +480,23 @@ public class InstanceTools {
         }
         
         return small_sf;
+    }
+    
+    public static int indexOf(Instances dataset, Instance find){
+        int index = -1;
+        for(int i=0; i<dataset.numInstances(); i++){
+            Instance in = dataset.get(i);
+            boolean match = true;
+            for(int j=0; j<in.numAttributes();j++){
+                if(in.value(j) != find.value(j))
+                    match = false;
+            }
+            if(match){
+                index = i;
+                break;
+            }  
+        }
+        
+        return index;
     }
 }

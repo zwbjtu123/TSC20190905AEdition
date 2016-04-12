@@ -23,12 +23,16 @@ import java.util.Scanner;
 import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import utilities.ClassifierTools;
 import utilities.class_distributions.ClassDistribution;
+import weka.classifiers.meta.RotationForest;
+import weka.classifiers.meta.timeseriesensembles.WeightedEnsemble;
 import weka.core.*;
 import weka.core.shapelet.*;
 import weka.filters.SimpleBatchFilter;
 import weka.filters.timeseries.shapelet_transforms.classValue.BinarisedClassValue;
 import weka.filters.timeseries.shapelet_transforms.classValue.NormalClassValue;
+import weka.filters.timeseries.shapelet_transforms.searchFuntions.FastShapeletSearch;
 import weka.filters.timeseries.shapelet_transforms.searchFuntions.ShapeletSearch;
 import weka.filters.timeseries.shapelet_transforms.subsequenceDist.ImprovedOnlineSubSeqDistance;
 import weka.filters.timeseries.shapelet_transforms.subsequenceDist.SubSeqDistance;
@@ -479,6 +483,9 @@ public class FullShapeletTransform extends SimpleBatchFilter {
         //setup subseqDistance
         subseqDistance.init(data);
         
+        //setup search function.
+        searchFunction.init(data);
+        
         //checks if the shapelets haven't been found yet, finds them if it needs too.
         if (!shapeletsTrained) {
             trainShapelets(data);
@@ -586,11 +593,11 @@ public class FullShapeletTransform extends SimpleBatchFilter {
            
             seriesShapelets = searchFunction.SearchForShapeletsInSeries(data.get(dataSet), this::checkCandidate);
 
-            Collections.sort(seriesShapelets, shapeletComparator);
-
-            seriesShapelets = removeSelfSimilar(seriesShapelets);
-
-            kShapelets = combine(numShapelets, kShapelets, seriesShapelets);
+            if(seriesShapelets != null){
+                Collections.sort(seriesShapelets, shapeletComparator);
+                seriesShapelets = removeSelfSimilar(seriesShapelets);
+                kShapelets = combine(numShapelets, kShapelets, seriesShapelets);
+            }
             
             createSerialFile();
         }
@@ -1124,7 +1131,7 @@ public class FullShapeletTransform extends SimpleBatchFilter {
     public static void main(String[] args){
         try {
             final String resampleLocation = "../../resampled data sets";
-            final String dataset = "ItalyPowerDemand";
+            final String dataset = "ECG200";
             final int fold = 1;
             final String filePath = resampleLocation + File.separator + dataset + File.separator + dataset + fold;
             Instances test, train;
@@ -1132,7 +1139,9 @@ public class FullShapeletTransform extends SimpleBatchFilter {
             train = utilities.ClassifierTools.loadData(filePath + "_TRAIN");
             //use fold as the seed.
             //train = InstanceTools.subSample(train, 100, fold);
-            FullShapeletTransform transform = new FullShapeletTransform();
+            
+            
+           FullShapeletTransform transform = new FullShapeletTransform();
             transform.setRoundRobin(true);
             //construct shapelet classifiers.
             transform.setClassValue(new BinarisedClassValue());
@@ -1141,15 +1150,45 @@ public class FullShapeletTransform extends SimpleBatchFilter {
             transform.useCandidatePruning();
             transform.setNumberOfShapelets(train.numInstances() * 10);
             transform.setQualityMeasure(QualityMeasures.ShapeletQualityChoice.INFORMATION_GAIN);
+            transform.supressOutput();
+            
+            long startTime = System.nanoTime();
+           
             Instances tranTrain = transform.process(train);
             Instances tranTest = transform.process(test);
             
-            System.out.println(tranTrain);
-            /*WeightedEnsemble we = new WeightedEnsemble();
-            we.buildClassifier(tranTrain);
-            double accuracy = ClassifierTools.accuracy(tranTest, we);
+            long endTime = System.nanoTime();
             
-            System.out.println(accuracy);*/
+            RotationForest rot1 = new RotationForest();
+            rot1.buildClassifier(tranTrain);
+            double accuracy = ClassifierTools.accuracy(tranTest, rot1);
+            
+            System.out.println("Shapelet transform "+ accuracy + " time " + (endTime-startTime));
+            
+
+            FullShapeletTransform transform1 = new FullShapeletTransform();
+            transform1.setRoundRobin(true);
+            transform1.setClassValue(new BinarisedClassValue());
+            transform1.setSubSeqDistance(new ImprovedOnlineSubSeqDistance());
+            transform1.setSearchFunction(new FastShapeletSearch(3, train.numAttributes() - 1));
+            transform1.useCandidatePruning();
+            transform1.setNumberOfShapelets(train.numInstances() * 10);
+            transform1.setQualityMeasure(QualityMeasures.ShapeletQualityChoice.INFORMATION_GAIN);
+            transform1.supressOutput();
+            
+            long startTime1 = System.nanoTime();
+            
+            Instances tranTrain1 = transform.process(train);
+            Instances tranTest1 = transform.process(test);
+            
+            long endTime1 = System.nanoTime();
+            
+            
+            RotationForest rot2 = new RotationForest();
+            rot2.buildClassifier(tranTrain1);
+            double accuracy1 = ClassifierTools.accuracy(tranTest1, rot2);
+            
+            System.out.println("Fast shapelet transform "+ accuracy1 + " time " + (endTime1-startTime1));
         } catch (Exception ex) {
             Logger.getLogger(FullShapeletTransform.class.getName()).log(Level.SEVERE, null, ex);
         }

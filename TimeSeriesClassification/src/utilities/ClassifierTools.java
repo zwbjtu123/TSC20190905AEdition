@@ -28,8 +28,10 @@ import weka.filters.unsupervised.attribute.ReplaceMissingValues;
 
 
 import fileIO.OutFile;
+import java.io.File;
 import java.io.IOException;
 import weka.classifiers.lazy.kNN;
+import weka.core.converters.ArffSaver;
 
 /**
  * @author ajb
@@ -85,6 +87,27 @@ public class ClassifierTools {
 
             return d;
 	}
+        
+    /**
+     *  Simple util to saveDatasets out. Useful for shapelet transform.
+     * 
+     * @param dataSet
+     * @param fileName
+     */
+    public static void saveDataset(Instances dataSet, String fileName)
+    {
+        try
+        {
+            ArffSaver saver = new ArffSaver();
+            saver.setInstances(dataSet);
+            saver.setFile(new File(fileName + ".arff"));
+            saver.writeBatch();
+        }
+        catch (IOException ex)
+        {
+            System.out.println("Error saving transformed dataset" + ex);
+        }
+    }
 
 /**
  * 	Simple util to find the accuracy of a trained classifier on a test set. Probably is a built in method for this! 
