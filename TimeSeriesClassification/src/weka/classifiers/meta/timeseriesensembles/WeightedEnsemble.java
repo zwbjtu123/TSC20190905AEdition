@@ -170,7 +170,7 @@ tation Forest [30] (with 50 trees), and a Bayesian network.
                svm.setRandomSeed(seed);
             classifiers.add(svm);
             names.add("SVMQ");
-            EnhancedRandomForest r=new EnhancedRandomForest();
+            RandomForest r=new RandomForest();
             r.setNumTrees(500);
             if(setSeed)
                r.setSeed(seed);            
