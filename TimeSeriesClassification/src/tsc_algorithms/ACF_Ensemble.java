@@ -1,6 +1,7 @@
 package tsc_algorithms;
 
 
+import weka.classifiers.meta.timeseriesensembles.SaveableEnsemble;
 import bakeOffExperiments.Experiments;
 import fileIO.OutFile;
 import java.util.ArrayList;
@@ -102,7 +103,7 @@ public class ACF_Ensemble extends AbstractClassifier implements SaveableEnsemble
         constantFeatures=InstanceTools.removeConstantTrainAttributes(format);
         if(saveResults && c==ClassifierType.WeightedEnsemble){
 //Set up the file space here
-            ((WeightedEnsemble) baseClassifier).saveTrainCV(trainCV);
+            ((WeightedEnsemble) baseClassifier).setCVPath(trainCV);
             ((WeightedEnsemble) baseClassifier).saveTestPreds(testPredictions);
         }
         baseClassifier.buildClassifier(format);

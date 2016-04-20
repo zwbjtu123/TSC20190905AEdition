@@ -1,5 +1,6 @@
 package tsc_algorithms;
 
+import weka.classifiers.meta.timeseriesensembles.SaveableEnsemble;
 import fileIO.OutFile;
 import utilities.ClassifierTools;
 import utilities.InstanceTools;
@@ -30,6 +31,7 @@ public class PS_Ensemble extends AbstractClassifier implements SaveableEnsemble{
     protected void saveResults(boolean s){
         saveResults=s;
     }
+    @Override
     public void saveResults(String tr, String te){
         saveResults(true);
         trainCV=tr;
@@ -103,7 +105,7 @@ public class PS_Ensemble extends AbstractClassifier implements SaveableEnsemble{
         if(saveResults && c==ClassifierType.WeightedEnsemble){
 //Set up the file space here
             System.out.println("SAVING RESULTS FOR TRAIN to "+trainCV+" "+testPredictions);
-            ((WeightedEnsemble) baseClassifier).saveTrainCV(trainCV);
+            ((WeightedEnsemble) baseClassifier).setCVPath(trainCV);
             ((WeightedEnsemble) baseClassifier).saveTestPreds(testPredictions);
         }
         

@@ -195,7 +195,7 @@ public class TWEDistance extends EuclideanDistance{
   		distj1=0;
                 for(k=0; k<dim; k++)
       		  if(j>1){
-//CHANGE AJB 8/1/16: Only use power of 2 for speed                      
+//CHANGE AJB 8/1/16: Only use power of 2 for speed up,                       
                     distj1+=(tb[j-2][k]-tb[j-1][k])*(tb[j-2][k]-tb[j-1][k]);
 // OLD VERSION                    distj1+=Math.pow(Math.abs(tb[j-2][k]-tb[j-1][k]),degree);
 // in c:               distj1+=pow(fabs(tb[j-2][k]-tb[j-1][k]),degree);

@@ -24,6 +24,7 @@ public class EnhancedRandomForest extends RandomForest{
     public EnhancedRandomForest(){
         super();
         m_numTrees=50;
+        m_numExecutionSlots=1;
         
     }
     double OOBError;

@@ -85,7 +85,7 @@ public class TSF extends AbstractClassifier implements SaveCVAccuracy{
 
     @Override
     public String getParameters() {
-        return "numTrees,"+numTrees+"numFeatures,"+numFeatures;
+        return "numTrees,"+numTrees+",numFeatures,"+numFeatures;
     }
     
     
@@ -218,8 +218,8 @@ public class TSF extends AbstractClassifier implements SaveCVAccuracy{
             double[][] results=ClassifierTools.crossValidationWithStats(tsf, data, folds);
             of.writeLine(getParameters());
             of.writeLine(results[0][0]+"");
-            for(int i=1;i<results.length;i++)
-                of.writeLine(results[0][i]+","+results[1][i]);
+            for(int i=1;i<results[0].length;i++)
+                of.writeLine((int)results[0][i]+","+(int)results[1][i]);
             System.out.println("CV acc ="+results[0][0]);
         }
        
@@ -289,7 +289,31 @@ public class TSF extends AbstractClassifier implements SaveCVAccuracy{
             trees[i].buildClassifier(result);
         }
     }
-
+    @Override
+    public double[] distributionForInstance(Instance ins) throws Exception {
+        double[] d=new double[ins.numClasses()];;
+        int[] votes=new int[ins.numClasses()];
+//Build instance
+        double[] series=ins.toDoubleArray();
+        for(int i=0;i<trees.length;i++){
+            for(int j=0;j<numFeatures;j++){
+                    //extract the interval
+                    FeatureSet f= new FeatureSet();
+                    f.setFeatures(series, intervals[i][j][0], intervals[i][j][1]);
+                    testHolder.instance(0).setValue(j*3, f.mean);
+                    testHolder.instance(0).setValue(j*3+1, f.stDev);
+                    testHolder.instance(0).setValue(j*3+2, f.slope);
+                }
+            int c=(int)trees[i].classifyInstance(testHolder.instance(0));
+            votes[c]++;
+        }
+        double sum=0;
+        for(int x:votes)
+            sum+=x;
+        for(int i=0;i<d.length;i++)
+            d[i]=votes[i]/sum;
+        return d;
+    }
     @Override
     public double classifyInstance(Instance ins) throws Exception {
         int[] votes=new int[ins.numClasses()];

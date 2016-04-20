@@ -810,6 +810,19 @@ public static void dataDescription(String[] fileNames){
 
 }
 
+public static void makeTable(String means, String stdDev,String outfile){
+    InFile m=new InFile(means);
+    InFile sd=new InFile(stdDev);
+    int lines=m.countLines();
+    m=new InFile(means);
+    String s=m.readLine();
+    int columns=s.split(",").length;
+    m=new InFile(means);
+    OutFile out=new OutFile(outfile);
+    DecimalFormat meanF=new DecimalFormat(".###");
+    DecimalFormat sdF=new DecimalFormat(".##");
+    
+}
 
 
 public static void main(String[] args) throws Exception{

@@ -1,21 +1,23 @@
 /*
  this classifier does none of the transformations. It simply loads the 
- * problems it is told to. In build classifier it can load the CV weights or find them, 
- * by default through LOOCV. For classifiers, it defaults to a standard set with default 
- * parameters. Alternatively, you can set the classifiers and for certain types set the
- * parameters through CV. 
+ * problems it is told to. In build classifier it can load the CV weights or 
+find them, by default through LOOCV. For classifiers, it defaults to a standard 
+set with default parameters. Alternatively, you can set the classifiers and 
+for certain types set the parameters through CV. 
  */
 package weka.classifiers.meta.timeseriesensembles;
 
 import development.DataSets;
 import fileIO.InFile;
 import fileIO.OutFile;
+import java.io.File;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import utilities.ClassifierTools;
+import utilities.SaveCVAccuracy;
 import weka.classifiers.*;
 import weka.classifiers.bayes.BayesNet;
 import weka.classifiers.bayes.NaiveBayes;
@@ -33,7 +35,7 @@ import weka.core.*;
  *
  * @author ajb
  */
-public class WeightedEnsemble extends AbstractClassifier{
+public class WeightedEnsemble extends AbstractClassifier implements SaveCVAccuracy, SaveableEnsemble {
 //The McNemar test requires the actual predictions of each classifier. The others can be found directly
 //from the CV accuracy.    
     Instances train;
@@ -56,9 +58,14 @@ public class WeightedEnsemble extends AbstractClassifier{
   open over different calls to classifyInstance   */
     OutFile testData;
     boolean memoryClean=true;
+    @Override
+    public void saveResults(String tr, String te){
+        setCVPath(tr);
+        saveTestPreds(te);
+    }
     
 
-    public enum WeightType{EQUAL,BEST,PROPORTIONAL,SIGNIFICANT_BINOMIAL,SIGNIFICANT_MCNEMAR};
+    public enum WeightType{EQUAL,BEST,PROPORTIONAL,FIXED,SIGNIFICANT_BINOMIAL,SIGNIFICANT_MCNEMAR};
     WeightType w;
     public WeightedEnsemble(){
         w=WeightType.PROPORTIONAL;
@@ -76,6 +83,7 @@ public class WeightedEnsemble extends AbstractClassifier{
     public void loadCVWeights(String file){
         loadCVWeights=true;
         cvFile=file;
+        w= WeightType.FIXED;
     }
     public void setRandSeed(int s){
         r=new Random(s);
@@ -109,14 +117,18 @@ public class WeightedEnsemble extends AbstractClassifier{
     }
 
     
-    public void saveTrainCV(String s){
+    public void setCVPath(String s){
         saveTrain=true;
         trainDataResultsPath=s;
+    }
+    public String getParameters(){
+        String p="";
+        p+="NosClassifiers,"+c.length+",type,"+w;
+        return p;
     }
     public void saveTestPreds(String s){
         saveTest=true;
         testData=new OutFile(s);
-        
     }
     
     
@@ -124,8 +136,8 @@ public class WeightedEnsemble extends AbstractClassifier{
 of k Nearest Neighbour (where k is set through cross
 validation), Naive Bayes, C4.5 decision tree [27], Support
 Vector Machines [28] with linear and quadratic basis
-function kernels, Random Forest [29] (with 100 trees), Ro-
-tation Forest [30] (with 10 trees), and a Bayesian network.
+function kernels, Random Forest [29] (with 500 trees), Ro-
+tation Forest [30] (with 50 trees), and a Bayesian network.
  */       
     final public Classifier[] setDefaultClassifiers(ArrayList<String> names){
             ArrayList<Classifier> classifiers=new ArrayList<>();
@@ -208,12 +220,17 @@ tation Forest [30] (with 10 trees), and a Bayesian network.
             of.writeString("\n");
         }
 //load CV, classifiers and parameter sets        
-        if(loadCVWeights){
+        if(w==WeightType.FIXED){
+            if(!(new File(cvFile).exists())){
+                //ERRROR, FILE DOES NOT EXIST
+                System.out.println("ERROR: FILE "+cvFile+" DOES NOT EXIST .. its going to crash now ...");
+            }
             InFile inf=new InFile(cvFile);
             inf.readLine(); //Header
             double sum=0;
             for(int i=0;i<c.length;i++){
                 cvAccs[i]=inf.readDouble();
+//                System.out.println(" CV ACC ="+cvAccs[i]);
                 sum+=cvAccs[i];
             }
 //Train classifiers           
@@ -250,9 +267,7 @@ tation Forest [30] (with 10 trees), and a Bayesian network.
                 else{
                     eval=new Evaluation(train);
     //set the max number of folds to MAX_FOLDS or use LOOCV
-                    int folds=train.numInstances();
-                    if(folds>MAX_NOS_FOLDS)
-                        folds=MAX_NOS_FOLDS;
+                    int folds=setNumberOfFolds(train);
 //Hugely memory intensive, so clean up if required
 //The CV could be done much more efficiently in memory
 /*There is an unusual problem with NB  and BN. If a subsample has a flat feature
@@ -420,7 +435,7 @@ tation Forest [30] (with 10 trees), and a Bayesian network.
         Instances test= ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\TSC Problems\\ItalyPowerDemand\\ItalyPowerDemand_TEST");
         WeightedEnsemble we= new WeightedEnsemble();
         we.saveTestPreds("C:\\Users\\ajb\\Dropbox\\TSC Problems\\ItalyPowerDemand\\TestPreds.csv");
-        we.saveTrainCV("C:\\Users\\ajb\\Dropbox\\TSC Problems\\ItalyPowerDemand\\TrainCV.csv");
+        we.setCVPath("C:\\Users\\ajb\\Dropbox\\TSC Problems\\ItalyPowerDemand\\TrainCV.csv");
         we.buildClassifier(train);
         for(Instance ins:test){
             we.classifyInstance(ins);
