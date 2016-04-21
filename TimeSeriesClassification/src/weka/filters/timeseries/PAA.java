@@ -1,5 +1,6 @@
 package weka.filters.timeseries;
 
+import java.util.ArrayList;
 import utilities.ClassifierTools;
 import weka.core.Attribute;
 import weka.core.DenseInstance;
@@ -152,6 +153,11 @@ public class PAA extends SimpleBatchFilter {
             }
         }
         
+        // i.e. if the last interval didn't write because of double imprecision
+        if (currentFrame == numIntervals-1) { //if frame complete
+            intervals[currentFrame++] = frameSum / realFrameLength;
+        }
+        
         return intervals;
     }
     
@@ -167,21 +173,54 @@ public class PAA extends SimpleBatchFilter {
     }
 
     public static void main(String[] args) {
-        System.out.println("PAAtest\n\n");
+//        System.out.println("PAAtest\n\n");
+//        
+//        try {
+//            Instances test = ClassifierTools.loadData("C:\\tempbakeoff\\TSC Problems\\Car\\Car_TEST.arff");
+//            PAA paa = new PAA();
+//            paa.setNumIntervals(2);
+//            Instances result = paa.process(test);
+//            
+//            System.out.println(test);
+//            System.out.println("\n\n\nResults:\n\n");
+//            System.out.println(result);
+//        }
+//        catch (Exception e) {
+//            System.out.println(e);
+//        }
+
         
-        try {
-            Instances test = ClassifierTools.loadData("C:\\tempbakeoff\\TSC Problems\\Car\\Car_TEST.arff");
-            PAA paa = new PAA();
-            paa.setNumIntervals(2);
-            Instances result = paa.process(test);
+        // Jason's Test
+        try{
+            double[] wavey = {0.841470985,0.948984619,0.997494987,0.983985947,0.909297427,0.778073197,0.598472144,0.381660992,0.141120008,-0.108195135,-0.350783228,-0.571561319,-0.756802495,-0.894989358,-0.977530118,-0.999292789,-0.958924275,-0.858934493,-0.705540326,-0.508279077,-0.279415498};
             
-            System.out.println(test);
-            System.out.println("\n\n\nResults:\n\n");
-            System.out.println(result);
+            PAA paa = new PAA();
+            paa.setNumIntervals(10);
+            
+            // convert into Instances format            
+            ArrayList<Attribute> atts = new ArrayList<>();
+            DenseInstance ins = new DenseInstance(wavey.length+1);
+            for(int i = 0; i < wavey.length; i++){
+                ins.setValue(i, wavey[i]);
+                atts.add(new Attribute("att"+i));
+            }
+            atts.add(new Attribute("classVal"));
+            ins.setValue(wavey.length, 1);
+
+            Instances instances = new Instances("blah", atts, 1);
+            instances.setClassIndex(instances.numAttributes()-1);
+            instances.add(ins);
+                        
+            Instances out = paa.process(instances);
+
+            for(int i = 0; i < out.numAttributes()-1;i++){
+                System.out.print(out.instance(0).value(i)+",");
+            }
+            System.out.println();
+        }catch(Exception e){
+            e.printStackTrace();
         }
-        catch (Exception e) {
-            System.out.println(e);
-        }
+
     }
 
 }

@@ -66,7 +66,7 @@ public class ElasticEnsemble implements Classifier{
         Signif
     }
 
-    protected static double[] msmParms = {
+    public static double[] msmParams = {
         // <editor-fold defaultstate="collapsed" desc="hidden for space">
         0.01,
         0.01375,
@@ -170,7 +170,7 @@ public class ElasticEnsemble implements Classifier{
         100// </editor-fold>
     };
 
-    protected static double[] twe_nuParams = {
+    public static double[] twe_nuParams = {
         // <editor-fold defaultstate="collapsed" desc="hidden for space">
         0.00001,
         0.0001,
@@ -184,7 +184,7 @@ public class ElasticEnsemble implements Classifier{
         1,// </editor-fold>
     };
 
-    protected static double[] twe_lamdaParams = {
+    public static double[] twe_lamdaParams = {
         // <editor-fold defaultstate="collapsed" desc="hidden for space">
         0,
         0.011111111,
@@ -475,8 +475,8 @@ public class ElasticEnsemble implements Classifier{
             case MSM_1NN:
                 params = new double[1];
                 // values have a variable range. Specified in a static array at the start of the class called msmParams
-                for(int p = 0; p < msmParms.length; p++){
-                    params[0] = msmParms[p];
+                for(int p = 0; p < msmParams.length; p++){
+                    params[0] = msmParams[p];
                     result = crossValidate(train, classifierType, params);
                     if(result.getAccuracy() > this.cvAccs[classifierNum]){     // favours smaller params
                         this.cvAccs[classifierNum] = result.getAccuracy();
@@ -707,7 +707,7 @@ public class ElasticEnsemble implements Classifier{
                 int[] deltas = LCSSDistance.getInclusive10(0, (trainingData.numAttributes()-1)/4);
                 return new double[]{deltas[paramId/10], epsilons[paramId%10]};
             case MSM_1NN:
-                return new double[]{msmParms[paramId]};
+                return new double[]{msmParams[paramId]};
             case TWE_1NN:
                 return new double[]{twe_nuParams[paramId/10],twe_lamdaParams[paramId%10]};
             case ERP_1NN:
