@@ -5,6 +5,7 @@
  */
 package tsc_algorithms;
 
+import weka.classifiers.meta.timeseriesensembles.SaveableEnsemble;
 import bakeOffExperiments.Experiments;
 import java.io.File;
 import java.util.Random;
@@ -58,7 +59,7 @@ public class ST_Ensemble  extends AbstractClassifier implements SaveableEnsemble
                 
         redundantFeatures=InstanceTools.removeRedundantTrainAttributes(format);
         if(saveResults){
-            weightedEnsemble.saveTrainCV(trainCV);
+            weightedEnsemble.setCVPath(trainCV);
             weightedEnsemble.saveTestPreds(testPredictions);
         }
         

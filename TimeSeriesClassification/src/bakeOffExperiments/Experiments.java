@@ -3,6 +3,7 @@
  */
 package bakeOffExperiments;
 
+import weka.classifiers.meta.timeseriesensembles.SaveableEnsemble;
 import PS_ACF_experiments.FixedIntervalForest;
 import utilities.SaveCVAccuracy;
 import tsc_algorithms.*;
@@ -28,6 +29,7 @@ import weka.classifiers.lazy.DTW_1NN;
 import weka.classifiers.lazy.kNN;
 import weka.classifiers.meta.OptimisedRotationForest;
 import weka.classifiers.meta.RotationForest;
+import weka.classifiers.meta.timeseriesensembles.WeightedEnsemble;
 import weka.classifiers.trees.J48;
 import weka.classifiers.trees.RandomForest;
 import weka.core.Attribute;
@@ -78,7 +80,7 @@ public class Experiments extends Thread{
         Classifier c=setClassifier(classifier);
         if(resamples==1){
             //Open up fold file to write to
-            File f=new File(preds+"/fold"+fold+".csv");
+            File f=new File(preds+"/testFold"+fold+".csv");
             if(!f.exists() || f.length()==0){
                 acc=singleSampleExperiment(train,test,c,fold,preds);
                 System.out.println("Fold "+fold+" acc ="+acc);
@@ -138,6 +140,9 @@ public class Experiments extends Thread{
     public static Classifier setClassifier(String classifier){
         Classifier c=null;
         switch(classifier){
+            case "WE":
+                c=new WeightedEnsemble();
+                break;
             case "PS_TSF":
                 c=new FixedIntervalForest();
                 break;
@@ -183,6 +188,7 @@ public class Experiments extends Thread{
                 break;
             case "LearnShapelets": case "LS":
                 c=new LearnShapelets();
+//Turn this off for the big problems on advice of Grabocka
                 ((LearnShapelets)c).setParamSearch(false);
                 break;
             case "FastShapelets": case "FS":
@@ -396,7 +402,23 @@ public class Experiments extends Thread{
         
     }
     
-
+    public static boolean sampleData(String classifier, String problem){
+        String cls=classifier.toUpperCase();
+        switch(cls){
+            case "LS": case "ST": case "LEARNEDSHAPELET": case "SHAPELETTRANSFORM":
+                switch(problem){
+                    case "ElectricDevices": case "FordA": case "FordB":
+                        return true;
+                        
+                    default:
+                        return false;
+                }
+            case "BOSS":
+                
+            default:
+                return false;
+        }
+    }
     public static void singleClassifier(String[] args) throws Exception{
 //first gives the problem file  
         String classifierName=args[0];
@@ -406,6 +428,11 @@ public class Experiments extends Thread{
         Classifier classifier=setClassifier(classifierName);
         Instances train=ClassifierTools.loadData(DataSets.problemPath+s+"/"+s+"_TRAIN");
         Instances test=ClassifierTools.loadData(DataSets.problemPath+s+"/"+s+"_TEST");
+        if(sampleData(classifierName,s))
+            train=InstanceTools.subSampleFixedProportion(train,0.3,1);
+            
+        
+        
         File f=new File(DataSets.resultsPath+classifierName);
         if(!f.exists())
             f.mkdir();
@@ -550,12 +577,6 @@ public class Experiments extends Thread{
         Instances[] data=InstanceTools.resampleTrainAndTestInstances(train, test, sample);
         double acc=0;
         OutFile p=new OutFile(preds+"/testFold"+sample+".csv");
-        String[] names=preds.split("/");
-        p.writeLine(names[names.length-1]+","+c.getClass().getName()+",train");
-        if(c instanceof SaveCVAccuracy)
-            p.writeLine(((SaveCVAccuracy)c).getParameters());
-        else
-            p.writeLine("NoParameterInfo");
 
 // hack here to save internal CV for furhter ensembling   
         if(c instanceof SaveCVAccuracy)
@@ -574,9 +595,22 @@ public class Experiments extends Thread{
                     acc++;
             }
             acc/=data[1].numInstances();
+            String[] names=preds.split("/");
+            p.writeLine(names[names.length-1]+","+c.getClass().getName()+",test");
+            if(c instanceof SaveCVAccuracy)
+                p.writeLine(((SaveCVAccuracy)c).getParameters());
+            else
+                p.writeLine("NoParameterInfo");
             p.writeLine(acc+"");
-            for(int j=0;j<data[1].numInstances();j++)
-                p.writeLine(predictions[j][0]+","+predictions[j][1]);
+            for(int j=0;j<data[1].numInstances();j++){
+                p.writeString(predictions[j][0]+","+predictions[j][1]+",");
+                double[] dist =c.distributionForInstance(data[1].instance(j));
+                for(double d:dist)
+                    p.writeString(","+d);
+                p.writeString("\n");
+                
+                
+            }
             
 //            of.writeString(foldAcc[i]+",");
 
@@ -602,7 +636,7 @@ public class Experiments extends Thread{
             
     }
 
-public static void main(String[] args) throws Exception{
+    public static void main(String[] args){
      
         try{
             if(args.length>0){ //Cluster run
@@ -614,7 +648,7 @@ public static void main(String[] args) throws Exception{
                 clusterRun(args);
             }
             else{         //Local threaded run    
-                DataSets.resultsPath="C:/Users/ajb/Dropbox/New COTE Results/";
+                DataSets.resultsPath="C:/Users/ajb/Dropbox/NewCOTEResults/";
                 DataSets.problemPath=DataSets.dropboxPath+"TSC Problems/";
                 String classifier="TSF";
                 String problem="ItalyPowerDemand";

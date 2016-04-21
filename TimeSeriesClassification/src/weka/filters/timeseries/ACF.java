@@ -19,7 +19,7 @@ import weka.core.Instances;
 import weka.filters.*;
 
 /*
- *      * copyright: Anthony Bagnall
+ *      * author: Anthony Bagnall
 
  */
 

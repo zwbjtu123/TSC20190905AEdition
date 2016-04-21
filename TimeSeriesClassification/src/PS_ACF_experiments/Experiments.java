@@ -3,6 +3,7 @@
  */
 package PS_ACF_experiments;
 
+import weka.classifiers.meta.timeseriesensembles.SaveableEnsemble;
 import utilities.SaveCVAccuracy;
 import bakeOffExperiments.*;
 import tsc_algorithms.*;

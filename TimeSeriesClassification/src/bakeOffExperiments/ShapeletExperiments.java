@@ -14,7 +14,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import tsc_algorithms.ST_Ensemble;
-import tsc_algorithms.SaveableEnsemble;
+import weka.classifiers.meta.timeseriesensembles.SaveableEnsemble;
 import utilities.ClassifierTools;
 import utilities.InstanceTools;
 import weka.classifiers.Classifier;
@@ -407,7 +407,7 @@ public class ShapeletExperiments {
         Instances test=ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\Temp\\Worms7_TEST");
         WeightedEnsemble we=new WeightedEnsemble();
         we.setWeightType("prop");
-        we.saveTrainCV("C:\\Users\\ajb\\Dropbox\\Big TSC Bake Off\\New Results\\shapelet\\ST\\Predictions\\Worms\\"+"internalCV_7.csv");
+        we.setCVPath("C:\\Users\\ajb\\Dropbox\\Big TSC Bake Off\\New Results\\shapelet\\ST\\Predictions\\Worms\\"+"internalCV_7.csv");
         we.saveTestPreds("C:\\Users\\ajb\\Dropbox\\Big TSC Bake Off\\New Results\\shapelet\\ST\\Predictions\\Worms\\"+"internalTestPreds_7.csv");
         double acc=ClassifierTools.singleTrainTestSplitAccuracy(we, train, test);
         System.out.println(" FROM FILE ACC ="+acc);

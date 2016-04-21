@@ -42,6 +42,13 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import utilities.ClassifierTools;
+import utilities.InstanceTools;
+import utilities.SaveCVAccuracy;
+import weka.classifiers.Evaluation;
+import weka.classifiers.meta.timeseriesensembles.WeightedEnsemble;
+import weka.core.Instance;
+import weka.core.Instances;
 
 /**
  *
@@ -53,17 +60,17 @@ public class CollateResults {
    static int[] testSizes={391,175,30,20,20,60,900,3840,1380,28,250,390,390,390,306,276,139,139,139,100,4500,861,7711,1690,88,2050,455,175,1320,810,150,105,370,308,64,550,1980,1029,375,61,73,2345,60,760,291,154,154,1252,1965,1965,30,242,858,1896,105,291,205,205,375,375,180,600,375,601,953,8236,370,625,995,300,228,130,100,1139,4000,3582,3582,3582,3582,6164,54,638,77,77,3000,};
     static String[] c={"ST","ACF","PACF"};
     HashSet<String> finished=new HashSet<>();
+ 
 /** 
  * 2. single file of problem and classifier  to single file of classifier
  * NaiveBayes/Adiac.csv
  * NaiveBayes/ArrowHead.csv    
  * */
-    public static void generateAllScripts(String path, String classifier){
-       boolean oldCls=false;
-        int mem=8000;
-        int maxMem=mem+2000;
+    public static void generateAllScripts(String path, String classifier, boolean oldCls){
+        int mem=10000;
+        int maxMem=mem+1000;
         String queue,java; 
-        String jar="LS.jar";
+        String jar="TimeSeriesClassification.jar";
         if(oldCls){
             queue="long";
             java= "java/jdk/1.8.0_31";
@@ -73,7 +80,7 @@ public class CollateResults {
             java="java/jdk1.8.0_51";
         }
         File f=new File(path+"/"+classifier);
-        deleteDirectory(f);
+//        deleteDirectory(f);
         if(!f.isDirectory())
             f.mkdir();
         for(int i=0;i<DataSets.fiveSplits.length;i++){
@@ -357,7 +364,100 @@ public class CollateResults {
             }
         }
     }
-
+//Combines the test fold data   
+    public static void convertNewToOld(String path, String classifier){    
+        File dir= new File(path+"\\"+classifier+"\\Predictions\\");
+        File dir2= new File(path+"\\"+classifier+"\\OldFormatPredictions\\");
+        int folds=100;
+         if(dir.isDirectory()){    //Proceed if there is a directory of results
+            if(!dir2.isDirectory())    //Proceed if there is a directory of results
+                dir2.mkdir();
+            for(int k=0;k<DataSets.fileNames.length;k++){
+                String s= DataSets.fileNames[k];
+                String p=path+"\\"+classifier+"\\Predictions"+"\\"+s;
+                String p2=path+"\\"+classifier+"\\OldFormatPredictions\\"+s;
+                dir= new File(p);
+                dir2= new File(p2);
+//Check if there is a directory of predictions.
+                if(dir.isDirectory()){
+                    if(!dir2.isDirectory())    //Proceed if there is a directory of results
+                        dir2.mkdir();
+                    for(int i=0;i<folds;i++){//Check fold                     
+                        File f=new File(p+"\\testFold"+i+".csv");
+                        if(f.exists()){ 
+                            InFile inf=new InFile(p+"\\testFold"+i+".csv");
+                            //Check it is complete    
+                            int c=inf.countLines();
+                            if(c>2){    //Should really check all are present
+                                inf=new InFile(p+"\\testFold"+i+".csv");
+                                OutFile outf=new OutFile(p2+"\\fold"+i+".csv");
+                                String temp=inf.readLine();
+                                temp=inf.readLine();
+                                temp=inf.readLine();
+                                for(int j=3;j<c;j++)
+                                    outf.writeLine(inf.readLine());
+                            }
+                        }
+                        else{
+                            System.out.println("Fld "+p+"\\testFold"+i+".csv does not exist");
+                        }
+                    }
+                }
+                else
+                    System.out.println("DIR "+p+" does not exist");
+            }
+         }
+        
+    }
+    public static void combineSingleNewFormat(String path, String classifier){
+//Check classifier folder exists
+        File dir= new File(path+"\\"+classifier+"\\Predictions\\");
+        int folds=100;
+         if(dir.isDirectory()){    //Proceed if there is a directory of results
+        OutFile out=new OutFile(path+"\\"+classifier+".csv");
+            for(int k=0;k<DataSets.fileNames.length;k++){
+                double[] acc=new double[folds];
+                String s= DataSets.fileNames[k];
+                String p=path+"\\"+classifier+"\\Predictions"+"\\"+s;
+                dir= new File(p);
+                double mean=0;
+                double sSqr=0;
+                int count=0;
+//Check if there is a directory of predictions.
+                if(dir.isDirectory()){
+                    for(int i=0;i<folds;i++){//Check fold                     
+                        File f=new File(p+"\\testFold"+i+".csv");
+                        if(f.exists()){ 
+                            InFile inf=new InFile(p+"\\testFold"+i+".csv");
+                            //Check it is complete    
+                            int c=inf.countLines();
+                            if(c>2){    //Should really check all are present
+                                inf=new InFile(p+"\\testFold"+i+".csv");
+                                String temp=inf.readLine();
+                                temp=inf.readLine();
+                                acc[i]=inf.readDouble();
+                                count++;
+                                mean+=acc[i];
+                                sSqr+=acc[i]*acc[i];
+                            }
+                        }
+                    }
+                    if(count>0){
+                        mean/=count;
+                        out.writeLine(s+","+mean+","+sSqr+","+count);
+                    }
+                    else
+                        out.writeLine(s+",,");
+                }
+                else{
+                    System.out.println(" No directory  "+p);
+                    out.writeLine(s+",,");
+                }
+                
+            }
+        }
+    }
+    
     public static void combineSingles(String root){
         OutFile out = new OutFile(root+"IncompleteFolds.csv");
         for(int i=0;i<dirNames.length;i++){
@@ -497,7 +597,7 @@ public class CollateResults {
         OutFile outf2=new OutFile(dest+"\\UnstartedProblems.txt");
         File f=new File(dest+"\\Scripts");
         boolean oldCls=false;
-        int mem=9000;
+        int mem=4000;
         int maxMem=mem+1000;
         int maxNum=100;
         String jar="TimeSeriesClassification.jar";
@@ -645,13 +745,30 @@ public class CollateResults {
             }
         }
         return(directory.delete());
-    }    
-    public static void main(String[] args){
-      DataSets.resultsPath="C:\\Users\\ajb\\Dropbox\\Big TSC Bake Off\\New Results\\";
-//    generateAllScripts("C:\\Users\\ajb\\Dropbox\\Big TSC Bake Off\\New Results\\Scripts","LS");
-        collateFoldZero();
+    } 
+    public static  void listMissing(String path){
+        
+    }
+    
+    public static void main(String[] args) throws Exception{
+//        findMissing();
+        int problem=Integer.parseInt(args[0])-1;
+        reconstructWETrainPreds(problem);
+        System.exit(0);
+      String path="C:\\Users\\ajb\\Dropbox\\Temp";
+//        combineSingleNewFormat(path,"BOSS");
+//        combineSingleNewFormat(path,"LS");
+//        convertNewToOld(path,"BOSS");
+//      convertNewToOld(path,"LS");
 
-      System.exit(0);
+      DataSets.resultsPath="C:\\Users\\ajb\\Dropbox\\Big TSC Bake Off\\New Results\\";
+      
+    generateAllScripts("C:\\Users\\ajb\\Dropbox\\Big TSC Bake Off\\New Results\\Scripts","WE",true);
+         System.exit(0);
+    
+//        collateFoldZero();
+
+//     System.exit(0);
 //        findNumberPerSplit();
         String root="C:\\Users\\ajb\\Dropbox\\Big TSC Bake Off\\New Results";
 //        generateScripts(root,root);        
@@ -801,5 +918,76 @@ public class CollateResults {
 //First        
     }
 
+    public static void reconstructWETrainPreds(int problem) throws Exception{
+        String root= DataSets.clusterPath;
+        String path=root+"/Results/WE/Predictions/";
+ //       String root= DataSets.dropboxPath;
+ //      String path=root+"NewCOTEResults/WE/Predictions/";
+        
+        //        for(String s: DataSets.fileNames)
+        String s=DataSets.fileNames[problem];
+//        String s="ItalyPowerDemand";
+        {
+            Instances train=ClassifierTools.loadData(root+"TSC Problems/"+s+"/"+s+"_TRAIN");
+            Instances test=ClassifierTools.loadData(root+"TSC Problems/"+s+"/"+s+"_TEST");
+            for(int i=0;i<100;i++){
+                File f=new File(path+s+"/internalCV_"+i+".csv");
+                File f2=new File(path+s+"/trainFold"+i+".csv");
+                File f3=new File(path+s+"/testFold"+i+".csv");
+                if(f.exists() && f.length()>0 && !(f2.exists()&&f2.length()>0) && f3.exists() && f3.length()>0){
+                    System.out.println("Training "+s+" for fold "+i);
+                    OutFile out=new OutFile(path+s+"/trainFold"+i+".csv");
+                    
+//Build with fixed weights                    
+                    WeightedEnsemble we=new WeightedEnsemble();
+                    we.loadCVWeights(path+s+"/internalCV_"+i+".csv");
+// Get correct fold
+                    Instances[] resample=InstanceTools.resampleTrainAndTestInstances(train, test, i);
+// Do a CV for the train data, set folds by size
+                    train=resample[0];
+                    int folds=0;
+                    if(train.numInstances()<100) 
+                        folds=train.numInstances();
+                    else if(train.numInstances()<SaveCVAccuracy.INSTANCES_TRESH && train.numAttributes()-1<SaveCVAccuracy.LENGTH_TRESH)
+                        folds= 100;
+                    else 
+                        folds=10;
+                    double[][] preds=ClassifierTools.crossValidationWithStats(we, train,folds);
+                    Evaluation eval=new Evaluation(train);
 
+                    out.writeLine(s+",WE,train");
+                    double[] cv=we.getCVAccs();
+                    String paras=we.getParameters()+",";
+                    for(double d:cv){
+                        paras+=d+",";
+                    }
+                    out.writeLine(paras);
+                    
+                    out.writeLine((preds[0][0])+"");
+                    for(int j=1;j<preds[0].length;j++)
+                        out.writeLine(preds[0][j]+","+preds[1][j]);
+                }
+            }
+        }
+        
+    }
+    public static void findMissing(){
+        String root= DataSets.dropboxPath;
+        String path=root+"NewCOTEResults/WE/Predictions/";
+        OutFile out=new OutFile(root+"NewCOTEResults/WE/Missing.csv");
+        for(String s: DataSets.fileNames)
+        {
+            out.writeString(s);
+            for(int i=0;i<100;i++){
+                File f=new File(path+s+"/internalCV_"+i+".csv");
+                File f2=new File(path+s+"/testFold"+i+".csv");
+                if(!f.exists() || f.length()==0 || !f2.exists() || f2.length()==0){
+                    out.writeString(","+i);
+                }
+            }
+            out.writeString("\n");
+        }
+        
+        
+    }
 }
