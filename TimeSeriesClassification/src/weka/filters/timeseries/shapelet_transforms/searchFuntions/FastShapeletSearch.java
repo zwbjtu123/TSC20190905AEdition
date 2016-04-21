@@ -5,6 +5,7 @@
  */
 package weka.filters.timeseries.shapelet_transforms.searchFuntions;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -20,7 +21,7 @@ import weka.core.shapelet.Shapelet;
  *
  * @author raj09hxu
  */
-public class FastShapeletSearch extends ShapeletSearch{
+public class FastShapeletSearch extends ShapeletSearch implements Serializable{
     
     int R = 10;
     int sax_max_len = 15;
@@ -31,7 +32,6 @@ public class FastShapeletSearch extends ShapeletSearch{
     
     ArrayList<Pair<Integer, Double>> Score_List;
     HashMap<Integer, USAX_elm_type> USAX_Map;
-    HashMap<Integer, ArrayList<Shapelet>> shapeletsInSeries;
     
     
     public FastShapeletSearch(int min, int max) {
@@ -53,17 +53,49 @@ public class FastShapeletSearch extends ShapeletSearch{
         //becase the fast shapelets does all series rather than incrementally doing each series, we want to abandon further calls.
         //we index the shapelets in the series they come from, because then we can just grab them as a series is asked for.
         if(!searched){
-            calculateShapelets(checkCandidate);
+            calculateShapelets();
             searched = true;
         }
         
-        return shapeletsInSeries.get(index);
+        
+        int word;
+        int id, pos, len;
+        USAX_elm_type usax;  
+
+        Collections.sort(Score_List, new ScoreComparator());
+
+        ArrayList<Shapelet> seriesShapelets = new ArrayList<>();
+        
+        //for the top K SAX words.
+        for (Pair<Integer, Double> Score_List1 : Score_List) {
+            word = Score_List1.first;
+            usax = USAX_Map.get(word);
+            int kk;
+
+            //get the first one out.
+            //this is because some sax words represent multiple start positions.
+            for (kk = 0; kk < Math.min(usax.sax_id.size(), 1); kk++) {
+                id = usax.sax_id.get(kk).first;
+                
+                if(id != index) continue; //if the id doesn't match our current asked for one. ignore.
+                
+                pos = usax.sax_id.get(kk).second;
+                len = usax.sax_id.get(kk).third;
+                //init the array list with 0s
+                Shapelet s =  checkCandidate.process(inputData.get(id).toDoubleArray(), pos, len);
+                if(s != null){
+                    //put the shapelet in the list from it's series.
+                    seriesShapelets.add(s);
+                }
+            }
+        }
+        
+        
+        
+        return seriesShapelets;
     }
         
-    private void calculateShapelets(ProcessCandidate checkCandidate){
-        shapeletsInSeries = new HashMap<>();
-        ArrayList<Shapelet> seriesShapelets;
-
+    private void calculateShapelets(){
         for (int length = minShapeletLength; length <= maxShapeletLength; length+=lengthIncrement) {
             USAX_Map = new HashMap<>();
             Score_List = new ArrayList<>();
@@ -77,37 +109,6 @@ public class FastShapeletSearch extends ShapeletSearch{
 
             randomProjection(R, percent_mask, sax_len);
             scoreAllSAX(R);
-
-            int word;
-            int id, pos;
-            USAX_elm_type usax;  
-
-            Collections.sort(Score_List, new ScoreComparator());
-
-            //for the top K SAX words.
-            for (Pair<Integer, Double> Score_List1 : Score_List) {
-                word = Score_List1.first;
-                usax = USAX_Map.get(word);
-                int kk;
-
-                //get the first one out.
-                //this is because some sax words represent multiple start positions.
-                for (kk = 0; kk < Math.min(usax.sax_id.size(), 1); kk++) {
-                    id = usax.sax_id.get(kk).first;
-                    pos = usax.sax_id.get(kk).second;
-                    //init the array list with 0s
-                    Shapelet s =  checkCandidate.process(inputData.get(id).toDoubleArray(), pos, length);
-                    if(s != null){
-                        //put the shapelet in the list from it's series.
-                        seriesShapelets = shapeletsInSeries.get(id);
-                        if(seriesShapelets == null)
-                            seriesShapelets = new ArrayList<>();
-
-                        seriesShapelets.add(s);
-                        shapeletsInSeries.put(id, seriesShapelets);
-                    }
-                }
-            }
         }
     }
 
@@ -168,7 +169,7 @@ public class FastShapeletSearch extends ShapeletSearch{
                         ptr = new USAX_elm_type();
                     }
                     ptr.obj_set.add(series);
-                    ptr.sax_id.add(new Pair<>(series, j_st));
+                    ptr.sax_id.add(new Triplet<>(series, j_st, subseq_len));
                     USAX_Map.put(word, ptr);
                 }
 
@@ -325,7 +326,7 @@ public class FastShapeletSearch extends ShapeletSearch{
         return (sum - Math.abs(max_val) - Math.abs(min_val)) + Math.abs(max_val - min_val);
     }
 
-    private class ScoreComparator implements Comparator<Pair<Integer, Double>> {
+    private class ScoreComparator implements Comparator<Pair<Integer, Double>>, Serializable{
 
         @Override
         //if the left one is bigger put it closer to the top.
@@ -335,10 +336,10 @@ public class FastShapeletSearch extends ShapeletSearch{
 
     }
 
-    private class USAX_elm_type {
+    private class USAX_elm_type implements Serializable{
 
         HashSet<Integer> obj_set;
-        ArrayList<Pair<Integer, Integer>> sax_id;
+        ArrayList<Triplet<Integer, Integer, Integer>> sax_id;
         HashMap<Integer, Integer> obj_count;
 
         public USAX_elm_type() {
@@ -349,7 +350,7 @@ public class FastShapeletSearch extends ShapeletSearch{
 
     }
 
-    private class Pair<A, B> {
+    private class Pair<A, B> implements Serializable{
 
         public A first;
         public B second;
@@ -360,6 +361,22 @@ public class FastShapeletSearch extends ShapeletSearch{
         Pair(A l, B r) {
             first = l;
             second = r;
+        }
+    }
+    
+       private class Triplet<A, B, C> implements Serializable{
+
+        public A first;
+        public B second;
+        public C third;
+
+        Triplet() {
+        }
+
+        Triplet(A l, B r, C g) {
+            first = l;
+            second = r;
+            third = g;
         }
     }
     

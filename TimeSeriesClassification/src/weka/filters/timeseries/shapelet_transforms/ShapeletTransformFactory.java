@@ -28,6 +28,7 @@ import weka.filters.timeseries.shapelet_transforms.searchFuntions.ShapeletSearch
 import weka.filters.timeseries.shapelet_transforms.subsequenceDist.CachedSubSeqDistance;
 import weka.filters.timeseries.shapelet_transforms.subsequenceDist.ImprovedOnlineSubSeqDistance;
 import weka.filters.timeseries.shapelet_transforms.subsequenceDist.OnlineSubSeqDistance;
+import weka.filters.timeseries.shapelet_transforms.subsequenceDist.SubSeqDistance;
 
 /**
  *
@@ -322,20 +323,61 @@ public class ShapeletTransformFactory
     
     //verified correct by counting ops in transform
     public static long calculateOperations(int numInstances, int numAttributes, int minShapeletLength, int maxShapeletLength){
+        return calculateOperationsWithSkipping(numInstances, numAttributes, minShapeletLength, maxShapeletLength, 1,1);
+    }
+    
+    
+     //verified correct by counting ops in transform
+    public static long calculateOperationsWithSkipping(int numInstances, int numAttributes, int minShapeletLength, int maxShapeletLength, int posSkip, int lengthSkip){
         long numOps=0;
         
+        
+        int shapelets =0;
         //calculate number of shapelets in a single instance.
-        for (int length = minShapeletLength; length <= maxShapeletLength; length++) {
-            long shapeletsLength = numAttributes - length + 1;
+        for (int length = minShapeletLength; length <= maxShapeletLength; length+=lengthSkip) {
+            
+            long shapeletsLength = (numAttributes - length + 1) / posSkip;
+            shapelets+=shapeletsLength;
+            
+            //System.out.println(shapeletsLength);
+            
+            long shapeletsCompared = (numAttributes - length + 1);
             
             //each shapelet gets compared to all other subsequences, and they make l operations per comparison for every series..
-            long comparisonPerSeries = shapeletsLength * shapeletsLength * length * (numInstances-1);
+            long comparisonPerSeries = shapeletsLength * shapeletsCompared * length * (numInstances-1);
             
             numOps +=comparisonPerSeries; 
         }
 
+        System.out.println("shapelets2 " + (shapelets*numInstances));
+        
         //for every series.
         numOps *= numInstances;
+        return numOps;
+    }
+    
+    
+    public static long calc(int n, int m, int min, int max, int pos, int len)
+    {
+        long numOps =0;
+        
+        int shapelets=0;
+        
+        //-1 from max because we index from 0.
+        for(int length = 0; length <= ((max-min)/len); length++){
+                        
+            int currentLength = (len*length) + min;
+            long shapeletsLength = (long) Math.ceil((double)(m - currentLength + 1) / (double) pos); //shapelts found.
+            
+            shapelets+=shapeletsLength;
+            
+            long shapeletsCompared = (m - currentLength + 1);
+            
+            numOps += shapeletsLength*shapeletsCompared*currentLength*(n-1);
+        }
+        System.out.println("shapelets3 " + (shapelets*n));
+        
+        numOps*= n;
         return numOps;
     }
     
@@ -372,20 +414,37 @@ public class ShapeletTransformFactory
     
     public static void main(String[] args) throws IOException
     {                 
-        String dirPath = "D:\\Dropbox\\TSC Problems (1)\\";
-        File dir  = new File(dirPath);
-        for(File dataset : dir.listFiles()){
-            if(!dataset.isDirectory()) continue;
+        String dirPath = "C:\\LocalData\\Dropbox\\TSC Problems (1)\\ECG200";
+        File dataset  = new File(dirPath);
+        //for(File dataset : dir.listFiles()){
+            //if(!dataset.isDirectory()) continue;
             
             String f = dataset.getPath()+ File.separator + dataset.getName() + "_TRAIN.arff";
         
             Instances train = ClassifierTools.loadData(f);
             
             long shapelets = calculateNumberOfShapelets(train, 3, train.numAttributes()-1);
-            long ops = calculateOperations(train, 3, train.numAttributes()-1);
+            //long ops = calculateOperations(train, 3, train.numAttributes()-1);
             
-            System.out.printf("%s,%d,%d\n",dataset.getName(),shapelets, ops);
-        }
+            System.out.println(train.numAttributes()-1);
+            int min = 6;
+            int max = 19;
+            int pos = 5;
+            int len = 6;
+            
+            FullShapeletTransform transform = new FullShapeletTransform();
+            transform.setSearchFunction(new ShapeletSearch(min,max,len, pos));
+            transform.setSubSeqDistance(new SubSeqDistance());
+            transform.supressOutput();
+            transform.process(train);
+            long ops3 = transform.getCount();
+            
+            long ops2 = calculateOperationsWithSkipping(train.numInstances(), train.numAttributes()-1, min,max,pos,len);
+            
+            long ops4 = calc(train.numInstances(), train.numAttributes()-1, min, max,pos,len);
+            
+            System.out.printf("%s,%d,%d,%d\n",dataset.getName(), ops2, ops4, ops3);
+        //}
     }
     
 }
