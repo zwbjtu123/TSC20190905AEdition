@@ -39,6 +39,9 @@ public class ShapeletTransformFactory
     //this is an arbritary cutoff value for whether we should start subsampling. It's about 7 days(ish). TODO: test.
     public static final long opCountThreshold = 1000000000000000l; 
     
+    public static final long dayNano = 86400000000000l;
+    public static final long nanoToOp = 10l; //1 op takes 10 nanoseconds.
+    
     
     
     //we create the Map using params jon found.
@@ -202,7 +205,6 @@ public class ShapeletTransformFactory
 
     
     public static FullShapeletTransform createTransform(Instances train){
-        
         int numClasses = train.numClasses();
         int numInstances = train.numInstances();
         int numAttributes = train.numAttributes()-1;
@@ -215,10 +217,7 @@ public class ShapeletTransformFactory
             transform.setClassValue(new BinarisedClassValue());
         }
         
-        System.out.println(calculateSkipLength(numAttributes) + " " + calculateSkipPos(numAttributes));
-        
         transform.setSubSeqDistance(new ImprovedOnlineSubSeqDistance());
-        transform.setSearchFunction(new ShapeletSearch(3, numAttributes, calculateSkipLength(numAttributes), calculateSkipPos(numAttributes)));
         transform.setShapeletMinAndMax(3, numAttributes);
         transform.setNumberOfShapelets(numInstances*10);
         transform.useCandidatePruning();
@@ -361,23 +360,18 @@ public class ShapeletTransformFactory
     {
         long numOps =0;
         
-        int shapelets=0;
-        
         //-1 from max because we index from 0.
         for(int length = 0; length <= ((max-min)/len); length++){
                         
             int currentLength = (len*length) + min;
             long shapeletsLength = (long) Math.ceil((double)(m - currentLength + 1) / (double) pos); //shapelts found.
             
-            shapelets+=shapeletsLength;
-            
             long shapeletsCompared = (m - currentLength + 1);
             
-            numOps += shapeletsLength*shapeletsCompared*currentLength*(n-1);
+            numOps += shapeletsLength*shapeletsCompared*currentLength;
         }
-        System.out.println("shapelets3 " + (shapelets*n));
-        
-        numOps*= n;
+
+        numOps*= n * (n-1);
         return numOps;
     }
     
@@ -410,14 +404,46 @@ public class ShapeletTransformFactory
     
 
     
+    public static long calculateOps(int n, int m, int posS, int lenS){
+        long mSqd = m*m;
+        long mCbd = m*m*m;
+        long lenSqd = lenS*lenS;
+        long nSqd = n*n;
+        
+        long temp1 = (mCbd + (7*mSqd));
+        long temp2 = (m*(lenSqd - (18*lenS) + 27));
+        long temp3 = lenS*((5*lenS) - 24) + 27;
+        long temp = temp1 - temp2 + temp3;
+        
+        
+        long temp4 = (nSqd-n) * temp;
+        long temp5 = (m-3) * temp4;
+        
+        return temp5 / (12*posS*lenS);
+    }
+    
+    
+    public static double calculateN(int n, int m, long time){
+        long opCount = time / nanoToOp; 
+        
+        long numerator = 12*opCount;
+
+        long denom1= ((m*m*m) + (m*m*7) - (10*m) + 8);
+        long denom2 = (m-3) * denom1; //weird bug thing if we don't split up the maths....
+        
+        double n1 = Math.sqrt(numerator/denom2);
+       
+        return Math.min(n1/(double)n, 1.0); //return the proportion of n.
+    }
+    
     
     
     public static void main(String[] args) throws IOException
     {                 
-        String dirPath = "C:\\LocalData\\Dropbox\\TSC Problems (1)\\ECG200";
-        File dataset  = new File(dirPath);
-        //for(File dataset : dir.listFiles()){
-            //if(!dataset.isDirectory()) continue;
+        String dirPath = "C:\\LocalData\\Dropbox\\TSC Problems (1)\\";
+        File dir  = new File(dirPath);
+        for(File dataset : dir.listFiles()){
+            if(!dataset.isDirectory()) continue;
             
             String f = dataset.getPath()+ File.separator + dataset.getName() + "_TRAIN.arff";
         
@@ -426,25 +452,41 @@ public class ShapeletTransformFactory
             long shapelets = calculateNumberOfShapelets(train, 3, train.numAttributes()-1);
             //long ops = calculateOperations(train, 3, train.numAttributes()-1);
             
-            System.out.println(train.numAttributes()-1);
-            int min = 6;
-            int max = 19;
-            int pos = 5;
-            int len = 6;
+            System.out.print(dataset.getName() + ",");
+            System.out.print(train.numAttributes()-1 + ",");
+            System.out.print(train.numInstances() + ",");
+            int min = 3;
+            int max = train.numAttributes()-1;
+            int pos = 1;
+            int len = 1;
             
-            FullShapeletTransform transform = new FullShapeletTransform();
+            /*FullShapeletTransform transform = new FullShapeletTransform();
             transform.setSearchFunction(new ShapeletSearch(min,max,len, pos));
             transform.setSubSeqDistance(new SubSeqDistance());
             transform.supressOutput();
             transform.process(train);
-            long ops3 = transform.getCount();
-            
-            long ops2 = calculateOperationsWithSkipping(train.numInstances(), train.numAttributes()-1, min,max,pos,len);
+            long ops3 = transform.getCount();*/
             
             long ops4 = calc(train.numInstances(), train.numAttributes()-1, min, max,pos,len);
             
-            System.out.printf("%s,%d,%d,%d\n",dataset.getName(), ops2, ops4, ops3);
-        //}
+            long ops5 = calculateOps(train.numInstances(), train.numAttributes()-1, pos,len);
+            
+            double n = calculateN(train.numInstances(), train.numAttributes()-1, dayNano);
+
+            
+            //calculate n for minimum class rep of 25.
+            int small_sf = InstanceTools.findSmallestClassAmount(train);           
+            double proportion = 1.0;
+            if (small_sf>25){
+                proportion = (double)25/(double)small_sf;
+            }
+            
+            
+            System.out.print(ops4 + ",");
+            System.out.print(ops5 + ",");
+            System.out.print(n + ",");
+            System.out.print(proportion + "\n");
+        }
     }
     
 }

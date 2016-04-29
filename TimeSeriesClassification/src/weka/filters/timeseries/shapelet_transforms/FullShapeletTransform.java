@@ -66,7 +66,6 @@ public class FullShapeletTransform extends SimpleBatchFilter {
     protected int minShapeletLength;
     protected int maxShapeletLength;
     protected int numShapelets;
-    protected boolean shapeletsTrained;
     protected ArrayList<Shapelet> shapelets;
     protected String ouputFileLocation = "defaultShapeletOutput.txt"; // default store location
     protected boolean recordShapelets; // default action is to write an output file
@@ -150,7 +149,7 @@ public class FullShapeletTransform extends SimpleBatchFilter {
     public FullShapeletTransform(ArrayList<Shapelet> shapes) {
         this();
         this.shapelets = shapes;
-        this.shapeletsTrained = true;
+        this.m_FirstBatchDone = true;
         this.numShapelets = shapelets.size();
     }
 
@@ -191,7 +190,7 @@ public class FullShapeletTransform extends SimpleBatchFilter {
         this.maxShapeletLength = maxShapeletLength;
         this.numShapelets = k;
         this.shapelets = new ArrayList<>();
-        this.shapeletsTrained = false;
+        this.m_FirstBatchDone = false;
         this.useCandidatePruning = false;
         this.qualityChoice = qualityChoice;
         this.supressOutput = false;
@@ -294,14 +293,6 @@ public class FullShapeletTransform extends SimpleBatchFilter {
     public void setLogOutputFile(String fileName) {
         this.recordShapelets = true;
         this.ouputFileLocation = fileName;
-    }
-
-    /**
-     *
-     * @return
-     */
-    public boolean foundShapelets() {
-        return shapeletsTrained;
     }
 
     /**
@@ -487,7 +478,7 @@ public class FullShapeletTransform extends SimpleBatchFilter {
         searchFunction.init(data);
         
         //checks if the shapelets haven't been found yet, finds them if it needs too.
-        if (!shapeletsTrained) {
+        if (!m_FirstBatchDone) {
             trainShapelets(data);
         }
         
@@ -502,7 +493,7 @@ public class FullShapeletTransform extends SimpleBatchFilter {
         //we might round robin the data in here. So we return the changed dataset.
         Instances dataset = initDataSouce(data);
         shapelets = findBestKShapeletsCache(dataset); // get k shapelets
-        shapeletsTrained = true;
+        m_FirstBatchDone = true;
 
         outputPrint(shapelets.size() + " Shapelets have been generated");
         
@@ -956,7 +947,7 @@ public class FullShapeletTransform extends SimpleBatchFilter {
     public ArrayList<Integer> getShapeletLengths() {
         ArrayList<Integer> shapeletLengths = new ArrayList<>();
 
-        if (this.shapeletsTrained) {
+        if (m_FirstBatchDone) {
             for (Shapelet s : this.shapelets) {
                 shapeletLengths.add(s.content.length);
             }
@@ -1035,7 +1026,7 @@ public class FullShapeletTransform extends SimpleBatchFilter {
             shapeletCount++;
         }
         sf.shapelets = shapelets;
-        sf.shapeletsTrained = true;
+        sf.m_FirstBatchDone = true;
         sf.numShapelets = shapelets.size();
         sf.setShapeletMinAndMax(1, 1);
 

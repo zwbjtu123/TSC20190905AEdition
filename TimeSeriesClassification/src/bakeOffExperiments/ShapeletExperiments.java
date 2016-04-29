@@ -4,20 +4,17 @@
  */
 package bakeOffExperiments;
 
-import static bakeOffExperiments.Experiments.singleSampleExperiment;
 import development.DataSets;
 import fileIO.InFile;
 import fileIO.OutFile;
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import tsc_algorithms.ST_Ensemble;
-import weka.classifiers.meta.timeseriesensembles.SaveableEnsemble;
 import utilities.ClassifierTools;
-import utilities.InstanceTools;
 import weka.classifiers.Classifier;
+import weka.classifiers.meta.timeseriesensembles.SaveableEnsemble;
 import weka.classifiers.meta.timeseriesensembles.WeightedEnsemble;
 import weka.core.Instances;
 import weka.core.shapelet.QualityMeasures;

@@ -6,7 +6,6 @@
 package tsc_algorithms;
 
 import weka.classifiers.meta.timeseriesensembles.SaveableEnsemble;
-import bakeOffExperiments.Experiments;
 import java.io.File;
 import java.util.Random;
 import utilities.ClassifierTools;
@@ -17,8 +16,8 @@ import weka.core.Instance;
 import weka.core.Instances;
 import weka.filters.timeseries.shapelet_transforms.FullShapeletTransform;
 import weka.filters.timeseries.shapelet_transforms.ShapeletTransformFactory;
-import static weka.filters.timeseries.shapelet_transforms.ShapeletTransformFactory.calculateOperations;
-import static weka.filters.timeseries.shapelet_transforms.ShapeletTransformFactory.opCountThreshold;
+import static weka.filters.timeseries.shapelet_transforms.ShapeletTransformFactory.nanoToOp;
+import weka.filters.timeseries.shapelet_transforms.searchFuntions.ShapeletSearch;
 
 /**
  *
@@ -26,6 +25,9 @@ import static weka.filters.timeseries.shapelet_transforms.ShapeletTransformFacto
  */
 public class ST_Ensemble  extends AbstractClassifier implements SaveableEnsemble{
 
+    private static final int minimumRepresentation = 25;
+    
+    
     private WeightedEnsemble weightedEnsemble;
     private FullShapeletTransform transform;
     private Instances format;
@@ -34,6 +36,8 @@ public class ST_Ensemble  extends AbstractClassifier implements SaveableEnsemble
     private String trainCV="";
     private String testPredictions="";
     private boolean doTransform=true;
+    
+    private long timeLimit = Long.MAX_VALUE;
     
     protected void saveResults(boolean s){
         saveResults=s;
@@ -50,9 +54,19 @@ public class ST_Ensemble  extends AbstractClassifier implements SaveableEnsemble
         doTransform=b;
     }
     
+    public Instances transformDataset(Instances data){
+        if(transform.isFirstBatchDone())
+            return transform.process(data);
+        return null;
+    }
+    
+    public void setTimeLimit(long time){
+        timeLimit = time;
+    }
+    
     @Override
     public void buildClassifier(Instances data) throws Exception {
-        format = doTransform ? createTransformData(data) : data;
+        format = doTransform ? createTransformData(data, timeLimit) : data;
         
         weightedEnsemble=new WeightedEnsemble();
         weightedEnsemble.setWeightType("prop");
@@ -81,42 +95,78 @@ public class ST_Ensemble  extends AbstractClassifier implements SaveableEnsemble
         return weightedEnsemble.classifyInstance(test);
     }
 
-    public Instances createTransformData(Instances data){
-        int numInstances = data.numInstances();
-        int numAttributes = data.numAttributes()-1;
+    public Instances createTransformData(Instances train, long time){
+        int n = train.numInstances();
+        int m = train.numAttributes()-1;
         
         //construct shapelet classifiers from the factory.
-        transform = ShapeletTransformFactory.createTransform(data);
+        transform = ShapeletTransformFactory.createTransform(train);
         
-        //here we should check whether we need to subsample.
-        //we should only subsample if our time cutoff is exceeded. 
-        //TODO: this needs to be a bit smarter
-        if(opCountThreshold <= calculateOperations(numInstances,numAttributes, 3, numAttributes)){
-            System.out.println("using subsampling");
-            double proportion = utilities.InstanceTools.calculateSubSampleProportion(data, 25);
-            Instances subsample = utilities.InstanceTools.subSampleFixedProportion(data, proportion, new Random().nextInt());
+        
+        long opCountTarget = time / nanoToOp;
+        
+        long opCount = ShapeletTransformFactory.calculateOps(n, m, 1, 1);
+        
+        System.out.println(opCount/nanoToOp);
+        
+        //we need to resample.
+        if(opCount > opCountTarget){
+            
+            
+            double recommendedProportion = ShapeletTransformFactory.calculateN(n, m, time);
+              
+            //calculate n for minimum class rep of 25.
+            int small_sf = InstanceTools.findSmallestClassAmount(train);           
+            double proportion = 1.0;
+            if (small_sf>minimumRepresentation){
+                proportion = (double)minimumRepresentation/(double)small_sf;
+            }
+            
+            //if recommended is smaller than our cutoff threshold set it to the cutoff.
+            if(recommendedProportion < proportion){
+                recommendedProportion = proportion;
+            }
+            
+            //subsample out dataset.
+            Instances subsample = utilities.InstanceTools.subSampleFixedProportion(train, recommendedProportion, new Random().nextInt());
+            
+            int i=1;
+            //if we've properly resampled this should pass on first go. IF we haven't we'll try and reach our target. 
+            //calculate N is an approximation, so the subsample might need to tweak q and p just to bring us under. 
+            while(ShapeletTransformFactory.calculateOps(subsample.numInstances(), m, i, i) > opCountTarget){
+                i++;
+            }
+            
+            System.out.println("new n: " + subsample.numInstances());
+            System.out.println("new q and p: " + i);
+            
+            transform.setSearchFunction(new ShapeletSearch(3, m, i, i));
             transform.process(subsample);
         }
         
-        return transform.process(data);
+        return transform.process(train);
     }
     
-    public static void main(String[] args) {
-        String dataLocation = "..\\..\\resampled transforms\\BalancedClassShapeletTransform\\";
+    public static void main(String[] args) throws Exception {
+        String dataLocation = "C:\\LocalData\\Dropbox\\TSC Problems (1)\\";
+        //String dataLocation = "..\\..\\resampled transforms\\BalancedClassShapeletTransform\\";
         String saveLocation = "..\\..\\resampled results\\BalancedClassShapeletTransform\\";
-        String datasetName = "ItalyPowerDemand";
+        String datasetName = "HeartbeatBIDMC";
         int fold = 0;
         
-        Instances train= ClassifierTools.loadData(dataLocation+datasetName+File.separator+datasetName+fold+"_TRAIN");
-        Instances test= ClassifierTools.loadData(dataLocation+datasetName+File.separator+datasetName+fold+"_TEST");
+        Instances train= ClassifierTools.loadData(dataLocation+datasetName+File.separator+datasetName+"_TRAIN");
+        Instances test= ClassifierTools.loadData(dataLocation+datasetName+File.separator+datasetName+"_TEST");
         String trainS= saveLocation+datasetName+File.separator+"TrainCV.csv";
         String testS=saveLocation+datasetName+File.separator+"TestPreds.csv";
         String preds=saveLocation+datasetName;
 
         ST_Ensemble st= new ST_Ensemble();
-        st.saveResults(trainS, testS);
+        //st.saveResults(trainS, testS);
         st.doSTransform(true);
-        double a = Experiments.singleSampleExperiment(train, test, st, fold, preds);
-        System.out.println("accuracy: " + a);
+        st.setTimeLimit(ShapeletTransformFactory.dayNano);
+        st.buildClassifier(train);
+        double accuracy = utilities.ClassifierTools.accuracy(test, st);
+        
+        System.out.println("accuracy: " + accuracy);
     }    
 }

@@ -77,9 +77,9 @@ public class GraceFullShapeletTransform extends FullShapeletTransform {
         subseqDistance.init(data);
 
         //checks if the shapelets haven't been found yet, finds them if it needs too.
-        if (!shapeletsTrained) {
+        if (!m_FirstBatchDone) {
             trainShapelets(data);
-            shapeletsTrained = false; //set the shapelets Trained to false, because we'll set it to true once all the sub code has been finished.
+            m_FirstBatchDone = false; //set the shapelets Trained to false, because we'll set it to true once all the sub code has been finished.
             outputPrint("Partially Built the shapelet Set");
             return null;
         }
@@ -199,7 +199,7 @@ public class GraceFullShapeletTransform extends FullShapeletTransform {
         this.numShapelets = kShapelets.size();
         
         shapelets = kShapelets;
-        shapeletsTrained = true;
+        m_FirstBatchDone = true;
 
         return buildTansformedDataset(train, shapelets);
     }

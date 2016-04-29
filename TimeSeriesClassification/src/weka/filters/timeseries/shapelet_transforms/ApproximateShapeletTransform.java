@@ -112,7 +112,7 @@ public class ApproximateShapeletTransform extends FullShapeletTransform{
 
         //Approximate data
         Instances orderedInst = null;
-        if(this.shapeletsTrained == false){
+        if(!this.m_FirstBatchDone){
             sampledIDs = new ArrayList<Integer>();
             dataInst = approximateInstanes(dataInst);
             
@@ -131,9 +131,9 @@ public class ApproximateShapeletTransform extends FullShapeletTransform{
             dataInst = performPAA(dataInst);
         }
             
-        if(this.shapeletsTrained == false){ // shapelets discovery has not yet been caried out, so do so
+        if(!m_FirstBatchDone){ // shapelets discovery has not yet been caried out, so do so
             this.shapelets = findBestKShapeletsCache(orderedInst); // get k shapelets ATTENTION
-            this.shapeletsTrained = true;
+            m_FirstBatchDone = true;
             if(!supressOutput){
                 System.out.println(shapelets.size()+" Shapelets have been generated");
             }

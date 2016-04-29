@@ -35,6 +35,7 @@ public class ImprovedOnlineSubSeqDistance extends OnlineSubSeqDistance{
         {
             temp = candidate[i] - subseq[i];
             bestDist = bestDist + (temp * temp);
+            incrementCount();
         }
 
         int i=1;
@@ -45,8 +46,7 @@ public class ImprovedOnlineSubSeqDistance extends OnlineSubSeqDistance{
         double[] sumsq = {sum2Pointer.get(), sum2Pointer.get()};
         boolean[] traverse = {true,true};
         
-        int bestPos=startPos;
-                
+
         while(traverse[0] || traverse[1])
         {
             //i will be 0 and 1.
@@ -58,12 +58,10 @@ public class ImprovedOnlineSubSeqDistance extends OnlineSubSeqDistance{
                 
                 //if we're going left check we're greater than 0 if we're going right check we've got room to move.
                 traverse[j] = j==0 ? pos[j] >= 0 : pos[j] < timeSeries.length - candidate.length;
-                
 
                 //if we can't traverse in that direction. skip it.
                 if(!traverse[j] )
                     continue;
-                
                 
                 //either take off nothing, or take off 1. This gives us our offset.
                 double start = timeSeries[pos[j]-j];
@@ -73,18 +71,14 @@ public class ImprovedOnlineSubSeqDistance extends OnlineSubSeqDistance{
                 sumsq[j] = sumsq[j] + (modifier *(end * end)) - (modifier*(start * start));
 
                 currentDist = calculateBestDistance(pos[j], timeSeries, bestDist, sum[j], sumsq[j]);  
-                
-                //System.out.println(pos[j]+" "+sum[j]+" "+sumsq[j]+" "+currentDist);
-                
+
                 if (currentDist < bestDist)
                 {
                     bestDist = currentDist;
-                    bestPos = pos[j];
                 }
             }
             i++;
         }
-
 
         bestDist = (bestDist == 0.0) ? 0.0 : (1.0 / candidate.length * bestDist);
         

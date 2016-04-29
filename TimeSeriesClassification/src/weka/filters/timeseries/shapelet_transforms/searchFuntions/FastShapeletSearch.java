@@ -90,8 +90,9 @@ public class FastShapeletSearch extends ShapeletSearch implements Serializable{
             }
         }
         
-        
-        
+        //definitely think we can reduce the amount of work even more. 
+        //by reducing seriesShapelets even more. Not letting it be more than K. etc.
+          
         return seriesShapelets;
     }
         

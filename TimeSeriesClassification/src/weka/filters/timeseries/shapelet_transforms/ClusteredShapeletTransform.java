@@ -185,7 +185,7 @@ public class ClusteredShapeletTransform extends SimpleBatchFilter{
         if(size<noClust)
            throw new Exception("Trying to produce more clusters than there are shapelets!");
  // We only want the shapelets from st, so could optimize this to not work out the transform too. However, cleaner this way          
-        if(!st.foundShapelets())
+        if(!st.isFirstBatchDone())
             st.process(data);
         allShapelets=st.shapelets;
         clusterShapelets();

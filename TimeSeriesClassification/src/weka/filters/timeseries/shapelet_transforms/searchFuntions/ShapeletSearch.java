@@ -29,6 +29,9 @@ public class ShapeletSearch implements Serializable{
     
     protected Instances inputData;
     
+            
+    int count =0;
+    
     public ShapeletSearch(int min, int max){
         minShapeletLength = min;
         maxShapeletLength = max;
@@ -53,18 +56,18 @@ public class ShapeletSearch implements Serializable{
         ArrayList<Shapelet> seriesShapelets = new ArrayList<>();
 
         double[] series = timeSeries.toDoubleArray();
+
         
         for (int length = minShapeletLength; length <= maxShapeletLength; length+=lengthIncrement) {
             //for all possible starting positions of that length. -1 to remove classValue
             for (int start = 0; start <= timeSeries.numAttributes() - length - 1; start+=positionIncrement) {
                 Shapelet shapelet = checkCandidate.process(series, start, length);
-
+                count++;
                 if (shapelet != null) {
                     seriesShapelets.add(shapelet);
                 }
             }
         }
-        
         return seriesShapelets;
     }
 }

@@ -82,7 +82,6 @@ public class SubSeqDistance implements Serializable{
                 bestSum = sum;
             }
         }
-        
 
         //System.out.println("subseq " + bestSum);
         return (bestSum == 0.0) ? 0.0 : (1.0 / candidate.length * bestSum);

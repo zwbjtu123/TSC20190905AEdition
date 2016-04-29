@@ -73,11 +73,14 @@ public class BalancedClassShapeletTransform extends FullShapeletTransform
                return checkCandidate(candidate, start, length);
             }});
 
-            Collections.sort(seriesShapelets, shapeletComparator);
+            
+            if(seriesShapelets != null){
+                Collections.sort(seriesShapelets, shapeletComparator);
 
-            seriesShapelets = removeSelfSimilar(seriesShapelets);
+                seriesShapelets = removeSelfSimilar(seriesShapelets);
 
-            kShapelets = combine(proportion, kShapelets, seriesShapelets);
+                kShapelets = combine(proportion, kShapelets, seriesShapelets);
+            }
             
             //re-update the list because it's changed now. 
             kShapeletsMap.put(data.get(dataSet).classValue(), kShapelets);
