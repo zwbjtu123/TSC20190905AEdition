@@ -235,7 +235,7 @@ public class Shapelet implements Comparable<Shapelet>, Serializable
     @Override
     public String toString()
     {
-        String str = seriesId + "," + startPos + "," + length;
+        String str = seriesId + "," + startPos + "," + length +"," + qualityValue;
 
         return str;
     }
