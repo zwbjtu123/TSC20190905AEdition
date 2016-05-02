@@ -7,6 +7,7 @@ package tsc_algorithms;
 
 import weka.classifiers.meta.timeseriesensembles.SaveableEnsemble;
 import java.io.File;
+import java.math.BigInteger;
 import java.util.Random;
 import utilities.ClassifierTools;
 import utilities.InstanceTools;
@@ -102,18 +103,17 @@ public class ST_Ensemble  extends AbstractClassifier implements SaveableEnsemble
         //construct shapelet classifiers from the factory.
         transform = ShapeletTransformFactory.createTransform(train);
         
+
+        BigInteger opCountTarget = new BigInteger(Long.toString(time / nanoToOp));
         
-        long opCountTarget = time / nanoToOp;
-        
-        long opCount = ShapeletTransformFactory.calculateOps(n, m, 1, 1);
-        
-        System.out.println(opCount/nanoToOp);
+        BigInteger opCount = ShapeletTransformFactory.calculateOps(n, m, 1, 1);
         
         //we need to resample.
-        if(opCount > opCountTarget){
-            
+        if(opCount.compareTo(opCountTarget) == 1){
             
             double recommendedProportion = ShapeletTransformFactory.calculateN(n, m, time);
+            
+            System.out.println(recommendedProportion);
               
             //calculate n for minimum class rep of 25.
             int small_sf = InstanceTools.findSmallestClassAmount(train);           
@@ -133,7 +133,7 @@ public class ST_Ensemble  extends AbstractClassifier implements SaveableEnsemble
             int i=1;
             //if we've properly resampled this should pass on first go. IF we haven't we'll try and reach our target. 
             //calculate N is an approximation, so the subsample might need to tweak q and p just to bring us under. 
-            while(ShapeletTransformFactory.calculateOps(subsample.numInstances(), m, i, i) > opCountTarget){
+            while(ShapeletTransformFactory.calculateOps(subsample.numInstances(), m, i, i).compareTo(opCountTarget) == 1){
                 i++;
             }
             

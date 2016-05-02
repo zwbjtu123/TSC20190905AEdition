@@ -11,6 +11,9 @@ package weka.filters.timeseries.shapelet_transforms;
 
 import java.io.File;
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.math.MathContext;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -132,18 +135,26 @@ public class ShapeletTransformFactory
     public static final double MEM_CUTOFF = 0.5;
     public static final int MAX_NOS_SHAPELETS = 1000;    
     
-    public FullShapeletTransform createCachedTransform()
+    public static FullShapeletTransform createCachedTransform()
     {
         FullShapeletTransform st = new FullShapeletTransform();
         st.setSubSeqDistance(new CachedSubSeqDistance());
         return st;
     }
     
-    public FullShapeletTransform createOnlineTransform()
+    public static FullShapeletTransform createOnlineTransform()
     {
         FullShapeletTransform st = new FullShapeletTransform();
         st.setSubSeqDistance(new OnlineSubSeqDistance());
         return st;
+    }
+    
+    public static FullShapeletTransform createBasicTransform(int n, int m){
+        FullShapeletTransform fst = new FullShapeletTransform();
+        fst.setNumberOfShapelets(n * 10);
+        fst.setShapeletMinAndMax(3, m);
+        fst.supressOutput();
+        return fst;
     }
     
     //TODO: Improve heavily.
@@ -404,36 +415,57 @@ public class ShapeletTransformFactory
     
 
     
-    public static long calculateOps(int n, int m, int posS, int lenS){
+    public static BigInteger calculateOps(int n, int m, int posS, int lenS){
         long mSqd = m*m;
-        long mCbd = m*m*m;
         long lenSqd = lenS*lenS;
         long nSqd = n*n;
+
+        BigInteger temp1 = new BigInteger(Long.toString(mSqd));
+        temp1 = temp1.multiply(new BigInteger(Long.toString(m)));
+        BigInteger temp2 = new BigInteger(Long.toString(7*mSqd));
+        BigInteger temp3 = new BigInteger(Long.toString(m*(lenSqd - (18*lenS) + 27)));
+        BigInteger temp4 = new BigInteger(Long.toString(lenS*((5*lenS) - 24) + 27));
         
-        long temp1 = (mCbd + (7*mSqd));
-        long temp2 = (m*(lenSqd - (18*lenS) + 27));
-        long temp3 = lenS*((5*lenS) - 24) + 27;
-        long temp = temp1 - temp2 + temp3;
+        BigInteger bg = new BigInteger("0");
+        bg = bg.add(temp1);
+        bg = bg.add(temp2);
+        bg = bg.subtract(temp3);
+        bg = bg.add(temp4);
+        bg = bg.multiply(new BigInteger(Long.toString((nSqd-n))));
+        bg = bg.multiply(new BigInteger(Long.toString((m-3))));
         
+        BigDecimal bg1 = new BigDecimal(bg);
         
-        long temp4 = (nSqd-n) * temp;
-        long temp5 = (m-3) * temp4;
-        
-        return temp5 / (12*posS*lenS);
+        bg1 =bg1.divide(new BigDecimal(Long.toString((12 * posS * lenS))), MathContext.DECIMAL32);
+
+        return bg1.toBigInteger();
     }
     
     
     public static double calculateN(int n, int m, long time){
         long opCount = time / nanoToOp; 
         
-        long numerator = 12*opCount;
-
-        long denom1= ((m*m*m) + (m*m*7) - (10*m) + 8);
-        long denom2 = (m-3) * denom1; //weird bug thing if we don't split up the maths....
+        BigDecimal numerator = new BigDecimal(Long.toString(12*opCount));
         
-        double n1 = Math.sqrt(numerator/denom2);
-       
-        return Math.min(n1/(double)n, 1.0); //return the proportion of n.
+        BigInteger temp1 = new BigInteger(Long.toString(m*m));
+        temp1 = temp1.multiply(new BigInteger(Long.toString(m)));
+        BigInteger temp2 = new BigInteger(Long.toString(7*m*m));
+        BigInteger temp3 = new BigInteger(Long.toString(10*m));
+        BigInteger temp4 = new BigInteger(Long.toString(8));
+        
+        temp1 = temp1.add(temp2);
+        temp1 = temp1.subtract(temp3);
+        temp1 = temp1.add(temp4);
+        temp1 = temp1.multiply(new BigInteger(Long.toString(m-3)));
+        
+        BigDecimal denominator = new BigDecimal(temp1);
+
+        BigDecimal result = utilities.StatisticalUtilities.sqrt(numerator.divide(denominator, MathContext.DECIMAL32), MathContext.DECIMAL32);
+        
+        //sqrt result.
+        result = result.divide(new BigDecimal(n), MathContext.DECIMAL32);
+        
+        return Math.min(result.doubleValue(), 1.0); //return the proportion of n.
     }
     
     
@@ -469,8 +501,6 @@ public class ShapeletTransformFactory
             
             long ops4 = calc(train.numInstances(), train.numAttributes()-1, min, max,pos,len);
             
-            long ops5 = calculateOps(train.numInstances(), train.numAttributes()-1, pos,len);
-            
             double n = calculateN(train.numInstances(), train.numAttributes()-1, dayNano);
 
             
@@ -483,7 +513,6 @@ public class ShapeletTransformFactory
             
             
             System.out.print(ops4 + ",");
-            System.out.print(ops5 + ",");
             System.out.print(n + ",");
             System.out.print(proportion + "\n");
         }

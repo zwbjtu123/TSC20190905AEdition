@@ -61,10 +61,10 @@ public class SkippingSearch extends ShapeletSearch{
             }
         }
         
-        //update the positions
+        /*//update the positions
         System.out.println(index);
         System.out.println(positions[index]);
-        System.out.println(lengths[index]);
+        System.out.println(lengths[index]);*/
         
         
         //IE if we're skipping 2positions. we want to cycle between starting a series at 0,1
@@ -72,7 +72,6 @@ public class SkippingSearch extends ShapeletSearch{
         lengths[index] = ++lengths[index] % lengthIncrement;
 
 
-        
         return seriesShapelets;
     }
     

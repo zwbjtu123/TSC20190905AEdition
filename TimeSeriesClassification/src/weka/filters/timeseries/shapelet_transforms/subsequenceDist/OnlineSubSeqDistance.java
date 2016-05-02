@@ -69,8 +69,6 @@ public class OnlineSubSeqDistance extends SubSeqDistance {
             sumsq = sumsq + (end * end) - (start * start);
             currentDist = calculateBestDistance(i, timeSeries, bestDist, sum, sumsq);  
             
-            //System.out.println(i+" "+sum+" "+sumsq+" "+currentDist);
-
             if (currentDist < bestDist) {
                 bestDist = currentDist;
                 bestPos = i;

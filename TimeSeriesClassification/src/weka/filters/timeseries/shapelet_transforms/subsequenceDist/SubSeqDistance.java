@@ -55,6 +55,8 @@ public class SubSeqDistance implements Serializable{
     //we take in a start pos, but we also start from 0.
     public double calculate(double[] timeSeries, int timeSeriesId) 
     {
+
+        
         double bestSum = Double.MAX_VALUE;
         double sum;
         double[] subseq;
@@ -76,14 +78,13 @@ public class SubSeqDistance implements Serializable{
                 temp = (candidate[j] - subseq[j]);
                 sum = sum + (temp * temp);
             }
-
+            
             if (sum < bestSum)
             {
                 bestSum = sum;
             }
         }
 
-        //System.out.println("subseq " + bestSum);
         return (bestSum == 0.0) ? 0.0 : (1.0 / candidate.length * bestSum);
     }
 
