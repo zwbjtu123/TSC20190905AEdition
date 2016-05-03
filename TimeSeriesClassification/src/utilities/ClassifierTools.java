@@ -308,6 +308,7 @@ public class ClassifierTools {
                     if(pred==ins.classValue())
                         correct++;
                 }
+                System.out.println("Finished fold "+n+" acc ="+((double)correct/((n+1)*test.numInstances())));
            }catch(Exception e){
                System.err.println("ERROR BUILDING FOLD "+n+" for data set "+data.relationName());
                e.printStackTrace();
@@ -430,7 +431,7 @@ public class ClassifierTools {
             int correct=0;
             for(Instance ins:test){
                 int pred=(int)c.classifyInstance(ins);
-                System.out.println((int)ins.classValue()+","+pred);
+//                System.out.println((int)ins.classValue()+","+pred);
                 if(pred==(int)ins.classValue())
                     correct++;
             }

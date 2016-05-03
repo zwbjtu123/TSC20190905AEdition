@@ -38,6 +38,12 @@ public class ACF_Ensemble extends AbstractClassifier implements SaveableEnsemble
         trainCV=tr;
         testPredictions=te;
     }
+
+    @Override
+    public String getParameters() {
+        String str =c.toString();
+        return str;
+    }
     
     
     public enum ClassifierType{

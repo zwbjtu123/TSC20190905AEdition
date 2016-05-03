@@ -1102,7 +1102,10 @@ public class FullShapeletTransform extends SimpleBatchFilter {
         }
         return str;
     }
-
+    public String getParameters(){
+        String str="minShapeletLength,"+minShapeletLength+",maxShapeletLength,"+maxShapeletLength+",numShapelets,"+numShapelets+",roundrobin,"+roundRobin;
+        return str;
+    }
     /**
      *
      * @param data

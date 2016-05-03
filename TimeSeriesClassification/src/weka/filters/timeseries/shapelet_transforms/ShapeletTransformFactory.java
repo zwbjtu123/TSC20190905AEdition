@@ -35,7 +35,7 @@ import weka.filters.timeseries.shapelet_transforms.subsequenceDist.SubSeqDistanc
 
 /**
  *
- * @author ajb
+ * @author Aaron Bostrom
  */
 public class ShapeletTransformFactory
 {
@@ -49,7 +49,6 @@ public class ShapeletTransformFactory
     
     //we create the Map using params jon found.
     //lazy way to avoid reading a text file. 
-    //i did not write this code by hand.
     //it is immutable.
     public static final Map<String, Pair<Integer, Integer>> shapeletParams;
     static{

@@ -54,6 +54,7 @@ package tsc_algorithms;
 import development.DataSets;
 import fileIO.OutFile;
 import java.text.DecimalFormat;
+import java.util.ArrayList;
 import java.util.Random;
 import tsc_algorithms.TimeSeriesForest.FeatureSet;
 import utilities.ClassifierTools;

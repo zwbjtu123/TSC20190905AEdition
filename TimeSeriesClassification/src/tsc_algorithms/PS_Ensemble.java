@@ -40,7 +40,11 @@ public class PS_Ensemble extends AbstractClassifier implements SaveableEnsemble{
      public void doTransform(boolean b){
         doTransform=b;
     }
-   
+    public String getParameters() {
+        String str =c.toString();
+        return str;
+    }
+       
     //Power Spectrum
     public enum ClassifierType{
         RandF("RandF",500),RotF("RotF",50),WeightedEnsemble("WE",8);

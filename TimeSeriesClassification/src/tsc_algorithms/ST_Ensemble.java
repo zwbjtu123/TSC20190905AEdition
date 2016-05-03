@@ -1,7 +1,5 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+Shaplet transform with the weighted ensemble
  */
 package tsc_algorithms;
 
@@ -49,11 +47,19 @@ public class ST_Ensemble  extends AbstractClassifier implements SaveableEnsemble
         saveResults(true);
         trainCV=tr;
         testPredictions=te;
+ //       transform.
     }
-    
+    @Override
+    public String getParameters(){
+        String paras=transform.getParameters();
+        String ensemble=weightedEnsemble.getParameters();
+        return paras+","+ensemble;
+    }
     public void doSTransform(boolean b){
         doTransform=b;
     }
+    
+    
     
     public Instances transformDataset(Instances data){
         if(transform.isFirstBatchDone())
@@ -94,6 +100,19 @@ public class ST_Ensemble  extends AbstractClassifier implements SaveableEnsemble
         Instance test  = temp.get(0);
         format.remove(0);
         return weightedEnsemble.classifyInstance(test);
+    }
+     @Override
+    public double[] distributionForInstance(Instance ins) throws Exception{
+        format.add(ins);
+        
+        Instances temp  = doTransform ? transform.process(format) : format;
+//Delete redundant
+        for(int del:redundantFeatures)
+            temp.deleteAttributeAt(del);
+        
+        Instance test  = temp.get(0);
+        format.remove(0);
+        return weightedEnsemble.distributionForInstance(test);
     }
 
     public Instances createTransformData(Instances train, long time){
