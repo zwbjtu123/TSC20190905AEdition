@@ -248,7 +248,7 @@ public class ShapeletTransformFactory
         return availableMemory;
     }
 
-    // Method to estimate min/max shapelet lenght for a given data
+    // Method to estimate min/max shapelet length for a given data
     public static int[] estimateMinAndMax(Instances data, FullShapeletTransform st)
     {
         FullShapeletTransform st1 = null;
