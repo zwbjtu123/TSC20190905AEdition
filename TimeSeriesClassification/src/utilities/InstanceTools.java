@@ -449,7 +449,7 @@ public class InstanceTools {
     }
     
     
-    public static Instances subSampleFixedProportion(Instances data, double proportion, int seed){
+    public static Instances subSampleFixedProportion(Instances data, double proportion, long seed){
         Map<Double, Instances> classBins = createClassInstancesMap(data);
         ClassDistribution trainDistribution = new TreeSetClassDistribution(data);
         

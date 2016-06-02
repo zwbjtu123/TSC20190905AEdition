@@ -16,6 +16,7 @@ import weka.core.Instances;
 import weka.filters.timeseries.shapelet_transforms.FullShapeletTransform;
 import weka.filters.timeseries.shapelet_transforms.ShapeletTransformFactory;
 import static weka.filters.timeseries.shapelet_transforms.ShapeletTransformFactory.nanoToOp;
+import weka.filters.timeseries.shapelet_transforms.searchFuntions.LocalSearch;
 import weka.filters.timeseries.shapelet_transforms.searchFuntions.ShapeletSearch;
 
 /**
@@ -36,10 +37,15 @@ public class ST_Ensemble  extends AbstractClassifier implements SaveableEnsemble
     private String testPredictions="";
     private boolean doTransform=true;
     
+    private long seed = 0;
     private long timeLimit = Long.MAX_VALUE;
     
     protected void saveResults(boolean s){
         saveResults=s;
+    }
+    
+    public void setSeed(long sd){
+        seed = sd;
     }
         
     @Override
@@ -59,6 +65,10 @@ public class ST_Ensemble  extends AbstractClassifier implements SaveableEnsemble
         doTransform=b;
     }
     
+    
+    public long getTransformOpCount(){
+        return transform.getCount();
+    }
     
     
     public Instances transformDataset(Instances data){
@@ -121,7 +131,7 @@ public class ST_Ensemble  extends AbstractClassifier implements SaveableEnsemble
         
         //construct shapelet classifiers from the factory.
         transform = ShapeletTransformFactory.createTransform(train);
-        
+        transform.setSearchFunction(new LocalSearch(3, m, 10, seed));
 
         BigInteger opCountTarget = new BigInteger(Long.toString(time / nanoToOp));
         
@@ -132,8 +142,6 @@ public class ST_Ensemble  extends AbstractClassifier implements SaveableEnsemble
             
             double recommendedProportion = ShapeletTransformFactory.calculateN(n, m, time);
             
-            System.out.println(recommendedProportion);
-              
             //calculate n for minimum class rep of 25.
             int small_sf = InstanceTools.findSmallestClassAmount(train);           
             double proportion = 1.0;
@@ -147,7 +155,7 @@ public class ST_Ensemble  extends AbstractClassifier implements SaveableEnsemble
             }
             
             //subsample out dataset.
-            Instances subsample = utilities.InstanceTools.subSampleFixedProportion(train, recommendedProportion, new Random().nextInt());
+            Instances subsample = utilities.InstanceTools.subSampleFixedProportion(train, recommendedProportion, seed);
             
             int i=1;
             //if we've properly resampled this should pass on first go. IF we haven't we'll try and reach our target. 
@@ -156,10 +164,21 @@ public class ST_Ensemble  extends AbstractClassifier implements SaveableEnsemble
                 i++;
             }
             
-            System.out.println("new n: " + subsample.numInstances());
             System.out.println("new q and p: " + i);
             
-            transform.setSearchFunction(new ShapeletSearch(3, m, i, i));
+            
+            double percentageOfSeries = (double)i/(double)m * 100.0;
+            
+            System.out.println("percentageOfSeries: "+ percentageOfSeries);
+
+            System.out.println("new n: " + subsample.numInstances());
+            
+            
+
+            //we should look for less shapelets if we've resampled. 
+            //e.g. Eletric devices can be sampled to from 8000 for 2000 so we should be looking for 20,000 shapelets not 80,000
+            transform.setNumberOfShapelets(subsample.numInstances()*10);
+            //transform.setSearchFunction(new ShapeletSearch(3, m, i, i));
             transform.process(subsample);
         }
         

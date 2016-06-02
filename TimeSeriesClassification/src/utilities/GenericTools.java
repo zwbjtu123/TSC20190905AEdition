@@ -6,6 +6,9 @@
 package utilities;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
 
 /**
  *
@@ -15,9 +18,23 @@ public class GenericTools {
     
     public static <E> ArrayList<E> cloneArrayList(ArrayList<E> list){
         ArrayList<E> temp = new ArrayList<>();
-        for(E el : list){
-           temp.add(el);
+        for (E el : list) {
+            temp.add(el);
         }
         return temp;              
+    }
+
+    public static <E> ArrayList<E> twoDArrayToList(E[][] twoDArray) {
+        ArrayList<E> list = new ArrayList<>();
+        for (E[] array : twoDArray){
+            if(array == null) continue;
+            
+            for(E elm : array){
+                if(elm == null) continue;
+                
+                list.add(elm);
+            }
+        }
+        return list;
     }
 }

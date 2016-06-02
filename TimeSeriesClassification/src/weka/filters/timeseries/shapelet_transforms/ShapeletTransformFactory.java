@@ -156,64 +156,6 @@ public class ShapeletTransformFactory
         return fst;
     }
     
-    //TODO: Improve heavily.
-    /*public FullShapeletTransform createTransform(Instances train)
-    {
-        //Memory in bytes available        
-        //1. distance caching or not 
-        long mem = getAvailableMemory();
-        System.out.println(" Memory asvailable =" + (mem / 1000000) + " MB");
-        // Memory in bytes required by the distance Cache
-        long distCache = train.numInstances() * (train.numAttributes() - 1) * (train.numAttributes() - 1);
-        //Currently the cache is in doubles, will convert to floats.
-        distCache *= 32;   //8 bytes per double, 4 for floats, but be conservative
-        
-        FullShapeletTransform s = new FullShapeletTransform();
-        
-        //what distance calculations shoulld we use?
-        if (distCache < MEM_CUTOFF * mem)
-            s.setSubSeqDistance(new CachedSubSeqDistance());
-        else
-            s.setSubSeqDistance(new OnlineSubSeqDistance());
-        
-        //what classValue should we use? more than 4 classes binarised.
-        if(train.numClasses() >= 4)
-            s.setClassValue(new BinarisedClassValue());
-        else
-            s.setClassValue(new NormalClassValue());
-        
-        //calculate min and max params.
-        int[] params = estimateMinAndMax(train, s);
-        
-//2. Number of shapelets to retain
-        int m = train.numAttributes() - 1;
-        int n = train.numInstances();
-
-        int nosShapelets = n * m / 10;
-        
-        if (nosShapelets < m)
-            nosShapelets = m;
-        else if (nosShapelets < n)
-            nosShapelets = n;
-        else if(nosShapelets > MAX_NOS_SHAPELETS)
-            nosShapelets = MAX_NOS_SHAPELETS;
-
-
-        s.setNumberOfShapelets(nosShapelets); 
-        s.setShapeletMinAndMax(params[0], params[1]);
-
-        //4. Shapelet quality measure 
-        s.setQualityMeasure(QualityMeasures.ShapeletQualityChoice.INFORMATION_GAIN);
-        s.setCandidatePruning(true);
-
-        long spareMem = mem - distCache;
-        long memPerShapelet = 16 * (train.numAttributes() - 1);
-        System.out.println("Spare memory =" + (spareMem / 1000000) + " shapelet memory required =" + (nosShapelets * memPerShapelet) / 1000000);
-
-        return s;
-    }*/
-
-    
     public static FullShapeletTransform createTransform(Instances train){
         int numClasses = train.numClasses();
         int numInstances = train.numInstances();
@@ -227,7 +169,7 @@ public class ShapeletTransformFactory
             transform.setClassValue(new BinarisedClassValue());
         }
         
-        transform.setSubSeqDistance(new ImprovedOnlineSubSeqDistance());
+        //transform.setSubSeqDistance(new ImprovedOnlineSubSeqDistance());
         transform.setShapeletMinAndMax(3, numAttributes);
         transform.setNumberOfShapelets(numInstances*10);
         transform.useCandidatePruning();
@@ -383,35 +325,7 @@ public class ShapeletTransformFactory
 
         numOps*= n * (n-1);
         return numOps;
-    }
-    
-    
-    static int calculateSkipPos(int m){
-        int skipPos = 1;
-        if(m>2000)
-            skipPos= 8;
-        else if(m>1000)
-            skipPos= 4;
-        else if(m> 500)
-            skipPos= 2;
-        
-        return skipPos;
-    }
-    
-    static int calculateSkipLength(int m){
-        int skipLength = 1;
-        
-        if (m>1500) 
-            skipLength =32;
-        else if (m>1000)
-            skipLength =16;
-        else if (m>500) 
-            skipLength =8;
-        else if (m>250)
-            skipLength =4;
-        return skipLength;
-    }
-    
+    }    
 
     
     public static BigInteger calculateOps(int n, int m, int posS, int lenS){

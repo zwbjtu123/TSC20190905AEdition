@@ -480,10 +480,11 @@ public class FullShapeletTransform extends SimpleBatchFilter {
         //checks if the shapelets haven't been found yet, finds them if it needs too.
         if (!m_FirstBatchDone) {
             trainShapelets(data);
+            
+            //we log the count from the subseqdistance before we reset it in the transform.
+            //we only care about the count from the train.
+            count = subseqDistance.getCount();
         }
-        
-        //we log the count from the subseqdistance before we reset it in the transform.
-        count = subseqDistance.getCount();
 
         //build the transformed dataset with the shapelets we've found either on this data, or the previous training data
         return buildTansformedDataset(data, shapelets);
