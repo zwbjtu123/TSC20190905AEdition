@@ -1,5 +1,6 @@
 /*
-Shaplet transform with the weighted ensemble
+ajb: Shaplet transform with the weighted ensemble
+added supress output
  */
 package tsc_algorithms;
 
