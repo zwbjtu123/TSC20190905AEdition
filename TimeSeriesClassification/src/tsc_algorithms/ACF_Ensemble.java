@@ -1,8 +1,9 @@
 package tsc_algorithms;
 
 
+import bakeOffExperiments.BakeoffExperiments;
 import weka.classifiers.meta.timeseriesensembles.SaveableEnsemble;
-import bakeOffExperiments.Experiments;
+//import bakeOffExperiments.BakeoffExperiments;
 import fileIO.OutFile;
 import java.util.ArrayList;
 import utilities.ClassifierTools;
@@ -142,6 +143,6 @@ public class ACF_Ensemble extends AbstractClassifier implements SaveableEnsemble
         ACF_Ensemble acf= new ACF_Ensemble();
         acf.setClassifierType("WE");
         acf.saveResults(trainS, testS);
-        double a =Experiments.singleSampleExperiment(train, test, acf,0, preds);
+        double a =BakeoffExperiments.singleSampleExperiment(train, test, acf,0, preds);
     }
 }

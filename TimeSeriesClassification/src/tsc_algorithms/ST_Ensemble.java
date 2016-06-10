@@ -36,10 +36,13 @@ public class ST_Ensemble  extends AbstractClassifier implements SaveableEnsemble
     private String trainCV="";
     private String testPredictions="";
     private boolean doTransform=true;
-    
+    private boolean supressOutput=false;
     private long seed = 0;
     private long timeLimit = Long.MAX_VALUE;
     
+    public void supressOutput(boolean b){
+        supressOutput=b;
+    }
     protected void saveResults(boolean s){
         saveResults=s;
     }
@@ -132,7 +135,8 @@ public class ST_Ensemble  extends AbstractClassifier implements SaveableEnsemble
         //construct shapelet classifiers from the factory.
         transform = ShapeletTransformFactory.createTransform(train);
         transform.setSearchFunction(new LocalSearch(3, m, 10, seed));
-
+        if(supressOutput)
+            transform.supressOutput();
         BigInteger opCountTarget = new BigInteger(Long.toString(time / nanoToOp));
         
         BigInteger opCount = ShapeletTransformFactory.calculateOps(n, m, 1, 1);
