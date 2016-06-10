@@ -40,14 +40,11 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import utilities.ClassifierTools;
 import utilities.InstanceTools;
 import utilities.SaveCVAccuracy;
 import weka.classifiers.Evaluation;
 import weka.classifiers.meta.timeseriesensembles.WeightedEnsemble;
-import weka.core.Instance;
 import weka.core.Instances;
 
 /**
@@ -55,8 +52,8 @@ import weka.core.Instances;
  * @author ajb
  */
 public class CollateResults {
-   static final String[][] names={Experiments.standard,Experiments.elastic,Experiments.shapelet,Experiments.dictionary,Experiments.interval,Experiments.ensemble,Experiments.complexity};
-   static String[] dirNames=Experiments.directoryNames;
+   static final String[][] names={BakeoffExperiments.standard,BakeoffExperiments.elastic,BakeoffExperiments.shapelet,BakeoffExperiments.dictionary,BakeoffExperiments.interval,BakeoffExperiments.ensemble,BakeoffExperiments.complexity};
+   static String[] dirNames=BakeoffExperiments.directoryNames;
    static int[] testSizes={391,175,30,20,20,60,900,3840,1380,28,250,390,390,390,306,276,139,139,139,100,4500,861,7711,1690,88,2050,455,175,1320,810,150,105,370,308,64,550,1980,1029,375,61,73,2345,60,760,291,154,154,1252,1965,1965,30,242,858,1896,105,291,205,205,375,375,180,600,375,601,953,8236,370,625,995,300,228,130,100,1139,4000,3582,3582,3582,3582,6164,54,638,77,77,3000,};
     static String[] c={"ST","ACF","PACF"};
     HashSet<String> finished=new HashSet<>();
@@ -613,7 +610,7 @@ public class CollateResults {
         deleteDirectory(f);
         if(!f.isDirectory())
             f.mkdir();
-        String[] algos=new String[Experiments.numClassifiers()];
+        String[] algos=new String[BakeoffExperiments.numClassifiers()];
         for(int i=0;i<algos.length;i++)
            algos[i]=inf.readString();
         String[] problems=new String[85];
@@ -814,17 +811,17 @@ public class CollateResults {
         System.out.print("};");
     }
     public static void collateFoldZero(){
-        double[][] trainTestAcc=new double[DataSets.fileNames.length][Experiments.numClassifiers()];
-        String[] allclassifiers=Experiments.allClassifiers();
+        double[][] trainTestAcc=new double[DataSets.fileNames.length][BakeoffExperiments.numClassifiers()];
+        String[] allclassifiers=BakeoffExperiments.allClassifiers();
         for(int i=0;i<trainTestAcc.length;i++){
             String prob=DataSets.fileNames[i];
             int pos=0;
 //            for(int j=0;j<trainTestAcc[i].length;j++){
-            for(int j=0;j<Experiments.classifiers.length;j++){
-                for(int m=0;m<Experiments.classifiers[j].length;m++){
-                    String cls=Experiments.classifiers[j][m];
+            for(int j=0;j<BakeoffExperiments.classifiers.length;j++){
+                for(int m=0;m<BakeoffExperiments.classifiers[j].length;m++){
+                    String cls=BakeoffExperiments.classifiers[j][m];
         // Check to see if predictions 0 is present
-                    String foldFile=DataSets.resultsPath+Experiments.directoryNames[j]+"\\"+cls+"\\Predictions\\"+prob+"\\fold0.csv";
+                    String foldFile=DataSets.resultsPath+BakeoffExperiments.directoryNames[j]+"\\"+cls+"\\Predictions\\"+prob+"\\fold0.csv";
 //                    System.out.println("Looking for "+foldFile);
                     File f=new File(foldFile);
                     int size=0;
@@ -846,7 +843,7 @@ public class CollateResults {
                         trainTestAcc[i][pos]/=size;
                     }else{  //Try to recover from the single problem file
 
-                        File f2=new File(DataSets.resultsPath+Experiments.directoryNames[j]+cls+"/"+prob+".csv");
+                        File f2=new File(DataSets.resultsPath+BakeoffExperiments.directoryNames[j]+cls+"/"+prob+".csv");
   //                      System.out.println("\t\t fold 0 NOT found looking for "+f2.getPath());
                         if(f2.exists()){
                             InFile inf2=new InFile(f2.getPath());
@@ -859,7 +856,7 @@ public class CollateResults {
                         }
                         else{   //Try to recover from full file! 
  
-                            File f3=new File(DataSets.resultsPath+Experiments.directoryNames[j]+"\\"+cls+".csv");
+                            File f3=new File(DataSets.resultsPath+BakeoffExperiments.directoryNames[j]+"\\"+cls+".csv");
 //                            System.out.println("\t\t"+f2.getName()+" NOT found looking for "+f3.getPath());
                             if(f3.exists()){
 //                            System.out.println("\t\t"+f3.getName()+" FOUND");
