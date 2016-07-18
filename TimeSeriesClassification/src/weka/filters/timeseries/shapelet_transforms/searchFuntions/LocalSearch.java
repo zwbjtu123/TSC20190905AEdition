@@ -14,13 +14,10 @@ import weka.core.shapelet.Shapelet;
  *
  * @author raj09hxu
  */
-public class LocalSearch extends ShapeletSearch{
+public class LocalSearch extends RandomTimedSearch{
 
     
     int maxIterations;
-    boolean[][] visited;
-    
-    Random random;
     
     public LocalSearch(int min, int max, int k, long seed) {
         super(min, max);
@@ -147,19 +144,5 @@ public class LocalSearch extends ShapeletSearch{
         }
         return shape;
     }
-    
-    void initVisitedMemory(double[] series, int length){
-        int lengthIndex = getLenghtIndex(length);
-        if(visited[lengthIndex] == null){
-            int maxPositions = series.length - length;
-            visited[lengthIndex] = new boolean[maxPositions];
-        }
-           
-    }
-    
-    int getLenghtIndex(int length){
-        return length - minShapeletLength;
-    }
-  
     
 }
