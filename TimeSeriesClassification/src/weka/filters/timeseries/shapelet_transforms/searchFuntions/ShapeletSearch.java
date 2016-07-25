@@ -49,6 +49,8 @@ public class ShapeletSearch implements Serializable{
         inputData = input;
     }
     
+    
+    //given a series and a function to find a shapelet 
     public ArrayList<Shapelet> SearchForShapeletsInSeries(Instance timeSeries, ProcessCandidate checkCandidate){
         ArrayList<Shapelet> seriesShapelets = new ArrayList<>();
 
