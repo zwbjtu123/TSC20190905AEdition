@@ -6,7 +6,6 @@ package tsc_algorithms;
 import weka.classifiers.meta.timeseriesensembles.SaveableEnsemble;
 import java.io.File;
 import java.math.BigInteger;
-import java.util.Random;
 import utilities.ClassifierTools;
 import utilities.InstanceTools;
 import weka.classifiers.AbstractClassifier;
@@ -16,7 +15,6 @@ import weka.core.Instances;
 import weka.filters.timeseries.shapelet_transforms.FullShapeletTransform;
 import weka.filters.timeseries.shapelet_transforms.ShapeletTransformFactory;
 import static weka.filters.timeseries.shapelet_transforms.ShapeletTransformFactory.nanoToOp;
-import weka.filters.timeseries.shapelet_transforms.searchFuntions.LocalSearch;
 import weka.filters.timeseries.shapelet_transforms.searchFuntions.ShapeletSearch;
 
 /**
@@ -65,7 +63,6 @@ public class ST_Ensemble  extends AbstractClassifier implements SaveableEnsemble
         doTransform=b;
     }
     
-    
     public long getTransformOpCount(){
         return transform.getCount();
     }
@@ -94,6 +91,7 @@ public class ST_Ensemble  extends AbstractClassifier implements SaveableEnsemble
             weightedEnsemble.saveTestPreds(testPredictions);
         }
         
+        System.out.println("transformed");
         weightedEnsemble.buildClassifier(format);
         format=new Instances(data,0);
     }
@@ -128,10 +126,12 @@ public class ST_Ensemble  extends AbstractClassifier implements SaveableEnsemble
     public Instances createTransformData(Instances train, long time){
         int n = train.numInstances();
         int m = train.numAttributes()-1;
-        
+
         //construct shapelet classifiers from the factory.
         transform = ShapeletTransformFactory.createTransform(train);
-        transform.setSearchFunction(new LocalSearch(3, m, 10, seed));
+        
+        //at the moment this could be overrided.
+        //transform.setSearchFunction(new LocalSearch(3, m, 10, seed));
 
         BigInteger opCountTarget = new BigInteger(Long.toString(time / nanoToOp));
         
@@ -173,12 +173,10 @@ public class ST_Ensemble  extends AbstractClassifier implements SaveableEnsemble
 
             System.out.println("new n: " + subsample.numInstances());
             
-            
-
             //we should look for less shapelets if we've resampled. 
             //e.g. Eletric devices can be sampled to from 8000 for 2000 so we should be looking for 20,000 shapelets not 80,000
-            transform.setNumberOfShapelets(subsample.numInstances()*10);
-            //transform.setSearchFunction(new ShapeletSearch(3, m, i, i));
+            transform.setNumberOfShapelets(subsample.numInstances());
+            transform.setSearchFunction(new ShapeletSearch(3, m, i, i));
             transform.process(subsample);
         }
         
