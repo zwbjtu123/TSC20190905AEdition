@@ -9,8 +9,9 @@ import java.math.BigInteger;
 import java.util.Random;
 import utilities.ClassifierTools;
 import utilities.InstanceTools;
+import utilities.SaveCVAccuracy;
 import weka.classifiers.AbstractClassifier;
-import weka.classifiers.meta.timeseriesensembles.WeightedEnsemble;
+import weka.classifiers.meta.timeseriesensembles.HESCA;
 import weka.core.Instance;
 import weka.core.Instances;
 import weka.filters.timeseries.shapelet_transforms.FullShapeletTransform;
@@ -28,24 +29,30 @@ public class ST_Ensemble  extends AbstractClassifier implements SaveableEnsemble
     private static final int minimumRepresentation = 25;
     
     
-    private WeightedEnsemble weightedEnsemble;
+    private HESCA weightedEnsemble;
     private FullShapeletTransform transform;
+    private String shapeletOutputFile=null;
     private Instances format;
     int[] redundantFeatures;
     private boolean saveResults=false;
     private String trainCV="";
     private String testPredictions="";
     private boolean doTransform=true;
-    
+    private boolean supressOutput=true;
     private long seed = 0;
     private long timeLimit = Long.MAX_VALUE;
-    
+    public void supressOutput(boolean b){
+        supressOutput=true;
+    }
     protected void saveResults(boolean s){
         saveResults=s;
     }
     
     public void setSeed(long sd){
         seed = sd;
+    }
+    public void setShapeletOutputFile(String str){
+        shapeletOutputFile=str;
     }
         
     @Override
@@ -85,7 +92,7 @@ public class ST_Ensemble  extends AbstractClassifier implements SaveableEnsemble
     public void buildClassifier(Instances data) throws Exception {
         format = doTransform ? createTransformData(data, timeLimit) : data;
         
-        weightedEnsemble=new WeightedEnsemble();
+        weightedEnsemble=new HESCA();
         weightedEnsemble.setWeightType("prop");
                 
         redundantFeatures=InstanceTools.removeRedundantTrainAttributes(format);
@@ -128,10 +135,14 @@ public class ST_Ensemble  extends AbstractClassifier implements SaveableEnsemble
     public Instances createTransformData(Instances train, long time){
         int n = train.numInstances();
         int m = train.numAttributes()-1;
-        
+            
         //construct shapelet classifiers from the factory.
         transform = ShapeletTransformFactory.createTransform(train);
-        transform.setSearchFunction(new LocalSearch(3, m, 10, seed));
+//        transform.setSearchFunction(new LocalSearch(3, m, 10, seed));
+        if(supressOutput)
+            transform.supressOutput();
+        if(shapeletOutputFile!=null)
+            transform.setLogOutputFile(shapeletOutputFile);
 
         BigInteger opCountTarget = new BigInteger(Long.toString(time / nanoToOp));
         
@@ -163,17 +174,10 @@ public class ST_Ensemble  extends AbstractClassifier implements SaveableEnsemble
             while(ShapeletTransformFactory.calculateOps(subsample.numInstances(), m, i, i).compareTo(opCountTarget) == 1){
                 i++;
             }
-            
             System.out.println("new q and p: " + i);
-            
-            
             double percentageOfSeries = (double)i/(double)m * 100.0;
-            
             System.out.println("percentageOfSeries: "+ percentageOfSeries);
-
             System.out.println("new n: " + subsample.numInstances());
-            
-            
 
             //we should look for less shapelets if we've resampled. 
             //e.g. Eletric devices can be sampled to from 8000 for 2000 so we should be looking for 20,000 shapelets not 80,000
@@ -201,7 +205,7 @@ public class ST_Ensemble  extends AbstractClassifier implements SaveableEnsemble
         ST_Ensemble st= new ST_Ensemble();
         //st.saveResults(trainS, testS);
         st.doSTransform(true);
-        st.setTimeLimit(ShapeletTransformFactory.dayNano);
+        st.setTimeLimit(3*ShapeletTransformFactory.dayNano);
         st.buildClassifier(train);
         double accuracy = utilities.ClassifierTools.accuracy(test, st);
         

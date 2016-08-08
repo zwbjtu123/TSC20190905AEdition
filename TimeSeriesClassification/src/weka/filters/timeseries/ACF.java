@@ -8,7 +8,7 @@ import java.util.logging.Logger;
 import utilities.ClassifierTools;
 import utilities.InstanceTools;
 import weka.classifiers.bayes.NaiveBayes;
-import weka.classifiers.meta.timeseriesensembles.WeightedEnsemble;
+import weka.classifiers.meta.timeseriesensembles.HESCA;
 //import simulators.SimulateAR;
 //import weka.classifiers.evaluation.ClassifierTools;
 import weka.core.Attribute;
@@ -31,7 +31,7 @@ public class ACF extends SimpleBatchFilter {
 	private static final long serialVersionUID = 1L;
         private boolean normalized=false;   //Assumes zero mean and unit variance
         
-	int endTerms=10;
+	int endTerms=4;
 	int maxLag=300;
         int seriesLength;
 	int lag=maxLag;
@@ -59,7 +59,9 @@ public class ACF extends SimpleBatchFilter {
                                         throw new Exception("Non numeric attribute not allowed in ACF");
         //Cannot include the final endTerms correlations, since they are based on too little data and hence unreliable.
                 if(maxLag>inputFormat.numAttributes()-endTerms)
-                        maxLag=inputFormat.numAttributes()-endTerms;
+                    maxLag=inputFormat.numAttributes()-endTerms;
+                if(maxLag<0)
+                    maxLag=inputFormat.numAttributes()-1;
                 //Set up instances size and format. 
                 FastVector atts=new FastVector();
                 String name;
@@ -301,10 +303,13 @@ public class ACF extends SimpleBatchFilter {
             return sigThreshold.length-1;
         }
    public static Instances formChangeCombo(Instances d){
+            int maxLag=(d.numAttributes()-1)/4;
+            if(maxLag>100)
+                maxLag=100;
+            if(maxLag<10)
+                maxLag=(d.numAttributes()-1);
+                
             try{
-                int maxLag=(d.numAttributes()-1)/4;
-                if(maxLag>100)
-                    maxLag=100;
                 //1. ACF
                 ACF acf=new ACF();
                 acf.setMaxLag(maxLag);
@@ -329,7 +334,7 @@ public class ACF extends SimpleBatchFilter {
                 return combo;
 
            }catch(Exception e){
-			System.out.println(" Exception in Combo="+e);
+			System.out.println(" Exception in Combo="+e+" max lag ="+maxLag);
 			e.printStackTrace();
                         System.exit(0);
            }
@@ -401,7 +406,7 @@ public class ACF extends SimpleBatchFilter {
                 f = acf.process(train);
 //                System.out.println(f.toString());
                 NaiveBayes nb=new NaiveBayes();    
-//                WeightedEnsemble we= new WeightedEnsemble();
+//                HESCA we= new HESCA();
                 f=InstanceTools.subSample(f, f.numInstances()/100, 0);
                 nb.buildClassifier(f);
             } catch (Exception ex) {

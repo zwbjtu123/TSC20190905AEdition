@@ -12,8 +12,13 @@ import weka.filters.SimpleBatchFilter;
  * */
 public class Differences extends SimpleBatchFilter {
         private int order=1;
+        String attName="";
         public void setOrder(int m){order=m;}
 	private static final long serialVersionUID = 1L;
+        
+        public void setAttName(String s){
+            attName=s;
+        }
 
         protected Instances determineOutputFormat(Instances inputFormat)
 	throws Exception {
@@ -26,7 +31,7 @@ public class Differences extends SimpleBatchFilter {
 	FastVector atts=new FastVector();
 	String name;
 	for(int i=0;i<inputFormat.numAttributes()-order-1;i++){
-		name = "Difference"+order+"_"+(i+1);
+		name = attName+"Difference"+order+"_"+(i+1);
 		atts.addElement(new Attribute(name));
 	}
 	if(inputFormat.classIndex()>=0){	//Classification set, set class 

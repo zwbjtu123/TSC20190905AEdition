@@ -169,7 +169,7 @@ public class InFile{
             return(v);
     }
 
-    public double readDouble()
+    public double readDouble() throws RuntimeException
     {
             double v=0;
             try
@@ -180,7 +180,7 @@ public class InFile{
                             System.out.println("ERROR: Attempting to read a non double");
                             System.out.println("Current token is >"+token.sval);
                             System.out.println("File name ="+fileName);
-                            System.exit(0);
+                            throw new RuntimeException("ERROR: Attempting to read a non double");
                     }
                     v= token.nval;
             }

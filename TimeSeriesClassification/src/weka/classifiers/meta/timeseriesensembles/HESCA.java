@@ -33,9 +33,12 @@ import weka.core.*;
 
 /**
  *
- * @author ajb
+ * @author ajb: Described in draft paper
+ * 
+ * The Heterogeneous Ensemble of Standard Classification Algorithms (HESCA)
+ * We use a Heterogeneous Ensemble of Standard Classification Algorithms (HESCA) that includes eight classifiers, two of which themselves are ensembles: $k$ Nearest Neighbour; Naive Bayes; C4.5 decision tree; Support Vector Machines with linear and quadratic basis function kernels; Random Forest (with 500 trees); Rotation Forest (with 50 trees); and a Bayesian network. These classifiers are chosen to give us a balance between probabilistic, instance based and tree based classifiers. A simple majority voting scheme is inappropriate for HESC; it would not capture the relative performance of classifier on any given dataset. Instead, each classifier is assigned a weight based on the ten fold cross validation training accuracy, and new data (after transformation) are classified with a vote weighted by cross validation accuracy. All the classifiers are the standard Weka implementations and with the exception of $k$-NN (where $k$ is set through cross validation at minimal cost), we do not optimise parameter settings or perform model selection for these classifiers. 
  */
-public class WeightedEnsemble extends AbstractClassifier implements SaveCVAccuracy, SaveableEnsemble {
+public class HESCA extends AbstractClassifier implements SaveCVAccuracy, SaveableEnsemble {
 //The McNemar test requires the actual predictions of each classifier. The others can be found directly
 //from the CV accuracy.    
     Instances train;
@@ -67,14 +70,14 @@ public class WeightedEnsemble extends AbstractClassifier implements SaveCVAccura
 
     public enum WeightType{EQUAL,BEST,PROPORTIONAL,FIXED,SIGNIFICANT_BINOMIAL,SIGNIFICANT_MCNEMAR};
     WeightType w;
-    public WeightedEnsemble(){
+    public HESCA(){
         w=WeightType.PROPORTIONAL;
         classifierNames=new ArrayList<String>();
         c=setDefaultClassifiers(classifierNames);
         weights=new double[c.length];
         cvAccs=new double[c.length];
     }
-    public WeightedEnsemble(Classifier[] cl,ArrayList<String> names){
+    public HESCA(Classifier[] cl,ArrayList<String> names){
         w=WeightType.PROPORTIONAL;
         setClassifiers(cl,names);
         weights=new double[c.length];
@@ -170,7 +173,7 @@ tation Forest [30] (with 50 trees), and a Bayesian network.
                svm.setRandomSeed(seed);
             classifiers.add(svm);
             names.add("SVMQ");
-            RandomForest r=new RandomForest();
+            RandomForest r=new EnhancedRandomForest();
             r.setNumTrees(500);
             if(setSeed)
                r.setSeed(seed);            
@@ -306,7 +309,10 @@ tation Forest [30] (with 50 trees), and a Bayesian network.
             if(saveTrain){
                for(int i=0;i<c.length;i++)
                    of.writeString(cvAccs[i]+",");
-               of.writeString("\n");               
+               of.writeString("\n"); 
+//Need to store actuals and predicted here, but requires restructuring.
+ //              for(int i=0;i<train.numInstances();i++)
+ //                  of.writeString((int)train.instance(i).classValue()+",");
             }            
         }
         
@@ -366,7 +372,7 @@ tation Forest [30] (with 50 trees), and a Bayesian network.
         String problem="ItalyPowerDemand";
         Instances train =ClassifierTools.loadData(DataSets.dropboxPath+problem+"\\"+problem+"_TRAIN");
         Instances test =ClassifierTools.loadData(DataSets.dropboxPath+problem+"\\"+problem+"_TEST");
-        WeightedEnsemble we = new WeightedEnsemble();
+        HESCA we = new HESCA();
 //Test equal weight and CV weight for small classifier set
         DecimalFormat df = new DecimalFormat("###.###");
         double a;
@@ -398,11 +404,11 @@ tation Forest [30] (with 50 trees), and a Bayesian network.
             System.out.println(" WE accuracy with prop weight="+a);
             
         } catch (Exception ex) {
-            Logger.getLogger(WeightedEnsemble.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(HESCA.class.getName()).log(Level.SEVERE, null, ex);
         }
 //Test with standard classifiers
         try {
-            we = new WeightedEnsemble();
+            we = new HESCA();
             we.setWeightType("Proportional");
             we.buildClassifier(train);
             double[] w=we.getWeights();
@@ -414,7 +420,7 @@ tation Forest [30] (with 50 trees), and a Bayesian network.
             
             
         } catch (Exception ex) {
-            Logger.getLogger(WeightedEnsemble.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(HESCA.class.getName()).log(Level.SEVERE, null, ex);
         }
         
         
@@ -423,7 +429,7 @@ tation Forest [30] (with 50 trees), and a Bayesian network.
  /*   public static void testSpectrum() throws Exception{
         Instances train=ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\Power Spectrum Transformed TSC Problems\\PSItalyPowerDemand\\PSItalyPowerDemand_TRAIN");
         Instances test=ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\Power Spectrum Transformed TSC Problems\\PSItalyPowerDemand\\PSItalyPowerDemand_TEST");
-        WeightedEnsemble w=new WeightedEnsemble();
+        HESCA w=new HESCA();
         w.buildClassifier(train);
         System.out.println(" Accuracy ="+ClassifierTools.accuracy(test, w));
     }
@@ -433,7 +439,7 @@ tation Forest [30] (with 50 trees), and a Bayesian network.
     public static void testFileSave() throws Exception{
         Instances train= ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\TSC Problems\\ItalyPowerDemand\\ItalyPowerDemand_TRAIN");
         Instances test= ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\TSC Problems\\ItalyPowerDemand\\ItalyPowerDemand_TEST");
-        WeightedEnsemble we= new WeightedEnsemble();
+        HESCA we= new HESCA();
         we.saveTestPreds("C:\\Users\\ajb\\Dropbox\\TSC Problems\\ItalyPowerDemand\\TestPreds.csv");
         we.setCVPath("C:\\Users\\ajb\\Dropbox\\TSC Problems\\ItalyPowerDemand\\TrainCV.csv");
         we.buildClassifier(train);

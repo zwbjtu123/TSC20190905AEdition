@@ -28,13 +28,14 @@ public class SummaryStats extends SimpleBatchFilter {
 				throw new Exception("Non numeric attribute not allowed in SummaryStats");
 	//Set up instances size and format. 
 	FastVector atts=new FastVector();
+        String source=inputFormat.relationName();
 	String name;
 	for(int i=0;i<numMoments;i++){
-		name = "Moment_"+(i+1);
+		name =source+"Moment_"+(i+1);
 		atts.addElement(new Attribute(name));
 	}
-	atts.addElement(new Attribute("MIN"));
-	atts.addElement(new Attribute("MAX"));
+	atts.addElement(new Attribute(source+"MIN"));
+	atts.addElement(new Attribute(source+"MAX"));
         
 	if(inputFormat.classIndex()>=0){	//Classification set, set class 
 		//Get the class values as a fast vector			
@@ -89,7 +90,7 @@ public Instances process(Instances inst) throws Exception {
  * 
  * 
 **/
-            double max=0;
+            double max=-Double.MAX_VALUE;
             double min=Double.MAX_VALUE;
             double sum = 0;      
             //Find mean

@@ -39,10 +39,15 @@ public class DTW_1NN implements Classifier {
     HashMap<Integer,Double> distances;
     double maxR=1;
 
-        public DTW_1NN(){
+    public DTW_1NN(){
         dtw=new DTW();
     }
-        public double getMaxR(){ return maxR;}
+    public DTW_1NN(DTW_DistanceBasic d){
+        dtw=d;
+    }
+    
+    
+    public double getMaxR(){ return maxR;}
     public void setMaxNosWindows(int a){maxNosWindows=a;}
     public void optimiseWindow(boolean b){ optimiseWindow=b;}
     public void setR(double r){dtw.setR(r);}

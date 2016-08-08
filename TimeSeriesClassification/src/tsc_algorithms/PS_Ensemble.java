@@ -7,7 +7,7 @@ import utilities.InstanceTools;
 import weka.classifiers.AbstractClassifier;
 import weka.classifiers.Classifier;
 import weka.classifiers.meta.RotationForest;
-import weka.classifiers.meta.timeseriesensembles.WeightedEnsemble;
+import weka.classifiers.meta.timeseriesensembles.HESCA;
 import weka.classifiers.trees.RandomForest;
 import weka.core.Instance;
 import weka.core.Instances;
@@ -65,7 +65,7 @@ public class PS_Ensemble extends AbstractClassifier implements SaveableEnsemble{
                    rotf.setNumIterations(numBaseClassifiers);
                    return rotf;
                 case "WE":
-                   WeightedEnsemble we=new WeightedEnsemble();
+                   HESCA we=new HESCA();
                    we.setWeightType("prop");
                    return we;
                 default:
@@ -109,8 +109,8 @@ public class PS_Ensemble extends AbstractClassifier implements SaveableEnsemble{
         if(saveResults && c==ClassifierType.WeightedEnsemble){
 //Set up the file space here
             System.out.println("SAVING RESULTS FOR TRAIN to "+trainCV+" "+testPredictions);
-            ((WeightedEnsemble) baseClassifier).setCVPath(trainCV);
-            ((WeightedEnsemble) baseClassifier).saveTestPreds(testPredictions);
+            ((HESCA) baseClassifier).setCVPath(trainCV);
+            ((HESCA) baseClassifier).saveTestPreds(testPredictions);
         }
         
         baseClassifier.buildClassifier(psTrain);

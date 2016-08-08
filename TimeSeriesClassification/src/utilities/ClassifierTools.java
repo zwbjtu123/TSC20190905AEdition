@@ -445,7 +445,8 @@ public class ClassifierTools {
         return acc;
     }	
     
-    
+ /* Returns probability distribution for each instance with no randomisation  
+    */
     public static double[][] crossValidate(Instances data, Classifier c, int numFolds)
     {
         double[][] results=new double[data.numInstances()][data.numClasses()];

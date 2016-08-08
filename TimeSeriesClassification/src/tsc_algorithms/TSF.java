@@ -18,7 +18,7 @@ Three interval features: mean, standard deviation and slope.
  *
  * @author ajb
 
-This implementation may deviate from the original, as it is using thesame
+This implementation may deviate from the original, as it is using the same
 structure as the weka random forest. If m is the series length
 buildClassifier:
     1. Pick sqrt(m) intervals
@@ -87,7 +87,9 @@ public class TSF extends AbstractClassifier implements SaveCVAccuracy{
     public String getParameters() {
         return "numTrees,"+numTrees+",numFeatures,"+numFeatures;
     }
-    
+    public void setNumTrees(int t){
+        numTrees=t;
+    }
     
     
 //<editor-fold defaultstate="collapsed" desc="results reported in Info Sciences paper">        

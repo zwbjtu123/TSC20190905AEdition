@@ -21,11 +21,11 @@ import weka.core.neighboursearch.PerformanceStats;
 public class DTW_DistanceBasic extends EuclideanDistance{
 
     private static final long serialVersionUID = 1L;
-    int windowSize;
-    double r=1;	//Warping window size percentage, between 0 and 1
-    double[][] matrixD;
-    int endX=0;
-    int endY=0;
+    protected int windowSize;
+    protected double r=1;	//Warping window size percentage, between 0 and 1
+    protected double[][] matrixD;
+    protected int endX=0;
+    protected int endY=0;
     public DTW_DistanceBasic(){
             super();
             m_DontNormalize=true;
