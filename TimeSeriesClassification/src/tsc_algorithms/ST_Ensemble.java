@@ -9,7 +9,7 @@ import java.math.BigInteger;
 import utilities.ClassifierTools;
 import utilities.InstanceTools;
 import weka.classifiers.AbstractClassifier;
-import weka.classifiers.meta.timeseriesensembles.WeightedEnsemble;
+import weka.classifiers.meta.timeseriesensembles.HESCA;
 import weka.core.Instance;
 import weka.core.Instances;
 import weka.filters.timeseries.shapelet_transforms.FullShapeletTransform;
@@ -26,7 +26,7 @@ public class ST_Ensemble  extends AbstractClassifier implements SaveableEnsemble
     private static final int minimumRepresentation = 25;
     
     
-    private WeightedEnsemble weightedEnsemble;
+    private HESCA hesca;
     private FullShapeletTransform transform;
     private Instances format;
     int[] redundantFeatures;
@@ -56,7 +56,7 @@ public class ST_Ensemble  extends AbstractClassifier implements SaveableEnsemble
     @Override
     public String getParameters(){
         String paras=transform.getParameters();
-        String ensemble=weightedEnsemble.getParameters();
+        String ensemble=hesca.getParameters();
         return paras+","+ensemble;
     }
     public void doSTransform(boolean b){
@@ -82,17 +82,17 @@ public class ST_Ensemble  extends AbstractClassifier implements SaveableEnsemble
     public void buildClassifier(Instances data) throws Exception {
         format = doTransform ? createTransformData(data, timeLimit) : data;
         
-        weightedEnsemble=new WeightedEnsemble();
-        weightedEnsemble.setWeightType("prop");
+        hesca=new HESCA();
+        hesca.setWeightType("prop");
                 
         redundantFeatures=InstanceTools.removeRedundantTrainAttributes(format);
         if(saveResults){
-            weightedEnsemble.setCVPath(trainCV);
-            weightedEnsemble.saveTestPreds(testPredictions);
+            hesca.setCVPath(trainCV);
+            hesca.saveTestPreds(testPredictions);
         }
         
         System.out.println("transformed");
-        weightedEnsemble.buildClassifier(format);
+        hesca.buildClassifier(format);
         format=new Instances(data,0);
     }
     
@@ -107,7 +107,7 @@ public class ST_Ensemble  extends AbstractClassifier implements SaveableEnsemble
         
         Instance test  = temp.get(0);
         format.remove(0);
-        return weightedEnsemble.classifyInstance(test);
+        return hesca.classifyInstance(test);
     }
      @Override
     public double[] distributionForInstance(Instance ins) throws Exception{
@@ -120,7 +120,7 @@ public class ST_Ensemble  extends AbstractClassifier implements SaveableEnsemble
         
         Instance test  = temp.get(0);
         format.remove(0);
-        return weightedEnsemble.distributionForInstance(test);
+        return hesca.distributionForInstance(test);
     }
 
     public Instances createTransformData(Instances train, long time){
