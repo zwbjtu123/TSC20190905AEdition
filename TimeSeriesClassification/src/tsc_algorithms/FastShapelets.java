@@ -50,7 +50,7 @@ public class FastShapelets implements Classifier {
     //where a SAX_word_type is just an int.
     HashMap<Integer, USAX_elm_type> USAX_Map;
 
-    public int seed;
+    private int seed;
     Random rand;
 
     //Obj_list_type  is a vector of ints. IE an ArrayList.
@@ -333,8 +333,7 @@ public class FastShapelets implements Classifier {
 
         a = 0;
         for (int i = 0; i < num_mask; i++) {
-            b = 1 << (word_len / 2);
-            //b = 1 << (rand.nextInt()%word_len); //generate a random number between 0 and the word_len
+            b = 1 << (rand.nextInt()%word_len); //generate a random number between 0 and the word_len
             a = a | b;
         }
         return a;
@@ -664,6 +663,13 @@ public class FastShapelets implements Classifier {
                 System.out.println("Exception " + ex);
             }
         }
+    }
+
+    /**
+     * @param seed the seed to set
+     */
+    public void setSeed(int seed) {
+        this.seed = seed;
     }
 
     private class ScoreComparator implements Comparator<Pair<Integer, Double>> {
