@@ -300,8 +300,6 @@ public class ShapeletTransformFactory
             numOps +=comparisonPerSeries; 
         }
 
-        System.out.println("shapelets2 " + (shapelets*numInstances));
-        
         //for every series.
         numOps *= numInstances;
         return numOps;
@@ -346,12 +344,8 @@ public class ShapeletTransformFactory
         bg = bg.add(temp4);
         bg = bg.multiply(new BigInteger(Long.toString((nSqd-n))));
         bg = bg.multiply(new BigInteger(Long.toString((m-3))));
-        
-        BigDecimal bg1 = new BigDecimal(bg);
-        
-        bg1 =bg1.divide(new BigDecimal(Long.toString((12 * posS * lenS))), MathContext.DECIMAL32);
-
-        return bg1.toBigInteger();
+        bg = bg.divide(new BigInteger(Long.toString((12 * posS * lenS))));
+        return bg;
     }
     
     
@@ -384,8 +378,12 @@ public class ShapeletTransformFactory
     
     
     public static void main(String[] args) throws IOException
-    {                 
-        String dirPath = "C:\\LocalData\\Dropbox\\TSC Problems (1)\\";
+    {     
+        
+        System.out.println(calculateOperations(180, 1224, 3, 1200));
+        
+             
+        /*String dirPath = "F:\\Dropbox\\TSC Problems (1)\\";
         File dir  = new File(dirPath);
         for(File dataset : dir.listFiles()){
             if(!dataset.isDirectory()) continue;
@@ -405,12 +403,12 @@ public class ShapeletTransformFactory
             int pos = 1;
             int len = 1;
             
-            /*FullShapeletTransform transform = new FullShapeletTransform();
+            FullShapeletTransform transform = new FullShapeletTransform();
             transform.setSearchFunction(new ShapeletSearch(min,max,len, pos));
             transform.setSubSeqDistance(new SubSeqDistance());
             transform.supressOutput();
             transform.process(train);
-            long ops3 = transform.getCount();*/
+            long ops3 = transform.getCount();
             
             long ops4 = calc(train.numInstances(), train.numAttributes()-1, min, max,pos,len);
             
@@ -428,7 +426,7 @@ public class ShapeletTransformFactory
             System.out.print(ops4 + ",");
             System.out.print(n + ",");
             System.out.print(proportion + "\n");
-        }
-    }
+        }*/
     
+    }
 }

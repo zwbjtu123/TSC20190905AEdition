@@ -23,6 +23,8 @@ import weka.filters.timeseries.shapelet_transforms.searchFuntions.ShapeletSearch
  */
 public class ST_Ensemble  extends AbstractClassifier implements SaveableEnsemble{
 
+    public enum ST_TimeLimit {MINUTE, HOUR, DAY};
+    
     private static final int minimumRepresentation = 25;
     
     
@@ -74,8 +76,17 @@ public class ST_Ensemble  extends AbstractClassifier implements SaveableEnsemble
         return null;
     }
     
+    //set any value in nanoseconds you like.
     public void setTimeLimit(long time){
         timeLimit = time;
+    }
+    
+    //pass in an enum of hour, minut, day, and the amount of them. 
+    public void setTimeLimit(ST_TimeLimit time, int amount){
+        //min,hour,day in longs.
+        long[] times = {ShapeletTransformFactory.dayNano/24/60, ShapeletTransformFactory.dayNano/24, ShapeletTransformFactory.dayNano};
+        
+        timeLimit = times[time.ordinal()] * amount;
     }
     
     @Override

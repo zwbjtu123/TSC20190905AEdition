@@ -23,6 +23,8 @@ import weka.core.Instances;
 
 public class LearnShapelets extends AbstractClassifier implements ParameterSplittable{
 
+    boolean suppressOutput = false;
+    
     long seed;
     
     // length of a time-series 
@@ -236,7 +238,7 @@ public class LearnShapelets extends AbstractClassifier implements ParameterSplit
         
         initializeShapeletsKMeans(); 
         
-        System.out.println("Initialization completed: L_min=" + L_min + ", K="+K
+        print("Initialization completed: L_min=" + L_min + ", K="+K
                 +", R="+R + ", C="+C + ", lambdaW="+lambdaW); 
         
         tmp2 = new double[R][];
@@ -324,7 +326,7 @@ public class LearnShapelets extends AbstractClassifier implements ParameterSplit
               
             // initialize the gradient history of shapelets
             if (Shapelets[r] == null)
-                System.out.println("P not set"); 
+                print("P not set"); 
         }
     }
 
@@ -503,9 +505,9 @@ public class LearnShapelets extends AbstractClassifier implements ParameterSplit
                         R = paramsShapeletLengthScale[k];
                         lambdaW = paramsLambdaW[i];
 
-                        System.out.println("HPS Combination #"+numHpsCombinations+": {R="+R + 
+                        print("HPS Combination #"+numHpsCombinations+": {R="+R + 
                                 ", L="+percentageOfSeriesLength + ", lambdaW="+lambdaW + "}" ); 
-                        System.out.println("--------------------------------------");
+                        print("--------------------------------------");
 
                         double sumAccuracy = 0;
                         //build our test and train sets. for cross-validation.
@@ -518,7 +520,7 @@ public class LearnShapelets extends AbstractClassifier implements ParameterSplit
                             alpha = -30;
                             maxIter=200;
 
-                            System.out.println("Learn model for Fold-"+l + ":" ); 
+                            print("Learn model for Fold-"+l + ":" ); 
 
                             train(trainCV);
 
@@ -526,15 +528,15 @@ public class LearnShapelets extends AbstractClassifier implements ParameterSplit
                             accuracy = utilities.ClassifierTools.accuracy(testCV, this);
                             sumAccuracy += accuracy;
 
-                            System.out.println("Accuracy-Fold-"+l + " = " + accuracy ); 
+                            print("Accuracy-Fold-"+l + " = " + accuracy ); 
 
                             trainCV=null;
                             testCV=null;
                         }
                         sumAccuracy/=noFolds;
 
-                        System.out.println("Accuracy-CV = " + sumAccuracy ); 
-                        System.out.println("--------------------------------------"); 
+                        print("Accuracy-CV = " + sumAccuracy ); 
+                        print("--------------------------------------"); 
 
                         if(sumAccuracy > bsfAccuracy){
                             int[] p = {i,j,k};
@@ -556,12 +558,12 @@ public class LearnShapelets extends AbstractClassifier implements ParameterSplit
             eta = 0.1; 
             alpha = -30;
             maxIter=600;
-            System.out.println("Learn final model with best hyper-parameters: R="+R
+            print("Learn final model with best hyper-parameters: R="+R
                                 +", L="+percentageOfSeriesLength + ", lambdaW="+lambdaW); 
         }
         else{
             fixParameters();
-            System.out.println("Fixed parameters: R="+R
+            print("Fixed parameters: R="+R
                                 +", L="+percentageOfSeriesLength + ", lambdaW="+lambdaW); 
         }
         
@@ -602,7 +604,7 @@ public class LearnShapelets extends AbstractClassifier implements ParameterSplit
             {
                 double lossTrain = accuracyLossTrainSet();
 
-                System.out.println("Iter="+iter+", Loss="+lossTrain); 
+                print("Iter="+iter+", Loss="+lossTrain); 
                 
                 // if divergence is detected break
                 if ( Double.isNaN(lossTrain) )
@@ -655,6 +657,15 @@ public class LearnShapelets extends AbstractClassifier implements ParameterSplit
         }
 
         return nominalLabels.get(label_i);
+    }
+    
+    public void suppressOutput(){
+        suppressOutput = true;
+    }
+    
+    void print(String s){
+        if(!suppressOutput)
+            System.out.println(s);
     }
 
 
