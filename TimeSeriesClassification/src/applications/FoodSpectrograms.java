@@ -7,7 +7,6 @@
 package applications;
 
 import utilities.ClassifierTools;
-import bakeOffExperiments.ThreadedClassifierExperiment;
 import weka.classifiers.Classifier;
 import weka.classifiers.functions.SMO;
 import weka.classifiers.functions.supportVector.PolyKernel;
@@ -54,74 +53,8 @@ public class FoodSpectrograms {
             }
         }
     }
-    public static void shapeletClassifier(){
-        int nosExp=3;
-        ThreadedClassifierExperiment[] runs= new ThreadedClassifierExperiment[nosExp];
-        Thread[] threads=new Thread[nosExp];
-        for(int i=0;i<nosExp;i++){
-            	Classifier c=new SMO();
-		PolyKernel kernel = new PolyKernel();
-		kernel.setExponent(1);
-		((SMO)c).setKernel(kernel);
-
-            FullShapeletTransform s = new FullShapeletTransform();
-            s.setDebug(false);
-            s.setNumberOfShapelets(train[i].numAttributes()/2);        
-            int minLength=5;
-            int maxLength=train[i].numAttributes()/4;
-        //       int maxLength=(train.numAttributes()-1)/10;
-            s.setShapeletMinAndMax(minLength, maxLength);
-            s.setQualityMeasure(QualityMeasures.ShapeletQualityChoice.F_STAT);
-            s.turnOffLog();            
-            runs[i]=new ThreadedClassifierExperiment(train[i],test[i],c,"shapelet","test");
-            runs[i].setTransform(s);
-            threads[i]=new Thread(runs[i]);
-        }
-        for(int i=0;i<nosExp;i++)
-            threads[i].start();
-        
-        try{
-            for(int i=0;i<nosExp;i++)
-                threads[i].join();
-        }catch(InterruptedException e){
-            System.out.println(" Interrupted!!");
-        }
-        for(int i=0;i<nosExp;i++)
-            System.out.println(" ED Accuracy for "+names[i]+" is "+runs[i].getTestAccuracy());
-        
-    }
-
-    
-        public static void baselineClassifier(){
-        int nosExp=4;
-        ThreadedClassifierExperiment[] runs= new ThreadedClassifierExperiment[nosExp];
-        Thread[] threads=new Thread[nosExp];
-        
-        
-        for(int i=0;i<nosExp;i++){
-            DTW_1NN c=new DTW_1NN();
-            c.optimiseWindow(true);
-                    
-            runs[i]=new ThreadedClassifierExperiment(train[i],test[i],c,"baseline","test");
-            threads[i]=new Thread(runs[i]);
-        }
-        for(int i=0;i<nosExp;i++)
-            threads[i].start();
-        
-        try{
-            for(int i=0;i<nosExp;i++)
-                threads[i].join();
-        }catch(InterruptedException e){
-            System.out.println(" Interrupted!!");
-        }
-        for(int i=0;i<nosExp;i++)
-            System.out.println(" DTWCV Accuracy for "+names[i]+" is "+runs[i].getTestAccuracy());
-        
-    }
 
     public static void main(String[] args){
         loadData();
- //       baselineClassifier();
-        shapeletClassifier();
     }
 }

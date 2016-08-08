@@ -106,10 +106,9 @@ public class SubSeqDistance implements Serializable{
 
         double[] output = new double[input.length];
         double seriesTotal = 0;
-
         for (int i = 0; i < inputLength; i++)
         {
-            seriesTotal = seriesTotal + input[i];
+            seriesTotal += input[i];
         }
 
         mean = seriesTotal / (double) inputLength;
@@ -118,14 +117,14 @@ public class SubSeqDistance implements Serializable{
         for (int i = 0; i < inputLength; i++)
         {
             temp = (input[i] - mean);
-            stdv = stdv + temp * temp;
+            stdv += temp * temp;
         }
 
         stdv /= (double) inputLength;
 
         // if the variance is less than the error correction, just set it to 0, else calc stdv.
         stdv = (stdv < ROUNDING_ERROR_CORRECTION) ? 0.0 : Math.sqrt(stdv);
-
+        
         for (int i = 0; i < inputLength; i++)
         {
             //if the stdv is 0 then set to 0, else normalise.

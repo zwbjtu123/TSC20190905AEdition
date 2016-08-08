@@ -10,10 +10,14 @@ package applications;
 
 import fileIO.InFile;
 import fileIO.OutFile;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import new_COTE_experiments.RISE;
+import tsc_algorithms.PSACF_Ensemble;
+import tsc_algorithms.BOSSEnsemble;
 import utilities.ClassifierTools;
 import weka.classifiers.Classifier;
 import weka.classifiers.Evaluation;
@@ -23,7 +27,15 @@ import weka.classifiers.functions.supportVector.Kernel;
 import weka.classifiers.lazy.kNN;
 import tsc_algorithms.COTE;
 import tsc_algorithms.ElasticEnsemble;
-import weka.classifiers.meta.timeseriesensembles.WeightedEnsemble;
+import tsc_algorithms.PS_Ensemble;
+import tsc_algorithms.ST_Ensemble;
+import tsc_algorithms.SubSampleTrain;
+import tsc_algorithms.TSF;
+import utilities.InstanceTools;
+import utilities.SaveCVAccuracy;
+import weka.classifiers.lazy.DTW_1NN;
+import weka.classifiers.meta.timeseriesensembles.SaveableEnsemble;
+import weka.classifiers.meta.timeseriesensembles.HESCA;
 import weka.classifiers.trees.J48;
 import weka.classifiers.trees.RandomForest;
 import weka.core.Attribute;
@@ -33,6 +45,8 @@ import weka.core.Instances;
 import weka.core.elastic_distance_measures.BasicDTW;
 import weka.filters.NormalizeCase;
 import weka.filters.timeseries.SummaryStats;
+import weka.filters.timeseries.shapelet_transforms.FullShapeletTransform;
+import weka.filters.timeseries.shapelet_transforms.ShapeletTransformFactory;
 
 /**
  *
@@ -89,42 +103,6 @@ public static double resampleExperimentBasic(Instances all,int rep,String result
 //        of.writeString(cvAcc[i]+",");
     
 }
-
-/** this just does a leave one distillery out split. Should be harder
- * @param all
- * @param rep
- * @throws Exception 
- */
-public static void resampleExperimentSplitByDistillery(Instances all,int rep,String resultPath) throws Exception{
-    int nosPerDistillery=all.numClasses()*4;
-    if(rep>=nosDistilleries) throw new Exception("Invalid distillery identifier");
-    ElasticEnsemble ee=new ElasticEnsemble();
-    all.sort(0);
-    
-    Instances train = new Instances(all);
-    Instances test= new Instances(all,0);
-    for(int i=0;i<nosPerDistillery;i++)
-        test.add(train.remove(nosPerDistillery*rep));
-    System.out.println("REP = "+rep+" Train size ="+train.numInstances()+" test size ="+test.numInstances()+" ");
-    for(int i=1;i<nosPerDistillery;i++)
-        if(test.instance(i).value(0)!=test.instance(i).value(0))
-            throw new Exception("INCORRECT SPLIT FOR "+test.instance(i).value(0));
-    for(Instance ins:test){
-        System.out.print((int)ins.value(0)+",");
-    }
-    train.deleteAttributeAt(0);
-    test.deleteAttributeAt(0);
-    ee.buildClassifier(train);
-    
-    double[] cvAcc=ee.getCVAccs();
-    double acc=ClassifierTools.accuracy(test, ee);
-    OutFile of = new OutFile(resultPath+"booze"+rep+".csv");
-    of.writeString(rep+","+acc+",");
-    for(int i=0;i<cvAcc.length;i++)
-        of.writeString(cvAcc[i]+",");
-   
-}
-
 
 public static void classifyBySummaryStats() throws Exception{
     String resultPath="C:\\Users\\ajb\\Dropbox\\Results\\IFR Spirits\\SummaryStats\\";
@@ -185,7 +163,7 @@ public static void classifyBySummaryStats() throws Exception{
         }
         names =new ArrayList<>();
         c=ClassifierTools.setDefaultSingleClassifiers(names);
-  //      WeightedEnsemble we = new WeightedEnsemble();
+  //      HESCA we = new HESCA();
         of.writeString(rep+",");
         System.out.println(" Rep ="+rep);
         for(Classifier cl:c){
@@ -217,6 +195,8 @@ public static void classifyOnNormalizedRange(Instances all) throws Exception{
     for(String s:names)
         of.writeString(s+",");
 */        
+
+    
     of.writeString(",DTW\n");
     all.sort(0);
     for(int i=0;i<1300;i++)
@@ -237,10 +217,10 @@ public static void classifyOnNormalizedRange(Instances all) throws Exception{
         train.deleteAttributeAt(0);
         test.deleteAttributeAt(0);
 
-  //      WeightedEnsemble we = new WeightedEnsemble();
+  //      HESCA we = new HESCA();
 //        names =new ArrayList<>();
 //        c=ClassifierTools.setDefaultSingleClassifiers(names);
-  //      WeightedEnsemble we = new WeightedEnsemble();
+  //      HESCA we = new HESCA();
         of.writeString(rep+",");
         System.out.println(" Rep ="+rep);
   //      for(Classifier cl:c){
@@ -281,37 +261,36 @@ public static Instances tidyUp(Instances all) throws Exception{
             return newInst;
             
          }
-public static void debugRun(String path, String sourcePath, String filename)throws Exception{
- //   String path="Results/IFR/TwoClassDistillerySplits/";
- //   String sourcePath="IFRProblems/";
-    Instances all=ClassifierTools.loadData(sourcePath+filename);
-//"FiveClassV1"
-        for(int i=0;i<46;i++)
-        resampleExperimentSplitByDistillery(all,i,path);    
+
+//Default to cluster 
+    static String sourcePath="/gpfs/home/ajb/TSC Problems/EthanolLevel/EthanolLevel";
+    static String resultsPath="/gpfs/home/ajb/EthanolLevelResults/";
+
+
+public static void singleFold(String[] args) throws Exception{
+    int rep=Integer.parseInt(args[1])-1;
+    Instances all=ClassifierTools.loadData(sourcePath);
+    EthanolFoldCreator eth=new EthanolFoldCreator();
+    eth.deleteFirstAtt(true);
+    Instances[] split=eth.createSplit(all, rep);    
+    Classifier c= getClassifier(args[0]);
+    File f=new File(resultsPath+args[0]);
+    if(!f.exists())
+        f.mkdir();
+    singleSampleExperiment(split[0],split[1],c,rep,resultsPath+args[0]);    
     
-}
+//    ST_Ensemble st = new ST_Ensemble();
+//    st.createTransformData(split[0],ShapeletTransformFactory.dayNano);//TIME
+    
+//Save full shapelet set for each fold.     
 
-public static void desktopRun(int rep) throws Exception{
-//Two class
-//Five Class    
-    String path="C:\\Users\\ajb\\Dropbox\\Results\\IFR Spirits\\GlobalShape\\WeightedEnsemble\\";
-    String sourcePath="C:\\Users\\ajb\\Dropbox\\IFR Spirits\\FiveClassV1";
-    Instances all=ClassifierTools.loadData(sourcePath);
-    resampleExperimentSplitByDistillery(all,rep,path);    
-}
-
-
-
-public static void clusterRun(String[] args) throws Exception{
-    int rep=Integer.parseInt(args[0])-1;
-//Two class
-//    String path="Results/IFR/TwoClassDistillerySplits/";
-//    String sourcePath="IFRProblems/"+"TwoClassV1";
-//Five Class    
-    String path="Results/IFR/FiveClassDistillerySplits/";
-    String sourcePath="IFRProblems/"+"FiveClassV1";
-    Instances all=ClassifierTools.loadData(sourcePath);
-    resampleExperimentSplitByDistillery(all,rep,path);    
+//Build classifier    
+//    st.doSTransform(false);
+//    st.buildClassifier(split[0]);
+//Save output in the correct format    
+ //   OutFile of= new OutFile(resultsPath+args[0]+rep+".csv");
+//    
+    
 }
 
 public static void mergeBoozeFiles(String path,int nosBottles){
@@ -320,7 +299,7 @@ public static void mergeBoozeFiles(String path,int nosBottles){
         InFile f =new InFile(path+"booze"+i+".csv");
         of.writeLine(f.readLine());   }
 }
-   public static void firstExperiment(){
+public static void firstExperiment(){
 //   generateHeader();
     Instances all = ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\IFR Spirits\\TwoClassSpirits");
     J48 rf = new J48();
@@ -349,21 +328,114 @@ public static void mergeBoozeFiles(String path,int nosBottles){
 //   System.out.println(" Rand forest 10 fold acc ="+acc[0][0]);
           
    } 
+
+
 public static void main(String[] args) throws Exception{
- //   mergeBoozeFiles("C:\\Users\\ajb\\Dropbox\\Results\\IFR Spirits\\GlobalShape\\ElasticEnsemble\\",46);
-    Instances all=ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\IFR Spirits\\James Large\\Ethanol4Class");
-    all=tidyUp(all);
-    double a=resampleExperimentBasic(all,1,"C:\\Users\\ajb\\Dropbox\\IFR Spirits\\James Large\\Results", new kNN());
-    
-    System.exit(0);
-    
-    
-//    classifyBySummaryStats();
- //   classifyOnNormalizedRange();
- //  System.exit(0);
-//    debugRun();
- //   clusterRun(args);
- //   desktopRun(2);
+    if(args.length<1){
+        
+        sourcePath="C:\\Users\\ajb\\Dropbox\\TSC Problems\\EthanolLevel\\EthanolLevel";
+        resultsPath="C:\\Users\\ajb\\Dropbox\\NewCOTEResults\\EthanolLevel\\";
+        
+        String[] ar={"RIF_ACF","1"};
+        singleFold(ar);
+    }
+    else
+        singleFold(args);
 }
+     public static void singleSampleExperiment(Instances train, Instances test, Classifier c, int sample,String preds){
+        double acc=0;
+        OutFile p=new OutFile(preds+"/testFold"+sample+".csv");
+
+// Determine what needs to be saved
+//Save the train CV accuracy and predictions        
+        if(c instanceof SaveCVAccuracy)
+           ((SaveCVAccuracy)c).setCVPath(preds+"/trainFold"+sample+".csv");        
+//Save the internal predictions and accuracies of the components of an ensemble        
+        if(c instanceof SaveableEnsemble)
+           ((SaveableEnsemble)c).saveResults(preds+"/internalCV_"+sample+".csv",preds+"/internalTestPreds_"+sample+".csv");
+
+        if(c instanceof ST_Ensemble)
+            ((ST_Ensemble)c).setShapeletOutputFile(preds+"/ShapeletSetFold"+sample+".csv");
+
+//Subsample the problem.
+//        if(subSample && c instanceof SubSampleTrain)
+  //          ((SubSampleTrain)c).subSampleTrain(sampleProp,sample);
+        
+        try{              
+            c.buildClassifier(train);
+            int[][] predictions=new int[test.numInstances()][2];
+            for(int j=0;j<test.numInstances();j++)
+            {
+                predictions[j][0]=(int)test.instance(j).classValue();
+                predictions[j][1]=(int)c.classifyInstance(test.instance(j));
+                if(predictions[j][0]==predictions[j][1])
+                    acc++;
+            }
+            acc/=test.numInstances();
+            String[] names=preds.split("/");
+            p.writeLine(names[names.length-1]+","+c.getClass().getName()+",test");
+            if(c instanceof SaveCVAccuracy)
+                p.writeLine(((SaveCVAccuracy)c).getParameters());
+            else if(c instanceof SaveableEnsemble)
+                p.writeLine(((SaveableEnsemble)c).getParameters());
+            else
+                p.writeLine("NoParameterInfo");
+            p.writeLine(acc+"");
+            for(int j=0;j<test.numInstances();j++){
+                p.writeString(predictions[j][0]+","+predictions[j][1]+",");
+                double[] dist =c.distributionForInstance(test.instance(j));
+                for(double d:dist)
+                    p.writeString(","+d);
+                p.writeString("\n");
+            }
+        }catch(Exception e)
+        {
+                System.out.println(" Error ="+e+" in method simpleExperiment"+e);
+                e.printStackTrace();
+                System.out.println(" TRAIN "+train.relationName()+" has "+train.numAttributes()+" attributes and "+train.numInstances()+" instances");
+                System.out.println(" TEST "+test.relationName()+" has "+test.numAttributes()+" attributes and "+test.numInstances()+" instances");
+
+                System.exit(0);
+        }
+    }
+        
+    
+
+public static Classifier getClassifier(String str){
+    Classifier c;
+    switch(str){
+        case "ST": case "ShapeletTransform":
+            ST_Ensemble st = new ST_Ensemble();
+            st.doSTransform(true);
+            st.setTimeLimit(ShapeletTransformFactory.dayNano);
+            c=st;   
+            break;
+        case "BOSS":
+            c=new BOSSEnsemble();
+            break;
+        case "TSF":
+            c=new TSF();
+            break;
+            case "RIF_PS":
+                c=new RISE();
+                ((RISE)c).setTransformType("PS");
+                break;
+            case "RIF_ACF":
+                c=new RISE();
+                ((RISE)c).setTransformType("ACF");
+                break;
+            case "ACF":
+                c=new PSACF_Ensemble();
+                ((PSACF_Ensemble)c).setClassifierType("WE");
+                break;
+            case "PS":
+                c=new PS_Ensemble();
+                ((PS_Ensemble)c).setClassifierType("WE");
+                break;
+        default:
+            c=new DTW_1NN();
+    }
+    return c;
+  }
  
 }

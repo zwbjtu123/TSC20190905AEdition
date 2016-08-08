@@ -15,7 +15,7 @@ import tsc_algorithms.ST_Ensemble;
 import utilities.ClassifierTools;
 import weka.classifiers.Classifier;
 import weka.classifiers.meta.timeseriesensembles.SaveableEnsemble;
-import weka.classifiers.meta.timeseriesensembles.WeightedEnsemble;
+import weka.classifiers.meta.timeseriesensembles.HESCA;
 import weka.core.Instances;
 import weka.core.shapelet.QualityMeasures;
 import weka.filters.timeseries.shapelet_transforms.BalancedClassShapeletTransform;
@@ -368,7 +368,7 @@ public class ShapeletExperiments {
     public static void basicTest() throws Exception{
 //        Instances train=ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\Temp\\BeetleFly\\BeetleFly0_TRAIN");
 //        Instances test=ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\Temp\\BeetleFly\\BeetleFly0_TEST");
-//        WeightedEnsemble we=new WeightedEnsemble();
+//        HESCA we=new HESCA();
 //        we.setWeightType("prop");
 //        double acc=ClassifierTools.singleTrainTestSplitAccuracy(we, train, test);
 //        System.out.println(" FROM FILE ACC ="+acc);
@@ -402,7 +402,7 @@ public class ShapeletExperiments {
     public static void singleWorms(){
         Instances train=ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\Temp\\Worms7_TRAIN");
         Instances test=ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\Temp\\Worms7_TEST");
-        WeightedEnsemble we=new WeightedEnsemble();
+        HESCA we=new HESCA();
         we.setWeightType("prop");
         we.setCVPath("C:\\Users\\ajb\\Dropbox\\Big TSC Bake Off\\New Results\\shapelet\\ST\\Predictions\\Worms\\"+"internalCV_7.csv");
         we.saveTestPreds("C:\\Users\\ajb\\Dropbox\\Big TSC Bake Off\\New Results\\shapelet\\ST\\Predictions\\Worms\\"+"internalTestPreds_7.csv");

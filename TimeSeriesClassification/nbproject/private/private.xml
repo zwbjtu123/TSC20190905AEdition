@@ -4,25 +4,11 @@
     <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group>
-            <file>file:/C:/Users/ajb/Dropbox/Code/time-series-classification/TimeSeriesClassification/src/PS_ACF_experiments/CollatePS_ACF_Results.java</file>
-            <file>file:/C:/Users/ajb/Dropbox/Code/time-series-classification/TimeSeriesClassification/src/PS_ACF_experiments/Experiments.java</file>
-            <file>file:/C:/Users/ajb/Dropbox/Code/time-series-classification/TimeSeriesClassification/src/PS_ACF_experiments/FixedIntervalForest.java</file>
-            <file>file:/C:/Users/ajb/Dropbox/Code/time-series-classification/TimeSeriesClassification/src/PS_ACF_experiments/RandomIntervalForest.java</file>
-            <file>file:/C:/Users/ajb/Dropbox/Code/time-series-classification/TimeSeriesClassification/src/PS_ACF_experiments/PS_TSF.java</file>
-            <file>file:/C:/Users/ajb/Dropbox/Code/time-series-classification/TimeSeriesClassification/src/tsc_algorithms/TSF.java</file>
-            <file>file:/C:/Users/ajb/Dropbox/Code/time-series-classification/TimeSeriesClassification/src/utilities/SaveCVAccuracy.java</file>
-            <file>file:/C:/Users/ajb/Dropbox/Code/time-series-classification/TimeSeriesClassification/src/tsc_algorithms/LearnShapelets.java</file>
-            <file>file:/C:/Users/ajb/Dropbox/Code/time-series-classification/TimeSeriesClassification/src/tsc_algorithms/SaveableEnsemble.java</file>
-            <file>file:/C:/Users/ajb/Dropbox/Code/time-series-classification/TimeSeriesClassification/src/utilities/ClassifierTools.java</file>
-            <file>file:/C:/Users/ajb/Dropbox/Code/time-series-classification/TimeSeriesClassification/src/bakeOffExperiments/Experiments.java</file>
-            <file>file:/C:/Users/ajb/Dropbox/Code/time-series-classification/TimeSeriesClassification/src/bakeOffExperiments/CollateResults.java</file>
-            <file>file:/C:/Users/ajb/Dropbox/Code/time-series-classification/TimeSeriesClassification/src/tsc_algorithms/ACF_Ensemble.java</file>
-            <file>file:/C:/Users/ajb/Dropbox/Code/time-series-classification/TimeSeriesClassification/src/weka/classifiers/meta/timeseriesensembles/WeightedEnsemble.java</file>
-            <file>file:/C:/Users/ajb/Dropbox/Code/time-series-classification/TimeSeriesClassification/src/tsc_algorithms/BOSS.java</file>
-            <file>file:/C:/Users/ajb/Dropbox/Code/time-series-classification/TimeSeriesClassification/src/tsc_algorithms/BOSS21_2_16.java</file>
-            <file>file:/C:/Users/ajb/Dropbox/Code/time-series-classification/TimeSeriesClassification/src/tsc_algorithms/BOSSEnsemble.java</file>
-            <file>file:/C:/Users/ajb/Dropbox/Code/time-series-classification/TimeSeriesClassification/src/weka/filters/timeseries/Cosine.java</file>
-            <file>file:/C:/Users/ajb/Dropbox/Code/time-series-classification/TimeSeriesClassification/src/weka/filters/timeseries/shapelet_transforms/GraceFullShapeletTransform.java</file>
+            <file>file:/C:/Users/ajb/Dropbox/Code/time-series-classification/TimeSeriesClassification/src/AALTD_Competition/FormatAndCompile.java</file>
+            <file>file:/C:/Users/ajb/Dropbox/Code/time-series-classification/TimeSeriesClassification/src/AALTD_Competition/RunExperiments.java</file>
+            <file>file:/C:/Users/ajb/Dropbox/Code/time-series-classification/TimeSeriesClassification/src/fileIO/InFile.java</file>
+            <file>file:/C:/Users/ajb/Dropbox/Code/time-series-classification/TimeSeriesClassification/src/new_COTE_experiments/FormatHiveCOTE.java</file>
+            <file>file:/C:/Users/ajb/Dropbox/Code/time-series-classification/TimeSeriesClassification/src/weka/filters/timeseries/SummaryStats.java</file>
         </group>
     </open-files>
 </project-private>

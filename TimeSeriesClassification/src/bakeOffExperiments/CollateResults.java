@@ -40,11 +40,13 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.TreeMap;
+import java.util.TreeSet;
 import utilities.ClassifierTools;
 import utilities.InstanceTools;
 import utilities.SaveCVAccuracy;
 import weka.classifiers.Evaluation;
-import weka.classifiers.meta.timeseriesensembles.WeightedEnsemble;
+import weka.classifiers.meta.timeseriesensembles.HESCA;
 import weka.core.Instances;
 
 /**
@@ -743,54 +745,8 @@ public class CollateResults {
         }
         return(directory.delete());
     } 
-    public static  void listMissing(String path){
-        
-    }
-    
-    public static void main(String[] args) throws Exception{
-//        findMissing();
-        int problem=Integer.parseInt(args[0])-1;
-        reconstructWETrainPreds(problem);
-        System.exit(0);
-      String path="C:\\Users\\ajb\\Dropbox\\Temp";
-//        combineSingleNewFormat(path,"BOSS");
-//        combineSingleNewFormat(path,"LS");
-//        convertNewToOld(path,"BOSS");
-//      convertNewToOld(path,"LS");
 
-      DataSets.resultsPath="C:\\Users\\ajb\\Dropbox\\Big TSC Bake Off\\New Results\\";
-      
-    generateAllScripts("C:\\Users\\ajb\\Dropbox\\Big TSC Bake Off\\New Results\\Scripts","WE",true);
-         System.exit(0);
-    
-//        collateFoldZero();
 
-//     System.exit(0);
-//        findNumberPerSplit();
-        String root="C:\\Users\\ajb\\Dropbox\\Big TSC Bake Off\\New Results";
-//        generateScripts(root,root);        
-//        System.exit(0);
-        System.out.println("Combine singles ....");
-        combineSingles(root);
-        System.out.println("cluster results collation ....");
-        clusterResultsCollation(root);
-       try {
-        System.out.println("file standardise for problems ....");
-           fileStandardiseForProblems(root);
-       } catch (Exception ex) {
-           System.out.println("Eorr in fileStandardiseForProblems");
-           System.exit(0);
-       }
-       try {
-        System.out.println("file combine classifiers ....");
-           fileCombineClassifiers(root+"\\SingleClassifiers\\",root);
-       } catch (Exception ex) {
-           System.out.println("Error in fileCombineClassifiers");
-           System.exit(0);
-       }
-//        generateScripts(root,root);
-
-    }
     public static void findNumberPerSplit(){
         String path="C:\\Users\\ajb\\Dropbox\\Big TSC Bake Off\\New Results\\ensemble\\PS\\Predictions\\";
         int min;
@@ -936,7 +892,7 @@ public class CollateResults {
                     OutFile out=new OutFile(path+s+"/trainFold"+i+".csv");
                     
 //Build with fixed weights                    
-                    WeightedEnsemble we=new WeightedEnsemble();
+                    HESCA we=new HESCA();
                     we.loadCVWeights(path+s+"/internalCV_"+i+".csv");
 // Get correct fold
                     Instances[] resample=InstanceTools.resampleTrainAndTestInstances(train, test, i);
@@ -987,4 +943,107 @@ public class CollateResults {
         
         
     }
+
+    public static void formatFromAccuracies(){
+      String path="C:\\Research\\Papers\\Bakeoff Results all folds\\";
+      OutFile out=new OutFile(path+"ZeroFolds.csv");
+        TreeMap<String,Integer> allDataSets=new TreeMap<>();
+        TreeSet<String> allN=new TreeSet<>();
+        int count=0;
+        for(String[] arr: names){
+            for(String str:arr){
+                allN.add(str);
+            }
+        }
+        for(int i=0;i<DataSets.fileNames.length;i++){
+            allDataSets.put(DataSets.fileNames[i], i);
+        }
+        System.out.println("Num classifiers ="+allN.size());
+        double[][] zeroFolds=new double[DataSets.fileNames.length][allN.size()];
+        count=0;    
+        for(String str:allN){
+            InFile f=new InFile(path+str+".csv");
+            System.out.println(" Processing "+str);
+            if(!str.equals("BoP")){
+                for(int i=0;i<DataSets.fileNames.length;i++){
+                    int pos=i;
+        
+                    String name=f.readString();
+//                    System.out.println("NAME: "+name);
+                    if(!name.equals(DataSets.fileNames[i]) && !name.equals("NonInvasiveFatalECGThorax1") && !name.equals("NonInvasiveFatalECGThorax2")){
+                    if(allDataSets.containsKey(name))
+                        pos=allDataSets.get(name);
+                    else
+                        System.out.println("NAME "+name+" not in datasets!");
+                     System.out.println("NAME MISMATCH ALGO :"+str+" PROBLEM "+name+ " Data sets "+DataSets.fileNames[i]);
+                    System.out.println(" Lookup index ="+pos+ " which has name "+DataSets.fileNames[pos]);
+//                        System.exit(0);
+                    }
+                    zeroFolds[pos][count]=f.readDouble();
+    //Rest here
+                    f.readLine();    
+                }
+            }
+            count++;
+
+        }
+        for(String str:allN)
+                out.writeString(","+str);
+        out.writeString("\n");
+        for(int i=0;i<DataSets.fileNames.length;i++){
+            out.writeString(DataSets.fileNames[i]);
+            for(int j=0;j<allN.size();j++)
+                out.writeString(","+zeroFolds[i][j]);
+            out.writeString("\n");
+        }
+    }
+    
+    public static void main(String[] args) throws Exception{
+
+//        formatFromAccuracies();
+//       System.exit(0);
+//        findMissing();
+//        int problem=Integer.parseInt(args[0])-1;
+//        reconstructWETrainPreds(problem);
+      String path="C:\\Research\\Papers\\Big TSC Bake Off\\New Results\\";
+//        combineSingleNewFormat(path,"LS");
+//        convertNewToOld(path,"BOSS");
+//      convertNewToOld(path,"LS");
+
+      DataSets.resultsPath=path;
+      
+//    generateAllScripts("C:\\Users\\ajb\\Dropbox\\Big TSC Bake Off\\New Results\\Scripts","WE",true);
+//         System.exit(0);
+    
+        collateFoldZero();
+
+     System.exit(0);
+//        findNumberPerSplit();
+        String root="path";
+//        generateScripts(root,root);        
+//        System.exit(0);
+        System.out.println("Combine singles ....");
+        combineSingles(root);
+        System.out.println("cluster results collation ....");
+        clusterResultsCollation(root);
+       try {
+        System.out.println("file standardise for problems ....");
+           fileStandardiseForProblems(root);
+       } catch (Exception ex) {
+           System.out.println("Eorr in fileStandardiseForProblems");
+           System.exit(0);
+       }
+       try {
+        System.out.println("file combine classifiers ....");
+           fileCombineClassifiers(root+"\\SingleClassifiers\\",root);
+       } catch (Exception ex) {
+           System.out.println("Error in fileCombineClassifiers");
+           System.exit(0);
+       }
+//        generateScripts(root,root);
+
+    }
+
+
+
 }
