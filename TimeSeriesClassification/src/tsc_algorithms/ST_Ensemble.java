@@ -89,6 +89,18 @@ public class ST_Ensemble  extends AbstractClassifier implements SaveableEnsemble
         timeLimit = times[time.ordinal()] * amount;
     }
     
+    public void setOneDayLimit(){
+        setTimeLimit(ST_TimeLimit.DAY, 1);
+    }
+    
+    public void setOneHourLimit(){
+        setTimeLimit(ST_TimeLimit.HOUR, 1);
+    }
+    
+    public void setOneMinuteLimit(){
+        setTimeLimit(ST_TimeLimit.MINUTE, 1);
+    }
+    
     @Override
     public void buildClassifier(Instances data) throws Exception {
         format = doTransform ? createTransformData(data, timeLimit) : data;
