@@ -16,7 +16,6 @@
 
 package tsc_algorithms;
 
-import fileIO.OutFile;
 import utilities.ClassifierTools;
 import weka.classifiers.AbstractClassifier;
 import weka.classifiers.meta.timeseriesensembles.HESCA;
@@ -107,8 +106,6 @@ public class COTE extends AbstractClassifier{
         
 //Elastic ensemble
         ee= new ElasticEnsemble();
-        ee.turnAllClassifiersOn();
-        ee.setEnsembleType(ElasticEnsemble.EnsembleType.Prop);
         ee.buildClassifier(train);
         
 //We need the training CV for all the ensembles to weight the classification. 
@@ -159,7 +156,7 @@ public class COTE extends AbstractClassifier{
             double[] shapeletPreds=shapelet.getPredictions();
             for(int j=0;j<shapeletPreds.length;j++)
                 allVotes[(int)shapeletPreds[j]]+=shapeletCVAccs[j];
-            double[] eePreds=ee.getPredictions();
+            double[] eePreds=ee.getPreviousPredictions();
             for(int j=0;j<eePreds.length;j++)
                 allVotes[(int)eePreds[j]]+=elasticCVAccs[j];
 //Find COTE prediction

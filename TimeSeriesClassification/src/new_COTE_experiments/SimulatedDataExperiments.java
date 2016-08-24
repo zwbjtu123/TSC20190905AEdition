@@ -5,6 +5,7 @@
 */
 package new_COTE_experiments;
 
+import tsc_algorithms.ElasticEnsemble;
 import development.DataSets;
 import fileIO.OutFile;
 import java.util.ArrayList;

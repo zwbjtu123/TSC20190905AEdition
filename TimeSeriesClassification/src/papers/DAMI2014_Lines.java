@@ -14,7 +14,6 @@ import development.DataSets;
 import fileIO.OutFile;
 import java.text.DecimalFormat;
 import utilities.ClassifierTools;
-import weka.classifiers.meta.timeseriesensembles.*;
 import weka.core.Instances;
 
 
@@ -29,9 +28,9 @@ public class DAMI2014_Lines {
  * However, this approach is clearer, it does work and is sufficicent for small 
  * problems
  */    
-    public static double singleProblem(String problem, ElasticEnsemble.EnsembleType e) throws Exception{
+//    public static double singleProblem(String problem, ElasticEnsemble.EnsembleType e) throws Exception{ // note: option of ensemble type removed as this is no longer supported in EE - only proportional scheme types are supported
+    public static double singleProblem(String problem) throws Exception{
         ElasticEnsemble ee= new ElasticEnsemble();
-        ee.setEnsembleType(e);
         Instances train = ClassifierTools.loadData(path+problem+"\\"+problem+"_TRAIN");
         ee.buildClassifier(train);
         Instances test = ClassifierTools.loadData(path+problem+"\\"+problem+"_TEST");
@@ -44,7 +43,8 @@ public class DAMI2014_Lines {
         double[] acc = new double[DataSets.ucrSmall.length];
         DecimalFormat df = new DecimalFormat("##.###");
         for(int i=0;i<DataSets.ucrSmall.length;i++){
-            acc[i]=singleProblem(DataSets.ucrSmall[i],ElasticEnsemble.EnsembleType.Equal);
+//            acc[i]=singleProblem(DataSets.ucrSmall[i],ElasticEnsemble.EnsembleType.Equal);
+            acc[i]=singleProblem(DataSets.ucrSmall[i]);
             System.out.println(DataSets.ucrSmall[i]+" Error = "+df.format(1-acc[i]));
         }
         return acc;
@@ -56,7 +56,8 @@ public class DAMI2014_Lines {
         double[] acc = new double[DataSets.ucrSmall.length];
         DecimalFormat df = new DecimalFormat("##.###");
         for(int i=0;i<DataSets.fileNames.length;i++){
-            acc[i]=singleProblem(DataSets.fileNames[i],ElasticEnsemble.EnsembleType.Equal);
+//            acc[i]=singleProblem(DataSets.fileNames[i],ElasticEnsemble.EnsembleType.Equal);
+            acc[i]=singleProblem(DataSets.fileNames[i]);
             System.out.println(DataSets.fileNames[i]+" Error = "+df.format(1-acc[i]));
             of.writeLine(DataSets.fileNames[i]+","+(1-acc[i]));
         }
