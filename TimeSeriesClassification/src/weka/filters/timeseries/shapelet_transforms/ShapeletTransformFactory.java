@@ -274,12 +274,17 @@ public class ShapeletTransformFactory
     
     //verified correct by counting ops in transform
     public static long calculateOperations(int numInstances, int numAttributes, int minShapeletLength, int maxShapeletLength){
-        return calculateOperationsWithSkipping(numInstances, numAttributes, minShapeletLength, maxShapeletLength, 1,1);
+        return calculateOperationsWithSkipping(numInstances, numAttributes, minShapeletLength, maxShapeletLength, 1,1, 1.0f);
+    }
+    
+    public static long calculateOperationsWithProportion(Instances train, int minShapeletLength, int maxShapeletLength, float proportion){      
+        return calculateOperationsWithSkipping(train.numInstances(), train.numAttributes()-1, minShapeletLength, maxShapeletLength,1,1,proportion);
     }
     
     
-     //verified correct by counting ops in transform
-    public static long calculateOperationsWithSkipping(int numInstances, int numAttributes, int minShapeletLength, int maxShapeletLength, int posSkip, int lengthSkip){
+    //verified correct by counting ops in transform
+    //not exact with shapelet proportion, because of nondeterministic nature.
+    public static long calculateOperationsWithSkipping(int numInstances, int numAttributes, int minShapeletLength, int maxShapeletLength, int posSkip, int lengthSkip, float Shapeletproportion){
         long numOps=0;
         
         
@@ -287,7 +292,7 @@ public class ShapeletTransformFactory
         //calculate number of shapelets in a single instance.
         for (int length = minShapeletLength; length <= maxShapeletLength; length+=lengthSkip) {
             
-            long shapeletsLength = (numAttributes - length + 1) / posSkip;
+            long shapeletsLength = (long) (((numAttributes - length + 1) / posSkip) * Shapeletproportion);
             shapelets+=shapeletsLength;
             
             //System.out.println(shapeletsLength);
@@ -327,13 +332,19 @@ public class ShapeletTransformFactory
 
     
     public static BigInteger calculateOps(int n, int m, int posS, int lenS){
-        long mSqd = m*m;
+       
+        BigInteger nSqd = new BigInteger(Long.toString(n));
+        nSqd = nSqd.pow(2);
+        
         long lenSqd = lenS*lenS;
-        long nSqd = n*n;
-
-        BigInteger temp1 = new BigInteger(Long.toString(mSqd));
-        temp1 = temp1.multiply(new BigInteger(Long.toString(m)));
-        BigInteger temp2 = new BigInteger(Long.toString(7*mSqd));
+        
+        
+        BigInteger mSqd = new BigInteger(Long.toString(m));
+        mSqd = mSqd.pow(2);
+        
+        BigInteger temp1 = mSqd;
+        temp1 = mSqd.multiply(new BigInteger(Long.toString(m)));
+        BigInteger temp2 = mSqd.multiply(new BigInteger("7"));
         BigInteger temp3 = new BigInteger(Long.toString(m*(lenSqd - (18*lenS) + 27)));
         BigInteger temp4 = new BigInteger(Long.toString(lenS*((5*lenS) - 24) + 27));
         
@@ -342,7 +353,7 @@ public class ShapeletTransformFactory
         bg = bg.add(temp2);
         bg = bg.subtract(temp3);
         bg = bg.add(temp4);
-        bg = bg.multiply(new BigInteger(Long.toString((nSqd-n))));
+        bg = bg.multiply(nSqd.subtract(new BigInteger(Long.toString(n))));
         bg = bg.multiply(new BigInteger(Long.toString((m-3))));
         bg = bg.divide(new BigInteger(Long.toString((12 * posS * lenS))));
         return bg;
@@ -380,9 +391,19 @@ public class ShapeletTransformFactory
     public static void main(String[] args) throws IOException
     {     
         
-        System.out.println(calculateOperations(180, 1224, 3, 1200));
         
-             
+        /*System.out.println(calculateOperationsWithSkipping(67, 23, 3, 23, 1, 1, 1.0f));
+    
+        System.out.println(calculateNumberOfShapelets(67,23,3,23));
+        System.out.println((int) (calculateNumberOfShapelets(67,23,3,23) * 0.5f));
+        
+        System.out.println(calculateOperationsWithSkipping(67, 23, 3, 23, 1, 1, 0.5f));*/
+        
+        
+        
+        System.out.println(calculateOps(141745, 291, 1, 1));
+    
+        
         /*String dirPath = "F:\\Dropbox\\TSC Problems (1)\\";
         File dir  = new File(dirPath);
         for(File dataset : dir.listFiles()){

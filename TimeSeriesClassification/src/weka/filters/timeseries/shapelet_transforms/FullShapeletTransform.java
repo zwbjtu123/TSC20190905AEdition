@@ -17,6 +17,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Scanner;
@@ -479,6 +480,9 @@ public class FullShapeletTransform extends SimpleBatchFilter {
         
         //checks if the shapelets haven't been found yet, finds them if it needs too.
         if (!m_FirstBatchDone) {
+            
+            
+            
             trainShapelets(data);
             
             //we log the count from the subseqdistance before we reset it in the transform.
@@ -493,6 +497,7 @@ public class FullShapeletTransform extends SimpleBatchFilter {
     protected void trainShapelets(Instances data) {
         //we might round robin the data in here. So we return the changed dataset.
         Instances dataset = initDataSouce(data);
+
         shapelets = findBestKShapeletsCache(dataset); // get k shapelets
         m_FirstBatchDone = true;
 
@@ -805,6 +810,7 @@ public class FullShapeletTransform extends SimpleBatchFilter {
         }
 
         Shapelet shapelet = new Shapelet(candidate, dataSourceIDs[dataSet], start, this.qualityMeasure);
+        
         //this class distribution could be binarised or normal.
         shapelet.calculateQuality(orderline, classValue.getClassDistributions());
         shapelet.classValue = classValue.getShapeletValue(); //set classValue of shapelet. (interesing to know).

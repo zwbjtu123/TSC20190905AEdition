@@ -21,6 +21,13 @@ public class ShapeletSearch implements Serializable{
         public Shapelet process(double[] candidate, int start, int length);
     }
     
+    ArrayList<String> shapeletsVisited = new ArrayList<>();
+    int seriesCount;
+    
+    public ArrayList<String> getShapeletsVisited() {
+        return shapeletsVisited;
+    }
+    
     protected int minShapeletLength;
     protected int maxShapeletLength;
     
@@ -64,8 +71,12 @@ public class ShapeletSearch implements Serializable{
                 if (shapelet != null) {
                     seriesShapelets.add(shapelet);
                 }
+                
+                shapeletsVisited.add(seriesCount+","+length+","+start);
             }
         }
+        
+        seriesCount++;
         return seriesShapelets;
     }
 }

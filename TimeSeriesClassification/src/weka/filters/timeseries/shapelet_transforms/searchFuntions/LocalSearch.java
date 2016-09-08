@@ -133,16 +133,4 @@ public class LocalSearch extends RandomTimedSearch{
         
         return bsf_shapelet;
     }
-    
-    private Shapelet visitCandidate(double[] series, int start, int length, ProcessCandidate checkCandidate){
-        initVisitedMemory(series, length);
-        int lengthIndex = getLenghtIndex(length);
-        Shapelet shape = null;     
-        if(!visited[lengthIndex][start]){
-            shape = checkCandidate.process(series, start, length);
-            visited[lengthIndex][start] = true;
-        }
-        return shape;
-    }
-    
 }

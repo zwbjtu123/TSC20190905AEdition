@@ -14,13 +14,10 @@ import weka.core.shapelet.Shapelet;
  *
  * @author raj09hxu
  */
-public class RandomTimedSearch extends ShapeletSearch{
+public class RandomTimedSearch extends RandomSearch{
         
     long timeLimit;
-    Random random;
-    
-    boolean[][] visited;
-    
+
     protected RandomTimedSearch(int min, int max){
         super(min,max);
     }
@@ -62,44 +59,29 @@ public class RandomTimedSearch extends ShapeletSearch{
                 seriesShapelets.add(shape);
 
             
-            //we add time o, even if we've visited it, this is just incase we end up stuck in some improbable recursive loop.
+            //we add time, even if we've visited it, this is just incase we end up stuck in some improbable recursive loop.
             currentTime += calculateTimeToRun(inputData.numInstances(), series.length-1, length); //n,m,l            
         }
 
+        for(int i=0; i<visited.length; i++){
+            if(visited[i] == null) continue;
+            for(int j=0; j<visited[i].length; j++){
+                if(visited[i][j])
+                    shapeletsVisited.add(seriesCount+","+(i+minShapeletLength)+","+j);
+            }
+        }
+        
+        seriesCount++; //keep track of the series.
+        
         
         return seriesShapelets;
     }
     
-        
-    protected void initVisitedMemory(double[] series, int length){
-        int lengthIndex = getLenghtIndex(length);
-        if(visited[lengthIndex] == null){
-            int maxPositions = series.length - length;
-            visited[lengthIndex] = new boolean[maxPositions];
-        }  
-    }
-    
-        
-    protected int getLenghtIndex(int length){
-        return length - minShapeletLength;
-    }
-    
+            
     protected long calculateTimeToRun(int n, int m, int length){
         long time = (m - length + 1) * length; //number of subsequeneces in the seuquenece, and we do euclidean comparison length times for each.
         return time * (n-1); //we calculate this for n-1 series.
     }
     
-        
-    private Shapelet visitCandidate(double[] series, int start, int length, ProcessCandidate checkCandidate){
-        initVisitedMemory(series, length);
-        int lengthIndex = getLenghtIndex(length);
-        Shapelet shape = null;     
-        if(!visited[lengthIndex][start]){
-            shape = checkCandidate.process(series, start, length);
-            visited[lengthIndex][start] = true;
-        }
-        return shape;
-    }
-    
-    
+
 }
