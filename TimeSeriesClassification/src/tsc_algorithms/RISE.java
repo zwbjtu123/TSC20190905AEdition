@@ -1,4 +1,4 @@
-package new_COTE_experiments;
+package tsc_algorithms;
 /**
  * Development code for PowerSpectrum Forest
  * 1. set number of trees to max(500,m)

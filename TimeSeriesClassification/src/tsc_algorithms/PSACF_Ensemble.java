@@ -1,7 +1,6 @@
 package tsc_algorithms;
 
 
-import bakeOffExperiments.BakeoffExperiments;
 import weka.classifiers.meta.timeseriesensembles.SaveableEnsemble;
 import fileIO.OutFile;
 import java.util.ArrayList;
@@ -215,7 +214,7 @@ public class PSACF_Ensemble extends AbstractClassifier implements SaveableEnsemb
         return baseClassifier.classifyInstance(trans);
     }
     public static void main(String[] args) {
-                Instances train= ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\TSC Problems\\ItalyPowerDemand\\ItalyPowerDemand_TRAIN");
+        /*        Instances train= ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\TSC Problems\\ItalyPowerDemand\\ItalyPowerDemand_TRAIN");
         Instances test= ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\TSC Problems\\ItalyPowerDemand\\ItalyPowerDemand_TEST");
         String trainS="C:\\Users\\ajb\\Dropbox\\TSC Problems\\ItalyPowerDemand\\TestPreds.csv";
         String testS="C:\\Users\\ajb\\Dropbox\\TSC Problems\\ItalyPowerDemand\\TrainCV.csv";
@@ -223,6 +222,6 @@ public class PSACF_Ensemble extends AbstractClassifier implements SaveableEnsemb
         PSACF_Ensemble acf= new PSACF_Ensemble();
         acf.setClassifierType("WE");
         acf.saveResults(trainS, testS);
-        double a =BakeoffExperiments.singleSampleExperiment(train, test, acf,0, preds);
+        double a =BakeoffExperiments.singleSampleExperiment(train, test, acf,0, preds);*/
     }
 }

@@ -1,4 +1,4 @@
-package new_COTE_experiments;
+package tsc_algorithms;
 /**
  * Development code for PowerSpectrum Forest
  * 
