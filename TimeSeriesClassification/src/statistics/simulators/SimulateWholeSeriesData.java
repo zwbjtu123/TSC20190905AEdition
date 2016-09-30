@@ -10,9 +10,9 @@ import weka.core.Instances;
  *
  * @author ajb
  */
-public class SimulateTimeDomain extends DataSimulator {
+public class SimulateWholeSeriesData extends DataSimulator {
    
-      public SimulateTimeDomain(double[][] paras){
+      public SimulateWholeSeriesData(double[][] paras){
         super(paras);
         for(int i=0;i<nosClasses;i++)
             models.add(new SinusoidalModel(paras[i]));

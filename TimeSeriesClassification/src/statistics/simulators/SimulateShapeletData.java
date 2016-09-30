@@ -13,7 +13,7 @@ import weka.core.Instances;
  * @author Jon Hills
  * j.hills@uea.ac.uk
  */
-public class SimulateShapeletDataset {
+public class SimulateShapeletData {
        
     
     /**
@@ -80,9 +80,6 @@ public class SimulateShapeletDataset {
      */
     public static Instances[] trainTestSplit(Instances orig, int trainSize)
     {
-       
-        Random r = new Random();
-        
         orig.randomize(Model.rand);
         
         Instances tr = new Instances(orig,0,trainSize);
@@ -97,7 +94,7 @@ public class SimulateShapeletDataset {
      * 
      * This creates a set of Instances representing a two-class problem with
      * a 50/50 balance of classes, 1100 instances of length 500. The set is 
-     * then split into training and testing 100/1000.
+     * then randomly split into training and testing 100/1000.
      */
     public static void main(String[] args)
     {
@@ -105,8 +102,10 @@ public class SimulateShapeletDataset {
         int seriesLength = 500;
         int trainSize = 100;
         
-        Instances data = SimulateShapeletDataset.getShapeletData(seriesLength,casesPerClass);
-        Instances [] trainTest = SimulateShapeletDataset.trainTestSplit(data, trainSize);
+        Instances data = SimulateShapeletData.getShapeletData(seriesLength,casesPerClass);
+        Instances [] trainTest = SimulateShapeletData.trainTestSplit(data, trainSize);
+        
+        
     }
     
 }

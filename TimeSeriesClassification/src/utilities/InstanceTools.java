@@ -28,7 +28,16 @@ import weka.core.Instances;
  * @author Aaron
  */
 public class InstanceTools {
-      
+
+    public static int[] deleteClassValues(Instances d){
+        int[] classVals=new int[d.numInstances()];
+        for(int i=0;i<d.numInstances();i++){
+            classVals[i]=(int)d.instance(i).classValue();
+            d.instance(i).setMissing(d.instance(i).classIndex());
+        }
+        return classVals;
+    }
+    
     /**
      * NOTE: Try to avoid using this and see the ClassDistribution wrapper object!
      * Public method to calculate the class distributions of a dataset. Main

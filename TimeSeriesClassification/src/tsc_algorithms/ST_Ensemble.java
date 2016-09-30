@@ -153,6 +153,9 @@ public class ST_Ensemble  extends AbstractClassifier implements SaveableEnsemble
         //construct shapelet classifiers from the factory.
         transform = ShapeletTransformFactory.createTransform(train);
         
+        //Stop it printing everything
+        transform.supressOutput();
+        
         //at the moment this could be overrided.
         //transform.setSearchFunction(new LocalSearch(3, m, 10, seed));
 
