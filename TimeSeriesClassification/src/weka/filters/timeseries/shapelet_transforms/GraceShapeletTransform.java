@@ -20,14 +20,14 @@ import java.util.Map;
 import java.util.TreeMap;
 import weka.core.Instances;
 import weka.core.shapelet.Shapelet;
-import static weka.filters.timeseries.shapelet_transforms.FullShapeletTransform.removeSelfSimilar;
+import static weka.filters.timeseries.shapelet_transforms.ShapeletTransform.removeSelfSimilar;
 import weka.filters.timeseries.shapelet_transforms.searchFuntions.ShapeletSearch;
 
 /**
  *
  * @author Aaron
  */
-public class GraceFullShapeletTransform extends FullShapeletTransform {
+public class GraceShapeletTransform extends ShapeletTransform {
 
     int currentSeries = 0;
 
@@ -289,7 +289,7 @@ public class GraceFullShapeletTransform extends FullShapeletTransform {
         //GraceFullShapeletTransform.buildGraceBSUB("../../"+DataSets.ucrSmall[0], train.numInstances(), "raj09hxu", "SamplingExperiments/dist", "samplingExperiments", "long", 1000);
         
 
-        GraceFullShapeletTransform st = new GraceFullShapeletTransform();
+        GraceShapeletTransform st = new GraceShapeletTransform();
         st.setNumberOfShapelets(train.numInstances()*10);
         st.setLogOutputFile(DataSets.ucrSmall[0] + ".csv");
 

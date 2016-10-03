@@ -18,7 +18,7 @@ import weka.filters.timeseries.shapelet_transforms.searchFuntions.ShapeletSearch
  *
  * @author raj09hxu
  */
-public class BalancedClassShapeletTransform extends FullShapeletTransform
+public class BalancedClassShapeletTransform extends ShapeletTransform
 {
     protected Map<Double, ArrayList<Shapelet>> kShapeletsMap;
     

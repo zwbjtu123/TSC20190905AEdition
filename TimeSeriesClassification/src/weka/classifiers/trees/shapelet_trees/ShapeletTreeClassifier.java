@@ -13,10 +13,9 @@ import java.util.TreeSet;
 import weka.classifiers.AbstractClassifier;
 import weka.classifiers.Classifier;
 import weka.core.*;
-import weka.filters.timeseries.shapelet_transforms.FullShapeletTransform;
+import weka.filters.timeseries.shapelet_transforms.ShapeletTransform;
 //import java.io.File;
 //import java.util.Scanner;
-
 
 public class ShapeletTreeClassifier extends AbstractClassifier{
 
@@ -1009,7 +1008,7 @@ public class ShapeletTreeClassifier extends AbstractClassifier{
 
         for(int k = 1; k < 29; k++){
 //        int k =3;
-            FullShapeletTransform sf = new FullShapeletTransform();
+            ShapeletTransform sf = new ShapeletTransform();
             ShapeletPam sp = new ShapeletPam(shapelets, k);
             sp.clusterShapelets(k);
             double avgSil = sp.calculateAvgSil();

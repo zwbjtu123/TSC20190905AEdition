@@ -195,7 +195,7 @@ public class CachedSubSeqDistance extends SubSeqDistance{
          */
         public double getStdDevX(int startPos, int subLength)
         {
-            return (double) Math.sqrt(((cummSqSums[xIndex][startPos + subLength] - cummSqSums[xIndex][startPos]) / subLength) - (getMeanX(startPos, subLength) * getMeanX(startPos, subLength)));
+            return Math.sqrt(((cummSqSums[xIndex][startPos + subLength] - cummSqSums[xIndex][startPos]) / subLength) - (getMeanX(startPos, subLength) * getMeanX(startPos, subLength)));
         }
 
         /**
@@ -209,7 +209,7 @@ public class CachedSubSeqDistance extends SubSeqDistance{
          */
         public double getStdDevY(int startPos, int subLength)
         {
-            return (double) Math.sqrt(((cummSqSums[yIndex][startPos + subLength] - cummSqSums[yIndex][startPos]) / subLength) - (getMeanY(startPos, subLength) * getMeanY(startPos, subLength)));
+            return  Math.sqrt(((cummSqSums[yIndex][startPos + subLength] - cummSqSums[yIndex][startPos]) / subLength) - (getMeanY(startPos, subLength) * getMeanY(startPos, subLength)));
         }
 
         /**

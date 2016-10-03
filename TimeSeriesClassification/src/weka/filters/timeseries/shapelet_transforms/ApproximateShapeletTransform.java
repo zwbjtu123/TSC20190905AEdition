@@ -21,7 +21,7 @@ import weka.filters.unsupervised.instance.Resample;
  * 
  * @author Edgaras Baranauskas
  */
-public class ApproximateShapeletTransform extends FullShapeletTransform{
+public class ApproximateShapeletTransform extends ShapeletTransform{
     /**
      * Size of the subsample, as a percentage of the original set 
      */

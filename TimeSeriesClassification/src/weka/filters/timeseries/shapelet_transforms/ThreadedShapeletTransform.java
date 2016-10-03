@@ -11,7 +11,7 @@ import weka.core.shapelet.Shapelet;
  *
  * @author ajb
  */
-public class ThreadedShapeletTransform extends FullShapeletTransform implements Runnable
+public class ThreadedShapeletTransform extends ShapeletTransform implements Runnable
 {
 
     public static int numThreads = 16;

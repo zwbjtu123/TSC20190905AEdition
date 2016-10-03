@@ -554,7 +554,7 @@ public class InstanceTools {
         }
                 
         for (int i = 0; i < length; i++) {
-            name = dataName + "_" + dimChars[i%dimChars.length] + "_" + (i/dimChars.length);
+            name = dataName + "_" + (i % (length/dimChars.length)) + "_" + dimChars[i / (length/dimChars.length)];
             atts.addElement(new Attribute(name));
         }
         

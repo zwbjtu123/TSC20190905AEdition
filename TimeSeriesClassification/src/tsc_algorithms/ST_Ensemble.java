@@ -12,7 +12,7 @@ import weka.classifiers.AbstractClassifier;
 import weka.classifiers.meta.timeseriesensembles.HESCA;
 import weka.core.Instance;
 import weka.core.Instances;
-import weka.filters.timeseries.shapelet_transforms.FullShapeletTransform;
+import weka.filters.timeseries.shapelet_transforms.ShapeletTransform;
 import weka.filters.timeseries.shapelet_transforms.ShapeletTransformFactory;
 import static weka.filters.timeseries.shapelet_transforms.ShapeletTransformFactory.nanoToOp;
 import weka.filters.timeseries.shapelet_transforms.searchFuntions.ShapeletSearch;
@@ -29,7 +29,7 @@ public class ST_Ensemble  extends AbstractClassifier implements SaveableEnsemble
     
     
     private HESCA hesca;
-    private FullShapeletTransform transform;
+    private ShapeletTransform transform;
     private Instances format;
     int[] redundantFeatures;
     private boolean saveResults=false;

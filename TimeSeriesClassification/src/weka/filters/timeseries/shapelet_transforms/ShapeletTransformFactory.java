@@ -134,36 +134,36 @@ public class ShapeletTransformFactory
     public static final double MEM_CUTOFF = 0.5;
     public static final int MAX_NOS_SHAPELETS = 1000;    
     
-    public static FullShapeletTransform createCachedTransform()
+    public static ShapeletTransform createCachedTransform()
     {
-        FullShapeletTransform st = new FullShapeletTransform();
+        ShapeletTransform st = new ShapeletTransform();
         st.setSubSeqDistance(new CachedSubSeqDistance());
         return st;
     }
     
-    public static FullShapeletTransform createOnlineTransform()
+    public static ShapeletTransform createOnlineTransform()
     {
-        FullShapeletTransform st = new FullShapeletTransform();
+        ShapeletTransform st = new ShapeletTransform();
         st.setSubSeqDistance(new OnlineSubSeqDistance());
         return st;
     }
     
-    public static FullShapeletTransform createBasicTransform(int n, int m){
-        FullShapeletTransform fst = new FullShapeletTransform();
+    public static ShapeletTransform createBasicTransform(int n, int m){
+        ShapeletTransform fst = new ShapeletTransform();
         fst.setNumberOfShapelets(n * 10);
         fst.setShapeletMinAndMax(3, m);
         fst.supressOutput();
         return fst;
     }
     
-    public static FullShapeletTransform createTransform(Instances train){
+    public static ShapeletTransform createTransform(Instances train){
         int numClasses = train.numClasses();
         int numInstances = train.numInstances();
         int numAttributes = train.numAttributes()-1;
         
-        FullShapeletTransform transform;
+        ShapeletTransform transform;
         if(numClasses == 2){
-            transform = new FullShapeletTransform();
+            transform = new ShapeletTransform();
         }else{
             transform = new BalancedClassShapeletTransform();
             transform.setClassValue(new BinarisedClassValue());
@@ -191,9 +191,9 @@ public class ShapeletTransformFactory
     }
 
     // Method to estimate min/max shapelet length for a given data
-    public static int[] estimateMinAndMax(Instances data, FullShapeletTransform st)
+    public static int[] estimateMinAndMax(Instances data, ShapeletTransform st)
     {
-        FullShapeletTransform st1 = null;
+        ShapeletTransform st1 = null;
         try {
             //we need to clone the FST.
             st1 = st.getClass().newInstance();
@@ -204,7 +204,7 @@ public class ShapeletTransformFactory
         }
         
         if(st1 == null)
-            st1 = new FullShapeletTransform();
+            st1 = new ShapeletTransform();
         
         st1.supressOutput();
         
@@ -232,7 +232,7 @@ public class ShapeletTransformFactory
     //bog standard min max estimation.
     public static int[] estimateMinAndMax(Instances data)
     {
-        return estimateMinAndMax(data, new FullShapeletTransform());
+        return estimateMinAndMax(data, new ShapeletTransform());
     }
     
     //Class implementing comparator which compares shapelets according to their length

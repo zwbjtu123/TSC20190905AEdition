@@ -51,15 +51,17 @@ import weka.filters.timeseries.shapelet_transforms.*;
  */
 import weka.core.*;
 import weka.filters.timeseries.shapelet_transforms.subsequenceDist.CachedSubSeqDistance;
+import weka.filters.timeseries.shapelet_transforms.subsequenceDist.ImprovedOnlineSubSeqDistance;
 import weka.filters.timeseries.shapelet_transforms.subsequenceDist.OnlineSubSeqDistance;
+import weka.filters.timeseries.shapelet_transforms.subsequenceDist.SubSeqDistance;
 public class ShapeletExamples {
 
-    public static FullShapeletTransform st;
+    public static ShapeletTransform st;
     public static Instances basicTransformExample(Instances train){
- /*Class to demonstrate the usage of the FullShapeletTransform. Returns the 
+ /*Class to demonstrate the usage of the ShapeletTransform. Returns the 
   * transformed set of instances  
   */
-        st =new FullShapeletTransform();
+        st =new ShapeletTransform();
         st.setSubSeqDistance(new OnlineSubSeqDistance());
 /*The number of shapelets defaults to 100. we recommend setting it to a large
 value, since there will be many duplicates and there is little overhead in 
@@ -69,8 +71,8 @@ value, since there will be many duplicates and there is little overhead in
 //Let m=train.numAttributes()-1 (series length)
 //Let n=   train.numInstances() (number of series)      
         int nosShapelets=(train.numAttributes()-1)*train.numInstances()/5;
-        if(nosShapelets<FullShapeletTransform.DEFAULT_NUMSHAPELETS)
-            nosShapelets=FullShapeletTransform.DEFAULT_NUMSHAPELETS;
+        if(nosShapelets<ShapeletTransform.DEFAULT_NUMSHAPELETS)
+            nosShapelets=ShapeletTransform.DEFAULT_NUMSHAPELETS;
         st.setNumberOfShapelets(nosShapelets);
 /* Two other key parameters are minShapeletLength and maxShapeletLength. For 
  * each value between these two, a full search is performed, which is 
@@ -79,8 +81,8 @@ value, since there will be many duplicates and there is little overhead in
  */
         int minLength=5;
         int maxLength=(train.numAttributes()-1)/10;
-        if(maxLength<FullShapeletTransform.DEFAULT_MINSHAPELETLENGTH)
-            maxLength=FullShapeletTransform.DEFAULT_MINSHAPELETLENGTH;
+        if(maxLength<ShapeletTransform.DEFAULT_MINSHAPELETLENGTH)
+            maxLength=ShapeletTransform.DEFAULT_MINSHAPELETLENGTH;
         st.setShapeletMinAndMax(minLength, maxLength);
 
 /*Next you need to set the quality measure. This defaults to IG, but         
@@ -133,7 +135,7 @@ value, since there will be many duplicates and there is little overhead in
 
     }
     
-    public static void initializeShapelet(FullShapeletTransform s,Instances train){
+    public static void initializeShapelet(ShapeletTransform s,Instances train){
 //       int nosShapelets=(train.numAttributes()-1)*train.numInstances()/5;
        s.setNumberOfShapelets(1);        
        int minLength=15;
@@ -146,38 +148,37 @@ value, since there will be many duplicates and there is little overhead in
     }
     public static void distanceOptimizations(Instances train){
         Instances shapeletT=null;
-        FullShapeletTransform s1=new FullShapeletTransform();
-        initializeShapelet(s1,train);
-        FullShapeletTransform s2=new FullShapeletTransform();
-        s2.setSubSeqDistance(new OnlineSubSeqDistance());
-        initializeShapelet(s2,train);
-        FullShapeletTransform s3=new FullShapeletTransform();
-        s2.setSubSeqDistance(new CachedSubSeqDistance());
-        initializeShapelet(s3,train);
+
+        SubSeqDistance[] ssq = {new SubSeqDistance(), new OnlineSubSeqDistance(), new CachedSubSeqDistance(), new ImprovedOnlineSubSeqDistance()};
+        ShapeletTransform[] st = new ShapeletTransform[ssq.length];
+        for(int i=0; i< st.length; i++){
+            st[i] = new ShapeletTransform();
+            st[i].setSubSeqDistance(ssq[i]);
+            initializeShapelet(st[i], train);
+        }   
+
         DecimalFormat df =new DecimalFormat("###.####");
         long t1=0;
         long t2=0;
-        double time1,time2,time3;
+        double[] time = new double[ssq.length];
         try {
-            t1=System.currentTimeMillis();
-            shapeletT=s1.process(train);
-            t2=System.currentTimeMillis();
-            time1=((t2-t1)/1000.0);
-            t1=System.currentTimeMillis();
-            shapeletT=s2.process(train);
-            t2=System.currentTimeMillis();
-            time2=((t2-t1)/1000.0);
-            t1=System.currentTimeMillis();
-            shapeletT=s3.process(train);
-            t2=System.currentTimeMillis();
-            time3=((t2-t1)/1000.0);
+            
+            for(int i=0; i< time.length; i++){
+                t1=System.currentTimeMillis();
+                shapeletT=st[i].process(train);
+                t2=System.currentTimeMillis();
+                time[i] =((t2-t1)/1000.0);
+            }
+            
             System.out.println("TIME (seconds)");
-            System.out.println("No Optimization\t Online Norm/Early Abandon\t Distance caching");
-            System.out.println(df.format(time1)+"\t\t\t"+df.format(time2)+"\t\t\t"+df.format(time3));
-            System.out.println("TIME REDUCTION\t Online Norm/Early Abandon\t Distance caching");
-            System.out.println("\t\t\t"+(int)(100.0*time2/time1)+"% \t\t\t"+(int)(100.0*time3/time1)+"%");
-            System.out.println("SPEED UP\t Online Norm/Early Abandon\t Distance caching");
-            System.out.println("\t\t\t"+df.format(time1/time2)+"\t\t\t"+df.format(time1/time3));
+            for(int i=0; i< time.length; i++){
+                System.out.print(ssq[i].getClass().getSimpleName()+ "\t");
+            }
+            System.out.println();
+            for(int i=0; i< time.length; i++){
+                System.out.print(df.format(time[i])+ "\t");
+            }
+            System.out.println();
         } catch (Exception ex) {
             System.out.println("Error performing the shapelet transform"+ex);
             ex.printStackTrace();
@@ -188,19 +189,17 @@ value, since there will be many duplicates and there is little overhead in
 //Time the speed up from early abandon of the four distance measures.
 
         //IG:         
-        FullShapeletTransform[] s=new FullShapeletTransform[4];
-        FullShapeletTransform[] pruned=new FullShapeletTransform[4];
+        ShapeletTransform[] s=new ShapeletTransform[4];
+        ShapeletTransform[] pruned=new ShapeletTransform[4];
         for(int i=0;i<s.length;i++){
-            s[i]=new FullShapeletTransform();
-            s[i].setSubSeqDistance(new CachedSubSeqDistance());
-            pruned[i]=new FullShapeletTransform();
-            pruned[i].setSubSeqDistance(new CachedSubSeqDistance());
+            s[i]=new ShapeletTransform();
+            pruned[i]=new ShapeletTransform();
         }
-        for(FullShapeletTransform s1:s){
+        for(ShapeletTransform s1:s){
             initializeShapelet(s1,train);
             s1.setCandidatePruning(false);
         }
-        for(FullShapeletTransform s1:pruned){
+        for(ShapeletTransform s1:pruned){
             initializeShapelet(s1,train);
             s1.setCandidatePruning(true);
         }
@@ -225,7 +224,6 @@ value, since there will be many duplicates and there is little overhead in
                 System.out.println(" ********* QUALITY MEASURE ="+s[i].getQualityMeasure()+"  **********");
                 System.out.println(" NO ABANDON \t\t ABANDON\t\t ABANDON/(NO ABANDON)%\t\t SPEED UP ");
                 System.out.println(df.format(time1)+"\t\t\t"+df.format(time2)+"\t\t\t"+(int)(100.0*(time2/time1))+"%"+"\t\t\t"+df.format(time1/time2));
-                
             }
        } catch (Exception ex) {
             System.out.println("Error performing the shapelet transform"+ex);
@@ -244,14 +242,14 @@ value, since there will be many duplicates and there is little overhead in
         //Parameters that are relevant to all types of transforms that extend FullShapeletTransform:
         //1. Number of shapelets to be stored
         int nosShapelets=(train.numAttributes()-1)*train.numInstances()/5;
-        if(nosShapelets<FullShapeletTransform.DEFAULT_NUMSHAPELETS)
-            nosShapelets=FullShapeletTransform.DEFAULT_NUMSHAPELETS;
+        if(nosShapelets<ShapeletTransform.DEFAULT_NUMSHAPELETS)
+            nosShapelets=ShapeletTransform.DEFAULT_NUMSHAPELETS;
         st.setNumberOfShapelets(nosShapelets);
         //2. Shapelet lenght range to be eplored
         int minLength=5;
         int maxLength=(train.numAttributes()-1)/10;
-        if(maxLength<FullShapeletTransform.DEFAULT_MINSHAPELETLENGTH)
-            maxLength=FullShapeletTransform.DEFAULT_MINSHAPELETLENGTH;
+        if(maxLength<ShapeletTransform.DEFAULT_MINSHAPELETLENGTH)
+            maxLength=ShapeletTransform.DEFAULT_MINSHAPELETLENGTH;
         st.setShapeletMinAndMax(minLength, maxLength);
         //3. Quality measure
         st.setQualityMeasure(QualityMeasures.ShapeletQualityChoice.F_STAT);
@@ -296,31 +294,34 @@ value, since there will be many duplicates and there is little overhead in
     }
 	
     public static void main(String[] args){
-		Instances train=null,test=null;
-		FileReader r;
-		try{		
-			r= new FileReader("SonyAIBORobotSurface_TRAIN.arff"); 
-			train = new Instances(r); 
-			train.setClassIndex(train.numAttributes()-1);
-			r= new FileReader("SonyAIBORobotSurface_TEST.arff"); 
-			test = new Instances(r); 
-			test.setClassIndex(test.numAttributes()-1);
-                        
-		}
-		catch(Exception e)
-		{
-			System.out.println("Unable to load data. Exception thrown ="+e);
-			System.exit(0);
-		}
- /*               System.out.println("****************** PERFORMING BASIC TRANSFORM *******");
-                Instances shapeletT=basicTransformExample(train);
-                System.out.println(" Transformed data set ="+shapeletT);
-                System.out.println("\n **************** CLUSTERING *******");
-                shapeletT=clusteredShapeletTransformExample(train);
-                System.out.println(" Clustered Transformed data set ="+shapeletT);
-                System.out.println("\n ******Distance calculation optimizations *******");
-                distanceOptimizations(train);                
- */               System.out.println("\n ******Shapelet Early Abandons *******");
-                shapeletEarlyAbandons(train);               
+        Instances train=null,test=null;
+        FileReader r;
+        
+        String path = "C:\\LocalData\\Dropbox\\TSC Problems\\";
+        String dataset = "SonyAIBORobotSurface1";
+        try{		
+            r= new FileReader(path+dataset+"\\"+dataset+"_TRAIN.arff"); 
+            train = new Instances(r); 
+            train.setClassIndex(train.numAttributes()-1);
+            r= new FileReader(path+dataset+"\\"+dataset+ "_TEST.arff"); 
+            test = new Instances(r); 
+            test.setClassIndex(test.numAttributes()-1);
+
+        }
+        catch(Exception e)
+        {
+                System.out.println("Unable to load data. Exception thrown ="+e);
+                System.exit(0);
+        }
+        System.out.println("****************** PERFORMING BASIC TRANSFORM *******");
+        Instances shapeletT=basicTransformExample(train);
+        System.out.println(" Transformed data set ="+shapeletT);
+        System.out.println("\n **************** CLUSTERING *******");
+        shapeletT=clusteredShapeletTransformExample(train);
+        System.out.println(" Clustered Transformed data set ="+shapeletT);
+        System.out.println("\n ******Distance calculation optimizations *******");
+        distanceOptimizations(train);                
+        System.out.println("\n ******Shapelet Early Abandons *******");
+        shapeletEarlyAbandons(train);               
     }
 }
