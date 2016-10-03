@@ -27,7 +27,7 @@ public class SimpleClassDistribution extends ClassDistribution {
     public SimpleClassDistribution(Instances data) {
         
         classDistribution = new Integer[data.numClasses()];
-        init(classDistribution);
+        Arrays.fill(classDistribution, 0);
         
         keySet = new TreeSet<>();
         
@@ -50,18 +50,13 @@ public class SimpleClassDistribution extends ClassDistribution {
         }
         keySet = in.keySet();
     }
-    
-    void init(Integer[] array){
-        for(int i =0; i< array.length; i++){
-            array[i] = 0;
-        }
-    }
+   
     
     //creates an empty distribution of specified size.
     public SimpleClassDistribution(int size)
     {
         classDistribution = new Integer[size];
-        init(classDistribution);
+        Arrays.fill(classDistribution, 0);
         keySet = new TreeSet<>();
     }
 
