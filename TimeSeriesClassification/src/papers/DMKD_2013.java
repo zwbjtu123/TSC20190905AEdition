@@ -420,10 +420,10 @@ public class DMKD_2013 {
         if(useTransformedData){
             //Initialize filter
             try{
-                shapeletFilter = FullShapeletTransform.createFilterFromFile(filePaths[dataIndex]+fileNames[dataIndex]+"_TRAIN_TRANS.txt", instancesTrain[dataIndex].numAttributes()/2);
+                shapeletFilter = ShapeletTransform.createFilterFromFile(filePaths[dataIndex]+fileNames[dataIndex]+"_TRAIN_TRANS.txt", instancesTrain[dataIndex].numAttributes()/2);
                 shapeletFilter.supressOutput();
             }catch (Exception e){
-                shapeletFilter = new FullShapeletTransform();
+                shapeletFilter = new ShapeletTransform();
                 shapeletFilter.setQualityMeasure(QualityMeasures.ShapeletQualityChoice.INFORMATION_GAIN);
                 shapeletFilter.supressOutput();
                 shapeletFilter.setNumberOfShapelets(instancesTrain[dataIndex].numAttributes()/2);
@@ -499,10 +499,10 @@ public class DMKD_2013 {
             if(useTransformedData){
                 //Initialize filter
                 try{
-                    shapeletFilter = FullShapeletTransform.createFilterFromFile(filePaths[dataIndex]+fileNames[dataIndex]+"_TRANS_"+n+".txt", instancesTrain[dataIndex].numAttributes()/2);
+                    shapeletFilter = ShapeletTransform.createFilterFromFile(filePaths[dataIndex]+fileNames[dataIndex]+"_TRANS_"+n+".txt", instancesTrain[dataIndex].numAttributes()/2);
                     shapeletFilter.supressOutput();
                 }catch (Exception e){
-                    shapeletFilter = new FullShapeletTransform();
+                    shapeletFilter = new ShapeletTransform();
                     shapeletFilter.setQualityMeasure(QualityMeasures.ShapeletQualityChoice.INFORMATION_GAIN);
                     shapeletFilter.supressOutput();
                     shapeletFilter.setNumberOfShapelets(instancesTrain[dataIndex].numAttributes()/2);

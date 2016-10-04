@@ -133,7 +133,13 @@ public class InstanceTools {
         return new Instances[]{outputTrain,outputTest};
     }
     
-
+/**
+ * 
+ * @param all full data set
+ * @param seed random seed so that the split can be exactly duplicated
+ * @param prop proportion of data for training
+ * @return 
+ */
     public static Instances[] resampleInstances(Instances all, int seed, double prop){
         ClassDistribution classDist = new TreeSetClassDistribution(all);
         Map<Double, Instances> classBins = createClassInstancesMap(all);
