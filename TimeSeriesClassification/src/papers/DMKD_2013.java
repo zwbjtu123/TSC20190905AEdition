@@ -1,6 +1,6 @@
 package papers;
 
-import weka.filters.timeseries.shapelet_transforms.FullShapeletTransform;
+import weka.filters.timeseries.shapelet_transforms.ShapeletTransform;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -171,7 +171,7 @@ public class DMKD_2013 {
     };
     
     // Variables for holding filters for data transformation
-    private static FullShapeletTransform shapeletFilter;
+    private static ShapeletTransform shapeletFilter;
     
     // Variables for holding data
     private static Instances[] instancesTrain;
@@ -197,10 +197,10 @@ public class DMKD_2013 {
             
             // Load test/train splits
             if(assesmentTypes[i] == AssesmentType.TRAIN_TEST){
-                instancesTrain[i] = FullShapeletTransform.loadData(filePaths[i]+fileNames[i]+"_TRAIN.arff");
-                instancesTest[i] = FullShapeletTransform.loadData(filePaths[i]+fileNames[i]+"_TEST.arff");
+                instancesTrain[i] = ShapeletTransform.loadData(filePaths[i]+fileNames[i]+"_TRAIN.arff");
+                instancesTest[i] = ShapeletTransform.loadData(filePaths[i]+fileNames[i]+"_TEST.arff");
             }else if(assesmentTypes[i] == AssesmentType.LOOCV){
-                instancesTrain[i] = FullShapeletTransform.loadData(filePaths[i]+fileNames[i]+".arff");
+                instancesTrain[i] = ShapeletTransform.loadData(filePaths[i]+fileNames[i]+".arff");
                 instancesTest[i] = null;   
             }
             
