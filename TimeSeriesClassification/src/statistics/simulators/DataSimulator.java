@@ -88,6 +88,7 @@ public class DataSimulator {
  * @return Set of n=sum(casesPerClass[i]) instances, each seriesLength+1 attributes, the last of which is the class label,
  */
     public Instances generateDataSet() {
+        
         Instances data;
         if(casesPerClass==null){    
             casesPerClass=new int[nosClasses];

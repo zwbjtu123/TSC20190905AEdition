@@ -20,15 +20,16 @@ public class SimulateShapeletData {
      * This method creates and returns a set of Instances representing a
      * simulated two-class time-series problem.
      * 
-     * @param casesPerClass An array of two integers indicating the number of 
-     * instances of class 0 and class 1.
+
      * @param seriesLength The length of the series. All time series in the
      * dataset are the same length.
+     * @param casesPerClass An array of two integers indicating the number of 
+     * instances of class 0 and class 1.
      * @return Instances representing the time-series dataset. The Instances
      * returned will be empty if the casesPerClass parameter does not contain
      * exactly two values.
      */
-    public static Instances getShapeletData(int seriesLength, int []casesPerClass)
+    public static Instances generateShapeletData(int seriesLength, int []casesPerClass)
     {
         
         if( casesPerClass.length != 2)
@@ -49,7 +50,7 @@ public class SimulateShapeletData {
     }
     
     /**
-     * This is a support method for getShapeletData
+     * This is a support method for generateShapeletData
      * 
      * @param array An array of two ShapeletModel2 models, representing the 
      * simulated shapes inserted into the respective classes.
@@ -98,14 +99,11 @@ public class SimulateShapeletData {
      */
     public static void main(String[] args)
     {
-        int[] casesPerClass = {550,550};
-        int seriesLength = 500;
-        int trainSize = 100;
-        
-        Instances data = SimulateShapeletData.getShapeletData(seriesLength,casesPerClass);
-        Instances [] trainTest = SimulateShapeletData.trainTestSplit(data, trainSize);
-        
-        
+        int[] casesPerClass = {50,50};
+        int seriesLength = 100;
+        Model.setDefaultSigma(0);
+        Instances data = SimulateShapeletData.generateShapeletData(seriesLength,casesPerClass);
+        System.out.println("DATA "+data);
     }
     
 }

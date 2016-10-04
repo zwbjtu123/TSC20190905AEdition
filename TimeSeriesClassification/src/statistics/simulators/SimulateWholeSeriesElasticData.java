@@ -9,6 +9,16 @@ package statistics.simulators;
  *
  * @author ajb
  */
-public class SimulateWholeSeriesElasticData {
-    
+public class SimulateWholeSeriesElasticData extends DataSimulator{
+    public SimulateWholeSeriesElasticData(double[][] paras){
+        super(paras);
+        for(int i=0;i<nosClasses;i++)
+            models.add(new SinusoidalModel(paras[i]));
+    }
+      public void setWarping(){
+          for(Model m:models){
+              ((SinusoidalModel)m).setWarp(true);
+          }
+      }
+
 }

@@ -23,7 +23,7 @@ import weka.core.*;
 import weka.core.shapelet.QualityMeasures;
 import weka.filters.timeseries.ACF;
 import weka.filters.timeseries.PowerSpectrum;
-import weka.filters.timeseries.shapelet_transforms.FullShapeletTransform;
+import weka.filters.timeseries.shapelet_transforms.ShapeletTransform;
 import weka.filters.timeseries.shapelet_transforms.subsequenceDist.OnlineSubSeqDistance;
 
 public class COTE extends AbstractClassifier{
@@ -33,7 +33,7 @@ public class COTE extends AbstractClassifier{
     ElasticEnsemble ee;
     int nosTransforms=4;
     Instances train;
-    FullShapeletTransform shapeletT;
+    ShapeletTransform shapeletT;
     double[] changeCVAccs;
     double[]  psCVAccs;           
     double[] shapeletCVAccs;
@@ -82,7 +82,7 @@ public class COTE extends AbstractClassifier{
         //Power Spectrum
         PowerSpectrum ps=new PowerSpectrum();
         Instances psTrain=ps.process(train);
-        shapeletT=new FullShapeletTransform();
+        shapeletT=new ShapeletTransform();
         shapeletT.setSubSeqDistance(new OnlineSubSeqDistance());
         shapeletT.setNumberOfShapelets(train.numInstances()*10);
         shapeletT.setShapeletMinAndMax(3, train.numAttributes()-1);

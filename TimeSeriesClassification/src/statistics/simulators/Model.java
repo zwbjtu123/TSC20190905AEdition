@@ -12,9 +12,11 @@ import statistics.distributions.*;
  */
 abstract public class Model{
 	protected double t=0;
-	Distribution error=new NormalDistribution(0,1);    
-        private static double defaultSigma=1;
-        public static void setDefaultSigma(double x){defaultSigma=x;}
+	Distribution error;    
+        public static double defaultSigma=1;
+        public static void setDefaultSigma(double x){
+            defaultSigma=x;
+        }
         static int seed=-1;
         static int count=1;
         double variance;
