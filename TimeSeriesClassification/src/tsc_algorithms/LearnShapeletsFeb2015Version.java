@@ -678,7 +678,10 @@ public class LearnShapeletsFeb2015Version extends AbstractClassifier implements 
 
     @Override
     public double[] distributionForInstance(Instance instance) throws Exception {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        double c=classifyInstance(instance);
+        double[] r=new double[instance.numClasses()];
+        r[(int)c]=1;
+        return r;
     }
 
     @Override

@@ -5,15 +5,16 @@
  */
 package statistics.simulators;
 
+import fileIO.OutFile;
 import java.util.Random;
 import weka.core.Instances;
-
+import statistics.simulators.ShapeletModel.ShapeType;
 /**
  *
  * @author Jon Hills
  * j.hills@uea.ac.uk
  */
-public class SimulateShapeletData {
+public class SimulateShapeletData extends DataSimulator{
        
     
     /**
@@ -98,11 +99,13 @@ public class SimulateShapeletData {
      */
     public static void main(String[] args)
     {
-        int[] casesPerClass = {50,50};
+        int[] casesPerClass = {5,5};
         int seriesLength = 100;
-        Model.setDefaultSigma(0);
+        Model.setDefaultSigma(0.25);
         Instances data = SimulateShapeletData.generateShapeletData(seriesLength,casesPerClass);
         System.out.println("DATA "+data);
+        OutFile out=new OutFile("C:\\temp\\ShapeletData.csv");
+        out.writeString(data.toString());
     }
-    
+      
 }

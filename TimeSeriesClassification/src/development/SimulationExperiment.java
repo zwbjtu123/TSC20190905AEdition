@@ -52,12 +52,12 @@ public class SimulationExperiment {
 //Generates cluster scripts for all combos of classifier and simulator     
        String path="C:\\Users\\ajb\\Dropbox\\Code\\Cluster Scripts\\SimulatorScripts\\";
         for(String a:allSimulators){
-            OutFile of2=new OutFile(path+a+"OldCluster.txt");
+            OutFile of2=new OutFile(path+a+".txt");
             for(String s:allClassifiers){
-                OutFile of = new OutFile(path+s+a+"OldCluster.bsub");
+                OutFile of = new OutFile(path+s+a+".bsub");
                 of.writeLine("#!/bin/csh");
                 of.writeLine("#BSUB -q long-eth");
-                of.writeLine("#BSUB -J "+s+"[1-100]");
+                of.writeLine("#BSUB -J "+s+"[1-200]");
                 of.writeLine("#BSUB -oo output/"+a+".out");
                 of.writeLine("#BSUB -eo error/"+a+".err");
                 of.writeLine("#BSUB -R \"rusage[mem=6000]\"");
@@ -65,7 +65,7 @@ public class SimulationExperiment {
                 of.writeLine("module add java/jdk1.8.0_51");
                 of.writeLine("java -jar Simulator.jar "+a+" "+ s+" $LSB_JOBINDEX");                
                 
-                of2.writeLine("bsub < Scripts/SimulatorExperiments/"+s+a+"OldCluster.bsub");
+                of2.writeLine("bsub < Scripts/SimulatorExperiments/"+s+a+".bsub");
             }   
         }
     } 
@@ -112,6 +112,7 @@ public class SimulationExperiment {
                 break;
             case "LearnShapelets":
                 c=new LearnShapelets();
+                ((LearnShapelets)c).setParamSearch(false);
                 break;
             case "BOP":
                 c=new BagOfPatterns();
@@ -336,7 +337,7 @@ public class SimulationExperiment {
     public static void runShapeletSimulatorExperiment(){
         Model.setDefaultSigma(1);
         seriesLength=300;
-        casesPerClass=new int[]{30,30};
+        casesPerClass=new int[]{50,50};
         String[] classifiers={"RotF","DTW","FastShapelets","ST","BOSS"};
 //            "EE","HESCA","TSF","TSBF","FastShapelets","ST","LearnShapelets","BOP","BOSS","RISE","COTE"};
         OutFile of=new OutFile("C:\\Temp\\ShapeletSimExperiment.csv");
@@ -423,8 +424,8 @@ Parameters:
     public static void main(String[] args){
 //          shapeletParameterTest();
 //        runShapeletSimulatorExperiment();
-  //      createAllScripts();
-        collateAllResults();
+      createAllScripts();
+  //      collateAllResults();
         System.exit(0);
         String[] paras;
         if(args.length>0){
@@ -446,10 +447,11 @@ Parameters:
                     classifier="ST";
                     paras=new String[]{simulator,classifier,""+i};
                     double b=runSimulationExperiment(paras);
-                    classifier="BOSS";
+                    classifier="LearnShapelets";
                     paras=new String[]{simulator,classifier,""+i};
                      double c=runSimulationExperiment(paras);
                     oft.writeLine(i+","+a+","+b+","+c);
+                    System.out.println(i+","+a+","+b+","+c);
                 }
 //            }
         }
