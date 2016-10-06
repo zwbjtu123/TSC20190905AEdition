@@ -4,11 +4,13 @@
     <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group>
-            <file>file:/C:/Users/ajb/Dropbox/Code/time-series-classification/TimeSeriesClassification/src/AALTD_Competition/FormatAndCompile.java</file>
-            <file>file:/C:/Users/ajb/Dropbox/Code/time-series-classification/TimeSeriesClassification/src/AALTD_Competition/RunExperiments.java</file>
-            <file>file:/C:/Users/ajb/Dropbox/Code/time-series-classification/TimeSeriesClassification/src/fileIO/InFile.java</file>
-            <file>file:/C:/Users/ajb/Dropbox/Code/time-series-classification/TimeSeriesClassification/src/new_COTE_experiments/FormatHiveCOTE.java</file>
-            <file>file:/C:/Users/ajb/Dropbox/Code/time-series-classification/TimeSeriesClassification/src/weka/filters/timeseries/SummaryStats.java</file>
+            <file>file:/C:/Users/ajb/Dropbox/Code/time-series-classification/TimeSeriesClassification/src/statistics/simulators/SimulateShapeletData.java</file>
+            <file>file:/C:/Users/ajb/Dropbox/Code/time-series-classification/TimeSeriesClassification/src/statistics/simulators/Model.java</file>
+            <file>file:/C:/Users/ajb/Dropbox/Code/time-series-classification/TimeSeriesClassification/src/statistics/simulators/DataSimulator.java</file>
+            <file>file:/C:/Users/ajb/Dropbox/Code/time-series-classification/TimeSeriesClassification/src/statistics/simulators/ShapeletModel.java</file>
+            <file>file:/C:/Users/ajb/Dropbox/Code/time-series-classification/TimeSeriesClassification/src/tsc_algorithms/COTE.java</file>
+            <file>file:/C:/Users/ajb/Dropbox/Code/time-series-classification/TimeSeriesClassification/src/development/SimulationExperiment.java</file>
+            <file>file:/C:/Users/ajb/Dropbox/Code/time-series-classification/TimeSeriesClassification/src/statistics/simulators/SimulateDictionaryData.java</file>
         </group>
     </open-files>
 </project-private>

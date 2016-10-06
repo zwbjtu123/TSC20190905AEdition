@@ -40,9 +40,9 @@ public class SimulateDictionaryData {
             casesPerClass = tmp;
             
         }
-        ShapeletModel[] shapeMod = new ShapeletModel[casesPerClass.length];
+        DictionaryModel[] shapeMod = new DictionaryModel[casesPerClass.length];
         populateRepeatedShapeletArray(shapeMod, seriesLength);
-//        for(ShapeletModel s:shapeMod)
+//        for(DictionaryModel s:shapeMod)
 //            System.out.println("Shapel Model "+s);
         DataSimulator sim = new DataSimulator(shapeMod);
         sim.setSeriesLength(seriesLength);
@@ -57,17 +57,17 @@ public class SimulateDictionaryData {
      * simulated shapes inserted into the respective classes.
      * @param seriesLength The length of the series.
      */
-    private static void populateRepeatedShapeletArray(ShapeletModel [] s, int seriesLength)
+    private static void populateRepeatedShapeletArray(DictionaryModel [] s, int seriesLength)
     {
         
         double[] p1={seriesLength,2};//CHANGE TO AVOID HARD CODING!
-        double[] p2={seriesLength,3};
+        double[] p2={seriesLength,10};
 //Create two ShapeleModels with the same base Shapelet        
-//        ShapeletModel.DEFAULTSHAPELETLENGTH=13;
-        s[0]=new ShapeletModel(p1);        
-        s[1]=new ShapeletModel(p2);
+//        DictionaryModel.DEFAULTSHAPELETLENGTH=13;
+        s[0]=new DictionaryModel(p1);        
+        s[1]=new DictionaryModel(p2);
         
-        ShapeletModel.ShapeType st=s[0].getShapeType();
+        DictionaryModel.ShapeType st=s[0].getShapeType();
         s[0].setShapeType(st);
         s[1].setShapeType(st);
     }

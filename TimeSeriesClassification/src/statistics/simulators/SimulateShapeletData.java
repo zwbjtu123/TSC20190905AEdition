@@ -58,7 +58,6 @@ public class SimulateShapeletData {
      */
     private static void populateShapeletArray(ShapeletModel [] s, int seriesLength)
     {
-        
         double[] p1={seriesLength,1};
         double[] p2={seriesLength,1};
        

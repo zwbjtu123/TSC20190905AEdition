@@ -24,7 +24,8 @@ import weka.filters.timeseries.shapelet_transforms.searchFuntions.ShapeletSearch
 public class ST_Ensemble  extends AbstractClassifier implements SaveableEnsemble{
 
     public enum ST_TimeLimit {MINUTE, HOUR, DAY};
-    
+
+    //Minimum number of instances per class in the train set
     private static final int minimumRepresentation = 25;
     
     
