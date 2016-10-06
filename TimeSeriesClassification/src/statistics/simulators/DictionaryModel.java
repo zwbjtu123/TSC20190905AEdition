@@ -1,14 +1,14 @@
 /*
-Initially written by Jon Hills but modified by AJB Oct 2016
+AJB Oct 2016
 
-Model to simulate data where shapelet approach should be optimal.
+Model to simulate data where dictionary approach should be optimal.
 
 */
 package statistics.simulators;
 import java.util.*;
 import java.io.*;
 import statistics.distributions.NormalDistribution;
-public class ShapeletModel extends Model {
+public class DictionaryModel extends Model {
     
     public enum ShapeType {TRIANGLE,HEADSHOULDERS,SINE, STEP, SPIKE};
     protected ArrayList<Shape> shapes;
@@ -26,7 +26,7 @@ public class ShapeletModel extends Model {
     
     //Default Constructor, max start should be at least 29 less than the length
     // of the series if using the default shapelet length of 29
-    public ShapeletModel()
+    public DictionaryModel()
     {
         this(new double[]{DEFAULTNUMSHAPELETS,DEFAULTSERIESLENGTH,DEFAULTSHAPELETLENGTH});
     }
@@ -35,7 +35,7 @@ public class ShapeletModel extends Model {
        numShapelets=DEFAULTNUMSHAPELETS;
        shapeletLength=DEFAULTSHAPELETLENGTH;
     }
-    public ShapeletModel(double[] param)
+    public DictionaryModel(double[] param)
     {
         super();
         setDefaults();
@@ -59,14 +59,14 @@ public class ShapeletModel extends Model {
         }
     }
     //This constructor is used for data of a given length
-    public ShapeletModel(int s)
+    public DictionaryModel(int s)
     {
         this(new double[]{(double)s});
     }
     
     //This constructor is used for data of a given length in a two class problem
     //where the shape distinguishing the first class is known
-    public ShapeletModel(int seriesLength,Shape shape)
+    public DictionaryModel(int seriesLength,Shape shape)
     {
         setDefaults();
         shapes=new ArrayList<Shape>();
@@ -85,7 +85,7 @@ public class ShapeletModel extends Model {
     }
     // This constructor accepts an ArrayList of shapes for the shapelet model,
     // rather than determining the shapes randomly.
-    public ShapeletModel(ArrayList<Shape> s)
+    public DictionaryModel(ArrayList<Shape> s)
     {
         shapes=new ArrayList<Shape>(s);
     }
@@ -324,7 +324,7 @@ public class ShapeletModel extends Model {
    
     public static void main (String[] args) throws IOException
     {
-       ShapeletModel shape = new ShapeletModel();
+       DictionaryModel shape = new DictionaryModel();
        for(int i=0;i<200;i++)
            System.out.println(shape.generate());
        
