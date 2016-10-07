@@ -18,7 +18,7 @@ import utilities.ClassifierTools;
 import weka.classifiers.AbstractClassifier;
 import weka.classifiers.Classifier;
 import weka.classifiers.Evaluation;
-import weka.classifiers.meta.timeseriesensembles.HESCA;
+import weka.classifiers.meta.timeseriesensembles.depreciated.HESCA_05_10_16;
 import weka.classifiers.trees.J48;
 import weka.classifiers.trees.RandomForest;
 import weka.classifiers.trees.RandomTree;
@@ -79,7 +79,7 @@ public class RISE extends AbstractClassifier implements SaveCVAccuracy, SubSampl
         baseClassifierTemplate=c;
     }
     
-    enum Filter{PS,ACF,FFT,PS_ACF};
+    public enum Filter{PS,ACF,FFT,PS_ACF};
     Filter f=Filter.PS;
     public void setTransformType(Filter fil){
         f=fil;

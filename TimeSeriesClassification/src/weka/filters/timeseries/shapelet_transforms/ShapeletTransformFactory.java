@@ -20,6 +20,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
+import tsc_algorithms.ST_Ensemble;
 import utilities.ClassifierTools;
 import utilities.InstanceTools;
 import utilities.Pair;
@@ -171,7 +172,7 @@ public class ShapeletTransformFactory
         
         //transform.setSubSeqDistance(new ImprovedOnlineSubSeqDistance());
         transform.setShapeletMinAndMax(3, numAttributes);
-        transform.setNumberOfShapelets(numInstances*10);
+        transform.setNumberOfShapelets(numInstances);
         transform.useCandidatePruning();
         transform.turnOffLog();
         
@@ -386,6 +387,70 @@ public class ShapeletTransformFactory
         return Math.min(result.doubleValue(), 1.0); //return the proportion of n.
     }
     
+    // added by JAL - both edited versions of ST_Ensemble.createTransformData
+    // param changed to hours from nanos to make it human readable
+    // seed included; set to 0 by default in ST_Ensemble, so same behaviour included unless specified
+    public static ShapeletTransform createTransformWithTimeLimit(Instances train, double hours){
+        return createTransformWithTimeLimit(train, hours, 0);
+    }
+    public static ShapeletTransform createTransformWithTimeLimit(Instances train, double hours, int seed){
+        int minimumRepresentation = ST_Ensemble.minimumRepresentation;
+        long nanoPerHour = 3600000000000l;
+        long time = (long)(nanoPerHour*hours);
+        
+        int n = train.numInstances();
+        int m = train.numAttributes()-1;
+
+        ShapeletTransform transform;
+        //construct shapelet classifiers from the factory.
+        transform = ShapeletTransformFactory.createTransform(train);
+        
+        //Stop it printing everything
+        transform.supressOutput();
+        
+        //at the moment this could be overrided.
+        //transform.setSearchFunction(new LocalSearch(3, m, 10, seed));
+
+        BigInteger opCountTarget = new BigInteger(Long.toString(time / nanoToOp));
+        
+        BigInteger opCount = ShapeletTransformFactory.calculateOps(n, m, 1, 1);
+        
+        //we need to resample.
+        if(opCount.compareTo(opCountTarget) == 1){
+            
+            double recommendedProportion = ShapeletTransformFactory.calculateN(n, m, time);
+            
+            //calculate n for minimum class rep of 25.
+            int small_sf = InstanceTools.findSmallestClassAmount(train);           
+            double proportion = 1.0;
+            if (small_sf>minimumRepresentation){
+                proportion = (double)minimumRepresentation/(double)small_sf;
+            }
+            
+            //if recommended is smaller than our cutoff threshold set it to the cutoff.
+            if(recommendedProportion < proportion){
+                recommendedProportion = proportion;
+            }
+            
+            //subsample out dataset.
+            Instances subsample = utilities.InstanceTools.subSampleFixedProportion(train, recommendedProportion, seed);
+            
+            int i=1;
+            //if we've properly resampled this should pass on first go. IF we haven't we'll try and reach our target. 
+            //calculate N is an approximation, so the subsample might need to tweak q and p just to bring us under. 
+            while(ShapeletTransformFactory.calculateOps(subsample.numInstances(), m, i, i).compareTo(opCountTarget) == 1){
+                i++;
+            }
+            double percentageOfSeries = (double)i/(double)m * 100.0;
+            
+            //we should look for less shapelets if we've resampled. 
+            //e.g. Eletric devices can be sampled to from 8000 for 2000 so we should be looking for 20,000 shapelets not 80,000
+            transform.setNumberOfShapelets(subsample.numInstances());
+            transform.setSearchFunction(new ShapeletSearch(3, m, i, i));
+            transform.process(subsample);
+        }
+        return transform;
+    }
     
     
     public static void main(String[] args) throws IOException

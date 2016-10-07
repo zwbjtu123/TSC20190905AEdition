@@ -7,6 +7,8 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Random;
 import java.util.Scanner;
+import tsc_algorithms.cote.HiveCoteModule;
+//import tsc_algorithms.cote.HiveCoteModule;
 import tsc_algorithms.elastic_ensemble.DTW1NN;
 import tsc_algorithms.elastic_ensemble.ED1NN;
 import tsc_algorithms.elastic_ensemble.ERP1NN;
@@ -15,6 +17,7 @@ import tsc_algorithms.elastic_ensemble.LCSS1NN;
 import tsc_algorithms.elastic_ensemble.MSM1NN;
 import tsc_algorithms.elastic_ensemble.TWE1NN;
 import tsc_algorithms.elastic_ensemble.WDTW1NN;
+import utilities.ClassifierTools;
 import weka.classifiers.Classifier;
 import weka.core.Capabilities;
 import weka.core.Instance;
@@ -25,15 +28,10 @@ import weka.filters.timeseries.DerivativeFilter;
  *
  * @author sjx07ngu
  */
-public class ElasticEnsemble implements Classifier{
+public class ElasticEnsemble implements Classifier, HiveCoteModule{
+//public class ElasticEnsemble implements Classifier{
 
-    // utility to enable AJBs COTE 
-    double[] previousPredictions = null;
-
-    @Override
-    public Capabilities getCapabilities() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
+    
     
     public enum ConstituentClassifiers{ 
         Euclidean_1NN, 
@@ -63,6 +61,7 @@ public class ElasticEnsemble implements Classifier{
     private int resampleId;
     private String resultsDir;
     private double[] cvAccs;
+    private double[][] cvPreds;
     
     private boolean buildFromFile = false;
     private boolean writeToFile = false;
@@ -72,6 +71,98 @@ public class ElasticEnsemble implements Classifier{
     
     private boolean usesDer = false;
     private static DerivativeFilter df = new DerivativeFilter();
+    
+    // utility to enable AJBs COTE 
+    double[] previousPredictions = null;
+    
+    double ensembleCvAcc =-1;
+    double[] ensembleCvPreds = null;
+
+    @Override
+    public Capabilities getCapabilities() {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    
+    public String[] getIndividualClassifierNames() {
+        String[] names= new String[this.classifiersToUse.length];
+        for(int i  = 0; i < classifiersToUse.length; i++){
+            names[i] = classifiersToUse[i].toString();
+        }
+        return names;
+    }
+
+    
+    public double[] getIndividualCVAccs() {
+        return this.cvAccs;
+    }
+
+//    @Override
+    public double getEnsembleCvAcc() {
+        if(this.ensembleCvAcc != -1 && this.ensembleCvPreds!=null){
+            return this.ensembleCvAcc;
+        }
+        
+        this.getEnsembleCvPredictions();
+        return this.ensembleCvAcc;
+    }
+
+//    @Override
+    public double[] getEnsembleCvPredictions() {
+        if(this.ensembleCvPreds!=null){
+            return this.ensembleCvPreds;
+        }
+        
+        this.ensembleCvPreds = new double[train.numInstances()];
+        
+        double actual, pred;
+        double bsfWeight;
+        int correct = 0;
+        ArrayList<Double> bsfClassVals;
+        double[] weightByClass;
+        for(int i = 0; i < train.numInstances(); i++){
+            actual = train.instance(i).classValue();
+            bsfClassVals = null;
+            bsfWeight = -1;
+            weightByClass = new double[train.numClasses()];
+
+            for(int c = 0; c < classifiers.length; c++){
+                weightByClass[(int)this.cvPreds[c][i]]+=this.cvAccs[c];
+                
+                if(weightByClass[(int)this.cvPreds[c][i]] > bsfWeight){
+                    bsfWeight = weightByClass[(int)this.cvPreds[c][i]];
+                    bsfClassVals = new ArrayList<>();
+                    bsfClassVals.add(this.cvPreds[c][i]);
+                }else if(weightByClass[(int)this.cvPreds[c][i]] == bsfWeight){
+                    bsfClassVals.add(this.cvPreds[c][i]);
+                }
+            }
+            
+            if(bsfClassVals.size()>1){
+                pred = bsfClassVals.get(new Random().nextInt(bsfClassVals.size()));
+            }else{
+                pred = bsfClassVals.get(0);
+            }
+            
+            if(pred==actual){
+                correct++;
+            }
+            this.ensembleCvPreds[i]=pred;
+        }
+        
+        this.ensembleCvAcc = (double)correct/train.numInstances();
+        return this.ensembleCvPreds;
+    }
+
+//    @Override
+    public double[] getIndividualCvAccs() {
+        return this.cvAccs;
+    }
+
+//    @Override
+    public double[][] getIndividualCvPredictions() {
+        return this.cvPreds;
+    }
     
     /**
      * Default constructor; includes all constituent classifiers
@@ -145,8 +236,9 @@ public class ElasticEnsemble implements Classifier{
         this.derTrain = null;
         usesDer = false;
         
-        classifiers = new Efficient1NN[this.classifiersToUse.length];
-        cvAccs = new double[classifiers.length];
+        this.classifiers = new Efficient1NN[this.classifiersToUse.length];
+        this.cvAccs = new double[classifiers.length];
+        this.cvPreds = new double[classifiers.length][this.train.numInstances()];
         
         for(int c = 0; c < classifiers.length; c++){
             classifiers[c] = getClassifier(this.classifiersToUse[c]);
@@ -175,6 +267,11 @@ public class ElasticEnsemble implements Classifier{
                 paramId = Integer.parseInt(scan.next().trim().split(",")[0]);
                 cvAcc = Double.parseDouble(scan.next().trim().split(",")[0]);
                 
+                for(int i = 0; i < train.numInstances(); i++){
+                    this.cvPreds[c][i] = Double.parseDouble(scan.next().split(",")[1]);
+                }
+                
+                scan.close();
                 if(isDerivative(classifiersToUse[c])){
                     if(!isFixedParam(classifiersToUse[c])){
                         classifiers[c].setParamsFromParamId(derTrain, paramId);
@@ -189,15 +286,20 @@ public class ElasticEnsemble implements Classifier{
                 cvAccs[c] = cvAcc;
             }
         }else{
-                
+            double[] cvAccAndPreds;
             for(int c = 0; c < classifiers.length; c++){
                 if(writeToFile){
                     classifiers[c].setFileWritingOn(this.resultsDir, this.datasetName, this.resampleId);
                 }
                 if(isDerivative(classifiersToUse[c])){
-                    cvAccs[c] = classifiers[c].loocv(derTrain)[0];
+                    cvAccAndPreds = classifiers[c].loocv(derTrain);
                 }else{
-                    cvAccs[c] = classifiers[c].loocv(train)[0];
+                    cvAccAndPreds = classifiers[c].loocv(train);
+                }
+                
+                cvAccs[c] = cvAccAndPreds[0];
+                for(int i = 0; i < train.numInstances(); i++){
+                    this.cvPreds[c][i] = cvAccAndPreds[i+1];
                 }
             }
         }
@@ -302,6 +404,18 @@ public class ElasticEnsemble implements Classifier{
         return bsfClassVal.get(0);
     }
     
+    public double[] classifyInstanceByConstituents(Instance instance) throws Exception{
+        Instance ins = instance;
+        
+        double[] predsByClassifier = new double[this.classifiers.length];
+                
+        for(int i=0;i<classifiers.length;i++){
+            predsByClassifier[i] = classifiers[i].classifyInstance(ins);
+        }
+        
+        return predsByClassifier;
+    }
+    
     public double[] getPreviousPredictions() throws Exception{
         if(this.previousPredictions == null){
             throw new Exception("Error: no previous instance found");
@@ -376,13 +490,26 @@ public class ElasticEnsemble implements Classifier{
     
     public static void exampleUsage(String datasetName, int resampeId, String outputResultsDirName) throws Exception{
         
-        
+        System.out.println("to do");
         
     }
     
     public static void main(String[] args) throws Exception{
 
+        ElasticEnsemble ee = new ElasticEnsemble();
+        Instances train = ClassifierTools.loadData("C:/users/sjx07ngu/dropbox/tsc problems/ItalyPowerDemand/ItalyPowerDemand_TRAIN");
+        Instances test = ClassifierTools.loadData("C:/users/sjx07ngu/dropbox/tsc problems/ItalyPowerDemand/ItalyPowerDemand_TEST");
+        ee.buildClassifier(train);
         
+        int correct = 0;
+        for(int i = 0; i < test.numInstances(); i++){
+            if(test.instance(i).classValue()==ee.classifyInstance(test.instance(i))){
+                correct++;
+            }
+        }
+        System.out.println("correct: "+correct+"/"+test.numInstances());
+        System.out.println((double)correct/test.numInstances());
+        System.out.println(ee.getEnsembleCvAcc());
     }
 }
 

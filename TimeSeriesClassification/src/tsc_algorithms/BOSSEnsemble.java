@@ -14,6 +14,7 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import tsc_algorithms.cote.HiveCoteModule;
 import utilities.ClassifierTools;
 import utilities.InstanceTools;
 import utilities.SaveCVAccuracy;
@@ -30,7 +31,7 @@ import weka.classifiers.Classifier;
  * 
  * @author James Large
  */
-public class BOSSEnsemble implements Classifier, SaveCVAccuracy {
+public class BOSSEnsemble implements Classifier, SaveCVAccuracy, HiveCoteModule {
     
     private List<BOSSWindow> classifiers; 
 
@@ -61,6 +62,9 @@ public class BOSSEnsemble implements Classifier, SaveCVAccuracy {
     
     private String trainCVPath;
     private boolean trainCV=false;
+
+    private Instances train;
+    private double ensembleCvAcc = -1;
     
     /**
      * Providing a particular value for normalisation will force that option, if 
@@ -240,6 +244,9 @@ public class BOSSEnsemble implements Classifier, SaveCVAccuracy {
     
     @Override
     public void buildClassifier(final Instances data) throws Exception {
+        
+        this.train=data;
+        
         if (data.classIndex() != data.numAttributes()-1)
             throw new Exception("BOSSEnsemble_BuildClassifier: Class attribute not set as last attribute in dataset");
  
@@ -336,6 +343,7 @@ public class BOSSEnsemble implements Classifier, SaveCVAccuracy {
             double[][] results = findEnsembleTrainAcc(data);
             of.writeLine(getParameters());
             of.writeLine(results[0][0]+"");
+            ensembleCvAcc = results[0][0];
             for(int i=1;i<results[0].length;i++)
                 of.writeLine(results[0][i]+","+results[1][i]);
             System.out.println("CV acc ="+results[0][0]);
@@ -360,6 +368,19 @@ public class BOSSEnsemble implements Classifier, SaveCVAccuracy {
         //TODO fill results[1][0]
         
         return results;
+    }
+    
+    public double getEnsembleCvAcc(){
+        if(ensembleCvAcc>=0){
+            return this.ensembleCvAcc;
+        }
+        
+        try{
+            return this.findEnsembleTrainAcc(train)[0][0];
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+        return -1;
     }
     
     /**

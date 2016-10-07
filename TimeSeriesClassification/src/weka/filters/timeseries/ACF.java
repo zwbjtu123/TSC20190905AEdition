@@ -8,7 +8,7 @@ import java.util.logging.Logger;
 import utilities.ClassifierTools;
 import utilities.InstanceTools;
 import weka.classifiers.bayes.NaiveBayes;
-import weka.classifiers.meta.timeseriesensembles.HESCA;
+import weka.classifiers.meta.timeseriesensembles.depreciated.HESCA_05_10_16;
 //import simulators.SimulateAR;
 //import weka.classifiers.evaluation.ClassifierTools;
 import weka.core.Attribute;

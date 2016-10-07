@@ -1,5 +1,7 @@
 /**
- *
+ * NOTE: this class is being reimplemented in FlatCOTE. Please see tsc_algorithms.cote.FlatCote.java and tsc_algorithms.cote.HiveCote.java for up-to-date implementations.
+ * 
+ * 
  * @author ajb. This class implements the Flat-COTE classifer described in the paper
  * 
  * Please note that although building the classifier in the way described in
@@ -14,11 +16,12 @@
  */
 
 
-package tsc_algorithms;
+package tsc_algorithms.depreciated;
 
+import tsc_algorithms.ElasticEnsemble;
 import utilities.ClassifierTools;
 import weka.classifiers.AbstractClassifier;
-import weka.classifiers.meta.timeseriesensembles.HESCA;
+import weka.classifiers.meta.timeseriesensembles.depreciated.HESCA_05_10_16;
 import weka.core.*;
 import weka.core.shapelet.QualityMeasures;
 import weka.filters.timeseries.ACF;
@@ -27,9 +30,9 @@ import weka.filters.timeseries.shapelet_transforms.ShapeletTransform;
 import weka.filters.timeseries.shapelet_transforms.subsequenceDist.OnlineSubSeqDistance;
 
 public class COTE extends AbstractClassifier{
-    HESCA change;
-    HESCA powerSpectrum;
-    HESCA shapelet;
+    HESCA_05_10_16 change;
+    HESCA_05_10_16 powerSpectrum;
+    HESCA_05_10_16 shapelet;
     ElasticEnsemble ee;
     int nosTransforms=4;
     Instances train;
@@ -38,18 +41,18 @@ public class COTE extends AbstractClassifier{
     double[]  psCVAccs;           
     double[] shapeletCVAccs;
     double[] elasticCVAccs;
-    HESCA.WeightType weightType=HESCA.WeightType.PROPORTIONAL;
+    HESCA_05_10_16.WeightType weightType=HESCA_05_10_16.WeightType.PROPORTIONAL;
     public void setWeightType(String s){
         String str=s.toUpperCase();
         switch(str){
             case "EQUAL": case "EQ": case "E":
-                weightType=HESCA.WeightType.EQUAL;
+                weightType=HESCA_05_10_16.WeightType.EQUAL;
                 break;
             case "BEST": case "B":
-                weightType=HESCA.WeightType.BEST;
+                weightType=HESCA_05_10_16.WeightType.BEST;
                 break;
             case "PROPORTIONAL": case "PROP": case "P":
-                weightType=HESCA.WeightType.PROPORTIONAL;
+                weightType=HESCA_05_10_16.WeightType.PROPORTIONAL;
                 break;
  /* NOT IMPLEMENTED YET IN THIS VERSION
             case "SIGNIFICANT_BINOMIAL": case "SIGB": case "SIG": case "S":
@@ -63,7 +66,7 @@ public class COTE extends AbstractClassifier{
                 throw new UnsupportedOperationException("Weighting method "+str+" not supported yet.");       
         }
     }
-    public void setWeightType(HESCA.WeightType w){
+    public void setWeightType(HESCA_05_10_16.WeightType w){
         weightType=w;
     }
     public double[] getCVAccs(){
@@ -92,16 +95,16 @@ public class COTE extends AbstractClassifier{
         shapeletT.setQualityMeasure(QualityMeasures.ShapeletQualityChoice.F_STAT);
         Instances shapeletTrain=shapeletT.process(train);
  //Build all the classifiers       
-        change=new HESCA();
-        change.setWeightType(HESCA.WeightType.PROPORTIONAL);
+        change=new HESCA_05_10_16();
+        change.setWeightType(HESCA_05_10_16.WeightType.PROPORTIONAL);
         change.buildClassifier(changeTrain);
 
-        powerSpectrum=new HESCA();
-        powerSpectrum.setWeightType(HESCA.WeightType.PROPORTIONAL);
+        powerSpectrum=new HESCA_05_10_16();
+        powerSpectrum.setWeightType(HESCA_05_10_16.WeightType.PROPORTIONAL);
         powerSpectrum.buildClassifier(psTrain);
 
-        shapelet=new HESCA();
-        shapelet.setWeightType(HESCA.WeightType.PROPORTIONAL);
+        shapelet=new HESCA_05_10_16();
+        shapelet.setWeightType(HESCA_05_10_16.WeightType.PROPORTIONAL);
         shapelet.buildClassifier(shapeletTrain);
         
 //Elastic ensemble

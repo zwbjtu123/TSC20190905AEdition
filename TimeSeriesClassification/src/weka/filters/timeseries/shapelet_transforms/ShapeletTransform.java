@@ -28,7 +28,7 @@ import java.util.logging.Logger;
 import utilities.ClassifierTools;
 import utilities.class_distributions.ClassDistribution;
 import weka.classifiers.meta.RotationForest;
-import weka.classifiers.meta.timeseriesensembles.HESCA;
+import weka.classifiers.meta.timeseriesensembles.depreciated.HESCA_05_10_16;
 import weka.core.*;
 import weka.core.shapelet.*;
 import weka.filters.SimpleBatchFilter;

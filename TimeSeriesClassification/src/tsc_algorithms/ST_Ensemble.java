@@ -9,7 +9,7 @@ import java.math.BigInteger;
 import utilities.ClassifierTools;
 import utilities.InstanceTools;
 import weka.classifiers.AbstractClassifier;
-import weka.classifiers.meta.timeseriesensembles.HESCA;
+import weka.classifiers.meta.timeseriesensembles.depreciated.HESCA_05_10_16;
 import weka.core.Instance;
 import weka.core.Instances;
 import weka.filters.timeseries.shapelet_transforms.ShapeletTransform;
@@ -26,10 +26,10 @@ public class ST_Ensemble  extends AbstractClassifier implements SaveableEnsemble
     public enum ST_TimeLimit {MINUTE, HOUR, DAY};
 
     //Minimum number of instances per class in the train set
-    private static final int minimumRepresentation = 25;
+    public static final int minimumRepresentation = 25;
     
     
-    private HESCA hesca;
+    private HESCA_05_10_16 hesca;
     private ShapeletTransform transform;
     private Instances format;
     int[] redundantFeatures;
@@ -106,7 +106,7 @@ public class ST_Ensemble  extends AbstractClassifier implements SaveableEnsemble
     public void buildClassifier(Instances data) throws Exception {
         format = doTransform ? createTransformData(data, timeLimit) : data;
         
-        hesca=new HESCA();
+        hesca=new HESCA_05_10_16();
         hesca.setWeightType("prop");
                 
         redundantFeatures=InstanceTools.removeRedundantTrainAttributes(format);

@@ -33,7 +33,7 @@ public class TWE1NN extends Efficient1NN{
         0.05,
         0.1,
         0.5,
-        1,// </editor-fold>
+        1,// </editor-fold>    
     };
 
     protected static double[] twe_lamdaParams = {

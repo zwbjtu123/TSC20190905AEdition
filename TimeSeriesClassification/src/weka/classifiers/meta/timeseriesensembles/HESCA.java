@@ -1,356 +1,398 @@
-/*
- this classifier does none of the transformations. It simply loads the 
- * problems it is told to. In build classifier it can load the CV weights or 
-find them, by default through LOOCV. For classifiers, it defaults to a standard 
-set with default parameters. Alternatively, you can set the classifiers and 
-for certain types set the parameters through CV. 
+/**
+ * NOTE: consider this code experimental. This is a first pass and may not be final; it has been informally tested but awaiting rigurous testing before being signed off.
+ * Also note that file writing/reading from file is not currently supported (will be added soon)
  */
+
 package weka.classifiers.meta.timeseriesensembles;
 
-import development.DataSets;
-import fileIO.InFile;
-import fileIO.OutFile;
-import java.io.File;
-import java.text.DecimalFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Random;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import tsc_algorithms.cote.HiveCoteModule;
+//import tsc_algorithms.cote.HiveCoteModule;
 import utilities.ClassifierTools;
-import utilities.SaveCVAccuracy;
-import weka.classifiers.*;
+import weka.classifiers.AbstractClassifier;
+import weka.classifiers.Classifier;
 import weka.classifiers.bayes.BayesNet;
 import weka.classifiers.bayes.NaiveBayes;
 import weka.classifiers.functions.SMO;
 import weka.classifiers.functions.supportVector.PolyKernel;
 import weka.classifiers.lazy.kNN;
 import weka.classifiers.meta.RotationForest;
-import weka.classifiers.rules.ZeroR;
+import weka.classifiers.meta.timeseriesensembles.depreciated.HESCA_05_10_16;
 import weka.classifiers.trees.EnhancedRandomForest;
 import weka.classifiers.trees.J48;
 import weka.classifiers.trees.RandomForest;
-import weka.core.*;
+import weka.core.EuclideanDistance;
+import weka.core.Instance;
+import weka.core.Instances;
+import weka.filters.SimpleBatchFilter;
+import weka.filters.timeseries.shapelet_transforms.ShapeletTransform;
+import weka.filters.timeseries.shapelet_transforms.ShapeletTransformFactory;
 
 /**
  *
- * @author ajb: Described in draft paper
- * 
- * The Heterogeneous Ensemble of Standard Classification Algorithms (HESCA)
- * We use a Heterogeneous Ensemble of Standard Classification Algorithms (HESCA) that includes eight classifiers, two of which themselves are ensembles: $k$ Nearest Neighbour; Naive Bayes; C4.5 decision tree; Support Vector Machines with linear and quadratic basis function kernels; Random Forest (with 500 trees); Rotation Forest (with 50 trees); and a Bayesian network. These classifiers are chosen to give us a balance between probabilistic, instance based and tree based classifiers. A simple majority voting scheme is inappropriate for HESC; it would not capture the relative performance of classifier on any given dataset. Instead, each classifier is assigned a weight based on the ten fold cross validation training accuracy, and new data (after transformation) are classified with a vote weighted by cross validation accuracy. All the classifiers are the standard Weka implementations and with the exception of $k$-NN (where $k$ is set through cross validation at minimal cost), we do not optimise parameter settings or perform model selection for these classifiers. 
+ * @author Jason Lines (j.lines@uea.ac.uk)
  */
-public class HESCA extends AbstractClassifier implements SaveCVAccuracy, SaveableEnsemble {
-//The McNemar test requires the actual predictions of each classifier. The others can be found directly
-//from the CV accuracy.    
-    Instances train;
-    Classifier[] c;
-    ArrayList<String> classifierNames;
-    double[] cvAccs;
-    double[] weights;
-    boolean loadCVWeights=false;
-    String cvFile="";
-    public static int MAX_NOS_FOLDS=100;
-    Random r= new Random();
-    boolean setSeed=false;
-    int seed;
-    boolean saveTrain=false;
-    boolean saveTest=false;
-/* Train results are overwritten with each call to buildClassifier
-    File opened on this path.   */    
-    String trainDataResultsPath;
-/*Test data must be explicitly closed in order to overwrite, otherwise it is kept
-  open over different calls to classifyInstance   */
-    OutFile testData;
-    boolean memoryClean=true;
-    @Override
-    public void saveResults(String tr, String te){
-        setCVPath(tr);
-        saveTestPreds(te);
+
+// NOTE: this version doesn't currently support file writing (to-do)
+
+public class HESCA extends AbstractClassifier implements HiveCoteModule{
+//public class HESCA extends AbstractClassifier {
+
+    private final SimpleBatchFilter transform;
+    private double[] individualCvAccs;
+    private double[][] individualCvPreds;
+    private double[] ensembleCvPreds;
+    private double ensembleCvAcc;
+    
+    private boolean setSeed = false;
+    private int seed;
+    
+    private Classifier[] classifiers;
+    private String[] classifierNames;
+    
+    private Instances train;
+    
+    public HESCA(SimpleBatchFilter transform) {
+        this.transform = transform;
+        this.setDefaultClassifiers();
     }
     
-
-    public enum WeightType{EQUAL,BEST,PROPORTIONAL,FIXED,SIGNIFICANT_BINOMIAL,SIGNIFICANT_MCNEMAR};
-    WeightType w;
-    public HESCA(){
-        w=WeightType.PROPORTIONAL;
-        classifierNames=new ArrayList<String>();
-        c=setDefaultClassifiers(classifierNames);
-        weights=new double[c.length];
-        cvAccs=new double[c.length];
-    }
-    public HESCA(Classifier[] cl,ArrayList<String> names){
-        w=WeightType.PROPORTIONAL;
-        setClassifiers(cl,names);
-        weights=new double[c.length];
-        cvAccs=new double[c.length];
-    }
-    public void loadCVWeights(String file){
-        loadCVWeights=true;
-        cvFile=file;
-        w= WeightType.FIXED;
-    }
-    public void setRandSeed(int s){
-        r=new Random(s);
-        setSeed=true;
-        seed=s;
-    }
-    public void setWeightType(WeightType a){w=a;}
-    public void setWeightType(String s){
-        String str=s.toUpperCase();
-        switch(str){
-            case "EQUAL": case "EQ": case "E":
-                w=WeightType.EQUAL;
-                break;
-            case "BEST": case "B":
-                w=WeightType.BEST;
-                break;
-            case "PROPORTIONAL": case "PROP": case "P":
-                w=WeightType.PROPORTIONAL;
-                break;
- /*            case "SIGNIFICANT_BINOMIAL": case "SIGB": case "SIG": case "S":
-                w=WeightType.SIGNIFICANT_BINOMIAL;
-                break;
-            case "SIGNIFICANT_MCNEMAR": case "SIGM": case "SM":
-                w=WeightType.SIGNIFICANT_MCNEMAR;
-                break;
- */      
-            default:
-                throw new UnsupportedOperationException("Weighting method "+str+" not supported yet.");       
-        }
-   
-    }
-
-    
-    public void setCVPath(String s){
-        saveTrain=true;
-        trainDataResultsPath=s;
-    }
-    public String getParameters(){
-        String p="";
-        p+="NosClassifiers,"+c.length+",type,"+w;
-        return p;
-    }
-    public void saveTestPreds(String s){
-        saveTest=true;
-        testData=new OutFile(s);
+    public HESCA() {
+        this.transform = null;
+        this.setDefaultClassifiers();
     }
     
-    
-/*The classifiers used are the WEKA [26] implementations
-of k Nearest Neighbour (where k is set through cross
-validation), Naive Bayes, C4.5 decision tree [27], Support
-Vector Machines [28] with linear and quadratic basis
-function kernels, Random Forest [29] (with 500 trees), Ro-
-tation Forest [30] (with 50 trees), and a Bayesian network.
- */       
-    final public Classifier[] setDefaultClassifiers(ArrayList<String> names){
-            ArrayList<Classifier> classifiers=new ArrayList<>();
-            kNN k=new kNN(100);
-            k.setCrossValidate(true);
-            k.normalise(false);
-            k.setDistanceFunction(new EuclideanDistance());
-            classifiers.add(k);
-            names.add("NN");
-            
-            classifiers.add(new NaiveBayes());
-            names.add("NB");
-            J48 tree = new J48();
-//            tree.setMinNumObj(5);
-            classifiers.add(tree);
-            names.add("C45");
-            SMO svm=new SMO();
-            PolyKernel kernel = new PolyKernel();
-            kernel.setExponent(1);
-            svm.setKernel(kernel);
-            if(setSeed)
-                svm.setRandomSeed(seed);
-            classifiers.add(svm);
-            names.add("SVML");
-            svm=new SMO();
-            kernel = new PolyKernel();
-            kernel.setExponent(2);
-            svm.setKernel(kernel);
-            if(setSeed)
-               svm.setRandomSeed(seed);
-            classifiers.add(svm);
-            names.add("SVMQ");
-            RandomForest r=new EnhancedRandomForest();
-            r.setNumTrees(500);
-            if(setSeed)
-               r.setSeed(seed);            
-            classifiers.add(r);
-            names.add("RandF");
-            RotationForest rf=new RotationForest();
-            rf.setNumIterations(50);
-            if(setSeed)
-               rf.setSeed(seed);
-            classifiers.add(rf);
-            names.add("RotF");
-            BayesNet bn=new BayesNet();
-            classifiers.add(bn);
-            names.add("bayesNet");
-            
-            
-            Classifier[] sc=new Classifier[classifiers.size()];
-            for(int i=0;i<sc.length;i++)
-                    sc[i]=classifiers.get(i);
-
-            return sc;
+    public HESCA(SimpleBatchFilter transform, Classifier[] classifiers, String[] classifierNames) {
+        this.transform = transform;
+        this.classifiers = classifiers;
+        this.classifierNames = classifierNames;
     }
-
-
-    final public void setClassifiers(Classifier[] cl,  ArrayList<String> names){
-        c=cl;
-        classifierNames=new ArrayList<>(names);
-        weights=new double[c.length];
-        cvAccs=new double[c.length];
-    }
-
-    public final double[] getWeights(){ return weights;}
-    public final double[] getCVAccs(){ return cvAccs;}
     
-    @Override
-    public void buildClassifier(Instances data) throws Exception {
-        train = data;
+    public final void setDefaultClassifiers(){
+        this.classifiers = new Classifier[8];
+        this.classifierNames = new String[8];
         
+        kNN k=new kNN(100);
+        k.setCrossValidate(true);
+        k.normalise(false);
+        k.setDistanceFunction(new EuclideanDistance());
+        classifiers[0] = k;
+        classifierNames[0] = "NN";
+            
+        classifiers[1] = new NaiveBayes();
+        classifierNames[1] = "NB";
         
-        if(data.numInstances()>500 || data.numAttributes()>500)
-            MAX_NOS_FOLDS=10;
-        OutFile of=null;
-        if(saveTrain){
-            of=new OutFile(trainDataResultsPath);
-            for(String s:classifierNames)
-                of.writeString(s+",");
-            of.writeString("\n");
+        classifiers[2] = new J48();
+        classifierNames[2] = "C4.5";
+            
+        SMO svml = new SMO();
+        PolyKernel kl = new PolyKernel();
+        kl.setExponent(1);
+        svml.setKernel(kl);
+        if(setSeed)
+            svml.setRandomSeed(seed);
+        classifiers[3] = svml;
+        classifierNames[3] = "SVML";
+        
+        SMO svmq =new SMO();
+        PolyKernel kq = new PolyKernel();
+        kq.setExponent(2);
+        svmq.setKernel(kq);
+        if(setSeed)
+           svmq.setRandomSeed(seed);
+        classifiers[4] =svmq;
+        classifierNames[4] = "SVMQ";
+        
+        RandomForest r=new EnhancedRandomForest();
+        r.setNumTrees(500);
+        if(setSeed)
+           r.setSeed(seed);            
+        classifiers[5] = r;
+        classifierNames[5] = "RandF";
+            
+            
+        RotationForest rf=new RotationForest();
+        rf.setNumIterations(50);
+        if(setSeed)
+           rf.setSeed(seed);
+        classifiers[6] = rf;
+        classifierNames[6] = "RotF";
+        
+        classifiers[7] = new BayesNet();
+        classifierNames[7] = "bayesNet";    
+    }
+    
+    public void setSeed(int seed){
+        this.setSeed = true;
+        this.seed = seed;
+    }
+    
+    public double[] crossValidate(Classifier classifier, Instances train) throws Exception{
+        
+        int numFolds = train.numInstances();
+        if(numFolds>HESCA_05_10_16.MAX_NOS_FOLDS){
+            numFolds = HESCA_05_10_16.MAX_NOS_FOLDS;
+        }      
+               
+        Random r = null;
+        if(this.setSeed){
+            r = new Random(this.seed);
+        }else{
+            r = new Random();
         }
-//load CV, classifiers and parameter sets        
-        if(w==WeightType.FIXED){
-            if(!(new File(cvFile).exists())){
-                //ERRROR, FILE DOES NOT EXIST
-                System.out.println("ERROR: FILE "+cvFile+" DOES NOT EXIST .. its going to crash now ...");
-            }
-            InFile inf=new InFile(cvFile);
-            inf.readLine(); //Header
-            double sum=0;
-            for(int i=0;i<c.length;i++){
-                cvAccs[i]=inf.readDouble();
-//                System.out.println(" CV ACC ="+cvAccs[i]);
-                sum+=cvAccs[i];
-            }
-//Train classifiers           
-            for(int i=0;i<c.length;i++)
-                weights[i]=cvAccs[i]/sum;
-            for(int i=0;i<c.length;i++)
-                c[i].buildClassifier(train);
+        ArrayList<Instances> folds = new ArrayList<>();
+        ArrayList<ArrayList<Integer>> foldIndexing = new ArrayList<>();
+        
+        for(int i = 0; i < numFolds; i++){
+            folds.add(new Instances(train,0));
+            foldIndexing.add(new ArrayList<>());
         }
-//If using equal weighting, set cvAcc to 1 and weights to 1/nosClassifiers        
-        else if(w==WeightType.EQUAL){
-            for(int i=0;i<c.length;i++){
-                cvAccs[i]=1;
-                weights[i]=1/(double)c.length;
-            }
-//Final train            
-            for(int i=0;i<c.length;i++)
-                c[i].buildClassifier(train);
+        
+        ArrayList<Integer> instanceIds = new ArrayList<>();
+        for(int i = 0; i < train.numInstances(); i++){
+            instanceIds.add(i);
         }
-//Else, find the cvAccs of the classifier through CV, then weight proportionally
-//All weight types will require this        
-        else{
-            double sum=0;
-            Evaluation eval;
-            for(int i=0;i<c.length;i++){
-/*Speed things up by using the OOB error rather than the CV error for random forest.                
-    it should be possible to do this for rotation forest also            
-                */
-                if(c[i] instanceof EnhancedRandomForest){
-                    c[i].buildClassifier(train);
-                    cvAccs[i]=1-((EnhancedRandomForest)c[i]).measureOutOfBagError();
-                    sum+=cvAccs[i];
-//                    System.out.println(" OOB ="+(1-cvAccs[i]));
-                }
-                else{
-                    eval=new Evaluation(train);
-    //set the max number of folds to MAX_FOLDS or use LOOCV
-                    int folds=setNumberOfFolds(train);
-//Hugely memory intensive, so clean up if required
-//The CV could be done much more efficiently in memory
-/*There is an unusual problem with NB  and BN. If a subsample has a flat feature
-(or almost flat) the discretisation fails. The hack to sort this is just to ignore
-   these classifiers if it is the case
-                    */
-                    try{    
-                        eval.crossValidateModel(c[i],train,folds,r);
-                        cvAccs[i]=1-eval.errorRate();
-                        c[i].buildClassifier(train);
-                    }catch(Exception e){
-                        System.out.println("Caught illegal argument exception "+e);
-                        cvAccs[i]=0;    //Dont use the classifier
-//Need something there just so it does not crash later
-//But it will never be used                        
-                        c[i]=new ZeroR();
-                        c[i].buildClassifier(train);
-                    }
-/*                    catch(Error e){
-// This is really bad practice, but WEKA ibk throws one of these for 
-//reasons I'm not sure. However, it might completely screw up the system if an 
-//out of memory error is thrown? DONT LEAVE THIS IN                        
-                        System.out.println("Caught an ERROR!?! "+e);
-                        cvAccs[i]=0;               
-                        c[i]=new J48();
-                        c[i].buildClassifier(train);
-                    }
-                        */                         
-                    sum+=cvAccs[i];
-                    if(memoryClean)
-                        System.gc();
+        Collections.shuffle(instanceIds, r);
+        
+        ArrayList<Instances> byClass = new ArrayList<>();
+        ArrayList<ArrayList<Integer>> byClassIndices = new ArrayList<>();
+        for(int i = 0; i < train.numClasses(); i++){
+            byClass.add(new Instances(train,0));
+            byClassIndices.add(new ArrayList<>());
+        }
+        
+        int thisInstanceId;
+        double thisClassVal;
+        for(int i = 0; i < train.numInstances(); i++){
+            thisInstanceId = instanceIds.get(i);
+            thisClassVal = train.instance(thisInstanceId).classValue();
+            
+            byClass.get((int)thisClassVal).add(train.instance(thisInstanceId));
+            byClassIndices.get((int)thisClassVal).add(thisInstanceId);
+        }
+
+         // now stratify        
+        Instances strat = new Instances(train,0);
+        ArrayList<Integer> stratIndices = new ArrayList<>();
+        int stratCount = 0;
+        int[] classCounters = new int[train.numClasses()];
+        
+        while(stratCount < train.numInstances()){
+            
+            for(int c = 0; c < train.numClasses(); c++){
+                if(classCounters[c] < byClass.get(c).size()){
+                    strat.add(byClass.get(c).instance(classCounters[c]));
+                    stratIndices.add(byClassIndices.get(c).get(classCounters[c]));
+                    classCounters[c]++;
+                    stratCount++;
                 }
             }
-            for(int i=0;i<c.length;i++)
-                weights[i]=cvAccs[i]/sum;
-            if(saveTrain){
-               for(int i=0;i<c.length;i++)
-                   of.writeString(cvAccs[i]+",");
-               of.writeString("\n"); 
-//Need to store actuals and predicted here, but requires restructuring.
- //              for(int i=0;i<train.numInstances();i++)
- //                  of.writeString((int)train.instance(i).classValue()+",");
-            }            
         }
         
- //If using Best find largest, set to one and others to zero.       
-        if(w==WeightType.BEST){  
-            int bestPos=0;
-            for(int i=1;i<weights.length;i++){
-                if(weights[i]>weights[bestPos])
-                    bestPos=i;
+
+        train = strat;
+        instanceIds = stratIndices;
+       
+        double foldSize = (double)train.numInstances()/numFolds;
+        
+        double thisSum = 0;
+        double lastSum = 0;
+        int floor;
+        int foldSum = 0;
+        
+
+        int currentStart = 0;
+        for(int f = 0; f < numFolds; f++){
+
+            
+            thisSum = lastSum+foldSize+0.000000000001;  // to try and avoid double imprecision errors (shouldn't ever be big enough to effect folds when double imprecision isn't an issue)
+            floor = (int)thisSum;
+            
+            if(f==numFolds-1){
+                floor = train.numInstances(); // to make sure all instances are allocated in case of double imprecision causing one to go missing
             }
-            for(int i=0;i<weights.length;i++){
-                if(i==bestPos)
-                    weights[i]=1;
-                else
-                    weights[i]=0;
+            
+            for(int i = currentStart; i < floor; i++){
+                folds.get(f).add(train.instance(i));
+                foldIndexing.get(f).add(instanceIds.get(i));
+            }
+
+            foldSum+=(floor-currentStart);
+            currentStart = floor;
+            lastSum = thisSum;
+        }
+        
+        if(foldSum!=train.numInstances()){
+            throw new Exception("Error! Some instances got lost file creating folds (maybe a double precision bug). Training instances contains "+train.numInstances()+", but the sum of the training folds is "+foldSum);
+        }
+        
+
+        Instances trainLoocv;
+        Instances testLoocv;
+        
+        double pred, actual;
+        double[] predictions = new double[train.numInstances()];
+        
+        int correct = 0;
+        Instances temp; // had to add in redundant instance storage so we don't keep killing the base set of Instances by mistake
+        
+        for(int testFold = 0; testFold < numFolds; testFold++){
+            
+            trainLoocv = null;
+            testLoocv = new Instances(folds.get(testFold));
+            
+            for(int f = 0; f < numFolds; f++){
+                if(f==testFold){
+                    continue;
+                }
+                temp = new Instances(folds.get(f));
+                if(trainLoocv==null){
+                    trainLoocv = temp;
+                }else{
+                    trainLoocv.addAll(temp);
+                }
+            }
+            
+            classifier.buildClassifier(trainLoocv);
+            for(int i = 0; i < testLoocv.numInstances(); i++){
+                pred = classifier.classifyInstance(testLoocv.instance(i));
+                actual = testLoocv.instance(i).classValue();
+                predictions[foldIndexing.get(testFold).get(i)] = pred;
+                if(pred==actual){
+                    correct++;
+                }
             }
         }
+        
+//        double acc = (double)correct/train.numInstances();
+        return predictions;
     }
-    
-//Stores the current individual classifier predictions for the last call to
-//classifyInstance
-    private double[] predictions;
-    
-    public double[] getPredictions(){ return predictions;}
+
     
     @Override
-    public double[] distributionForInstance(Instance ins) throws Exception{
-        predictions=new double[c.length];
+    public void buildClassifier(Instances input) throws Exception{
+//        template = new Instances(input,0);
+        if(this.transform==null){
+            this.train = input;
+        }else{
+            this.train = transform.process(input);
+        }
+        
+        int correct;  
+        this.individualCvPreds = new double[this.classifiers.length][this.train.numInstances()];
+        this.individualCvAccs = new double[this.classifiers.length];
+        
+        for(int i = 0; i < this.classifiers.length; i++){
+            this.individualCvPreds[i] = crossValidate(this.classifiers[i],this.train);
+            correct = 0;
+            
+            for(int j = 0; j < this.individualCvPreds[i].length; j++){
+                if(train.instance(j).classValue()==this.individualCvPreds[i][j]){
+                    correct++;
+                }
+            }
+            this.individualCvAccs[i] = (double)correct/train.numInstances();
+        }
+        
+        this.ensembleCvPreds = new double[train.numInstances()];
+        
+        double actual, pred;
+        double bsfWeight;
+        correct = 0;
+        ArrayList<Double> bsfClassVals;
+        double[] weightByClass;
+        for(int i = 0; i < train.numInstances(); i++){
+            actual = train.instance(i).classValue();
+            bsfClassVals = null;
+            bsfWeight = -1;
+            weightByClass = new double[train.numClasses()];
+
+            for(int m = 0; m < classifiers.length; m++){
+                weightByClass[(int)individualCvPreds[m][i]]+=this.individualCvAccs[m];
+                
+                if(weightByClass[(int)individualCvPreds[m][i]] > bsfWeight){
+                    bsfWeight = weightByClass[(int)individualCvPreds[m][i]];
+                    bsfClassVals = new ArrayList<>();
+                    bsfClassVals.add(individualCvPreds[m][i]);
+                }else if(weightByClass[(int)individualCvPreds[m][i]] == bsfWeight){
+                    bsfClassVals.add(individualCvPreds[m][i]);
+                }
+            }
+            
+            if(bsfClassVals.size()>1){
+                pred = bsfClassVals.get(new Random().nextInt(bsfClassVals.size()));
+            }else{
+                pred = bsfClassVals.get(0);
+            }
+            
+            if(pred==actual){
+                correct++;
+            }
+            this.ensembleCvPreds[i]=pred;
+        }
+        
+        this.ensembleCvAcc = (double)correct/train.numInstances();
+    }
+
+//    @Override
+    public double getEnsembleCvAcc() {
+        return this.ensembleCvAcc;
+    }
+
+//    @Override
+    public double[] getEnsembleCvPredictions() {
+        return this.ensembleCvPreds;
+    }
+
+//    @Override
+    public double[] getIndividualCvAccs() {
+        return this.individualCvAccs;
+    }
+
+//    @Override
+    public double[][] getIndividualCvPredictions() {
+        return this.individualCvPreds;
+    }
+//
+//    @Override
+//    public double classifyInstance(Instance instance) throws Exception {
+//        if(this.transform!=null){
+//            Instances rawContainer = new Instances(template,0);
+//            rawContainer.add(instance);
+//            Instances converted = transform.process(rawContainer);
+//            return super.classifyInstance(converted.instance(0));
+//        }
+//        return super.classifyInstance(instance);
+//    }
+
+    @Override
+//    public double[] distributionForInstance(Instance instance) throws Exception {
+//        if(this.transform!=null){
+//            Instances rawContainer = new Instances(template,0);
+//            rawContainer.add(instance);
+//            Instances converted = transform.process(rawContainer);
+//            return super.distributionForInstance(converted.instance(0));
+//        }
+//        return super.distributionForInstance(instance);
+//    }
+    public double[] distributionForInstance(Instance instance) throws Exception{
+        Instance ins = instance;
+        if(this.transform!=null){
+            Instances rawContainer = new Instances(instance.dataset(),0);
+            rawContainer.add(instance);
+            Instances converted = transform.process(rawContainer);
+            ins = converted.instance(0);
+        }
+        
+        double thisPred;
         double[] preds=new double[ins.numClasses()];
-        if(saveTest)
-            testData.writeString(ins.classValue()+",");
-        for(int i=0;i<c.length;i++){
-            predictions[i]=c[i].classifyInstance(ins);
-            if(saveTest)
-                testData.writeString(predictions[i]+",");
-
-//            System.out.println(" Classifier "+classifierNames.get(i)+" predicts class "+predictions[i]+" with weight "+weights[i]);
-            preds[(int)predictions[i]]+=weights[i];
+        
+        
+        for(int i=0;i<classifiers.length;i++){
+            thisPred=classifiers[i].classifyInstance(ins);
+            preds[(int)thisPred]+=this.individualCvAccs[i];
         }
         double sum=preds[0];
         for(int i=1;i<preds.length;i++){
@@ -358,100 +400,52 @@ tation Forest [30] (with 50 trees), and a Bayesian network.
         }
         for(int i=0;i<preds.length;i++)
             preds[i]/=sum;
-        if(saveTest){
-            testData.writeString("\n");            
-        }
+
         
         return preds;
     }
-    public ArrayList<String> getNames(){ return classifierNames;}
-
     
-    public static void debugTest(){
-//Basic test of build classifer 
-        String problem="ItalyPowerDemand";
-        Instances train =ClassifierTools.loadData(DataSets.dropboxPath+problem+"\\"+problem+"_TRAIN");
-        Instances test =ClassifierTools.loadData(DataSets.dropboxPath+problem+"\\"+problem+"_TEST");
-        HESCA we = new HESCA();
-//Test equal weight and CV weight for small classifier set
-        DecimalFormat df = new DecimalFormat("###.###");
-        double a;
-        try {
-            Classifier[] c = new Classifier[3];
-            ArrayList<String> names = new ArrayList<>();
-            kNN k=new kNN(100);
-            k.setCrossValidate(true);
-            k.normalise(false);
-            k.setDistanceFunction(new EuclideanDistance());
-            c[0]=k;
-            names.add("NN");
-            c[1]=new NaiveBayes();
-            names.add("NB");
-            c[2]=new J48();
-            names.add("C45");
-            we.setClassifiers(c, names);
-            we.setWeightType("EQUAL");
-            we.buildClassifier(train);
-            a=ClassifierTools.accuracy(test, we);
-            System.out.println(" WE accuracy with equal weight="+a);
-            we.setWeightType("Proportional");
-            we.buildClassifier(train);
-            double[] w=we.getWeights();
-            double[] cv=we.getCVAccs();
-            for(int i=0;i<w.length;i++)
-                System.out.println("Weight ="+df.format(w[i])+" CV ="+df.format(cv[i]));
-            a=ClassifierTools.accuracy(test, we);
-            System.out.println(" WE accuracy with prop weight="+a);
-            
-        } catch (Exception ex) {
-            Logger.getLogger(HESCA.class.getName()).log(Level.SEVERE, null, ex);
-        }
-//Test with standard classifiers
-        try {
-            we = new HESCA();
-            we.setWeightType("Proportional");
-            we.buildClassifier(train);
-            double[] w=we.getWeights();
-            double[] cv=we.getCVAccs();
-            for(int i=0;i<w.length;i++)
-                System.out.println("Weight ="+df.format(w[i])+" CV ="+df.format(cv[i]));
-            a=ClassifierTools.accuracy(test, we);
-            System.out.println(" WE accuracy with prop weight="+a);
-            
-            
-        } catch (Exception ex) {
-            Logger.getLogger(HESCA.class.getName()).log(Level.SEVERE, null, ex);
+    public double[] classifyInstanceByConstituents(Instance instance) throws Exception{
+        Instance ins = instance;
+        if(this.transform!=null){
+            Instances rawContainer = new Instances(instance.dataset(),0);
+            rawContainer.add(instance);
+            Instances converted = transform.process(rawContainer);
+            ins = converted.instance(0);
         }
         
+        double[] predsByClassifier = new double[this.classifiers.length];
+                
+        for(int i=0;i<classifiers.length;i++){
+            predsByClassifier[i] = classifiers[i].classifyInstance(ins);
+        }
         
-    }
-//Test for the ensemble in the spectral data
- /*   public static void testSpectrum() throws Exception{
-        Instances train=ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\Power Spectrum Transformed TSC Problems\\PSItalyPowerDemand\\PSItalyPowerDemand_TRAIN");
-        Instances test=ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\Power Spectrum Transformed TSC Problems\\PSItalyPowerDemand\\PSItalyPowerDemand_TEST");
-        HESCA w=new HESCA();
-        w.buildClassifier(train);
-        System.out.println(" Accuracy ="+ClassifierTools.accuracy(test, w));
+        return predsByClassifier;
     }
     
-*/    
-
-    public static void testFileSave() throws Exception{
-        Instances train= ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\TSC Problems\\ItalyPowerDemand\\ItalyPowerDemand_TRAIN");
-        Instances test= ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\TSC Problems\\ItalyPowerDemand\\ItalyPowerDemand_TEST");
-        HESCA we= new HESCA();
-        we.saveTestPreds("C:\\Users\\ajb\\Dropbox\\TSC Problems\\ItalyPowerDemand\\TestPreds.csv");
-        we.setCVPath("C:\\Users\\ajb\\Dropbox\\TSC Problems\\ItalyPowerDemand\\TrainCV.csv");
-        we.buildClassifier(train);
-        for(Instance ins:test){
-            we.classifyInstance(ins);
-        }
-        
-        
-    }
-
+    
+    
     public static void main(String[] args) throws Exception{
-        testFileSave();
-//            debugTest();
+        Instances train = ClassifierTools.loadData("c:/users/sjx07ngu/dropbox/tsc problems/ItalyPowerDemand/ItalyPowerDemand_TRAIN");
+        Instances test = ClassifierTools.loadData("c:/users/sjx07ngu/dropbox/tsc problems/ItalyPowerDemand/ItalyPowerDemand_TEST");
+        ShapeletTransform st = ShapeletTransformFactory.createTransform(train);
+        HESCA th = new HESCA(st);
+//        EnhancedHESCA th = new EnhancedHESCA();
+        th.buildClassifier(train);
+//        System.out.println(th.getEnsembleCvAcc());
+//        double[] individualCvs = th.getIndividualCvAccs();
+//        for(double acc:individualCvs){
+//            System.out.print(acc+",");
+//        }
+        
+        int correct = 0;
+        for(int i = 0; i < test.numInstances(); i++){
+            if(th.classifyInstance(test.instance(i))==test.instance(i).classValue()){
+                correct++;
+            }
+            System.out.println(th.classifyInstance(test.instance(i))+"\t"+test.instance(i).classValue());
+        }
+        System.out.println(correct+"/"+test.numInstances());
+        System.out.println((double)correct/test.numInstances());
     }
 }
