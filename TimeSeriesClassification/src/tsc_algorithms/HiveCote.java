@@ -32,8 +32,8 @@ public class HiveCote extends AbstractClassifier{
     private boolean verbose = false;
     private int maxCvFolds = 10;// note: this only affects manual CVs from this class using the crossvalidate method. This will not affect internal classifier cv's if they are set within those classes
     
-    public HiveCote(Instances train){
-        this.setDefaultEnsembles(train);
+    public HiveCote(){
+        this.setDefaultEnsembles();
     }
     
     public HiveCote(ArrayList<Classifier> classifiers, ArrayList<String> classifierNames){
@@ -43,16 +43,13 @@ public class HiveCote extends AbstractClassifier{
         Collections.copy(classifierNames, this.names);
     }
 
-    private void setDefaultEnsembles(Instances train){
+    private void setDefaultEnsembles(){
         
         classifiers = new ArrayList<>();
         names = new ArrayList<>();
         
         classifiers.add(new ElasticEnsemble());
-//        ShapeletTransform shoutyThing = ShapeletTransformFactory.createTransform(train);
-        ShapeletTransform shoutyThing = ShapeletTransformFactory.createTransformWithTimeLimit(train, 24); // changed to default to 24 hours max shapelet discovery
-        shoutyThing.supressOutput();
-        classifiers.add(new HESCA(shoutyThing));
+        classifiers.add(new HESCA(new DefaultShapeletTransformPlaceholder()));
         RISE rise = new RISE();
         rise.setTransformType(RISE.Filter.PS_ACF);
         classifiers.add(rise);
@@ -74,6 +71,19 @@ public class HiveCote extends AbstractClassifier{
         
         double ensembleAcc;
         for(int i = 0; i < classifiers.size(); i++){
+            
+            if(classifiers.get(i) instanceof HESCA){
+                System.out.println("found a hesca");
+                if(((HESCA)classifiers.get(i)).getTransform() instanceof DefaultShapeletTransformPlaceholder){
+                    System.out.println("found a placeholder");
+                    classifiers.remove(i);
+                    ShapeletTransform shoutyThing = ShapeletTransformFactory.createTransformWithTimeLimit(train, 24);
+                    shoutyThing.supressOutput();
+                    classifiers.add(i, new HESCA(shoutyThing));
+                    System.out.println("placed a non-shouty shouty thing");
+                }
+            }
+            
             
             // if classifier is an implementation of HiveCoteModule, no need to cv for ensemble accuracy as it can self-report
             // e.g. of the default modules, EE, HESCA, and BOSS should all have this fucntionality (group a); RISE and TSF do not currently (group b) so must manualy cv
@@ -311,6 +321,8 @@ public class HiveCote extends AbstractClassifier{
         }
     }
     
+    private class DefaultShapeletTransformPlaceholder extends ShapeletTransform{}
+    
     public static void main(String[] args) throws Exception{
        
         String datasetName = "ItalyPowerDemand";
@@ -319,10 +331,9 @@ public class HiveCote extends AbstractClassifier{
         Instances train = ClassifierTools.loadData("C:/users/sjx07ngu/dropbox/tsc problems/"+datasetName+"/"+datasetName+"_TRAIN");
         Instances test = ClassifierTools.loadData("C:/users/sjx07ngu/dropbox/tsc problems/"+datasetName+"/"+datasetName+"_TEST");
 
-        HiveCote hive = new HiveCote(train);
+        HiveCote hive = new HiveCote();
         hive.makeShouty();
         
-        hive.setDefaultEnsembles(train);
         hive.buildClassifier(train);
         
         int correct = 0;

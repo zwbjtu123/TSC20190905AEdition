@@ -355,6 +355,12 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule{
     public double[][] getIndividualCvPredictions() {
         return this.individualCvPreds;
     }
+    
+    public SimpleBatchFilter getTransform(){
+        return this.transform;
+    }
+    
+    
 //
 //    @Override
 //    public double classifyInstance(Instance instance) throws Exception {
