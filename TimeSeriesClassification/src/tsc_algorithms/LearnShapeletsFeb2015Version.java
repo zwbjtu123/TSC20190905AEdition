@@ -45,7 +45,7 @@ public class LearnShapeletsFeb2015Version extends AbstractClassifier implements 
     double biasW[];
 
     // the softmax parameter
-    public double alpha;
+    public double alpha = -30;
     
     public Instances trainSet;
     public Instance testSet;
@@ -54,9 +54,9 @@ public class LearnShapeletsFeb2015Version extends AbstractClassifier implements 
     public double[] test;
 
     // the number of iterations
-    public int maxIter=1000;
+    public int maxIter=300;
     // the learning rate
-    public double eta;
+    public double eta = 0.1;
 
     // the regularization parameters
     public double lambdaW;
@@ -458,12 +458,63 @@ public class LearnShapeletsFeb2015Version extends AbstractClassifier implements 
         double[] paramsLambdaW;
         double[] paramsPercentageOfSeriesLength;
         int[] paramsShapeletLengthScale;
+        int[] params = {0,0,0};
         Instances sample;
         if(paraSearch){ 
             paramsLambdaW=lambdaWRange;
             paramsPercentageOfSeriesLength=percentageOfSeriesLengthRange;
             paramsShapeletLengthScale=shapeletLengthScaleRange;
             sample=data;
+
+            int noFolds = 3;
+            double bsfAccuracy = 0;
+            double accuracy = 0;
+            for (int i = 0; i < paramsLambdaW.length; i++) {
+                for (int j = 0; j < paramsPercentageOfSeriesLength.length; j++) {
+                    for (int k = 0; k < paramsShapeletLengthScale.length; k++) {
+                        double sumAccuracy = 0;
+                        //build our test and train sets. for cross-validation.
+                        System.out.println("Begin cross validation");
+                        for (int l = 0; l < noFolds; l++) {
+                            Instances trainCV = sample.trainCV(noFolds, l);
+                            Instances testCV = sample.testCV(noFolds, l);
+
+                            percentageOfSeriesLength = paramsPercentageOfSeriesLength[j];
+                            shapeletLengthScale = paramsShapeletLengthScale[k];
+                            lambdaW = paramsLambdaW[i];
+                            eta = 0.1;
+                            alpha = -30;
+                            train(trainCV);
+
+                            //test on the remaining fold.
+                            int correct=0;
+                            for(Instance in : testCV){
+                                if(classifyInstance(in) == in.classValue())
+                                    correct++;
+                            }
+
+                            accuracy = (double)correct/(double)testCV.numInstances();
+                            sumAccuracy += accuracy;
+                            trainCV=null;
+                            testCV=null;
+                        }
+                        sumAccuracy/=noFolds;
+
+                        //System.out.printf("%f,%d,%f,%f\n", paramsPercentageOfSeriesLength[j], paramsShapeletLengthScale[k], paramsLambdaW[i], sumAccuracy);
+
+                        if(sumAccuracy > bsfAccuracy){
+                            int[] p = {i,j,k};
+                            params = p;
+                            bsfAccuracy = sumAccuracy;
+                        }
+                    }
+                }
+                maxAcc=bsfAccuracy;
+            }
+            System.out.println("End cross validation paras "+params[0]+", "+params[1]+", "+params[2]);
+            sample=null;
+
+            System.gc();
         }else{// Hack to minimize changes to the method below
             paramsLambdaW=new double[1];
             paramsLambdaW[0]=lambdaW;
@@ -475,61 +526,10 @@ public class LearnShapeletsFeb2015Version extends AbstractClassifier implements 
         }
         
 
-        int noFolds = 3;
-        double bsfAccuracy = 0;
-        int[] params = {0,0,0};
-        double accuracy = 0;
-        for (int i = 0; i < paramsLambdaW.length; i++) {
-            for (int j = 0; j < paramsPercentageOfSeriesLength.length; j++) {
-                for (int k = 0; k < paramsShapeletLengthScale.length; k++) {
-                    double sumAccuracy = 0;
-                    //build our test and train sets. for cross-validation.
-                    System.out.println("Begin cross validation");
-                    for (int l = 0; l < noFolds; l++) {
-                        Instances trainCV = sample.trainCV(noFolds, l);
-                        Instances testCV = sample.testCV(noFolds, l);
-
-                        percentageOfSeriesLength = paramsPercentageOfSeriesLength[j];
-                        shapeletLengthScale = paramsShapeletLengthScale[k];
-                        lambdaW = paramsLambdaW[i];
-                        eta = 0.1;
-                        alpha = -30;
-                        train(trainCV);
-                        
-                        //test on the remaining fold.
-                        int correct=0;
-                        for(Instance in : testCV){
-                            if(classifyInstance(in) == in.classValue())
-                                correct++;
-                        }
-                        
-                        accuracy = (double)correct/(double)testCV.numInstances();
-                        sumAccuracy += accuracy;
-                        trainCV=null;
-                        testCV=null;
-                    }
-                    sumAccuracy/=noFolds;
-                    
-                    //System.out.printf("%f,%d,%f,%f\n", paramsPercentageOfSeriesLength[j], paramsShapeletLengthScale[k], paramsLambdaW[i], sumAccuracy);
-                    
-                    if(sumAccuracy > bsfAccuracy){
-                        int[] p = {i,j,k};
-                        params = p;
-                        bsfAccuracy = sumAccuracy;
-                    }
-                }
-            }
-        }
-        System.out.println("End cross validation paras "+params[0]+", "+params[1]+", "+params[2]);
-        sample=null;
-        
-        System.gc();
-        maxAcc=bsfAccuracy;
         lambdaW = paramsLambdaW[params[0]];
         percentageOfSeriesLength = paramsPercentageOfSeriesLength[params[1]];
         shapeletLengthScale = paramsShapeletLengthScale[params[2]];
-        if(paraSearch)  //Rebuild whole data set on optimal parameters 
-            train(data); 
+        train(data); 
     }
     
     private void train(Instances data) throws Exception
