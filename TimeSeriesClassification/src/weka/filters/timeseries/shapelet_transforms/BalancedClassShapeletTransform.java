@@ -60,6 +60,7 @@ public class BalancedClassShapeletTransform extends ShapeletTransform
 
             //we only want to pass in the worstKShapelet if we've found K shapelets. but we only care about this class values worst one.
             //this is due to the way we represent each classes shapelets in the map.
+            
             worstShapelet = kShapelets.size() == proportion ? kShapelets.get(kShapelets.size()-1) : null;
 
             //set the series we're working with.
@@ -67,17 +68,12 @@ public class BalancedClassShapeletTransform extends ShapeletTransform
             //set the clas value of the series we're working with.
             classValue.setShapeletValue(data.get(dataSet));
             
-            seriesShapelets = searchFunction.SearchForShapeletsInSeries(data.get(dataSet), new ShapeletSearch.ProcessCandidate(){
-            @Override
-            public Shapelet process(double[] candidate, int start, int length){
-               return checkCandidate(candidate, start, length);
-            }});
-
+            seriesShapelets = searchFunction.SearchForShapeletsInSeries(data.get(dataSet), this::checkCandidate);
             
             if(seriesShapelets != null){
                 Collections.sort(seriesShapelets, shapeletComparator);
-
-                seriesShapelets = removeSelfSimilar(seriesShapelets);
+                if(isRemoveSelfSimilar())
+                    seriesShapelets = removeSelfSimilar(seriesShapelets);
 
                 kShapelets = combine(proportion, kShapelets, seriesShapelets);
             }

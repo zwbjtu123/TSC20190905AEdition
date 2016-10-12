@@ -26,7 +26,7 @@ public class StatisticalUtilities {
             sum += values[i];
         }
 
-        return sum / (double) values.length;
+        return sum / (double) values.length - offset;
     }
 
     public static double standardDeviation(double[] values, boolean classVal, double mean) {
@@ -40,12 +40,12 @@ public class StatisticalUtilities {
             sumSquaresDiffs += diff * diff;
         }
 
-        return Math.sqrt(sumSquaresDiffs / (values.length - 1));
+        return Math.sqrt(sumSquaresDiffs / (values.length - 1 - offset));
     }
     // normalize the vector to mean 0 and std 1
     public static double[] normalize(double[] vector, boolean classVal) {
         double mean = mean(vector, classVal);
-        double std = standardDeviation(vector, classVal,mean);
+        double std = standardDeviation(vector, classVal, mean);
 
         double[] normalizedVector = new double[vector.length];
 
@@ -101,7 +101,7 @@ public class StatisticalUtilities {
     }
 
     public static double calculateSigmoid(double x) {
-        return 1 / (1 + Math.exp(-x));
+        return 1.0 / (1.0 + Math.exp(-x));
     }
     
     

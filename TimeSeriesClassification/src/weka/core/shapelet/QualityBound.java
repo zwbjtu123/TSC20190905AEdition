@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.ListIterator;
 import java.util.Map;
+import java.util.PriorityQueue;
 import java.util.TreeMap;
 import utilities.class_distributions.ClassDistribution;
 import utilities.class_distributions.SimpleClassDistribution;
@@ -58,10 +59,11 @@ public class QualityBound{
             //Initialize the fields
             bsfQuality = Double.MAX_VALUE;
             orderLine = new ArrayList<>();
+            
             orderLineClassDist = new TreeSetClassDistribution();
             parentClassDist = classDist;
             this.percentage = percentage;
-            
+              
             //Initialize orderline class distribution
             numInstances = 0;
             for(Double key : parentClassDist.keySet()){
@@ -87,25 +89,14 @@ public class QualityBound{
             //Update classDistribution of unprocessed elements
             orderLineClassDist.put(orderLineObj.getClassVal(), orderLineClassDist.get(orderLineObj.getClassVal()) + 1);  
             
-            //Update sorted orderline
-            if(orderLine.isEmpty()){
-                orderLine.add(orderLineObj);
-            }else{
-                boolean added = false;
-                ListIterator<OrderLineObj> iterator = orderLine.listIterator();
-                while(iterator.hasNext() && !added){
-                    OrderLineObj current = iterator.next();
-                    if(orderLineObj.compareTo(current) < 0 || orderLineObj.compareTo(current) == 0){
-                        iterator.previous();
-                        iterator.add(orderLineObj);
-                        added = true;
-                    }
-                }
-                
-                if(!added){
-                    orderLine.add(orderLineObj);
-                }
+            //use a binarySearch to update orderLine - rather than a O(n) search.
+            int index = Collections.binarySearch(orderLine, orderLineObj);
+            if(index < 0){
+                index *=-1;
+                index -=1;
             }
+            orderLine.add(index, orderLineObj);
+            
         }
         
         /**
@@ -252,7 +243,7 @@ public class QualityBound{
             double thisDist;
             double thisClassVal;
             int oldCount;
-                   
+
             for(int i = 0; i < orderLine.size()-1; i++){ 
                 thisDist = orderLine.get(i).getDistance();
                 thisClassVal = orderLine.get(i).getClassVal();
@@ -369,7 +360,6 @@ public class QualityBound{
                 classVal = orderLine1.getClassVal();
                 if(distance < median){
                     countBelow++;
-                    
                     classCountsBelowMedian.addTo(classVal, 1); //increment by 1
                 }else{
                     countAbove++;

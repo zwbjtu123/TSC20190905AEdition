@@ -201,13 +201,12 @@ public class InstanceTools {
     }
 
     
-    //converts a weka Instances into a 2d array.
-    public static double[][] fromWekaInstancesArray(Instances ds) {
-        int numFeatures = ds.numAttributes();
+    //converts a weka Instances into a 2d array - removing class val at the end.
+    public static double[][] fromWekaInstancesArray(Instances ds, boolean removeLastVal) {
+        int numFeatures = ds.numAttributes() - (removeLastVal ? 1 : 0);
         int numInstances = ds.numInstances();
 
-        //Logging.println("Converting " + numInstances + " instances and " + numFeatures + " features.", LogLevel.DEBUGGING_LOG);
-        double[][] data = new double[numInstances][numFeatures];
+       double[][] data = new double[numInstances][numFeatures];
 
         for (int i = 0; i < numInstances; i++) {
             for (int j = 0; j < numFeatures; j++) {

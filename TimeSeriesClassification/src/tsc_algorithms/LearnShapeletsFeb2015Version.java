@@ -167,7 +167,7 @@ public class LearnShapeletsFeb2015Version extends AbstractClassifier implements 
         // initialize shapelets
         initializeShapeletsKMeans();
 
-
+        
         // initialize the terms for pre-computation
         D_train = new double[train.length][shapeletLengthScale][numLatentPatterns][];
         E_train = new double[train.length][shapeletLengthScale][numLatentPatterns][];
@@ -269,7 +269,7 @@ public class LearnShapeletsFeb2015Version extends AbstractClassifier implements 
             //skm.setInitializeUsingKMeansPlusPlusMethod(true); 
             skm.buildClusterer( ins );
             Instances centroidsWeka = skm.getClusterCentroids();
-            Shapelets[r] =  InstanceTools.fromWekaInstancesArray(centroidsWeka);
+            Shapelets[r] =  InstanceTools.fromWekaInstancesArray(centroidsWeka, false);
               
             if (Shapelets[r] == null) {
                 System.out.println("P not set");
@@ -370,9 +370,9 @@ public class LearnShapeletsFeb2015Version extends AbstractClassifier implements 
     public double accuracyLoss(double[][] M, double[] classValues, int c) {
         double Y_hat_ic = predict_i(M, c);
         double sig_y_ic = calculateSigmoid(Y_hat_ic);
-
+        double returnVal = -classValues[c] * Math.log(sig_y_ic) - (1 - classValues[c]) * Math.log(1 - sig_y_ic);
         //L(Y,Y_hat) = -Y ln(sig_y_hat) - (1-Y)ln(1-sig_y_hat) - Formula 3 in the paper.
-        return -classValues[c] * Math.log(sig_y_ic) - (1 - classValues[c]) * Math.log(1 - sig_y_ic);
+        return returnVal;
     }
 
     // compute the accuracy loss of the train set
@@ -541,7 +541,7 @@ public class LearnShapeletsFeb2015Version extends AbstractClassifier implements 
         nominalLabels = readNominalTargets(trainSet);
         
         //convert the training set into a 2D Matrix.
-        train = fromWekaInstancesArray(trainSet);
+        train = fromWekaInstancesArray(trainSet, true);
 
         // initialize the data structures
         initialize();
@@ -557,7 +557,7 @@ public class LearnShapeletsFeb2015Version extends AbstractClassifier implements 
 //            System.out.println("Max it ="+maxIter+" iter ="+iter);
 
             // measure the loss
-            if ((iter %(maxIter/2)) == 0 && iter>0) {
+            if ((iter %(maxIter/3)) == 0 && iter>0) {
                 double mcrTrain = trainSetErrorRate();
                 double lossTrain = accuracyLossTrainSet();
 
@@ -719,9 +719,9 @@ public class LearnShapeletsFeb2015Version extends AbstractClassifier implements 
     public static void main(String[] args) throws Exception{
         
         //resample 1 of the italypowerdemand dataset
-        String dataset = "Beef";
+        String dataset = "OliveOil";
         String fileExtension = File.separator + dataset + File.separator + dataset;
-        String samplePath = "C:\\LocalData\\time-series-datasets\\TSC Problems (1)\\" + fileExtension;
+        String samplePath = "C:\\LocalData\\Dropbox\\TSC Problems\\" + fileExtension;
 
         //load the train and test.
         Instances testSet = utilities.ClassifierTools.loadData(samplePath + "_TEST");
@@ -729,6 +729,10 @@ public class LearnShapeletsFeb2015Version extends AbstractClassifier implements 
 
         LearnShapeletsFeb2015Version ls = new LearnShapeletsFeb2015Version();
         ls.setSeed(0);
+        ls.setParamSearch(false);
+        ls.lambdaW = 0.01;
+        ls.percentageOfSeriesLength = 0.2;
+        ls.shapeletLengthScale = 3;
         ls.buildClassifier(trainSet);
         double accuracy = utilities.ClassifierTools.accuracy(testSet, ls);
         System.out.println("LS: " + (1 - accuracy));

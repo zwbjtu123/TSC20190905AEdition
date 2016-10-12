@@ -318,11 +318,12 @@ public class LearnShapelets extends AbstractClassifier implements ParameterSplit
             
             SimpleKMeans skm = new SimpleKMeans();
             skm.setNumClusters(K);
-            skm.setMaxIterations(30); 
-            skm.setInitializeUsingKMeansPlusPlusMethod(true); 
+            skm.setMaxIterations(100); 
+            //skm.setInitializeUsingKMeansPlusPlusMethod(true); 
+            skm.setSeed((int) (rand.nextDouble() * 1000) );
             skm.buildClusterer( ins );
             Instances centroidsWeka = skm.getClusterCentroids();
-            Shapelets[r] =  InstanceTools.fromWekaInstancesArray(centroidsWeka);
+            Shapelets[r] =  InstanceTools.fromWekaInstancesArray(centroidsWeka, false);
               
             // initialize the gradient history of shapelets
             if (Shapelets[r] == null)
@@ -396,7 +397,9 @@ public class LearnShapelets extends AbstractClassifier implements ParameterSplit
         double Y_hat_ic = predict_i(M, c);
         double sig_y_ic = calculateSigmoid(Y_hat_ic);
 
-        return -classValues[c] * Math.log(sig_y_ic) - (1 - classValues[c]) * Math.log(1 - sig_y_ic);
+        double returnVal = -classValues[c] * Math.log(sig_y_ic) - (1 - classValues[c]) * Math.log(1 - sig_y_ic);
+        
+        return returnVal;
     }
 
     // compute the accuracy loss of the train set
@@ -410,13 +413,13 @@ public class LearnShapelets extends AbstractClassifier implements ParameterSplit
                 accuracyLoss += accuracyLoss(M_train[i], classValues_train[i], c);
             }
         }
-
+       
         return accuracyLoss/train.length;
     }
     
     public void learnF(int c, int i)
     {
-       preCompute(D_train[i], E_train[i], Psi_train[i], M_train[i], sigY_train[i], train[i]);
+        preCompute(D_train[i], E_train[i], Psi_train[i], M_train[i], sigY_train[i], train[i]);
 
         dLdY = -(classValues_train[i][c] - sigY_train[i][c]);
 
@@ -518,7 +521,7 @@ public class LearnShapelets extends AbstractClassifier implements ParameterSplit
                             // fixed hyper-parameters
                             eta = 0.1;
                             alpha = -30;
-                            maxIter=200;
+                            maxIter=300;
 
                             print("Learn model for Fold-"+l + ":" ); 
 
@@ -585,7 +588,7 @@ public class LearnShapelets extends AbstractClassifier implements ParameterSplit
         }
         
         //convert the training set into a 2D Matrix.
-        train = fromWekaInstancesArray(trainSet);
+        train = fromWekaInstancesArray(trainSet, true);
 
         // Z-normalize the training time seriee
 //        for(int i=0; i<train.length; i++)
@@ -704,7 +707,7 @@ public class LearnShapelets extends AbstractClassifier implements ParameterSplit
     public static void main(String[] args) throws Exception{
         
         if( args.length == 0 )
-            	args = new String[]{"C:\\Users\\ajb\\Dropbox\\TSC Problems", "ItalyPowerDemand"}; 
+            	args = new String[]{"C:\\LocalData\\Dropbox\\TSC Problems", "OliveOil"}; 
         
         //resample 1 of the italypowerdemand dataset
         String dataset = args[1];
