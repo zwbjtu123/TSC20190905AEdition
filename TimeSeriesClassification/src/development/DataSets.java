@@ -25,10 +25,10 @@ import weka.filters.timeseries.SummaryStats;
  */
 public class DataSets {
     
-    public static final String clusterPath="/gpfs/home/ajb/";
-    public static final String dropboxPath="C:/Users/ajb/Dropbox/";    
+    public static String clusterPath="/gpfs/home/ajb/";
+    public static String dropboxPath="C:/Users/ajb/Dropbox/";    
     
-    public static  final String path=dropboxPath;    
+    public static  String path=dropboxPath;    
     
     public static String problemPath=path+"/TSC Problems/";
     public static String resultsPath=path+"Results/";

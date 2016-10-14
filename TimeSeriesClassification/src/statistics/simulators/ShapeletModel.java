@@ -17,7 +17,7 @@ public class ShapeletModel extends Model {
     private static int DEFAULTNUMSHAPELETS=1;
     private static int DEFAULTSERIESLENGTH=500;
     private static int DEFAULTSHAPELETLENGTH=29;
-    private static int DEFAULTMAXSTART=70;
+    private static int DEFAULTMAXSTART=DEFAULTSERIESLENGTH-2*DEFAULTSHAPELETLENGTH;
     
     protected int numShapelets;
     protected int seriesLength; 
@@ -44,7 +44,7 @@ public class ShapeletModel extends Model {
         super();
         setDefaults();
 //PARAMETER LIST: seriesLength,  numShapelets, shapeletLength, maxStart
-//Using the fall through for switching, I should be shot!  EDIT:       
+//Using the fall through for switching, I should be shot!        
         if(param!=null){
             switch(param.length){
                 default: case 4:    maxStart=(int)param[3];
@@ -52,6 +52,7 @@ public class ShapeletModel extends Model {
                 case 2:             numShapelets=(int)param[1];
                 case 1:             seriesLength=(int)param[0];
             }
+            maxStart=seriesLength-shapeletLength*2;
         }
         shapes=new ArrayList<>();
         // Shapes are randomised for type and location; the other characteristics, such as length
@@ -66,8 +67,8 @@ public class ShapeletModel extends Model {
            // value if too many shapes are used.
            if(!valid)
            {
+               System.out.println("Insufficient space: Shapelet Length "+shapeletLength+" Series Length ="+seriesLength+" Max Start ="+maxStart);
                maxStart = maxStart+shapeletLength;
-               System.out.println("Insufficient space, increasing max start to"+maxStart);
                sh.randomiseShape(maxStart,shapes);
            }
            shapes.add(sh); 
@@ -142,7 +143,6 @@ public class ShapeletModel extends Model {
             return value;
         }
     
-    
     /**
  * Subclasses must implement this, how they take them out of the array is their business.
  * @param p 
@@ -155,15 +155,13 @@ public class ShapeletModel extends Model {
     // The implementation of the reset method should be adjusted appropriately.
     // Currently uses the randomiseLocation() method to implement a random
     // location after reset. 
-    public void reset()
-    {
+    public void reset(){
         t=0;
         for(int i=0;i<shapes.size();i++)
             shapes.get(i).randomiseLocation(maxStart, shapes);
     }
     
-    public ShapeType getShapeType()
-    {
+    public ShapeType getShapeType(){
         return shapes.get(0).type;
     }
     public void setShapeType(ShapeType st){
@@ -180,8 +178,22 @@ public class ShapeletModel extends Model {
             str+=s.toString()+"\n";
         return str;
     }
-    
-    // Inner class determining the shape inserted into the shapelet model
+    @Override
+    public String getModelType(){ return "ShapeletSimulator";}
+    @Override
+        public String getAttributeName(){return "Shape";} 
+    @Override
+        public String getHeader(){
+            String header=super.getHeader();
+            header+="% Shapelet Length ="+shapeletLength;
+            header+="% Series Length ="+seriesLength;
+            header+="% Max Start ="+maxStart;
+            header+="% Number of Shapelets ="+numShapelets;
+            for(int i=0;i<shapes.size();i++)
+                header+="%\t Shape "+i+" "+shapes.get(i).type+"\n";
+            return header;
+        }
+   // Inner class determining the shape inserted into the shapelet model
     public static class Shape{
         // Type: head and shoulders, spike, step, triangle, or sine wave.
         private ShapeType type;
@@ -301,34 +313,28 @@ public class ShapeletModel extends Model {
             
         }
         
-        private void setLocation(int newLoc)
-        {
+        private void setLocation(int newLoc){
             this.location=newLoc;
         }
-        
-        private int getLocation()
-        {
+        private int getLocation(){
             return location;
         }
-        
-        private void setType(ShapeType newType)
-        {
+        private void setType(ShapeType newType){
             this.type=newType;
         }
         
         // Randomises the starting location of a shape. Returns false when
         // there is insufficient space to fit all shapes within the value
         // of maxStart. This is resolved in the constructor.
-        private boolean randomiseLocation(int maxStart, ArrayList<Shape> shapes)
-        {
-            if(shapes.size()*(length*2-1)>maxStart)
+        private boolean randomiseLocation(int maxStart, ArrayList<Shape> shapes){
+            if(shapes.size()*(length*2-1)>maxStart)//Need to get rid of maxStart!
                 return false;
             
             boolean validStart = false;
             int start =-1;            
             
             while(!validStart){
-                start = (int)(maxStart*Model.rand.nextDouble());       
+                start = Model.rand.nextInt(maxStart);       
                 int end = start+length;
                 validStart = true;
                 
@@ -349,10 +355,8 @@ public class ShapeletModel extends Model {
         }
         
         @Override
-        public String toString()
-        {
-            String shp = ""+this.type+" start = "+location+" length ="+length;
-            return shp;
+        public String toString(){
+            return ""+this.type+" start = "+location+" length ="+length;
         }
         
         //gives a shape a random type and start position
@@ -360,10 +364,8 @@ public class ShapeletModel extends Model {
             boolean valid = randomiseLocation(maxStart, shapes);
             if(!valid)
                 return false;
-            double x=Model.rand.nextDouble();
-                                                         
             ShapeType [] types = ShapeType.values();            
-            int ranType = (int)(types.length*x);
+            int ranType = Model.rand.nextInt(types.length);
             setType(types[ranType]);
                        
             return true; 

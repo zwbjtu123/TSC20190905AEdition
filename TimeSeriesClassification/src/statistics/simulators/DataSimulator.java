@@ -1,5 +1,5 @@
 /*
- Base class for data simulator. Two use cases. 
+ Base class for data simulator. Three use cases. 
 
 1. Set up models externally then call generateData
 ArrayList<Model> m = ....
@@ -101,13 +101,13 @@ public class DataSimulator {
         for(int i=1;i<casesPerClass.length;i++)
                 totalCases+=casesPerClass[i];
         for(int i=1;i<=seriesLength;i++){
-                atts.addElement(new Attribute("t"+i));
+                atts.addElement(new Attribute(models.get(0).getAttributeName()+i));
         }
         FastVector fv=new FastVector();
         for(int i=0;i<nosClasses;i++)
                 fv.addElement(""+i);
         atts.addElement(new Attribute("Target",fv));
-        data = new Instances("AR",atts,totalCases);
+        data = new Instances(models.get(0).getModelType(),atts,totalCases);
 
         double[] d;
         for(int i=0;i<nosClasses;i++){
@@ -130,6 +130,20 @@ public class DataSimulator {
         
         return data;
     }
+    
+/**
+ * @PRE: All parameters of the model have been set through other means
+ * @POST: no change to the model, no instances are stored
+**/
+    public String generateHeader(){
+        String header="%"+"  "+models.get(0).getModelType()+"\n"; 
+        for(int i=0;i<models.size();i++){
+            header+="%Class "+i;
+            header+="\n"+models.get(i).getHeader()+"\n";
+        }
+        return header;
+    }
+    
     public Instances[] generateTrainTest() throws Exception{
         Instances[] data=new Instances[2];
         data[0]=generateDataSet();

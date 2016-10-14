@@ -7,6 +7,7 @@ import tsc_algorithms.depreciated.COTE;
 import fileIO.InFile;
 import fileIO.OutFile;
 import java.io.File;
+import java.text.DecimalFormat;
 import statistics.simulators.DataSimulator;
 import statistics.simulators.Model;
 import statistics.simulators.SimulateAR;
@@ -28,13 +29,20 @@ import utilities.ClassifierTools;
 /**
  *
  * @author ajb
+ * FINAL VERSION of simulator experiments for stand alone execution only
+ * Just the main experiments, copied here for clarity. For sensitivity analysis
+ * and cluster based versions, see the class 
  */
-public class SimulationExperiment {
-    static boolean local=false;
+public class SimulationExperimentsExampleCode {
+//Global variables that relate to the data set. These are different for different
+//simulators, and are set to default values in setStandardGlobalParameters    
     static int []casesPerClass={50,50};
-    static int seriesLength=500;
+    static int seriesLength=300;
+    static double trainProp=0.5;
+ 
+//<editor-fold defaultstate="collapsed" desc="All Classifiers: edit if you want to try some others">     
     static String[] allClassifiers={ //Benchmarks
-        "RotF","DTW",
+        "RotF","DTW","HESCA",
         //Whole series
         "DD_DTW","DTD_C","EE","HESCA",
         //Interval
@@ -46,34 +54,21 @@ public class SimulationExperiment {
         //Spectral
         "RISE",
         //Combos
-        "COTE"};
-    static String[] allSimulators={"WholeSeries","Interval","Shapelet","Dictionary"};
+        "COTE","FLATCOTE","HIVECOTE"};
+      //</editor-fold>     
     
-    public static void createAllScripts(){
-//Generates cluster scripts for all combos of classifier and simulator     
-       String path="C:\\Users\\ajb\\Dropbox\\Code\\Cluster Scripts\\SimulatorScripts\\";
-        for(String a:allSimulators){
-            OutFile of2=new OutFile(path+a+".txt");
-            for(String s:allClassifiers){
-                OutFile of = new OutFile(path+s+a+".bsub");
-                of.writeLine("#!/bin/csh");
-                of.writeLine("#BSUB -q long-eth");
-                of.writeLine("#BSUB -J "+s+"[1-200]");
-                of.writeLine("#BSUB -oo output/"+a+".out");
-                of.writeLine("#BSUB -eo error/"+a+".err");
-                of.writeLine("#BSUB -R \"rusage[mem=6000]\"");
-                of.writeLine("#BSUB -M 8000");
-                of.writeLine("module add java/jdk1.8.0_51");
-                of.writeLine("java -jar Simulator.jar "+a+" "+ s+" $LSB_JOBINDEX");                
-                
-                of2.writeLine("bsub < Scripts/SimulatorExperiments/"+s+a+".bsub");
-            }   
-        }
-    } 
+    
+ //<editor-fold defaultstate="collapsed" desc="All Simulators: ">    
+    static String[] allSimulators={"WholeSeries","Interval","Shapelet","Dictionary","ARMA"};
+      //</editor-fold>     
+    
     
     public static Classifier createClassifier(String str) throws RuntimeException{
         Classifier c;
         switch(str){
+            case "HESCA":
+                c=new HESCA();
+                break;
             case "RandF":
                 c=new EnhancedRandomForest();
                 break;
@@ -106,14 +101,12 @@ public class SimulationExperiment {
                 break;
             case "ST":
                 c=new ST_Ensemble();
-                if(local)
-                    ((ST_Ensemble)c).setOneMinuteLimit();
-                else
-                    ((ST_Ensemble)c).setOneDayLimit();
+//Just to make sure it is feasible                
+               ((ST_Ensemble)c).setOneHourLimit();
                 break;
             case "LearnShapelets":
                 c=new LearnShapelets();
-                ((LearnShapelets)c).setParamSearch(false);
+                ((LearnShapelets)c).setParamSearch(true);
                 break;
             case "BOP":
                 c=new BagOfPatterns();
@@ -123,6 +116,12 @@ public class SimulationExperiment {
                 break;
             case "COTE":
                 c=new COTE();
+                break;
+            case "FLATCOTE":
+                c=new FlatCote();
+                break;
+            case "HIVECOTE":
+                c=new HiveCote();
                 break;
             case "RISE":
                 c=new RISE();
@@ -141,6 +140,45 @@ public class SimulationExperiment {
         }
         return c;
     }
+    
+    public static void setStandardGlobalParameters(String str){
+         switch(str){
+            case "ARMA": case "AR":
+                break;
+            case "Shapelet": 
+                casesPerClass=new int[]{50,50};
+                seriesLength=300;
+                trainProp=0.5;
+                Model.setDefaultSigma(1);
+                break;
+            case "Dictionary":
+                casesPerClass=new int[]{20,20};
+                seriesLength=1000;
+                trainProp=0.5;
+                Model.setDefaultSigma(1);
+               break; 
+            case "WholeSeries":
+ //               data=SimulateWholeSeriesData.generateWholeSeriesData(seriesLength,casesPerClass);
+//                break;
+           case "WholeSeriesElastic":
+ //               data=SimulateWholeSeriesData.generateWholeSeriesData(seriesLength,casesPerClass);
+//                break;
+        default:
+                throw new RuntimeException(" UNKNOWN SIMULATOR ");
+            
+        }       
+    }
+    
+ /**
+  * Creates a simulated data set with the data characteristics defined in this 
+  * class and the default model characteristics set in the appropriate Simulator class
+  * If you want to control the model parameters, see the class DataSimulator for two alternative
+  * use cases
+  * @param str:name of the simulator
+  * @param seed: random seed
+  * @return
+  * @throws RuntimeException 
+  */   
     public static Instances simulateData(String str,int seed) throws RuntimeException{
         Instances data;
 //        for(int:)
@@ -150,29 +188,9 @@ public class SimulationExperiment {
                  data=SimulateAR.generateARDataSet(seriesLength, casesPerClass, true);
                 break;
             case "Shapelet": 
-                if(local){
-                    Model.setDefaultSigma(1);
-                    seriesLength=300;
-                    casesPerClass=new int[]{30,30};
-                }
-                else{
-                    Model.setDefaultSigma(1);
-                    seriesLength=300;
-                    casesPerClass=new int[]{50,50};
-                }
                 data=SimulateShapeletData.generateShapeletData(seriesLength,casesPerClass);
                 break;
             case "Dictionary":
-                if(local){
-                    Model.setDefaultSigma(0.1);
-                    seriesLength=500;
-                    casesPerClass=new int[]{50,50};
-                }
-                else{
-                    Model.setDefaultSigma(0.1);
-                    seriesLength=500;
-                    casesPerClass=new int[]{50,50};
-                }
                 data=SimulateDictionaryData.generateDictionaryData(seriesLength,casesPerClass);
                break; 
             case "WholeSeries":
@@ -188,69 +206,15 @@ public class SimulationExperiment {
         return data;
     }
     
-
-//arg[0]: simulator
-//arg[1]: classifier
-//arg[2]: fold number    
-    public static double runSimulationExperiment(String[] args){
-        String simulator=args[0];
-        String classifier=args[1];
-        Classifier c=createClassifier(classifier);
-        int fold=Integer.parseInt(args[2])-1;
-        Instances data=simulateData(args[0],fold);
-        Instances[] split=InstanceTools.resampleInstances(data, fold,0.5);
-//Set up the train and test files
-        File f=new File(DataSets.resultsPath+simulator);
-        if(!f.exists())
-            f.mkdir();
-        String predictions=DataSets.resultsPath+simulator+"/"+classifier;
-        f=new File(predictions);
-        if(!f.exists())
-            f.mkdir();
-//Check whether fold already exists, if so, dont do it, just quit
-        f=new File(predictions+"/testFold"+fold+".csv");
-        if(!f.exists() || f.length()==0){
-//Do the experiment: find train preds through cross validation
-//Then generate all test predictions            
-            double acc=singleSampleExperiment(split[0],split[1],c,fold,predictions);
-            System.out.println("simulator ="+simulator+" Classifier ="+classifier+" Fold "+fold+" Acc ="+acc);
-            return acc;
-        }
- //       of.writeString("\n");
-        return -1;
-    }        
-    
-    public static void combineTestResults(String classifier, String simulator){
-        File f=new File(DataSets.resultsPath+"/"+simulator);
-        if(!f.exists() || !f.isDirectory()){
-            f.mkdir();
-        }
-        else{
-            boolean results=false;
-            for(int i=0;i<100 && !results;i++){
-    //Check fold exists            
-                f= new File(DataSets.resultsPath+"/"+simulator+"/"+classifier+"/testFold"+i+".csv");
-                if(f.exists())
-                    results=true;
-            }
-
-            if(results){
-                OutFile of=new OutFile(DataSets.resultsPath+"/"+simulator+"/"+classifier+".csv");
-                for(int i=0;i<100;i++){
-        //Check fold exists            
-                    f= new File(DataSets.resultsPath+"/"+simulator+"/"+classifier+"/testFold"+i+".csv");
-                    if(f.exists()){
-                        InFile inf=new InFile(DataSets.resultsPath+"/"+simulator+"/"+classifier+"/testFold"+i+".csv");
-                        inf.readLine();
-                        inf.readLine();
-                        of.writeLine(i+","+inf.readDouble());
-                    }
-                }
-                of.closeFile();
-            }
-        }
-    }
-    
+/** Runs a single fold experiment, saving all output. 
+ * 
+ * @param train
+ * @param test
+ * @param c
+ * @param sample
+ * @param preds
+ * @return 
+ */
     public static double singleSampleExperiment(Instances train, Instances test, Classifier c, int sample,String preds){
         double acc=0;
         OutFile p=new OutFile(preds+"/testFold"+sample+".csv");
@@ -302,39 +266,12 @@ public class SimulationExperiment {
          return acc;
     }
 
-    public static void collateAllResults(){
-        DataSets.resultsPath="C:\\Users\\ajb\\Dropbox\\Results\\SimulationExperiments\\";
-        for(String s:allClassifiers){
-            for(String a:allSimulators){
-                combineTestResults(s,a);
-            }
-        }
-        for(String a:allSimulators){
-            if(new File(DataSets.resultsPath+a).exists()){
-                System.out.println(" Simulation = "+a);
-                OutFile of=new OutFile(DataSets.resultsPath+a+"CombinedResults.csv");
-                InFile[] ins=new InFile[allClassifiers.length];
-                int count=0;
-                for(String s:allClassifiers){
-                    if(new File(DataSets.resultsPath+a+"\\"+s+".csv").exists()){
-                        System.out.println(" Doing "+a+" and "+s);
-                        of.writeString(s+",");
-                        ins[count++]=new InFile(DataSets.resultsPath+a+"\\"+s+".csv");
-                    }
-                }
-                of.writeString("\n");
-                for(int i=0;i<100;i++){
-                    for(int j=0;j<count;j++){
-                        ins[j].readInt();
-                        double acc=ins[j].readDouble();
-                        of.writeString(acc+",");
-                    }
-                    of.writeString("\n");
-                }
-            }
-        }
-   }
-/** Stand alone method to exactly reproduce shapelet experiment */    
+  
+/** 
+ * 
+ * Stand alone method to exactly reproduce shapelet experiment for all 
+ * classifiers defined within this method (makes NO use of global variables defined above.
+ */    
     public static void runShapeletSimulatorExperiment(){
         Model.setDefaultSigma(1);
         seriesLength=300;
@@ -342,8 +279,8 @@ public class SimulationExperiment {
         String[] classifiers={"RotF","DTW","FastShapelets","ST","BOSS"};
 //            "EE","HESCA","TSF","TSBF","FastShapelets","ST","LearnShapelets","BOP","BOSS","RISE","COTE"};
         OutFile of=new OutFile("C:\\Temp\\ShapeletSimExperiment.csv");
-        double prop=0.5;
-        of.writeLine("Shapelet Sim, series length= "+seriesLength+" cases class 0 ="+casesPerClass[0]+" class 1"+casesPerClass[0]+" train proportion = "+prop);
+        setStandardGlobalParameters("Shapelet");
+        of.writeLine("Shapelet Sim, series length= "+seriesLength+" cases class 0 ="+casesPerClass[0]+" class 1"+casesPerClass[0]+" train proportion = "+trainProp);
         of.writeString("Rep");
         for(String s:classifiers)
             of.writeString(","+s);
@@ -354,7 +291,7 @@ public class SimulationExperiment {
             Model.setGlobalRandomSeed(i);
             Instances data=SimulateShapeletData.generateShapeletData(seriesLength,casesPerClass);
 //Split data
-            Instances[] split=InstanceTools.resampleInstances(data, i,0.5);
+            Instances[] split=InstanceTools.resampleInstances(data, i,trainProp);
             for(String str:classifiers){
                 Classifier c;
         //Build classifiers            
@@ -379,7 +316,7 @@ public class SimulationExperiment {
                         break;
                     case "ST":
                         c=new ST_Ensemble();
-                            ((ST_Ensemble)c).setOneMinuteLimit();
+                            ((ST_Ensemble)c).setOneHourLimit();
                         break;
                     case "LearnShapelets":
                         c=new LearnShapelets();
@@ -409,52 +346,12 @@ public class SimulationExperiment {
         }
         
     }
-/**
-Parameters: 
-*   Train set size from 10 to 100
-*   Series length 100 to 1000
- */    
-    public static void shapeletParameterTest(){
-        for(int seriesLength=100;seriesLength<=1000;seriesLength+=100){
-            for(int trainSize=10;trainSize<=100;trainSize+=10){
-                
-            }
-        }
-    }
+
+
     
     public static void main(String[] args){
-//          shapeletParameterTest();
-//        runShapeletSimulatorExperiment();
-      createAllScripts();
-  //      collateAllResults();
-        System.exit(0);
-        String[] paras;
-        if(args.length>0){
-            paras=args;
-            DataSets.resultsPath=DataSets.clusterPath+"Results/SimulationExperiments/";
-            runSimulationExperiment(paras);
-        }
-        else{
-            DataSets.resultsPath="C:\\Users\\ajb\\Dropbox\\Results\\SimulationExperiments\\";
-            local=true;
-            OutFile oft=new OutFile("C:\\temp\\test.csv");
-//            for(String s:allClassifiers){
-                String classifier="FastShapelets";
-                String simulator="Shapelet";
-                for(int i=1;i<=100;i++){
-                    classifier="FastShapelets";
-                    paras=new String[]{simulator,classifier,""+i};
-                    double a=runSimulationExperiment(paras);
-                    classifier="ST";
-                    paras=new String[]{simulator,classifier,""+i};
-                    double b=runSimulationExperiment(paras);
-                    classifier="LearnShapelets";
-                    paras=new String[]{simulator,classifier,""+i};
-                     double c=runSimulationExperiment(paras);
-                    oft.writeLine(i+","+a+","+b+","+c);
-                    System.out.println(i+","+a+","+b+","+c);
-                }
-//            }
-        }
+        DataSets.resultsPath="C:\\Users\\ajb\\Dropbox\\Results\\SimulationExperiments\\";
+        runShapeletSimulatorExperiment();
     }
 }
+    

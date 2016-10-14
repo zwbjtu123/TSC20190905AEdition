@@ -24,8 +24,8 @@ import weka.classifiers.meta.RotationForest;
 import weka.classifiers.meta.timeseriesensembles.HESCA;
 import weka.classifiers.trees.EnhancedRandomForest;
 import weka.core.Instances;
-import development.SimulationExperiment;
-import static development.SimulationExperiment.createClassifier;
+import development.SimulationExperiments;
+import static development.SimulationExperiments.createClassifier;
 
 /**
  *
@@ -36,8 +36,8 @@ public class RISESimulatedDataExperiments {
     static int []casesPerClass={500,500};
     static int seriesLength=500;
     public static double simulatorExperiment(String dataSimulator, String classifier, int fold){
-        Classifier c=SimulationExperiment.createClassifier(classifier);
-        Instances test= SimulationExperiment.simulateData(dataSimulator,fold);
+        Classifier c=SimulationExperiments.createClassifier(classifier);
+        Instances test= SimulationExperiments.simulateData(dataSimulator,fold);
         System.out.println("Classifier ="+classifier+" Simulator ="+dataSimulator);
         System.out.println("Fold "+fold+" DATA nos atts ="+test.numAttributes()+" noscases ="+test.numInstances());
         double acc=ClassifierTools.stratifiedCrossValidation(test, c, 2, fold);

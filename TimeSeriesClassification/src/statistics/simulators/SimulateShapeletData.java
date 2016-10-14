@@ -70,27 +70,6 @@ public class SimulateShapeletData extends DataSimulator{
             s[1]=new ShapeletModel(p2);
         }
     }
-    
-    /**
-     * This method converts a set of Instances into two sets of instances,
-     * randomly divided into training and test sets.
-     * 
-     * @param orig The full set of Instances.
-     * @param trainSize The number of cases in the training set.
-     * @return An array of Instances of length two.
-     */
-    public static Instances[] trainTestSplit(Instances orig, int trainSize)
-    {
-        orig.randomize(Model.rand);
-        
-        Instances tr = new Instances(orig,0,trainSize);
-        Instances te = new Instances(orig,trainSize,orig.numInstances()-(trainSize));
-        
-         Instances[] tt = {tr,te};
-              
-        return tt;
-    }
-    
     /**
      * 
      * This creates a set of Instances representing a two-class problem with
@@ -102,8 +81,11 @@ public class SimulateShapeletData extends DataSimulator{
         int[] casesPerClass = {5,5};
         int seriesLength = 100;
         Model.setDefaultSigma(0.25);
+        Model.setGlobalRandomSeed(100);
+        System.out.println("Model seed ="+Model.getRandomSeed());
         Instances data = SimulateShapeletData.generateShapeletData(seriesLength,casesPerClass);
         System.out.println("DATA "+data);
+        System.out.println("Model seed AFTER ="+Model.getRandomSeed());
         OutFile out=new OutFile("C:\\temp\\ShapeletData.csv");
         out.writeString(data.toString());
     }

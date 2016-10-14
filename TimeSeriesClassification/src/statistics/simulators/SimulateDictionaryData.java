@@ -13,8 +13,17 @@ import weka.core.Instances;
  * @author ajb
  */
 public class SimulateDictionaryData {
-    int[] shapeletsPerClass={1,1};
-    
+    static int[] shapeletsPerClass={5,20};//Also defines the num classes by length
+    static int shapeLength=8;
+//Store a global copy purely to be able to recover the latest metadata
+//Probably need to generalise this1?  
+    static DataSimulator sim;
+    public static void setShapeletsPerClass(int[] c){
+        shapeletsPerClass=new int[c.length];
+        for(int i=0;i<c.length;i++)
+           shapeletsPerClass[i]=c[i]; 
+            
+    }
     
     /**
      * This method creates and returns a set of Instances representing a
@@ -44,7 +53,7 @@ public class SimulateDictionaryData {
         populateRepeatedShapeletArray(shapeMod, seriesLength);
 //        for(DictionaryModel s:shapeMod)
 //            System.out.println("Shapel Model "+s);
-        DataSimulator sim = new DataSimulator(shapeMod);
+        sim = new DataSimulator(shapeMod);
         sim.setSeriesLength(seriesLength);
         sim.setCasesPerClass(casesPerClass);
         Instances d=sim.generateDataSet();
@@ -59,25 +68,27 @@ public class SimulateDictionaryData {
      */
     private static void populateRepeatedShapeletArray(DictionaryModel [] s, int seriesLength)
     {
-        
-        double[] p1={seriesLength,2};//CHANGE TO AVOID HARD CODING!
-        double[] p2={seriesLength,10};
-//Create two ShapeleModels with the same base Shapelet        
-//        DictionaryModel.DEFAULTSHAPELETLENGTH=13;
-        s[0]=new DictionaryModel(p1);        
-        s[1]=new DictionaryModel(p2);
-        
-        DictionaryModel.ShapeType st=s[0].getShapeType();
-        s[0].setShapeType(st);
-        s[1].setShapeType(st);
+        if(s.length!=shapeletsPerClass.length){//ERROR
+            throw new RuntimeException("Error, mismatch in number of classes: "+s.length+" VS "+shapeletsPerClass.length);
+        }
+        for(int i=0;i<s.length;i++){
+            double[] p1={seriesLength,shapeletsPerClass[(0+i)],shapeletsPerClass[(1+i)%2],shapeLength};
+            s[i]=new DictionaryModel(p1);        
+        }
+//Fix all the shape types to be the same as first
+        DictionaryModel.ShapeType st = s[0].getShape();
+        for(int i=1;i<s.length;i++)
+            s[i].setShapeType(st);
     }
     public static void main(String[] args) {
         Model.setDefaultSigma(0);
+        Model.setGlobalRandomSeed(0);
 //seriesLength=1000;
 //                casesPerClass=new int[]{20,20};        
-        Instances d=generateDictionaryData(1000,new int[]{20,20});
+        Instances d=generateDictionaryData(1000,new int[]{2,2});
         System.out.println(" DATA "+d);
-        OutFile of = new OutFile("C:\\Temp\\dict.csv");
+        OutFile of = new OutFile("C:\\Temp\\dictionarySimulationTest.arff");
+        of.writeLine(""+sim.generateHeader());
         of.writeString(d.toString());
     }
         

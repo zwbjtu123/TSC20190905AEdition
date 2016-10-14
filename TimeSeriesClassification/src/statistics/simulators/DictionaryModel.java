@@ -3,94 +3,157 @@ AJB Oct 2016
 
 Model to simulate data where dictionary approach should be optimal.
 
+A single shapelet is common to all series.  The discriminatory feature is the 
+number of times it appears in a series. 
+
+
 */
 package statistics.simulators;
+import fileIO.OutFile;
 import java.util.*;
 import java.io.*;
 import statistics.distributions.NormalDistribution;
+
 public class DictionaryModel extends Model {
     
     public enum ShapeType {TRIANGLE,HEADSHOULDERS,SINE, STEP, SPIKE};
-    protected ArrayList<Shape> shapes;
-    
-    private static int DEFAULTNUMSHAPELETS=1;
-    private static int DEFAULTSERIESLENGTH=500;
+    private static int DEFAULTNUMSHAPELETS=5;
+    private static int DEFAULTSERIESLENGTH=1000;
     public static int DEFAULTSHAPELETLENGTH=29;
+
     
-    protected int numShapelets;
-    protected int seriesLength; 
-    protected int shapeletLength;
+    protected Shape shape1;
+    protected Shape shape2;
+    protected int numShape1=DEFAULTNUMSHAPELETS;
+    protected int[] shape1Locations=new int[numShape1];
+    protected int numShape2=DEFAULTNUMSHAPELETS;
+    protected int[] shape2Locations=new int[numShape2];
     
-    
-    
-    
+    protected int totalNumShapes=numShape1+numShape2;
+    protected int seriesLength=DEFAULTSERIESLENGTH; 
+    protected int shapeletLength=DEFAULTSHAPELETLENGTH;
+
     //Default Constructor, max start should be at least 29 less than the length
     // of the series if using the default shapelet length of 29
     public DictionaryModel()
     {
-        this(new double[]{DEFAULTNUMSHAPELETS,DEFAULTSERIESLENGTH,DEFAULTSHAPELETLENGTH});
-    }
-    public final void setDefaults(){
-       seriesLength=DEFAULTSERIESLENGTH; 
-       numShapelets=DEFAULTNUMSHAPELETS;
-       shapeletLength=DEFAULTSHAPELETLENGTH;
+        this(new double[]{DEFAULTSERIESLENGTH,DEFAULTNUMSHAPELETS,DEFAULTNUMSHAPELETS,DEFAULTSHAPELETLENGTH});
     }
     public DictionaryModel(double[] param)
     {
         super();
         setDefaults();
-//PARAMETER LIST: seriesLength,  numShapelets, shapeletLength, maxStart
-//Using the fall through for switching, I should be shot!  EDIT:       
+//PARAMETER LIST: seriesLength,  numShape1, numShape2, shapeletLength
         if(param!=null){
             switch(param.length){
                 default: 
-                case 3:             shapeletLength=(int)param[2];
-                case 2:             numShapelets=(int)param[1];
+                case 4:             shapeletLength=(int)param[3];
+                case 3:             numShape2=(int)param[2];
+                case 2:             numShape1=(int)param[1];
                 case 1:             seriesLength=(int)param[0];
             }
         }
-        shapes=new ArrayList<>();
-        // Shapes are randomised for type; the other characteristics, such as length and location
-        // must be changed directly, as we assume shapelets have no fixed location
-        for(int i=0;i<numShapelets;i++) {
-           Shape sh = new Shape();
-           sh.randomiseShape();
-           shapes.add(sh); 
+        totalNumShapes=numShape1+numShape2;
+        shape1Locations=new int[numShape1];
+        shape2Locations=new int[numShape2];
+        shape1=new Shape();
+        shape1.type=ShapeType.SINE;
+        shape2=new Shape();
+        shape2.type=ShapeType.HEADSHOULDERS;
+//Enforce non-overlapping, only occurs if there is not enough room for 
+//all the shapes. Locations split randomly between the two classes        
+        while(!setNonOverlappingLocations()){
+            totalNumShapes--;
+            if(numShape1>numShape2)
+                numShape1--;
+            else
+                numShape2--;
         }
-    }
-    //This constructor is used for data of a given length
-    public DictionaryModel(int s)
-    {
-        this(new double[]{(double)s});
-    }
-    
-    //This constructor is used for data of a given length in a two class problem
-    //where the shape distinguishing the first class is known
-    public DictionaryModel(int seriesLength,Shape shape)
-    {
-        setDefaults();
-        shapes=new ArrayList<Shape>();
         
-        for(int i=0;i<numShapelets;i++)
-        {
-           Shape sh = new Shape();
-           sh.randomiseShape();
-           //This checks that the shape is not of the same type as the
-           //first shape.
-           while(sh.type==shape.type)
-                sh.randomiseShape();
-           shapes.add(sh); 
-        }       
-
-    }
-    // This constructor accepts an ArrayList of shapes for the shapelet model,
-    // rather than determining the shapes randomly.
-    public DictionaryModel(ArrayList<Shape> s)
-    {
-        shapes=new ArrayList<Shape>(s);
     }
 
-//Fix all shapelets to a single type
+    public final void setDefaults(){
+       seriesLength=DEFAULTSERIESLENGTH; 
+       numShape1=DEFAULTNUMSHAPELETS;
+       shapeletLength=DEFAULTSHAPELETLENGTH;
+    }
+    public ShapeType getShape(){
+        return shape1.type;
+    }
+    public void setShapeType(ShapeType st){
+        shape1.setType(st);
+    }
+   
+
+//This constructor is used for data of a given length
+    public void setNumShapes(int n){
+        numShape1=n;
+    }
+    //This constructor is used for data of a given length in a two class problem
+    //where the shape1 distinguishing the first class is known
+  
+    final public boolean setNonOverlappingLocations(){
+        if(seriesLength-shapeletLength*totalNumShapes<totalNumShapes)  //Cannot fit them in, not enough spaces
+          return false;
+//Find non overlapping locations. Specify how many spaces there are
+        int spaces=seriesLength-shapeletLength*totalNumShapes;
+        int[] shapeLocations=new int[totalNumShapes];
+        int[]  locs=new int[spaces];
+        for(int i=0;i<spaces;i++)
+            locs[i]=i;
+        for(int i=0;i<spaces;i++){
+            int a=Model.rand.nextInt(spaces);
+            int b=Model.rand.nextInt(spaces);
+            int temp=locs[a];
+            locs[a]=locs[b];
+            locs[b]=temp;
+        }
+            
+       for(int i=0;i<totalNumShapes;i++){
+           shapeLocations[i]=locs[i];
+       }
+/* Not worth the hassle
+       //Sample without replacement the numShape1 start point using the Knuth algorithm
+//looks like it is O(n) rather than O(nlogn) 
+        int t = 0; // total input records dealt with
+        int m = 0; // number of items selected so far
+        double u;
+        while (m < spaces){
+            u = Model.rand.nextDouble(); // call a uniform(0,1) random number generator
+
+            if ( (numShape1- t)*u >= spaces- m ){
+                t++;
+            }
+            else {
+                shapeLocations[m] = t;
+                t++; m++;
+            }
+        }
+        }
+*/
+//Split randomised locations for two types of shape
+       for(int i=0;i<numShape1;i++)
+           shape1Locations[i]=shapeLocations[i];
+       for(int i=0;i<numShape2;i++)
+           shape2Locations[i]=shapeLocations[i+numShape1];
+       
+       Arrays.sort(shape1Locations);
+       Arrays.sort(shape2Locations);
+//Find the positions by reflating
+        int count1=0;
+        int count2=0;
+        for(int i=0;i<totalNumShapes;i++){
+            if(count2==shape2Locations.length) //Finished shape2, must do shape1
+               shape1Locations[count1++]+=i*shapeletLength;
+            else if(count1==shape1Locations.length) //Finished shape1, must do shape1
+               shape2Locations[count2++]+=i*shapeletLength;
+            else if(shape1Locations[count1]<shape2Locations[count2])//Shape 1 before Shape 2, inflate shape 1
+               shape1Locations[count1++]+=i*shapeletLength;
+            else //Inflate shape2
+               shape2Locations[count2++]+=i*shapeletLength;
+        }
+        return true;
+    }
     
     /*Generate a single data
 //Assumes a model independent of previous observations. As
@@ -98,17 +161,43 @@ public class DictionaryModel extends Model {
 * Should probably remove. 
 */
     @Override
-	public double generate(double x)
-        {
+	public double generate(double x){
+//Noise
+            int t=(int)x;
+
             double value=error.simulate();
-            //Slightly inefficient for non overlapping shapes, but worth it for clarity and generality
-            for(Shape s:shapes)
-                value+=s.generate((int)x);
-                
+//Shape: Check if in a shape1
+ /*           int insertionPoint=Arrays.binarySearch(shapeLocations,t);
+                        if(insertionPoint<0)//Not a start pos: in
+                insertionPoint=-(1+insertionPoint);
+//Too much grief, just doing a linear scan!            
+            */
+//See if it is in shape1            
+            int insertionPoint=0;
+            while(insertionPoint<shape1Locations.length && shape1Locations[insertionPoint]+shapeletLength<t)
+                insertionPoint++;    
+            if(insertionPoint>=shape1Locations.length){ //Bigger than all the start points, set to last
+                insertionPoint=shape1Locations.length-1;
+            }
+            if(shape1Locations[insertionPoint]<=t && shape1Locations[insertionPoint]+shapeletLength>t){//in shape1
+                value+=shape1.generateWithinShapelet(t-shape1Locations[insertionPoint]);
+//                System.out.println(" IN SHAPE 1 occurence "+insertionPoint+" Time "+t);
+            }else{  //Check if in shape 2
+                insertionPoint=0;
+                while(insertionPoint<shape2Locations.length && shape2Locations[insertionPoint]+shapeletLength<t)
+                    insertionPoint++;    
+                if(insertionPoint>=shape2Locations.length){ //Bigger than all the start points, set to last
+                    insertionPoint=shape2Locations.length-1;
+                }
+                if(shape2Locations[insertionPoint]<=t && shape2Locations[insertionPoint]+shapeletLength>t){//in shape2
+                    value+=shape2.generateWithinShapelet(t-shape2Locations[insertionPoint]);
+//                System.out.println(" IN SHAPE 2 occurence "+insertionPoint+" Time "+t);
+                }
+            }
             return value;
         }
 
-//This will generate the next sequence after currently stored t value
+//This will generateWithinShapelet the next sequence after currently stored t value
     @Override
 	public double generate()
         {
@@ -117,185 +206,147 @@ public class DictionaryModel extends Model {
             t++;
             return value;
         }
+     @Override   
+	public	double[] generateSeries(int n)
+	{
+           t=0;
+//Resets the starting locations each time this is called          
+           setNonOverlappingLocations();
+           double[] d = new double[n];
+           for(int i=0;i<n;i++)
+              d[i]=generate();
+           return d;
+        }
     
+   
     
     /**
  * Subclasses must implement this, how they take them out of the array is their business.
  * @param p 
  */ 
     @Override
-    public void setParameters(double[] p)
-    {
-    }
-    
-    // The implementation of the reset method should be adjusted appropriately.
-    // Currently uses the randomiseLocation() method to implement a random
-    // location after reset. 
-    public void reset()
-    {
-        t=0;
-        randomiseShapeletLocations();
-    }
-    
-    public ShapeType getShapeType()
-    {
-        return shapes.get(0).type;
-    }
-    public void setShapeType(ShapeType st){
-        for(Shape s:shapes){
-            s.setType(st);
-        }
-    }
-    
-    // The toString() method has not been changed.
-    @Override
-    public String toString(){
-        String str= "nos shapes = "+shapes.size()+"\n";
-        for(Shape s:shapes)
-            str+=s.toString()+"\n";
-        return str;
-    }
-        // Randomises the starting location of a shape. Allows overlapping shapes
-        private void randomiseShapeletLocations(){
-            for(Shape s:shapes){
-                int start=Model.rand.nextInt(seriesLength-s.length);
-                s.location=start;
+    public void setParameters(double[] param){
+        if(param!=null){
+            switch(param.length){
+                default: 
+                case 4:             shapeletLength=(int)param[3];
+                case 3:             numShape2=(int)param[2];
+                case 2:             numShape1=(int)param[1];
+                case 1:             seriesLength=(int)param[0];
             }
-            
+        }
+         
+        
+    }
+    @Override
+    public String getModelType(){ return "DictionarySimulator";}
+    @Override
+        public String getAttributeName(){return "Dict";} 
+    @Override
+        public String getHeader(){
+            String header=super.getHeader();
+            header+="%  \t Shapelet Length ="+shapeletLength;
+            header+="\n%  \t Series Length ="+seriesLength;
+            header+="\n%  \t Number of Shapelets ="+numShape1;
+            header+="\n% \t Shape = "+shape1.type;
+            return header;
         }
     
-    // Inner class determining the shape inserted into the shapelet model
+    
+        
+    // Inner class determining the shape1 inserted into the shapelet model
     public static class Shape{
         // Type: head and shoulders, spike, step, triangle, or sine wave.
         private ShapeType type;
-        //Length of shape
+        //Length of shape1
         private int length;
-        //Position of shape on axis determined by base (lowest point) and amp(litude).
+        //Position of shape1 on axis determined by base (lowest point) and amp(litude).
         private double base;
         private double amp;
-        //The position in the series at which the shape begins.
+        //The position in the series at which the shape1 begins.
         private int location;
         
-        private static int DEFAULTLENGTH=29;
         private static int DEFAULTBASE=-2;
         private static int DEFAULTAMP=4;
-        private static int DEFAULTLOCATION=0;
         
-        //Default constructor, call randomise shape to get a random instance
-        // The default length is 29, the shape extends from -2 to +2, is of 
+        //Default constructor, call randomise shape1 to get a random instance
+        // The default length is 29, the shape1 extends from -2 to +2, is of 
         // type head and shoulders, and is located at index 0.
         private Shape()
         {
-            this(ShapeType.HEADSHOULDERS,DEFAULTLENGTH,DEFAULTBASE,DEFAULTAMP,DEFAULTLOCATION); 
+            this(ShapeType.HEADSHOULDERS,DEFAULTSHAPELETLENGTH,DEFAULTBASE,DEFAULTAMP); 
         }  
         //Set length only, default for the others
          private Shape(int length){
-            this(ShapeType.HEADSHOULDERS,length,DEFAULTBASE,DEFAULTAMP,DEFAULTLOCATION);      
+            this(ShapeType.HEADSHOULDERS,length,DEFAULTBASE,DEFAULTAMP);      
              
          }       
-        // This constructor produces a completely specified shape
-        private Shape(ShapeType t,int l, double b, double a, int loc){
+        // This constructor produces a completely specified shape1
+        private Shape(ShapeType t,int l, double b, double a){
             type=t;
             length=l;
             base=b;
             amp=a;
-            location=loc;
         }
         
-        //Checks the location against the value t, and outputs part of the shape
-        // if appropriate.
-        private double generate(int t){
-             if(t<location || t>location+length-1)
-                return 0;
-            
-            int offset=t-location;            
+//Generates the t^th shapelet position
+        private double generateWithinShapelet(int offset){
             double value=0;
-            
             switch(type){
-             case TRIANGLE:
-                 if(offset<=length/2) {
-                    if(offset==0)
-                       value=base;
+                 case TRIANGLE:
+                    if(offset<=length/2) 
+                          value=((offset/(double)(length/2))*(amp))+base;
                     else
-                       value=((offset/(double)(length/2))*(amp))+base;
-                 }
-                 else
-                 {
-                     if(offset+1==length)
-                         value=base;
-                     else
                          value=((length-offset-1)/(double)(length/2)*(amp))+base;
-                 }
-                   break;
+                break;
                 case HEADSHOULDERS:
-                    
-                if(offset<length/3)
-                    value = ((amp/2)*Math.sin(((2*Math.PI)/((length/3-1)*2))*offset))+base;
-                else
-                {
-                    if(offset+1>=(2*length)/3){
-                        if(length%3>0&&offset>=(length/3)*3)
-                            value = base;
+                    if(offset<length/3)
+                        value = ((amp/2)*Math.sin(((2*Math.PI)/((length/3-1)*2))*offset))+base;
+                    else{
+                        if(offset+1>=(2*length)/3)
+                                value = ((amp/2)*Math.sin(((2*Math.PI)/((length/3-1)*2))*(offset+1-(2*length)/3)))+base;
                         else
-                            value = ((amp/2)*Math.sin(((2*Math.PI)/((length/3-1)*2))*(offset+1-(2*length)/3)))+base;
+                            value = ((amp)*Math.sin(((2*Math.PI)/((length/3-1)*2))*(offset-length/3)))+base;
                     }
-                    else
-                        value = ((amp)*Math.sin(((2*Math.PI)/((length/3-1)*2))*(offset-length/3)))+base;
-                }
-                
-                   break;
+                break;
                 case SINE:
                      value=amp*Math.sin(((2*Math.PI)/(length-1))*offset)/2;
-                    break;
+                break;
                 case STEP:
-                if(offset<length/2)
-                    value=base;
-                else
-                    value=base+amp;
+                    if(offset<length/2)
+                        value=base;
+                    else
+                        value=base+amp;
                     break;
                 case SPIKE:
-                if(offset<=length/4)
-                 {
-                    if(offset==0)
-                       value=0;
-                    else
-                       value=offset/(double)(length/4)*(-amp/2);
-                 }
-                if(offset>length/4 && offset<=length/2)
-                {
-                    if(offset == length/2)
-                        value=0;
-                    else
-                        value=(-amp/2)+((length/4-offset-1)/(double)(length/4)*(-amp/2));
-                }                               
-                if(offset>length/2&&offset<=length/4*3)
-                    value=(offset-length/2)/(double)(length/4)*(amp/2);
-                              
-                if(offset>length/4*3)
-                 {
-                     if(offset+1==length)
-                         value=0;
-                     else
-                         value=(length-offset-1)/(double)(length/4)*(amp/2);
-                 }
+                    if(offset<=length/4){
+                        if(offset==0)
+                           value=0;
+                        else
+                           value=offset/(double)(length/4)*(-amp/2);
+                    }
+                    else if(offset>length/4 && offset<=length/2){
+                        if(offset == length/2)
+                            value=0;
+                        else
+                            value=(-amp/2)+((length/4-offset-1)/(double)(length/4)*(-amp/2));
+                    }                               
+                    else if(offset>length/2&&offset<=length/4*3)
+                        value=(offset-length/2)/(double)(length/4)*(amp/2);
+                    else if(offset>length/4*3)
+                    {
+                        if(offset+1==length)
+                            value=0;
+                        else
+                            value=(length-offset-1)/(double)(length/4)*(amp/2);
+                    }
                 break;
             }
             return value;
-            
         }
         
-        private void setLocation(int newLoc)
-        {
-            this.location=newLoc;
-        }
         
-        private int getLocation()
-        {
-            return location;
-        }
-        
-        private void setType(ShapeType newType)
-        {
+        public void setType(ShapeType newType){
             this.type=newType;
         }
         
@@ -307,13 +358,11 @@ public class DictionaryModel extends Model {
             return shp;
         }
         
-        //gives a shape a random type and start position
-        private boolean randomiseShape(){
-            double x=Model.rand.nextDouble();
+        //gives a shape1 a random type and start position
+        private void randomiseShape(){
             ShapeType [] types = ShapeType.values();            
-            int ranType = (int)(types.length*x);
+            int ranType = Model.rand.nextInt(types.length);
             setType(types[ranType]);
-            return true; 
                 
         }
     
@@ -324,15 +373,22 @@ public class DictionaryModel extends Model {
    
     public static void main (String[] args) throws IOException
     {
+       Model.setDefaultSigma(0);
+       Model.setGlobalRandomSeed(0);
        DictionaryModel shape = new DictionaryModel();
-       for(int i=0;i<200;i++)
-           System.out.println(shape.generate());
+       double[] d=new double[DEFAULTSERIESLENGTH];
+      for(int i=0;i<DEFAULTSERIESLENGTH;i++)
+           d[i]=shape.generate();
+       OutFile out=new OutFile("C:\\temp\\dictionaryModelTest.csv");
+      for(int i=0;i<DEFAULTSERIESLENGTH;i++)
+          out.writeLine(d[i]+",");
+//       shape1.reset();
        
-       shape.reset();
-       System.out.println(-10);
-       
-       for(int i=0;i<200;i++)
-           System.out.println(shape.generate());
+//       for(int i=0;i<200;i++)
+//           System.out.println(shape1.generate(i));
+
+         
     }
+        
     
 }

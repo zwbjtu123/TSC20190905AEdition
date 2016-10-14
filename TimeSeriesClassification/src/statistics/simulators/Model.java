@@ -17,7 +17,7 @@ abstract public class Model{
         public static void setDefaultSigma(double x){
             defaultSigma=x;
         }
-        static int seed=-1;
+        static int seed=1;
         static int count=1;
         double variance;
         public static Random rand=new Random();
@@ -27,7 +27,7 @@ abstract public class Model{
             error=new NormalDistribution(0,variance);
 //Need different seeds for each model so using a bit of a hack singleton            
             if(seed>=0){
-                error.setRandomSeed(count*seed);
+                error.setRandomSeed(count*(seed+1));
                 count++;
             }
         }
@@ -35,6 +35,7 @@ abstract public class Model{
             seed=s;
             rand.setSeed(s);
         }
+        public static int getRandomSeed(){return seed;}
 //Bt of a hack, what if non normal error?        
         public void setVariance(double x){
             variance=x;
@@ -65,6 +66,13 @@ abstract public class Model{
            for(int i=0;i<n;i++)
               d[i]=generate();
            return d;
+        }
+        public String getModelType(){ return "RandomNoise";}
+        public String getAttributeName(){return "t";} 
+        public String getHeader(){
+            String header="%"+getModelType();
+            header+="%"+"Error="+error.getClass()+" Sigma = "+error.getVariance()+"\n";
+            return header;
         }
 /**
  * Subclasses must implement this, how they take them out of the array is their business.
