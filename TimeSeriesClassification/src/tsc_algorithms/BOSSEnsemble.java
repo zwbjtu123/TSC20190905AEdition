@@ -36,6 +36,8 @@ public class BOSSEnsemble implements Classifier, SaveCVAccuracy, HiveCoteModule 
     private List<BOSSWindow> classifiers; 
 
     private final double correctThreshold = 0.92;
+    private int maxEnsembleSize = Integer.MAX_VALUE;
+    
     private final Integer[] wordLengths = { 16, 14, 12, 10, 8 };
     private final int alphabetSize = 4;
     //private boolean norm;
@@ -242,6 +244,10 @@ public class BOSSEnsemble implements Classifier, SaveCVAccuracy, HiveCoteModule 
         serFileLoc = path;
     }
     
+    public void setMaxEnsembleSize(int max) {
+        maxEnsembleSize = max;
+    }
+    
     @Override
     public void buildClassifier(final Instances data) throws Exception {
         
@@ -279,6 +285,7 @@ public class BOSSEnsemble implements Classifier, SaveCVAccuracy, HiveCoteModule 
         
         //keep track of current max window size accuracy, constantly check for correctthreshold to discard to save space
         double maxAcc = -1.0;
+        double minMaxAcc = -1.0; //the acc of the worst member to make it into the final ensemble as it stands
         
         for (boolean normalise : normOptions) {
             for (int winSize = minWindow; winSize <= maxWindow; winSize += winInc) {          
@@ -307,7 +314,7 @@ public class BOSSEnsemble implements Classifier, SaveCVAccuracy, HiveCoteModule 
                 }
 
                 //if not within correct threshold of the current max, dont bother storing at all
-                if (bestAccForWinSize >= maxAcc * correctThreshold) {
+                if (makesItIntoEnsemble(bestAccForWinSize, maxAcc, minMaxAcc, classifiers.size())) {
                     BOSSWindow bw = new BOSSWindow(bestClassifierForWinSize, bestAccForWinSize, data.relationName());
                     bw.classifier.clean();
                     
@@ -331,6 +338,20 @@ public class BOSSEnsemble implements Classifier, SaveCVAccuracy, HiveCoteModule 
                             }
                         }
                     }
+                    
+                    while (classifiers.size() > maxEnsembleSize) {
+                        //cull the 'worst of the best' until back under the max size
+                        //loop should only ever execute once at a time, since this is 
+                        //checked each time a new one is added. this entire code it terrible really
+                        //TODO rewrite
+
+                        int minAccInd = (int)findMinEnsembleAcc()[0];
+
+                        if (serOption == SerialiseOptions.STORE || serOption == SerialiseOptions.STORE_LOAD)
+                            classifiers.get(minAccInd).deleteSerFile();
+                        classifiers.remove(minAccInd);
+                    }
+                    minMaxAcc = findMinEnsembleAcc()[1]; //new 'worst of the best' acc
                 }
             }
         }
@@ -350,6 +371,32 @@ public class BOSSEnsemble implements Classifier, SaveCVAccuracy, HiveCoteModule 
         }
     }
 
+    //[0] = index, [1] = acc
+    private double[] findMinEnsembleAcc() {
+        double minAcc = Double.MIN_VALUE;
+        int minAccInd = 0;
+        for (int i = 0; i < classifiers.size(); ++i) {
+            double curacc = classifiers.get(i).accuracy;
+            if (curacc < minAcc) {
+                minAcc = curacc;
+                minAccInd = i;
+            }
+        }
+        
+        return new double[] { minAccInd, minAcc };
+    }
+    
+    private boolean makesItIntoEnsemble(double acc, double maxAcc, double minMaxAcc, int curEnsembleSize) {
+        if (acc >= maxAcc * correctThreshold) {
+            if (curEnsembleSize >= maxEnsembleSize)
+                return acc > minMaxAcc;
+            else 
+                return true;
+        }
+        
+        return false;
+    }
+    
     private double[][] findEnsembleTrainAcc(Instances data) throws Exception {
         
         double[][] results = new double[2][data.numInstances() + 1];
@@ -465,19 +512,17 @@ public class BOSSEnsemble implements Classifier, SaveCVAccuracy, HiveCoteModule 
     }
 
     public static void main(String[] args) throws Exception{
-//        basicTest();
+        basicTest();
 //        ensembleMemberTest();
-        resampleTest();
+        //resampleTest();
     }
     
     public static void basicTest() {
         System.out.println("BOSSEnsembleBasicTest\n");
         try {
-            
-            Instances train = ClassifierTools.loadData("C:\\tempbakeoff\\TSC Problems\\Car\\Car_TRAIN.arff");
-            Instances test = ClassifierTools.loadData("C:\\tempbakeoff\\TSC Problems\\Car\\Car_TEST.arff");
-//            Instances train = ClassifierTools.loadData("C:\\tempbakeoff\\TSC Problems\\BeetleFly\\BeetleFly_TRAIN.arff");
-//            Instances test = ClassifierTools.loadData("C:\\tempbakeoff\\TSC Problems\\BeetleFly\\BeetleFly_TEST.arff");
+            String dset = "ECG200";
+            Instances train = ClassifierTools.loadData("C:\\TSC Problems\\"+dset+"\\"+dset+"_TRAIN.arff");
+            Instances test = ClassifierTools.loadData("C:\\TSC Problems\\"+dset+"\\"+dset+"_TEST.arff");
             
             System.out.println(train.relationName());
             
