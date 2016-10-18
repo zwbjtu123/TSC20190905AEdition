@@ -375,13 +375,25 @@ public class DictionaryModel extends Model {
     {
        Model.setDefaultSigma(0);
        Model.setGlobalRandomSeed(0);
-       DictionaryModel shape = new DictionaryModel();
-       double[] d=new double[DEFAULTSERIESLENGTH];
-      for(int i=0;i<DEFAULTSERIESLENGTH;i++)
-           d[i]=shape.generate();
+       DEFAULTSHAPELETLENGTH=11;
+       DEFAULTSERIESLENGTH=100;
+       double[][] d=new double[ShapeType.values().length][DEFAULTSERIESLENGTH];
+       int j=0;
+       for(ShapeType s:ShapeType.values()){
+           DEFAULTSHAPELETLENGTH+=2;
+           DictionaryModel shape = new DictionaryModel();
+           shape.setShapeType(s);
+           for(int i=0;i<DEFAULTSERIESLENGTH;i++)
+                d[j][i]=shape.generate(i);
+           j++;
+        }
+    
        OutFile out=new OutFile("C:\\temp\\dictionaryModelTest.csv");
-      for(int i=0;i<DEFAULTSERIESLENGTH;i++)
-          out.writeLine(d[i]+",");
+      for(int i=0;i<DEFAULTSERIESLENGTH;i++){
+          for(j=0;j<d.length;j++)
+            out.writeString(d[j][i]+",");
+          out.writeString("\n");
+      }
 //       shape1.reset();
        
 //       for(int i=0;i<200;i++)
