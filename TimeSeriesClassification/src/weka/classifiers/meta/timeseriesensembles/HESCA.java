@@ -1,15 +1,16 @@
 /**
- * NOTE: consider this code experimental. This is a first pass and may not be final; it has been informally tested but awaiting rigurous testing before being signed off.
+ * NOTE: consider this code experimental. This is a first pass and may not be final; it has been informally tested but awaiting rigorous testing before being signed off.
  * Also note that file writing/reading from file is not currently supported (will be added soon)
  */
 
 package weka.classifiers.meta.timeseriesensembles;
 
+import java.io.File;
+import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Random;
 import tsc_algorithms.cote.HiveCoteModule;
-//import tsc_algorithms.cote.HiveCoteModule;
 import utilities.ClassifierTools;
 import weka.classifiers.AbstractClassifier;
 import weka.classifiers.Classifier;
@@ -29,6 +30,7 @@ import weka.core.Instances;
 import weka.filters.SimpleBatchFilter;
 import weka.filters.timeseries.shapelet_transforms.ShapeletTransform;
 import weka.filters.timeseries.shapelet_transforms.ShapeletTransformFactory;
+import utilities.SaveCVAccuracy;
 
 /**
  *
@@ -37,7 +39,7 @@ import weka.filters.timeseries.shapelet_transforms.ShapeletTransformFactory;
 
 // NOTE: this version doesn't currently support file writing (to-do)
 
-public class HESCA extends AbstractClassifier implements HiveCoteModule{
+public class HESCA extends AbstractClassifier implements HiveCoteModule, SaveCVAccuracy{
 //public class HESCA extends AbstractClassifier {
 
     private final SimpleBatchFilter transform;
@@ -54,6 +56,8 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule{
     
     private Instances train;
     
+    private boolean writeTraining = false;
+    private String outputTrainingPathAndFile;
     public HESCA(SimpleBatchFilter transform) {
         this.transform = transform;
         this.setDefaultClassifiers();
@@ -124,7 +128,7 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule{
         classifierNames[7] = "bayesNet";    
     }
     
-    public void setSeed(int seed){
+    public void setRandSeed(int seed){
         this.setSeed = true;
         this.seed = seed;
     }
@@ -266,14 +270,12 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule{
             }
         }
         
-//        double acc = (double)correct/train.numInstances();
         return predictions;
     }
 
     
     @Override
     public void buildClassifier(Instances input) throws Exception{
-//        template = new Instances(input,0);
         if(this.transform==null){
             this.train = input;
         }else{
@@ -332,8 +334,29 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule{
             }
             this.ensembleCvPreds[i]=pred;
         }
-        
         this.ensembleCvAcc = (double)correct/train.numInstances();
+        
+        if(this.writeTraining){
+            StringBuilder output = new StringBuilder();
+
+            String hescaIdentifier = "HESCA";
+            if(this.transform!=null){
+                hescaIdentifier = "HESCA_"+this.transform.getClass().getSimpleName();
+            }
+            
+            output.append(input.relationName()).append(","+hescaIdentifier+",train\n");
+            output.append(this.getParameters()).append("\n");
+            output.append(this.getEnsembleCvAcc()).append("\n");
+
+            for(int i = 0; i < train.numInstances(); i++){
+                output.append(train.instance(i).classValue()).append(",").append(ensembleCvPreds[i]).append("\n");
+            }
+
+            new File(this.outputTrainingPathAndFile).mkdirs();
+            FileWriter fullTrain = new FileWriter(this.outputTrainingPathAndFile);
+            fullTrain.append(output);
+            fullTrain.close();
+        }
     }
 
 //    @Override
@@ -342,7 +365,7 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule{
     }
 
 //    @Override
-    public double[] getEnsembleCvPredictions() {
+    public double[] getEnsembleCvPreds() {
         return this.ensembleCvPreds;
     }
 
@@ -360,7 +383,21 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule{
         return this.transform;
     }
     
+    @Override
+    public void setCVPath(String pathAndName){
+        this.outputTrainingPathAndFile = pathAndName;
+        this.writeTraining = true;
+    }     
     
+    @Override
+    public String getParameters(){
+        StringBuilder out = new StringBuilder();
+        out.append("NA,");
+        for(int c = 0; c < this.classifierNames.length; c++){
+            out.append(classifierNames[c]+",");
+        }
+        return out.toString();
+    }
 //
 //    @Override
 //    public double classifyInstance(Instance instance) throws Exception {

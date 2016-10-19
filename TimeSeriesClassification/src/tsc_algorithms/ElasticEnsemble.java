@@ -4,6 +4,7 @@
 package tsc_algorithms;
 
 import java.io.File;
+import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.Random;
 import java.util.Scanner;
@@ -23,12 +24,13 @@ import weka.core.Capabilities;
 import weka.core.Instance;
 import weka.core.Instances;
 import weka.filters.timeseries.DerivativeFilter;
+import utilities.SaveCVAccuracy;
 
 /**
  *
  * @author sjx07ngu
  */
-public class ElasticEnsemble implements Classifier, HiveCoteModule{
+public class ElasticEnsemble implements Classifier, HiveCoteModule, SaveCVAccuracy{
 //public class ElasticEnsemble implements Classifier{
 
     
@@ -69,6 +71,10 @@ public class ElasticEnsemble implements Classifier, HiveCoteModule{
     private Instances derTrain;
     private Efficient1NN[] classifiers = null;
     
+    private boolean writeEnsembleTrainingFile = false;
+    private String ensembleTrainFilePathAndName = null;
+    
+    
     private boolean usesDer = false;
     private static DerivativeFilter df = new DerivativeFilter();
     
@@ -97,18 +103,18 @@ public class ElasticEnsemble implements Classifier, HiveCoteModule{
         return this.cvAccs;
     }
 
-//    @Override
+    @Override
     public double getEnsembleCvAcc() {
         if(this.ensembleCvAcc != -1 && this.ensembleCvPreds!=null){
             return this.ensembleCvAcc;
         }
         
-        this.getEnsembleCvPredictions();
+        this.getEnsembleCvPreds();
         return this.ensembleCvAcc;
     }
 
 //    @Override
-    public double[] getEnsembleCvPredictions() {
+    public double[] getEnsembleCvPreds() {
         if(this.ensembleCvPreds!=null){
             return this.ensembleCvPreds;
         }
@@ -153,6 +159,8 @@ public class ElasticEnsemble implements Classifier, HiveCoteModule{
         this.ensembleCvAcc = (double)correct/train.numInstances();
         return this.ensembleCvPreds;
     }
+    
+
 
 //    @Override
     public double[] getIndividualCvAccs() {
@@ -218,12 +226,19 @@ public class ElasticEnsemble implements Classifier, HiveCoteModule{
      * @param datasetName identifier in the written files for this dataset
      * @param resampleId  resample id of the dataset
      */
-    public void setFileWritingOn(String resultsDir, String datasetName, int resampleId){
+    public void setInternalFileWritingOn(String resultsDir, String datasetName, int resampleId){
         this.resultsDir = resultsDir;
         this.datasetName = datasetName;
         this.resampleId = resampleId;
         this.writeToFile = true;
     }
+    
+    @Override
+    public void setCVPath(String outputPathAndName){
+        this.writeEnsembleTrainingFile = true;
+        ensembleTrainFilePathAndName = outputPathAndName;
+    }
+    
     
     /**
      * Builds classifier. If building from file, cv weights and predictions will be loaded from file. If running from scratch, training cv will be performed for constituents to find best params, cv accs, and cv preds
@@ -301,6 +316,26 @@ public class ElasticEnsemble implements Classifier, HiveCoteModule{
                 for(int i = 0; i < train.numInstances(); i++){
                     this.cvPreds[c][i] = cvAccAndPreds[i+1];
                 }
+            }
+            
+            
+            if(this.writeEnsembleTrainingFile){
+                StringBuilder output = new StringBuilder();
+                
+                double[] ensembleCvPreds = this.getEnsembleCvPreds();
+                
+                output.append(train.relationName()).append(",EE,train\n");
+                output.append(this.getParameters()).append("\n");
+                output.append(this.getEnsembleCvAcc()).append("\n");
+                
+                for(int i = 0; i < train.numInstances(); i++){
+                    output.append(train.instance(i).classValue()).append(",").append(ensembleCvPreds[i]).append("\n");
+                }
+                
+                new File(this.ensembleTrainFilePathAndName).mkdirs();
+                FileWriter fullTrain = new FileWriter(this.ensembleTrainFilePathAndName);
+                fullTrain.append(output);
+                fullTrain.close();
             }
         }
     }
@@ -479,6 +514,14 @@ public class ElasticEnsemble implements Classifier, HiveCoteModule{
             st.append(classifiersToUse[c]).append(" ").append(classifiers[c].getClassifierIdentifier()).append(" ").append(cvAccs[c]).append("\n");
         }
         return st.toString();
+    }
+    
+    public String getParameters(){
+        StringBuilder params = new StringBuilder();
+        for(int c = 0; c < classifiers.length; c++){
+            params.append(classifiers[c].getClassifierIdentifier()).append(",").append(classifiers[c].getParamInformationString()).append(";");
+        }
+        return params.toString();
     }
     
 

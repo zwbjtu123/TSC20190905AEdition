@@ -9,7 +9,6 @@ package tsc_algorithms;
 
  **/ 
 
-import utilities.SaveCVAccuracy;
 import fileIO.OutFile;
 import java.util.ArrayList;
 import java.util.Random;
@@ -32,6 +31,7 @@ import weka.filters.SimpleBatchFilter;
 import weka.filters.timeseries.ACF;
 import weka.filters.timeseries.FFT;
 import weka.filters.timeseries.PowerSpectrum;
+import utilities.SaveCVAccuracy;
 
 /*
 
