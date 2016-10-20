@@ -9,7 +9,6 @@ import java.util.ArrayList;
 import java.util.Random;
 import java.util.Scanner;
 import tsc_algorithms.cote.HiveCoteModule;
-//import tsc_algorithms.cote.HiveCoteModule;
 import tsc_algorithms.elastic_ensemble.DTW1NN;
 import tsc_algorithms.elastic_ensemble.ED1NN;
 import tsc_algorithms.elastic_ensemble.ERP1NN;
@@ -25,12 +24,13 @@ import weka.core.Instance;
 import weka.core.Instances;
 import weka.filters.timeseries.DerivativeFilter;
 import utilities.SaveCVAccuracy;
+import utilities.WritableTestResults;
 
 /**
  *
  * @author sjx07ngu
  */
-public class ElasticEnsemble implements Classifier, HiveCoteModule, SaveCVAccuracy{
+public class ElasticEnsemble implements Classifier, HiveCoteModule, SaveCVAccuracy, WritableTestResults{
 //public class ElasticEnsemble implements Classifier{
 
     

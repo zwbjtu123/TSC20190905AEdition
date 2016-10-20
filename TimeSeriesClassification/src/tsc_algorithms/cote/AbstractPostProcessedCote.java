@@ -23,7 +23,7 @@ public abstract class AbstractPostProcessedCote {
 
     private double[] testActualClassVals;
     
-    public static final String CLASSIFIER_NAME = "AbstractCOTE";
+    public static String CLASSIFIER_NAME = "AbstractCOTE";
     
     public void loadResults() throws Exception{
         cvAccs = new double[classifierNames.size()];

@@ -10,7 +10,10 @@ import weka.core.Instances;
  * @author Jason Lines (j.lines@uea.ac.uk)
  */
 public class HiveCotePostProcessed extends AbstractPostProcessedCote{
-
+    
+    {
+        HiveCotePostProcessed.CLASSIFIER_NAME = "HIVE-COTE";
+    }
     public HiveCotePostProcessed(String resultsDir, String datasetName, int resampleId, ArrayList<String> classifierNames) {
         this.resultsDir = resultsDir;
         this.datasetName = datasetName;

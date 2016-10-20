@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.util.Scanner;
 import utilities.ClassifierTools;
+import utilities.InstanceTools;
 import weka.core.Instances;
 
 /**
@@ -47,7 +48,7 @@ public class ElasticEnsembleClusterDistributer {
             "\n" +
             "module add java/jdk1.8.0_51\n" +
             "\n" +
-            "java -jar -Xmx4000m LocalWork.jar runCv "+datasetName+" "+resample+" "+classifier+" $LSB_JOBINDEX";
+            "java -jar -Xmx4000m TimeSeriesClassification.jar runCv "+datasetName+" "+resample+" "+classifier+" $LSB_JOBINDEX";
         
         File outputDir = new File("scripts_eeCv/");
         outputDir.mkdirs();
@@ -59,20 +60,21 @@ public class ElasticEnsembleClusterDistributer {
         }
     }
     
+      
     /**
      * A method to run the CV experiment for a single param id of a measure on a dataset. 
-     * NOTE: method does not resample data; this should be done intependently of the method
+     * NOTE: method does not resample data; this should be done independently of the method
      * (access to test data is necessary for repartitioning the data). resampleId param is
      * purely for file writing purposes
      * 
      * @param train 
      * @param dataName 
-     * @param resampleId
+     * @param resampleIdentifier
      * @param classifier
      * @param paramId
      * @throws Exception 
      */
-    private static void runCv(Instances train, String dataName, int resampleId, ElasticEnsemble.ConstituentClassifiers classifier, int paramId) throws Exception{
+    private static void runCv(Instances train, String dataName, int resampleIdentifier, ElasticEnsemble.ConstituentClassifiers classifier, int paramId) throws Exception{
         String resultsDir = "eeResults/";
         if(classifier==ElasticEnsemble.ConstituentClassifiers.DDTW_R1_1NN || classifier == ElasticEnsemble.ConstituentClassifiers.DTW_R1_1NN || classifier == ElasticEnsemble.ConstituentClassifiers.Euclidean_1NN){
             if(paramId > 0){
@@ -80,7 +82,7 @@ public class ElasticEnsembleClusterDistributer {
             }
         }
         Efficient1NN oneNN = ElasticEnsemble.getClassifier(classifier);
-        oneNN.setIndividualCvFileWritingOn(resultsDir, dataName, resampleId);
+        oneNN.setIndividualCvFileWritingOn(resultsDir, dataName, resampleIdentifier);
         oneNN.loocvAccAndPreds(train, paramId);
     }
     
@@ -164,14 +166,17 @@ public class ElasticEnsembleClusterDistributer {
      * @throws Exception 
      */
     public static void clusterMaster(String[] args)throws Exception{
-        String arffDir = "competitionArffStore/";
-        if(args[0].equalsIgnoreCase("runCv")){
+        String arffDir = "Problems/";
+        
+        if(args[0].equalsIgnoreCase("makeScripts")){
+            // do locally for now
+        }else if(args[0].equalsIgnoreCase("runCv")){
             String datasetName = args[1].trim();
             int resampleId = Integer.parseInt(args[2].trim());
             String classifier = args[3].trim();
             int paramId = Integer.parseInt(args[4].trim())-1;
             
-            Instances train = ClassifierTools.loadData(arffDir+datasetName);
+            Instances train = ClassifierTools.loadData(arffDir+datasetName+"_TRAIN");
             runCv(train, datasetName, resampleId, ElasticEnsemble.ConstituentClassifiers.valueOf(classifier), paramId);
             
         }else if(args[0].equalsIgnoreCase("parseCv")){ 
@@ -183,6 +188,26 @@ public class ElasticEnsembleClusterDistributer {
                 runCv_parseIndividualCvsForBest(resultsDirName, datasetName, resampleId, c, true);
             }
                 
+        }else if(args[0].equalsIgnoreCase("buildEEandRunTest")){
+            String datasetName = args[1].trim();
+            String resultsDirName = args[2].trim();
+            String arffPath = args[3].trim();
+            int resampleId = 0;
+            
+            
+            Instances train = ClassifierTools.loadData(arffPath+datasetName+"/"+datasetName+"_TRAIN");
+            Instances test = ClassifierTools.loadData(arffPath+datasetName+"/"+datasetName+"_TEST");
+            if(args.length > 4){
+                resampleId = Integer.parseInt(args[4].trim());
+                Instances temp[] = InstanceTools.resampleTrainAndTestInstances(train, test, resampleId);
+                train = temp[0];
+                test = temp[1];
+            }
+            
+            ElasticEnsemble ee = new ElasticEnsemble(resultsDirName, datasetName, resampleId);
+            ee.buildClassifier(train);
+            ee.writeTestResultsToFile(test, datasetName, "EE", ee.getParameters(), resultsDirName+"EE/Predictions/"+datasetName+"/testFold"+resampleId+".csv");
+            
         }else{
             throw new Exception("Error: Unexpected operation - " + args[0]);
         }
@@ -223,7 +248,17 @@ public class ElasticEnsembleClusterDistributer {
             return;
         }
         // else, local:
+//        String problemName = "alphabet_raw_26_sampled_10";
+        String problemName = "vowel_raw_sampled_10";
         
+        StringBuilder instructionBuilder = new StringBuilder();
+        for(ElasticEnsemble.ConstituentClassifiers c:ElasticEnsemble.ConstituentClassifiers.values()){
+            scriptMaker_runCv(problemName, 0, c, instructionBuilder);
+        }
+        FileWriter out = new FileWriter("instructions_"+problemName+".txt");
+        out.append(instructionBuilder);
+        out.close();
+
     }
     
 }

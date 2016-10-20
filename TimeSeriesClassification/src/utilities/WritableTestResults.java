@@ -26,6 +26,7 @@ public interface WritableTestResults extends Classifier{
             throw new Exception("Error: could not create file "+outputFilePathAndName);
         }
         
+        
         int correct = 0;
         double actual, pred;
         double[] dists;
