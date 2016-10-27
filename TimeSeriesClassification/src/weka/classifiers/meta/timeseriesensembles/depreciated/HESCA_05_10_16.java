@@ -17,7 +17,6 @@ import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import utilities.ClassifierTools;
-import utilities.SaveCVAccuracy;
 import weka.classifiers.*;
 import weka.classifiers.bayes.BayesNet;
 import weka.classifiers.bayes.NaiveBayes;
@@ -31,6 +30,7 @@ import weka.classifiers.trees.EnhancedRandomForest;
 import weka.classifiers.trees.J48;
 import weka.classifiers.trees.RandomForest;
 import weka.core.*;
+import utilities.SaveCVAccuracy;
 
 /**
  *

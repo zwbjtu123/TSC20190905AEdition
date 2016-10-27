@@ -6,6 +6,7 @@
 package statistics.simulators;
 
 import fileIO.OutFile;
+import utilities.InstanceTools;
 import weka.core.Instances;
 
 /**
@@ -13,8 +14,8 @@ import weka.core.Instances;
  * @author ajb
  */
 public class SimulateDictionaryData {
-    static int[] shapeletsPerClass={5,20};//Also defines the num classes by length
-    static int shapeLength=8;
+    static int[] shapeletsPerClass={1,2};//Also defines the num classes by length
+    static int shapeLength=29;
 //Store a global copy purely to be able to recover the latest metadata
 //Probably need to generalise this1?  
     static DataSimulator sim;
@@ -80,16 +81,58 @@ public class SimulateDictionaryData {
         for(int i=1;i<s.length;i++)
             s[i].setShapeType(st);
     }
+
+    public static void generateExampleData(){
+        int seriesLength=1000;
+        Model.setDefaultSigma(0.1);
+        Instances noNoise=generateDictionaryData(seriesLength,new int[]{20,20});
+
+        Model.setDefaultSigma(1);
+        Instances noise=generateDictionaryData(seriesLength,new int[]{20,20});
+        OutFile of = new OutFile("C:\\temp\\DictionaryNoNoise.csv");
+        of.writeString(noNoise.toString());
+        OutFile of2 = new OutFile("C:\\temp\\DictionaryNoise.csv");
+        of2.writeString(noise.toString());
+        
+    }    
+    public static void checkGlobalSeedForIntervals(){
+        Model.setDefaultSigma(0);
+        Model.setGlobalRandomSeed(0);
+        Instances d=generateDictionaryData(100,new int[]{2,2});
+        OutFile of = new OutFile("C:\\Temp\\randZeroNoiseSeed0.csv");
+       of.writeLine(d.toString());
+        Model.setDefaultSigma(0.1);
+        Model.setGlobalRandomSeed(1);
+         d=generateDictionaryData(100,new int[]{2,2});
+        of = new OutFile("C:\\Temp\\randUnitNoiseSeed1.csv");
+       of.writeLine(d.toString());
+        Model.setDefaultSigma(0);
+        Model.setGlobalRandomSeed(0);
+         d=generateDictionaryData(100,new int[]{2,2});
+        of = new OutFile("C:\\Temp\\randZeroNoiseSeed0REP.csv");
+       of.writeLine(d.toString());
+        Model.setDefaultSigma(0.1);
+        Model.setGlobalRandomSeed(1);
+         d=generateDictionaryData(100,new int[]{2,2});
+        of = new OutFile("C:\\Temp\\randUnitNoiseSeed1REP.csv");
+       of.writeLine(d.toString());
+    }
     public static void main(String[] args) {
+        checkGlobalSeedForIntervals();
+        System.exit(0);
+//        generateExampleData();
         Model.setDefaultSigma(0);
         Model.setGlobalRandomSeed(0);
 //seriesLength=1000;
 //                casesPerClass=new int[]{20,20};        
-        Instances d=generateDictionaryData(1000,new int[]{2,2});
+        Instances d=generateDictionaryData(59,new int[]{2,2});
+        Instances[] split=InstanceTools.resampleInstances(d, 0,0.5);
         System.out.println(" DATA "+d);
-        OutFile of = new OutFile("C:\\Temp\\dictionarySimulationTest.arff");
-        of.writeLine(""+sim.generateHeader());
-        of.writeString(d.toString());
+        OutFile of = new OutFile("C:\\Temp\\dictionarySimulationTest.csv");
+//        of.writeLine(""+sim.generateHeader());
+        of.writeString(split[0].toString());
+        of = new OutFile("C:\\Temp\\dictionarySimulationTrain.csv");
+        of.writeString(split[1].toString());
     }
         
 }

@@ -20,7 +20,7 @@ abstract public class Model{
         static int seed=1;
         static int count=1;
         double variance;
-        public static Random rand=new Random();
+        public static Random rand=new Random(seed);
 //        public static Random rand=new MersenneTwister();
         public Model(){
             variance =defaultSigma;
@@ -33,7 +33,9 @@ abstract public class Model{
         }
         public static void setGlobalRandomSeed(int s){
             seed=s;
-            rand.setSeed(s);
+            rand=new Random(seed);
+            count=1;
+            
         }
         public static int getRandomSeed(){return seed;}
 //Bt of a hack, what if non normal error?        

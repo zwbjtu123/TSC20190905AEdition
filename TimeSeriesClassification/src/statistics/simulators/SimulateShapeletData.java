@@ -35,8 +35,7 @@ public class SimulateShapeletData extends DataSimulator{
         
         if( casesPerClass.length != 2)
         {
-            System.err.println("Incorrect parameters, dataset will not be co"
-                    + "rrect.");
+            System.err.println("ONLY WORKS WITH TWO CLASS PROBS AT THE MOMENT");
             int[] tmp = {0,0};
             casesPerClass = tmp;
             
@@ -64,12 +63,40 @@ public class SimulateShapeletData extends DataSimulator{
        
 //Create two ShapeleModels with different base Shapelets        
         s[0]=new ShapeletModel(p1);        
+        
         ShapeletModel.ShapeType st=s[0].getShapeType();
         s[1]=new ShapeletModel(p2);
         while(st==s[1].getShapeType()){ //Force them to be different types of shape
             s[1]=new ShapeletModel(p2);
         }
     }
+    
+    public static void checkGlobalSeedForIntervals(){
+        Model.setDefaultSigma(0);
+        Model.setGlobalRandomSeed(0);
+        Instances d=generateShapeletData(100,new int[]{2,2});
+        OutFile of = new OutFile("C:\\Temp\\randZeroNoiseSeed0.csv");
+       of.writeLine(d.toString());
+        Model.setDefaultSigma(0.1);
+        Model.setGlobalRandomSeed(1);
+        System.out.println(" NOISE 0");
+         d=generateShapeletData(100,new int[]{2,2});
+        of = new OutFile("C:\\Temp\\randUnitNoiseSeed1.csv");
+       of.writeLine(d.toString());
+        Model.setDefaultSigma(0);
+        Model.setGlobalRandomSeed(0);
+        System.out.println(" NO NOISE 1");
+         d=generateShapeletData(100,new int[]{2,2});
+        of = new OutFile("C:\\Temp\\randZeroNoiseSeed0REP.csv");
+       of.writeLine(d.toString());
+        Model.setDefaultSigma(0.1);
+        Model.setGlobalRandomSeed(1);
+        System.out.println(" NOISE 1");
+         d=generateShapeletData(100,new int[]{2,2});
+        of = new OutFile("C:\\Temp\\randUnitNoiseSeed1REP.csv");
+       of.writeLine(d.toString());
+ }
+    
     /**
      * 
      * This creates a set of Instances representing a two-class problem with
@@ -78,10 +105,12 @@ public class SimulateShapeletData extends DataSimulator{
      */
     public static void main(String[] args)
     {
+        checkGlobalSeedForIntervals();
+        System.exit(0);
         int[] casesPerClass = {5,5};
         int seriesLength = 100;
-        Model.setDefaultSigma(0.25);
-        Model.setGlobalRandomSeed(100);
+        Model.setDefaultSigma(0);
+        Model.setGlobalRandomSeed(0);
         System.out.println("Model seed ="+Model.getRandomSeed());
         Instances data = SimulateShapeletData.generateShapeletData(seriesLength,casesPerClass);
         System.out.println("DATA "+data);

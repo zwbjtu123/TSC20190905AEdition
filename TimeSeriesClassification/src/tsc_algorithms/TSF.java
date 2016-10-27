@@ -39,7 +39,6 @@ import fileIO.OutFile;
 import java.util.ArrayList;
 import java.util.Random;
 import utilities.ClassifierTools;
-import utilities.SaveCVAccuracy;
 import weka.classifiers.AbstractClassifier;
 import weka.classifiers.Evaluation;
 import weka.classifiers.trees.RandomForest;
@@ -50,6 +49,7 @@ import weka.core.FastVector;
 import weka.core.Instance;
 import weka.core.Instances;
 import weka.core.TechnicalInformation;
+import utilities.SaveCVAccuracy;
 
 /*
 

@@ -1,16 +1,18 @@
 /**
- * NOTE: consider this code experimental. This is a first pass and may not be final; it has been informally tested but awaiting rigurous testing before being signed off.
+ * NOTE: consider this code experimental. This is a first pass and may not be final; it has been informally tested but awaiting rigorous testing before being signed off.
  * Also note that file writing/reading from file is not currently supported (will be added soon)
  */
 
 package weka.classifiers.meta.timeseriesensembles;
 
+import java.io.File;
+import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Random;
 import tsc_algorithms.cote.HiveCoteModule;
-//import tsc_algorithms.cote.HiveCoteModule;
 import utilities.ClassifierTools;
+import utilities.InstanceTools;
 import weka.classifiers.AbstractClassifier;
 import weka.classifiers.Classifier;
 import weka.classifiers.bayes.BayesNet;
@@ -29,6 +31,7 @@ import weka.core.Instances;
 import weka.filters.SimpleBatchFilter;
 import weka.filters.timeseries.shapelet_transforms.ShapeletTransform;
 import weka.filters.timeseries.shapelet_transforms.ShapeletTransformFactory;
+import utilities.SaveCVAccuracy;
 
 /**
  *
@@ -37,7 +40,7 @@ import weka.filters.timeseries.shapelet_transforms.ShapeletTransformFactory;
 
 // NOTE: this version doesn't currently support file writing (to-do)
 
-public class HESCA extends AbstractClassifier implements HiveCoteModule{
+public class HESCA extends AbstractClassifier implements HiveCoteModule, SaveCVAccuracy{
 //public class HESCA extends AbstractClassifier {
 
     private final SimpleBatchFilter transform;
@@ -54,6 +57,16 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule{
     
     private Instances train;
     
+    // used for file writing nameing only
+    private boolean writeIndividualClassifierOutputs = false;
+    private String outputResultsDir;
+    private String datasetIdentifier;
+    private String ensembleIdentifier;
+    private int resampleIdentifier;
+    
+    
+    private boolean writeTraining = false;
+    private String outputTrainingPathAndFile;
     public HESCA(SimpleBatchFilter transform) {
         this.transform = transform;
         this.setDefaultClassifiers();
@@ -124,9 +137,17 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule{
         classifierNames[7] = "bayesNet";    
     }
     
-    public void setSeed(int seed){
+    public void setRandSeed(int seed){
         this.setSeed = true;
         this.seed = seed;
+    }
+    
+    public void turnOnIndividualClassifierOutputs(String outputDir, String ensembleIdentifier, String datasetIdentifier, int resampleIdentifier){
+        this.outputResultsDir = outputDir;
+        this.ensembleIdentifier = ensembleIdentifier;
+        this.datasetIdentifier = datasetIdentifier;
+        this.resampleIdentifier = resampleIdentifier;
+        this.writeIndividualClassifierOutputs = true;
     }
     
     public double[] crossValidate(Classifier classifier, Instances train) throws Exception{
@@ -266,14 +287,12 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule{
             }
         }
         
-//        double acc = (double)correct/train.numInstances();
         return predictions;
     }
 
     
     @Override
     public void buildClassifier(Instances input) throws Exception{
-//        template = new Instances(input,0);
         if(this.transform==null){
             this.train = input;
         }else{
@@ -284,16 +303,34 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule{
         this.individualCvPreds = new double[this.classifiers.length][this.train.numInstances()];
         this.individualCvAccs = new double[this.classifiers.length];
         
-        for(int i = 0; i < this.classifiers.length; i++){
-            this.individualCvPreds[i] = crossValidate(this.classifiers[i],this.train);
+        for(int c = 0; c < this.classifiers.length; c++){
+            this.individualCvPreds[c] = crossValidate(this.classifiers[c],this.train);
             correct = 0;
             
-            for(int j = 0; j < this.individualCvPreds[i].length; j++){
-                if(train.instance(j).classValue()==this.individualCvPreds[i][j]){
+            for(int i = 0; i < this.individualCvPreds[c].length; i++){
+                if(train.instance(i).classValue()==this.individualCvPreds[c][i]){
                     correct++;
                 }
             }
-            this.individualCvAccs[i] = (double)correct/train.numInstances();
+            this.individualCvAccs[c] = (double)correct/train.numInstances();
+            
+            if(this.writeIndividualClassifierOutputs){
+                StringBuilder st = new StringBuilder();
+                st.append(this.datasetIdentifier+","+this.ensembleIdentifier+"_"+classifierNames[c]+",train\n");
+                st.append("internalHesca\n");
+                st.append(individualCvAccs[c]+"\n");
+                for(int i = 0; i < this.individualCvPreds[c].length;i++){
+                    st.append(train.instance(i).classValue()+","+individualCvPreds[c][i]+"\n");
+                }
+                new File(this.outputResultsDir+this.ensembleIdentifier+"_"+classifierNames[c]+"/Predictions/"+datasetIdentifier).mkdirs();
+                FileWriter out = new FileWriter(this.outputResultsDir+this.ensembleIdentifier+"_"+classifierNames[c]+"/Predictions/"+datasetIdentifier+"/trainFold"+this.resampleIdentifier+".csv");
+                out.append(st);
+                out.close();
+            }
+            
+            
+            
+            
         }
         
         this.ensembleCvPreds = new double[train.numInstances()];
@@ -332,8 +369,29 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule{
             }
             this.ensembleCvPreds[i]=pred;
         }
-        
         this.ensembleCvAcc = (double)correct/train.numInstances();
+        
+        if(this.writeTraining){
+            StringBuilder output = new StringBuilder();
+
+            String hescaIdentifier = "HESCA";
+            if(this.transform!=null){
+                hescaIdentifier = "HESCA_"+this.transform.getClass().getSimpleName();
+            }
+            
+            output.append(input.relationName()).append(","+hescaIdentifier+",train\n");
+            output.append(this.getParameters()).append("\n");
+            output.append(this.getEnsembleCvAcc()).append("\n");
+
+            for(int i = 0; i < train.numInstances(); i++){
+                output.append(train.instance(i).classValue()).append(",").append(ensembleCvPreds[i]).append("\n");
+            }
+
+            new File(this.outputTrainingPathAndFile).getParentFile().mkdirs();
+            FileWriter fullTrain = new FileWriter(this.outputTrainingPathAndFile);
+            fullTrain.append(output);
+            fullTrain.close();
+        }
     }
 
 //    @Override
@@ -342,7 +400,7 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule{
     }
 
 //    @Override
-    public double[] getEnsembleCvPredictions() {
+    public double[] getEnsembleCvPreds() {
         return this.ensembleCvPreds;
     }
 
@@ -360,7 +418,21 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule{
         return this.transform;
     }
     
+    @Override
+    public void setCVPath(String pathAndName){
+        this.outputTrainingPathAndFile = pathAndName;
+        this.writeTraining = true;
+    }     
     
+    @Override
+    public String getParameters(){
+        StringBuilder out = new StringBuilder();
+        out.append("NA,");
+        for(int c = 0; c < this.classifierNames.length; c++){
+            out.append(classifierNames[c]+",");
+        }
+        return out.toString();
+    }
 //
 //    @Override
 //    public double classifyInstance(Instance instance) throws Exception {
@@ -427,6 +499,101 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule{
         }
         
         return predsByClassifier;
+    }
+    
+    public static void buildAndWriteFullIndividualTrainTestResults(Instances defaultTrainPartition, Instances defaultTestPartition, String resultOutputDir, String datasetIdentifier, String ensembleIdentifier, int resampleIdentifier, SimpleBatchFilter transform) throws Exception{
+        HESCA h;
+        if(transform!=null){
+            h = new HESCA(transform);
+        }else{
+            h = new HESCA();
+        }
+        
+        Instances train = new Instances(defaultTrainPartition);
+        Instances test = new Instances(defaultTestPartition);
+        if(resampleIdentifier >0){
+            Instances[] temp = InstanceTools.resampleTrainAndTestInstances(train, test, resampleIdentifier);
+            train = temp[0];
+            test = temp[1];
+        }
+        
+        
+        h.turnOnIndividualClassifierOutputs(resultOutputDir, ensembleIdentifier, datasetIdentifier, resampleIdentifier);
+        h.setCVPath(resultOutputDir+ensembleIdentifier+"/Predictions/"+datasetIdentifier+"/trainFold"+resampleIdentifier+".csv");
+        h.buildClassifier(train);
+        
+        StringBuilder[] byClassifier = new StringBuilder[h.classifiers.length+1];
+        for(int c = 0; c < h.classifiers.length+1; c++){
+            byClassifier[c] = new StringBuilder();
+        }
+        int[] correctByClassifier = new int[h.classifiers.length+1];
+        
+        double cvSum = 0;
+        for(int c = 0; c < h.classifiers.length; c++){
+            cvSum+= h.individualCvAccs[c];
+        }
+        int correctByEnsemble = 0;
+                
+        
+        
+        double act;
+        double pred;
+        double[] preds;
+        
+        double[] distForIns = null;
+        double bsfClassVal = -1;
+        double bsfClassWeight = -1;
+        for(int i = 0; i < test.numInstances(); i++){
+            act = test.instance(i).classValue();
+            preds = h.classifyInstanceByConstituents(test.instance(i));
+            distForIns = new double[test.numClasses()];
+            bsfClassVal = -1;
+            bsfClassWeight = -1;
+            for(int c = 0; c < h.classifiers.length; c++){
+                byClassifier[c].append(act+","+preds[c]+"\n");
+                if(preds[c]==act){
+                    correctByClassifier[c]++;
+                }
+                
+                distForIns[(int)preds[c]]+= h.individualCvAccs[c];
+                if(distForIns[(int)preds[c]] > bsfClassWeight){
+                    bsfClassVal = preds[c];
+                    bsfClassWeight = distForIns[(int)preds[c]];
+                }
+            }
+            
+            if(bsfClassVal==act){
+                correctByEnsemble++;
+            }
+            byClassifier[h.classifiers.length].append(act+","+bsfClassVal+",");
+            for(int cVal = 0; cVal < distForIns.length; cVal++){
+                byClassifier[h.classifiers.length].append(","+distForIns[cVal]/cvSum);
+            }
+            byClassifier[h.classifiers.length].append("\n");
+        }
+        
+        FileWriter out;
+        String outPath;
+        for(int c = 0; c < h.classifiers.length; c++){
+            outPath = h.outputResultsDir+h.ensembleIdentifier+"_"+h.classifierNames[c]+"/Predictions/"+h.datasetIdentifier;
+            new File(outPath).mkdirs();
+            out = new FileWriter(outPath+"/testFold"+h.resampleIdentifier+".csv");
+            out.append(h.datasetIdentifier+","+h.ensembleIdentifier+"_"+h.classifierNames[c]+",test\n");
+            out.append("noParamInfo\n");
+            out.append((double)correctByClassifier[c]/test.numInstances()+"\n");
+            out.append(byClassifier[c]);
+            out.close();            
+        }
+        
+        outPath = h.outputResultsDir+h.ensembleIdentifier+"/Predictions/"+h.datasetIdentifier;
+        new File(outPath).mkdirs();
+        out = new FileWriter(outPath+"/testFold"+h.resampleIdentifier+".csv");
+        out.append(h.datasetIdentifier+","+h.ensembleIdentifier+",test\n");
+        out.append("noParamInfo\n");
+        out.append((double)correctByEnsemble/test.numInstances()+"\n");
+        out.append(byClassifier[h.classifiers.length]);
+        out.close(); 
+        
     }
     
     

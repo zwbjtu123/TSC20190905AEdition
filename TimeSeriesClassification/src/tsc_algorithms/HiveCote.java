@@ -7,9 +7,12 @@
 package tsc_algorithms;
 
 
+import java.io.File;
+import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Random;
+import java.util.Scanner;
 import tsc_algorithms.cote.HiveCoteModule;
 import utilities.ClassifierTools;
 import weka.classifiers.AbstractClassifier;
@@ -19,11 +22,13 @@ import weka.core.Instance;
 import weka.core.Instances;
 import weka.filters.timeseries.shapelet_transforms.ShapeletTransform;
 import weka.filters.timeseries.shapelet_transforms.ShapeletTransformFactory;
+import utilities.SaveCVAccuracy;
 
 /**
  *
  * @author Jason Lines (j.lines@uea.ac.uk)
  */
+//public class HiveCote extends AbstractClassifier implements SaveTrainingPredictions{
 public class HiveCote extends AbstractClassifier{
     
     private ArrayList<Classifier> classifiers;
@@ -32,15 +37,21 @@ public class HiveCote extends AbstractClassifier{
     private boolean verbose = false;
     private int maxCvFolds = 10;// note: this only affects manual CVs from this class using the crossvalidate method. This will not affect internal classifier cv's if they are set within those classes
     
+//    private boolean writeEnsembleTrainingPredictions = false;
+//    private String ensembleTrainingPredictionsPathAndName = null;
+    
+    private boolean fileWriting = false;
+    private String fileOutputDir;
+    private String fileOutputDataset;
+    private String fileOutputResampleId;
+    
     public HiveCote(){
         this.setDefaultEnsembles();
     }
     
     public HiveCote(ArrayList<Classifier> classifiers, ArrayList<String> classifierNames){
-        this.classifiers = new ArrayList<>();
-        this.names = new ArrayList<>();
-        Collections.copy(classifiers, this.classifiers);
-        Collections.copy(classifierNames, this.names);
+        this.classifiers = classifiers;
+        this.names = classifierNames;
     }
 
     private void setDefaultEnsembles(){
@@ -49,7 +60,7 @@ public class HiveCote extends AbstractClassifier{
         names = new ArrayList<>();
         
         classifiers.add(new ElasticEnsemble());
-        classifiers.add(new HESCA(new DefaultShapeletTransformPlaceholder()));
+        classifiers.add(new HESCA(new DefaultShapeletTransformPlaceholder())); // to get around the issue of needinf training data 
         RISE rise = new RISE();
         rise.setTransformType(RISE.Filter.PS_ACF);
         classifiers.add(rise);
@@ -63,24 +74,38 @@ public class HiveCote extends AbstractClassifier{
         names.add("TSF");
     }
     
+    public void turnOnFileWriting(String outputDir, String datasetName){
+        turnOnFileWriting(outputDir, datasetName, "0");
+    }
+    public void turnOnFileWriting(String outputDir, String datasetName, String resampleFoldIdentifier){
+        this.fileWriting = true;
+        this.fileOutputDir = outputDir;
+        this.fileOutputDataset = datasetName;
+        this.fileOutputResampleId = resampleFoldIdentifier;
+    }
+    
     @Override
     public void buildClassifier(Instances train) throws Exception{
         optionalOutputLine("Start of training");
                 
         modules = new ConstituentHiveEnsemble[classifiers.size()];
         
+        System.out.println("modules include:");
+        for(int i = 0; i < classifiers.size();i++){
+            System.out.println(names.get(i));
+        }
+        
         double ensembleAcc;
+        String outputFilePathAndName;
+        
         for(int i = 0; i < classifiers.size(); i++){
             
             if(classifiers.get(i) instanceof HESCA){
-                System.out.println("found a hesca");
                 if(((HESCA)classifiers.get(i)).getTransform() instanceof DefaultShapeletTransformPlaceholder){
-                    System.out.println("found a placeholder");
                     classifiers.remove(i);
                     ShapeletTransform shoutyThing = ShapeletTransformFactory.createTransformWithTimeLimit(train, 24);
                     shoutyThing.supressOutput();
                     classifiers.add(i, new HESCA(shoutyThing));
-                    System.out.println("placed a non-shouty shouty thing");
                 }
             }
             
@@ -91,15 +116,25 @@ public class HiveCote extends AbstractClassifier{
                 optionalOutputLine("training (group a): "+this.names.get(i));
                 classifiers.get(i).buildClassifier(train);
                 modules[i] = new ConstituentHiveEnsemble(this.names.get(i), this.classifiers.get(i), ((HiveCoteModule) classifiers.get(i)).getEnsembleCvAcc());
+                
+                if(this.fileWriting){    
+                    outputFilePathAndName = fileOutputDir+names.get(i)+"/Predictions/"+this.fileOutputDataset+"/trainFold"+this.fileOutputResampleId+".csv";    
+                    genericCvResultsFileWriter(outputFilePathAndName, train, ((HiveCoteModule)(modules[i].classifier)).getEnsembleCvPreds(), this.fileOutputDataset, modules[i].classifierName, ((HiveCoteModule)(modules[i].classifier)).getParameters(), modules[i].ensembleCvAcc);
+                }
+                
+                
             // else we must do a manual cross validation to get the module's encapsulated cv acc
             // note this isn't optimal; would be better to change constituent ensembles to self-record cv acc during training, rather than cv-ing and then building
             // however, this is effectively a wrapper so we can add any classifier to the collective without worrying about implementation support
             }else{
                 optionalOutputLine("crossval (group b): "+this.names.get(i));
-                ensembleAcc = crossValidate(classifiers.get(i), train, maxCvFolds);
+                ensembleAcc = crossValidateWithFileWriting(classifiers.get(i), train, maxCvFolds,this.names.get(i));
                 optionalOutputLine("training (group b): "+this.names.get(i));
                 classifiers.get(i).buildClassifier(train);                
                 modules[i] = new ConstituentHiveEnsemble(this.names.get(i), this.classifiers.get(i), ensembleAcc);
+                
+                
+                
             }
             optionalOutputLine("done "+modules[i].classifierName);
         }        
@@ -108,23 +143,106 @@ public class HiveCote extends AbstractClassifier{
             printModuleCvAccs();
         }
        
+//        if(this.writeEnsembleTrainingPredictions){
+//            new File(this.ensembleTrainingPredictionsPathAndName).mkdirs();
+//            FileWriter out = new FileWriter(this.ensembleTrainingPredictionsPathAndName);
+//            out.append(train.relationName()+",HIVE-COTE,train\n");
+//            out.append(this.getParameters()+"\n");
+//            for(int i = 0; i < train.numInstances(); i++){
+//                this.
+//                        
+//                        do i even need to write training preds?
+//            }
+//        }
+    }
+    
+    private static void genericCvResultsFileWriter(String outFilePathAndName, Instances instances, String classifierName, double[] preds, double cvAcc) throws Exception{
+        genericCvResultsFileWriter(outFilePathAndName, instances, preds, instances.relationName(), classifierName, "noParamInfo", cvAcc);
+    }
+    private static void genericCvResultsFileWriter(String outFilePathAndName, Instances instances, double[] preds, String datasetName, String classifierName, String paramInfo, double cvAcc) throws Exception{
+        
+        if(instances.numInstances()!=preds.length){
+            throw new Exception("Error: num instances doesn't match num preds.");
+        }
+        
+        File outPath = new File(outFilePathAndName);
+        outPath.getParentFile().mkdirs();
+        FileWriter out = new FileWriter(outFilePathAndName);
+        
+        out.append(datasetName+","+classifierName+",train\n");
+        out.append(paramInfo+"\n");
+        out.append(cvAcc+"\n");
+        for(int i =0; i < instances.numInstances(); i++){
+            out.append(instances.instance(i).classValue()+","+preds[i]+"\n");
+        }
+        out.close();
+        
     }
     
     @Override
     public double[] distributionForInstance(Instance instance) throws Exception{
+        return distributionForInstance(instance, null);
+    }
+    
+    private double[] distributionForInstance(Instance instance, StringBuilder[] outputFileBuilders) throws Exception{
+        
+        if(outputFileBuilders!=null && outputFileBuilders.length!=(modules.length+1)){
+            throw new Exception("Error: to write test files, there must be m+1 output StringBuilders (where m is the number of modules)");
+        }
         
         double[] hiveDists = new double[instance.numClasses()];
         double[] moduleDists;
         double moduleWeight;
         
+        double bsfClassVal,bsfClassWeight;
+        StringBuilder moduleString;
         
+        double cvAccSum = 0;
         for(int m = 0; m < modules.length; m++){
             moduleDists = modules[m].classifier.distributionForInstance(instance);
+            moduleString = new StringBuilder();
             moduleWeight = modules[m].ensembleCvAcc;
+                        
+            bsfClassVal = -1;
+            bsfClassWeight = -1;
+
             for(int c = 0; c < hiveDists.length; c++){
                 hiveDists[c] += moduleDists[c]*moduleWeight;
+                if(outputFileBuilders!=null){
+                    if(moduleDists[c] > bsfClassWeight){
+                        bsfClassWeight = moduleDists[c];
+                        bsfClassVal = c;
+                    }
+                    moduleString.append(",").append(moduleDists[c]);
+                    
+                    
+                }
             }
+            if(outputFileBuilders!=null){
+                outputFileBuilders[m].append(instance.classValue()).append(",").append(bsfClassVal).append(",").append(moduleString.toString()+"\n");
+            }
+            cvAccSum+=modules[m].ensembleCvAcc;
         }
+        
+        for(int h = 0; h < hiveDists.length; h++){
+            hiveDists[h]/=cvAccSum;
+        }
+        
+        if(outputFileBuilders!=null){
+            
+            bsfClassVal = -1;
+            bsfClassWeight = -1;
+            moduleString = new StringBuilder();
+            for(int c = 0; c < hiveDists.length; c++){
+                if(hiveDists[c] > bsfClassWeight){
+                    bsfClassWeight = hiveDists[c];
+                    bsfClassVal = c;
+                }
+                moduleString.append(",").append(hiveDists[c]);
+            }
+            outputFileBuilders[outputFileBuilders.length-1].append(instance.classValue()).append(",").append(bsfClassVal).append(",").append(moduleString.toString()+"\n");
+        }
+                   
         return hiveDists;
     }
     
@@ -156,7 +274,7 @@ public class HiveCote extends AbstractClassifier{
         System.out.println();
     }
     
-    private void makeShouty(){
+    public void makeShouty(){
         this.verbose = true;
     }
     
@@ -170,7 +288,104 @@ public class HiveCote extends AbstractClassifier{
         this.maxCvFolds = maxFolds;
     }
  
+//    @Override
+//    public void writeTrainingOutput(String pathAndFileName){
+//        this.writeEnsembleTrainingPredictions = true;
+//        this.ensembleTrainingPredictionsPathAndName = pathAndFileName;
+//    }
+    
+//    @Override
+//    public String getParameters(){
+//        StringBuilder out = new StringBuilder();
+//        out.append("contains,");
+//        for (ConstituentHiveEnsemble module : this.modules) {
+//            out.append(module.classifierName).append(",");
+//        }
+//        return out.toString();
+//    }
+    
+    
+    public void writeTestPredictionsToFile(Instances test, String outputDir, String datasetName) throws Exception{
+        writeTestPredictionsToFile(test, outputDir, datasetName, "0");
+    }
+    public void writeTestPredictionsToFile(Instances test, String outputDir, String datasetName, String datasetResampleIdentifier) throws Exception{
+        
+        this.fileOutputDir = outputDir;
+        this.fileOutputDataset = datasetName;
+        this.fileOutputResampleId = datasetResampleIdentifier;
+        
+        
+        StringBuilder[] outputs = new StringBuilder[this.modules.length+1];
+        for(int m = 0; m < outputs.length; m++){
+            outputs[m] = new StringBuilder();
+        }
+        
+        for(int i = 0; i < test.numInstances(); i++){
+            this.distributionForInstance(test.instance(i), outputs);
+        }
+        
+        FileWriter out;
+        File dir;
+        Scanner scan;
+        int correct;
+        String lineParts[];
+        for(int m = 0; m < modules.length; m++){
+            dir  = new File(this.fileOutputDir+modules[m].classifierName+"/Predictions/"+this.fileOutputDataset+"/");
+            if(dir.exists()==false){
+                dir.mkdirs();
+            }
+            correct = 0;
+            scan = new Scanner(outputs[m].toString());
+            scan.useDelimiter("\n");
+            while(scan.hasNext()){
+                lineParts = scan.next().split(",");
+                if(lineParts[0].trim().equalsIgnoreCase(lineParts[1].trim())){
+                    correct++;
+                }
+            }
+            scan.close();
+            out = new FileWriter(this.fileOutputDir+modules[m].classifierName+"/Predictions/"+this.fileOutputDataset+"/testFold"+this.fileOutputResampleId+".csv");
+            out.append(this.fileOutputDataset+","+this.modules[m].classifierName+",test\n");
+            out.append("builtInHive\n");
+            out.append(((double)correct/test.numInstances())+"\n");
+            out.append(outputs[m]);
+            out.close();
+        }
+
+        correct = 0;
+        scan = new Scanner(outputs[outputs.length-1].toString());
+        scan.useDelimiter("\n");
+        while(scan.hasNext()){
+            lineParts = scan.next().split(",");
+            if(lineParts[0].trim().equalsIgnoreCase(lineParts[1].trim())){
+                correct++;
+            }
+        }
+        scan.close();
+        
+        
+        dir  = new File(this.fileOutputDir+"HIVE-COTE/Predictions/"+this.fileOutputDataset+"/");
+        if(!dir.exists()){
+            dir.mkdirs();
+        }
+        out = new FileWriter(this.fileOutputDir+"HIVE-COTE/Predictions/"+this.fileOutputDataset+"/testFold"+this.fileOutputResampleId+".csv");
+        out.append(this.fileOutputDataset+",HIVE-COTE,test\nconstituentCvAccs,");
+        
+        for(int m = 0; m < modules.length; m++){
+            out.append(modules[m].classifierName+","+modules[m].ensembleCvAcc+",");
+        }
+        out.append("\n"+((double)correct/test.numInstances())+"\n");
+        out.append("\n"+outputs[outputs.length-1]);
+        out.close();
+        
+    }
+    
+    
+    
     public double crossValidate(Classifier classifier, Instances train, int maxFolds) throws Exception{
+        return crossValidateWithFileWriting(classifier, train, maxFolds, null);
+    }
+    public double crossValidateWithFileWriting(Classifier classifier, Instances train, int maxFolds, String classifierName) throws Exception{
         
         int numFolds = maxFolds;
         if(numFolds <= 1 || numFolds > train.numInstances()){
@@ -302,9 +517,19 @@ public class HiveCote extends AbstractClassifier{
                 }
             }
         }
-
-        return (double)correct/train.numInstances();
+        
+        double cvAcc = (double)correct/train.numInstances();
+        if(this.fileWriting){   
+            String outputFilePathAndName = fileOutputDir+classifierName+"/Predictions/"+this.fileOutputDataset+"/trainFold"+this.fileOutputResampleId+".csv"; 
+            genericCvResultsFileWriter(outputFilePathAndName, train, predictions, this.fileOutputDataset, classifierName, "genericInternalCv,numFolds,"+numFolds, cvAcc);
+        }
+    
+        return cvAcc;
 //        return predictions;
+
+  
+
+
     }
 
 
@@ -321,7 +546,7 @@ public class HiveCote extends AbstractClassifier{
         }
     }
     
-    private class DefaultShapeletTransformPlaceholder extends ShapeletTransform{}
+    public static class DefaultShapeletTransformPlaceholder extends ShapeletTransform{}
     
     public static void main(String[] args) throws Exception{
        
@@ -335,6 +560,8 @@ public class HiveCote extends AbstractClassifier{
         hive.makeShouty();
         
         hive.buildClassifier(train);
+        
+        hive.writeTestPredictionsToFile(test, "prototypeSheets/", datasetName, "0");
         
         int correct = 0;
         double[] predByEnsemble;

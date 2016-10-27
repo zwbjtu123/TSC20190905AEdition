@@ -17,12 +17,12 @@ public class ShapeletModel extends Model {
     private static int DEFAULTNUMSHAPELETS=1;
     private static int DEFAULTSERIESLENGTH=500;
     private static int DEFAULTSHAPELETLENGTH=29;
-    private static int DEFAULTMAXSTART=DEFAULTSERIESLENGTH-2*DEFAULTSHAPELETLENGTH;
-    
+    private static int DEFAULTBASE=-2;
+    private static int DEFAULTAMP=4;
+   
     protected int numShapelets;
     protected int seriesLength; 
     protected int shapeletLength;
-    protected int maxStart;
     
     
     
@@ -31,13 +31,12 @@ public class ShapeletModel extends Model {
     // of the series if using the default shapelet length of 29
     public ShapeletModel()
     {
-        this(new double[]{DEFAULTNUMSHAPELETS,DEFAULTSERIESLENGTH,DEFAULTSHAPELETLENGTH,DEFAULTMAXSTART});
+        this(new double[]{DEFAULTNUMSHAPELETS,DEFAULTSERIESLENGTH,DEFAULTSHAPELETLENGTH});
     }
     public final void setDefaults(){
        seriesLength=DEFAULTSERIESLENGTH; 
        numShapelets=DEFAULTNUMSHAPELETS;
        shapeletLength=DEFAULTSHAPELETLENGTH;
-       maxStart=DEFAULTMAXSTART;
     }
     public ShapeletModel(double[] param)
     {
@@ -47,12 +46,11 @@ public class ShapeletModel extends Model {
 //Using the fall through for switching, I should be shot!        
         if(param!=null){
             switch(param.length){
-                default: case 4:    maxStart=(int)param[3];
+                default:
                 case 3:             shapeletLength=(int)param[2];
                 case 2:             numShapelets=(int)param[1];
                 case 1:             seriesLength=(int)param[0];
             }
-            maxStart=seriesLength-shapeletLength*2;
         }
         shapes=new ArrayList<>();
         // Shapes are randomised for type and location; the other characteristics, such as length
@@ -60,17 +58,7 @@ public class ShapeletModel extends Model {
         for(int i=0;i<numShapelets;i++)
         {
            Shape sh = new Shape();
-           boolean valid = sh.randomiseShape(maxStart,shapes);
-             //This checks that there is sufficient space to fit non-overlapping shapes;
-           // If this is not the case, the max start value is increased by 
-           //default shapelet length. Be aware that max start may exceed your original
-           // value if too many shapes are used.
-           if(!valid)
-           {
-               System.out.println("Insufficient space: Shapelet Length "+shapeletLength+" Series Length ="+seriesLength+" Max Start ="+maxStart);
-               maxStart = maxStart+shapeletLength;
-               sh.randomiseShape(maxStart,shapes);
-           }
+           sh.randomiseShape();
            shapes.add(sh); 
         }
 //        error=new NormalDistribution(0,1);    
@@ -88,22 +76,10 @@ public class ShapeletModel extends Model {
         setDefaults();
         shapes=new ArrayList<Shape>();
         
-        maxStart = seriesLength-shapeletLength;
         for(int i=0;i<numShapelets;i++)
         {
            Shape sh = new Shape();
-           boolean valid = sh.randomiseShape(maxStart,shapes);
-           //This checks that the shape is not of the same type as the
-           //first shape.
-           while(sh.type==shape.type)
-               valid = sh.randomiseShape(maxStart, shapes);
-
-           if(!valid){
-//               System.out.println("Insufficient space, increasing max start");
-               maxStart = maxStart+shapeletLength;
-               sh.randomiseShape(maxStart,shapes);
-           }
-           
+           sh.randomiseShape();
            shapes.add(sh); 
         }       
 
@@ -115,6 +91,21 @@ public class ShapeletModel extends Model {
         shapes=new ArrayList<Shape>(s);
     }
 
+     @Override   
+	public	double[] generateSeries(int n)
+	{
+           t=0;
+//Randomize the starting locations each time this is called
+           for(Shape s:shapes)
+               s.randomiseLocation();
+           double[] d = new double[n];
+           for(int i=0;i<n;i++)
+              d[i]=generate();
+           return d;
+        }
+    
+    
+    
 //Fix all shapelets to a single type
     
     /*Generate a single data
@@ -152,13 +143,9 @@ public class ShapeletModel extends Model {
     {
     }
     
-    // The implementation of the reset method should be adjusted appropriately.
-    // Currently uses the randomiseLocation() method to implement a random
-    // location after reset. 
-    public void reset(){
+    // The implementation of the reset sets t back to zero.
+       public void reset(){
         t=0;
-        for(int i=0;i<shapes.size();i++)
-            shapes.get(i).randomiseLocation(maxStart, shapes);
     }
     
     public ShapeType getShapeType(){
@@ -187,14 +174,13 @@ public class ShapeletModel extends Model {
             String header=super.getHeader();
             header+="% Shapelet Length ="+shapeletLength;
             header+="% Series Length ="+seriesLength;
-            header+="% Max Start ="+maxStart;
             header+="% Number of Shapelets ="+numShapelets;
             for(int i=0;i<shapes.size();i++)
                 header+="%\t Shape "+i+" "+shapes.get(i).type+"\n";
             return header;
         }
    // Inner class determining the shape inserted into the shapelet model
-    public static class Shape{
+    public class Shape{
         // Type: head and shoulders, spike, step, triangle, or sine wave.
         private ShapeType type;
         //Length of shape
@@ -205,30 +191,25 @@ public class ShapeletModel extends Model {
         //The position in the series at which the shape begins.
         private int location;
         
-        private static int DEFAULTLENGTH=29;
-        private static int DEFAULTBASE=-2;
-        private static int DEFAULTAMP=4;
-        private static int DEFAULTLOCATION=0;
         
         //Default constructor, call randomise shape to get a random instance
         // The default length is 29, the shape extends from -2 to +2, is of 
         // type head and shoulders, and is located at index 0.
         private Shape()
         {
-            this(ShapeType.HEADSHOULDERS,DEFAULTLENGTH,DEFAULTBASE,DEFAULTAMP,DEFAULTLOCATION); 
+            this(ShapeType.HEADSHOULDERS,DEFAULTSHAPELETLENGTH,DEFAULTBASE,DEFAULTAMP); 
         }  
         //Set length only, default for the others
          private Shape(int length){
-            this(ShapeType.HEADSHOULDERS,length,DEFAULTBASE,DEFAULTAMP,DEFAULTLOCATION);      
+            this(ShapeType.HEADSHOULDERS,length,DEFAULTBASE,DEFAULTAMP);      
              
          }       
         // This constructor produces a completely specified shape
-        private Shape(ShapeType t,int l, double b, double a, int loc){
+        private Shape(ShapeType t,int l, double b, double a){
             type=t;
             length=l;
             base=b;
             amp=a;
-            location=loc;
         }
         
         //Checks the location against the value t, and outputs part of the shape
@@ -316,9 +297,6 @@ public class ShapeletModel extends Model {
         private void setLocation(int newLoc){
             this.location=newLoc;
         }
-        private int getLocation(){
-            return location;
-        }
         private void setType(ShapeType newType){
             this.type=newType;
         }
@@ -326,30 +304,8 @@ public class ShapeletModel extends Model {
         // Randomises the starting location of a shape. Returns false when
         // there is insufficient space to fit all shapes within the value
         // of maxStart. This is resolved in the constructor.
-        private boolean randomiseLocation(int maxStart, ArrayList<Shape> shapes){
-            if(shapes.size()*(length*2-1)>maxStart)//Need to get rid of maxStart!
-                return false;
-            
-            boolean validStart = false;
-            int start =-1;            
-            
-            while(!validStart){
-                start = Model.rand.nextInt(maxStart);       
-                int end = start+length;
-                validStart = true;
-                
-                for(int i=0;i<shapes.size();i++)
-                {
-                    int locStart = shapes.get(i).getLocation();
-                    int locEnd = locStart+length;
-                    
-                    if((start>=locStart&&start<=locEnd)||(end>=locStart&&end<=locEnd))
-                    {
-                        validStart=false;
-                        break;
-                    }
-                }               
-            }
+        private boolean randomiseLocation(){
+            int start = Model.rand.nextInt(seriesLength-shapeletLength);       
            setLocation(start);
            return true; 
         }
@@ -359,11 +315,8 @@ public class ShapeletModel extends Model {
             return ""+this.type+" start = "+location+" length ="+length;
         }
         
-        //gives a shape a random type and start position
-        private boolean randomiseShape(int maxStart, ArrayList<Shape> shapes){
-            boolean valid = randomiseLocation(maxStart, shapes);
-            if(!valid)
-                return false;
+        //gives a shape a random type
+        private boolean randomiseShape(){
             ShapeType [] types = ShapeType.values();            
             int ranType = Model.rand.nextInt(types.length);
             setType(types[ranType]);
@@ -380,7 +333,8 @@ public class ShapeletModel extends Model {
     public static void main (String[] args) throws IOException
     {
         OutFile out=new OutFile("C:\\temp\\shapeletExamples.csv");
-        Shape s = new Shape();
+        ShapeletModel model=new ShapeletModel();
+        Shape s = model.new Shape();
         for(ShapeType st: ShapeType.values()){
             out.writeString(st.name());
             s.setType(st);

@@ -17,11 +17,11 @@ import java.util.List;
 import tsc_algorithms.cote.HiveCoteModule;
 import utilities.ClassifierTools;
 import utilities.InstanceTools;
-import utilities.SaveCVAccuracy;
 import weka.core.Capabilities;
 import weka.core.Instance;
 import weka.core.Instances;
 import weka.classifiers.Classifier;
+import utilities.SaveCVAccuracy;
 
 /**
  * BOSS classifier with parameter search and ensembling, if parameters are known, use 'BOSS' classifier and directly provide them.
@@ -71,6 +71,7 @@ public class BOSSEnsemble implements Classifier, SaveCVAccuracy, HiveCoteModule 
 
     private Instances train;
     private double ensembleCvAcc = -1;
+    private double[] ensembleCvPreds = null;
     
     /**
      * Providing a particular value for normalisation will force that option, if 
@@ -383,7 +384,7 @@ public class BOSSEnsemble implements Classifier, SaveCVAccuracy, HiveCoteModule 
         }
         
         if (trainCV) {
-            int folds=setNumberOfFolds(data);
+            
             OutFile of=new OutFile(trainCVPath);
             of.writeLine(data.relationName()+",BOSSEnsemble,train");
            
@@ -426,6 +427,7 @@ public class BOSSEnsemble implements Classifier, SaveCVAccuracy, HiveCoteModule 
     private double[][] findEnsembleTrainAcc(Instances data) throws Exception {
         
         double[][] results = new double[2][data.numInstances() + 1];
+        this.ensembleCvPreds = new double[data.numInstances()];
         
         double correct = 0; 
         for (int i = 0; i < data.numInstances(); ++i) {
@@ -435,6 +437,7 @@ public class BOSSEnsemble implements Classifier, SaveCVAccuracy, HiveCoteModule 
             
             results[0][i+1] = data.get(i).classValue();
             results[1][i+1] = c;
+            this.ensembleCvPreds[i] = c;
         }
         
         results[0][0] = correct / data.numInstances();
@@ -455,6 +458,19 @@ public class BOSSEnsemble implements Classifier, SaveCVAccuracy, HiveCoteModule 
         }
         return -1;
     }
+    
+    public double[] getEnsembleCvPreds(){
+        if(this.ensembleCvPreds==null){   
+            try{
+                this.findEnsembleTrainAcc(train);
+            }catch(Exception e){
+                e.printStackTrace();
+            }
+        }
+        
+        return this.ensembleCvPreds;
+    }
+    
     
     /**
      * Classify the train instance at index 'test', whilst ignoring the corresponding bags 
