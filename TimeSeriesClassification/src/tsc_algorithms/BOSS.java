@@ -1,6 +1,12 @@
 package tsc_algorithms;
 
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
@@ -27,6 +33,8 @@ public class BOSS implements Classifier, Serializable {
     protected BitWord [][] SFAwords; //all sfa words found in original buildClassifier(), no numerosity reduction/shortening applied
     public ArrayList<Bag> bags; //histograms of words of the current wordlength with numerosity reduction applied (if selected)
     protected double[/*letterindex*/][/*breakpointsforletter*/] breakpoints;
+    
+    public static String classifierName = "BOSS";
     
     protected double inverseSqrtWindowSize;
     protected int windowSize;
@@ -68,6 +76,21 @@ public class BOSS implements Classifier, Serializable {
         bags = new ArrayList<>(boss.bags.size());
     }
     
+    private BOSS(BOSS boss) {
+        this.wordLength = boss.wordLength;
+        this.windowSize = boss.windowSize;
+        this.inverseSqrtWindowSize = boss.inverseSqrtWindowSize;
+        this.alphabetSize = boss.alphabetSize;
+        this.norm = boss.norm;
+        this.numerosityReduction = boss.numerosityReduction; 
+        //this.alphabet = boss.alphabet;
+        
+        this.SFAwords = boss.SFAwords;
+        this.breakpoints = boss.breakpoints;
+        
+        this.bags = boss.bags;
+    }
+    
     public static class Bag extends HashMap<BitWord, Integer> {
         double classVal;
         
@@ -98,6 +121,45 @@ public class BOSS implements Classifier, Serializable {
     
     public void clean() {
         SFAwords = null;
+    }
+    
+    public static boolean serialiseFeatureSet(BOSS boss, String path, String dsetName, int fold) {
+        path += boss.classifierName+"/"+dsetName+"/"+"fold"+fold+"/";
+        File f = new File(path);
+        if (!f.exists()) 
+            f.mkdirs();
+        
+        String filename = boss.classifierName+"_"+dsetName+"_"+fold+"_"+boss.windowSize+"_"+boss.wordLength+"_"+boss.alphabetSize+"_"+boss.norm;
+        
+        try {
+            ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(path + filename));
+            out.writeObject(boss);
+            out.close();         
+            return true;
+        }catch(IOException e) {
+            System.out.print("Error serialiszing to " + filename);
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public static BOSS loadFeatureSet(String path, String dsetName, int fold, String name, int windowSize, int wordLength, int alphabetSize, boolean norm) throws IOException, ClassNotFoundException {
+        path += name+"/"+dsetName+"/"+"fold"+fold+"/";
+         
+        String filename = name+"_"+dsetName+"_"+fold+"_"+windowSize+"_"+wordLength+"_"+alphabetSize+"_"+norm;
+        BOSS boss = null;
+        try {
+            ObjectInputStream in = new ObjectInputStream(new FileInputStream(path + filename));
+            boss = (BOSS) in.readObject();
+            in.close();
+            return boss;
+        }catch(IOException i) {
+            //System.out.print("Error deserialiszing from " + filename);
+            throw i;
+        }catch(ClassNotFoundException c) {
+            System.out.println("BOSSWindow class not found");
+            throw c;
+        }
     }
     
     protected double[][] slidingWindow(double[] data) {
@@ -770,8 +832,8 @@ public class BOSS implements Classifier, Serializable {
         try {
 //            Instances train = ClassifierTools.loadData("C:\\tempbakeoff\\TSC Problems\\ItalyPowerDemand\\ItalyPowerDemand_TRAIN.arff");
 //            Instances test = ClassifierTools.loadData("C:\\tempbakeoff\\TSC Problems\\ItalyPowerDemand\\ItalyPowerDemand_TEST.arff");
-            Instances train = ClassifierTools.loadData("C:\\tempbakeoff\\TSC Problems\\Car\\Car_TRAIN.arff");
-            Instances test = ClassifierTools.loadData("C:\\tempbakeoff\\TSC Problems\\Car\\Car_TEST.arff");
+            Instances train = ClassifierTools.loadData("C:\\TSC Problems\\Car\\Car_TRAIN.arff");
+            Instances test = ClassifierTools.loadData("C:\\TSC Problems\\Car\\Car_TEST.arff");
 //            Instances train = ClassifierTools.loadData("C:\\tempbakeoff\\TSC Problems\\BeetleFly\\BeetleFly_TRAIN.arff");
 //            Instances test = ClassifierTools.loadData("C:\\tempbakeoff\\TSC Problems\\BeetleFly\\BeetleFly_TEST.arff");
 

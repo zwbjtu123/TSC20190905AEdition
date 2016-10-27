@@ -34,13 +34,16 @@ import weka.classifiers.Classifier;
 public class BOSSEnsemble implements Classifier, SaveCVAccuracy, HiveCoteModule {
     
     private List<BOSSWindow> classifiers; 
-
+    
     private final double correctThreshold = 0.92;
     private int maxEnsembleSize = Integer.MAX_VALUE;
     
     private final Integer[] wordLengths = { 16, 14, 12, 10, 8 };
     private final int alphabetSize = 4;
     //private boolean norm;
+    
+    private boolean loadFeatureSets = false;
+    private int fold = 0;
     
     public enum SerialiseOptions { 
         //dont do any seriealising, run as normal
@@ -59,6 +62,7 @@ public class BOSSEnsemble implements Classifier, SaveCVAccuracy, HiveCoteModule 
     
     private SerialiseOptions serOption = SerialiseOptions.NONE;
     private static String serFileLoc = "BOSSWindowSers\\";
+    private static String featureFileLoc = "C:/JamesLPHD/featuresets/BOSSEnsemble/";
      
     private boolean[] normOptions;
     
@@ -244,8 +248,17 @@ public class BOSSEnsemble implements Classifier, SaveCVAccuracy, HiveCoteModule 
         serFileLoc = path;
     }
     
+    public void setFeatureFileLoc(String path) {
+        featureFileLoc = path;
+    }
+    
     public void setMaxEnsembleSize(int max) {
         maxEnsembleSize = max;
+    }
+    
+    public void setLoadFeatures(boolean load, int fold) {
+        this.loadFeatureSets = load;
+        this.fold = fold;
     }
     
     @Override
@@ -289,16 +302,29 @@ public class BOSSEnsemble implements Classifier, SaveCVAccuracy, HiveCoteModule 
         
         for (boolean normalise : normOptions) {
             for (int winSize = minWindow; winSize <= maxWindow; winSize += winInc) {          
-                BOSS boss = new BOSS(wordLengths[0], alphabetSize, winSize, normalise);  
-                boss.buildClassifier(data); //initial setup for this windowsize, with max word length     
-
+                BOSS boss = null;
+                
+                if (loadFeatureSets) {
+                    try {
+                        boss = BOSS.loadFeatureSet(featureFileLoc, data.relationName(), fold, "BOSS", winSize, wordLengths[0], alphabetSize, normalise);
+                    } catch (Exception e){
+                        //dont already exist
+                        boss = new BOSS(wordLengths[0], alphabetSize, winSize, normalise);  
+                        boss.buildClassifier(data); //initial setup for this windowsize, with max word length 
+                        BOSS.serialiseFeatureSet(boss, featureFileLoc, data.relationName(), fold);
+                    }
+                } else {
+                    boss = new BOSS(wordLengths[0], alphabetSize, winSize, normalise);  
+                    boss.buildClassifier(data); //initial setup for this windowsize, with max word length     
+                }
+                
                 BOSS bestClassifierForWinSize = null; 
                 double bestAccForWinSize = -1.0;
 
                 //find best word length for this window size
                 for (Integer wordLen : wordLengths) {            
                     boss = boss.buildShortenedBags(wordLen); //in first iteration, same lengths (wordLengths[0]), will do nothing
-
+                    
                     int correct = 0; 
                     for (int i = 0; i < numSeries; ++i) {
                         double c = boss.classifyInstance(i); //classify series i, while ignoring its corresponding histogram i
@@ -512,7 +538,8 @@ public class BOSSEnsemble implements Classifier, SaveCVAccuracy, HiveCoteModule 
     }
 
     public static void main(String[] args) throws Exception{
-        basicTest();
+        ///basicTest();
+        basicFeatureLoadTest();
 //        ensembleMemberTest();
         //resampleTest();
     }
@@ -520,13 +547,13 @@ public class BOSSEnsemble implements Classifier, SaveCVAccuracy, HiveCoteModule 
     public static void basicTest() {
         System.out.println("BOSSEnsembleBasicTest\n");
         try {
-            String dset = "ECG200";
+            String dset = "Ham";
             Instances train = ClassifierTools.loadData("C:\\TSC Problems\\"+dset+"\\"+dset+"_TRAIN.arff");
             Instances test = ClassifierTools.loadData("C:\\TSC Problems\\"+dset+"\\"+dset+"_TEST.arff");
             
             System.out.println(train.relationName());
             
-            BOSSEnsemble boss = new BOSSEnsemble(true);
+            BOSSEnsemble boss = new BOSSEnsemble();
             System.out.println("Training starting");
             long start = System.nanoTime();
             boss.buildClassifier(train);
@@ -653,4 +680,42 @@ public class BOSSEnsemble implements Classifier, SaveCVAccuracy, HiveCoteModule 
          mean/=resamples;
          System.out.println("Mean acc over " + resamples + " resamples: " + mean);
      }   
+     
+    public static void basicFeatureLoadTest() {
+        System.out.println("BOSSEnsembleBasicFeatureLoadTest\n");
+        try {
+            String dset = "Car";
+            Instances train = ClassifierTools.loadData("C:\\TSC Problems\\"+dset+"\\"+dset+"_TRAIN.arff");
+            Instances test = ClassifierTools.loadData("C:\\TSC Problems\\"+dset+"\\"+dset+"_TEST.arff");
+            
+            System.out.println(train.relationName());
+            
+            BOSSEnsemble boss = new BOSSEnsemble();
+            boss.setLoadFeatures(true, 0);
+            
+            System.out.println("Training starting");
+            long start = System.nanoTime();
+            boss.buildClassifier(train);
+            double trainTime = (System.nanoTime() - start) / 1000000000.0; //seconds
+            System.out.println("Training done (" + trainTime + "s)");
+            
+            System.out.println("Ensemble Size: " + boss.classifiers.size());
+            System.out.println("Param sets: ");
+            int[][] params = boss.getParametersValues();
+            for (int i = 0; i < params.length; ++i)
+                System.out.println(i + ": " + params[i][0] + " " + params[i][1] + " " + params[i][2] + " " + boss.classifiers.get(i).isNorm());
+            
+            System.out.println("\nTesting starting");
+            start = System.nanoTime();
+            double acc = ClassifierTools.accuracy(test, boss);
+            double testTime = (System.nanoTime() - start) / 1000000000.0; //seconds
+            System.out.println("Testing done (" + testTime + "s)");
+            
+            System.out.println("\nACC: " + acc);
+        }
+        catch (Exception e) {
+            System.out.println(e);
+            e.printStackTrace();
+        }
+    }
 }

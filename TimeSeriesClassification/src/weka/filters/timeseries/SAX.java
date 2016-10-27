@@ -210,7 +210,12 @@ public class SAX extends SimpleBatchFilter {
         return output;
     }
     
-    private void convertSequence(double[] data) 
+    /**
+     * converts a double[] of 'paa-ed' data to sax letters
+     * @param data
+     * @throws Exception 
+     */
+    public void convertSequence(double[] data) 
             throws Exception {
         double[] gaussianBreakpoints = generateBreakpoints(alphabetSize);
         

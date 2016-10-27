@@ -18,8 +18,11 @@ public class BitWord implements Comparable<BitWord>, Serializable {
     public enum PrintFormat {
         RAW,            //simple decimal integer value
         BINARY,         //as 32 bit binary string 
-        LETTERS;        //as char string, has unpacking cost
+        LETTERS,        //as char string, has unpacking cost
+        STRING;         //as string of actual characters
     }
+    
+    private static final String[] alphabet = { "a","b","c","d","e","f","g","h","i","j" };
     
     private static String[] alphabetSymbols = { "a","b","c","d" };
     
@@ -149,6 +152,14 @@ public class BitWord implements Comparable<BitWord>, Serializable {
         return hash;
     }
     
+    public String buildString() {
+        int [] letters = unpackAll();
+        StringBuilder word = new StringBuilder();
+        for (int i = 0; i < letters.length; ++i)
+            word.append(alphabet[letters[i]]);
+        return word.toString();
+    }
+    
     @Override
     public String toString() {
         return Arrays.toString(unpackAll());
@@ -160,14 +171,10 @@ public class BitWord implements Comparable<BitWord>, Serializable {
             case BINARY: 
                 return String.format("%"+WORD_SPACE+"s", Integer.toBinaryString(word)).replace(' ', '0');
             case LETTERS: {
-                //return Arrays.toString(unpackAll());
-                
-                int [] letters = unpackAll();
-                String str = "";
-                for (int i : letters)
-                    str += alphabetSymbols[i];
-                
-                return str;
+                return Arrays.toString(unpackAll());
+            }
+            case STRING: {
+                return buildString();
             }
             default:
                 return "err"; //impossible with enum, but must have return
