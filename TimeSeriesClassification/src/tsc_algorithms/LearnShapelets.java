@@ -109,6 +109,10 @@ public class LearnShapelets extends AbstractClassifier implements ParameterSplit
     public void setParamSearch(boolean b) 
     { 
         paraSearch=b;
+        
+        //default the values to something.
+        if(paraSearch)
+            fixParameters();
     }
 //Set to defaults recommended by the author    
     public void fixParameters(){

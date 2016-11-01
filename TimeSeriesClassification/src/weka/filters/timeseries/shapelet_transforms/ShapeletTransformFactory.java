@@ -23,7 +23,7 @@ import java.util.Random;
 import tsc_algorithms.ST_Ensemble;
 import utilities.ClassifierTools;
 import utilities.InstanceTools;
-import utilities.Pair;
+import utilities.generic_storage.Pair;
 import weka.core.Instances;
 import weka.core.shapelet.*;
 import weka.filters.timeseries.shapelet_transforms.classValue.BinarisedClassValue;
@@ -151,7 +151,7 @@ public class ShapeletTransformFactory
     
     public static ShapeletTransform createBasicTransform(int n, int m){
         ShapeletTransform fst = new ShapeletTransform();
-        fst.setNumberOfShapelets(n * 10);
+        fst.setNumberOfShapelets(n);
         fst.setShapeletMinAndMax(3, m);
         fst.supressOutput();
         return fst;
@@ -330,7 +330,26 @@ public class ShapeletTransformFactory
         numOps*= n * (n-1);
         return numOps;
     }    
+ 
+    public static long calcShapelets(int n, int m, int min, int max, int pos, int len)
+    {
+        long numOps =0;
+        
+        //-1 from max because we index from 0.
+        for(int length = 0; length <= ((max-min)/len); length++){
+                        
+            int currentLength = (len*length) + min;
+            long shapeletsLength = (long) Math.ceil((double)(m - currentLength + 1) / (double) pos); //shapelts found.
+            
+            numOps += shapeletsLength;
+        }
 
+        numOps*= n;
+        return numOps;
+    }    
+
+    
+    
     
     public static BigInteger calculateOps(int n, int m, int posS, int lenS){
        

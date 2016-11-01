@@ -18,7 +18,7 @@ import weka.filters.timeseries.shapelet_transforms.ShapeletTransformFactory;
 public class RandomSearch extends ShapeletSearch{
         
     protected Random random;
-    private long numShapelets;
+    protected long numShapelets;
     
     protected boolean[][] visited;
 
