@@ -1,7 +1,6 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+Basic model that just adds normal noise. This is actually the default behaviour in 
+model, so we can abstract model and do it here instead (at a later date)
  */
 package statistics.simulators;
 

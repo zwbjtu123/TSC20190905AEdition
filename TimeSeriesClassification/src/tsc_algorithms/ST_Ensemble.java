@@ -116,7 +116,7 @@ public class ST_Ensemble  extends AbstractClassifier implements SaveableEnsemble
             hesca.saveTestPreds(testPredictions);
         }
         
-        System.out.println("transformed");
+//        System.out.println("transformed");
         hesca.buildClassifier(format);
         format=new Instances(data,0);
     }
@@ -199,14 +199,14 @@ public class ST_Ensemble  extends AbstractClassifier implements SaveableEnsemble
                 i++;
             }
             
-            System.out.println("new q and p: " + i);
+//            System.out.println("new q and p: " + i);
             
             
             double percentageOfSeries = (double)i/(double)m * 100.0;
             
-            System.out.println("percentageOfSeries: "+ percentageOfSeries);
+//            System.out.println("percentageOfSeries: "+ percentageOfSeries);
 
-            System.out.println("new n: " + subsample.numInstances());
+  //          System.out.println("new n: " + subsample.numInstances());
             
             //we should look for less shapelets if we've resampled. 
             //e.g. Eletric devices can be sampled to from 8000 for 2000 so we should be looking for 20,000 shapelets not 80,000

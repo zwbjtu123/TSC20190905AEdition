@@ -115,24 +115,35 @@ public class MultipleClassifiersPairwiseTest {
         
         
     }
-    public static void main(String[] args) {
-//ASSUME INPUT IN RANK ORDER, WITH TOP RANKED CLASSIFIER FIRST, WORST LAST        
-        
-        loadData("C:\\Research\\Papers\\2016\\DAMI Bake Off Tony\\Spreadsheets\\Fig8best9.csv");
+    
+    public static void runTests(String input, String output){
+         loadData(input);
 //        loadData("C:\\Research\\Papers\\2016\\JMLR HIVE-COTE Jason\\RiseTestWithNames.csv");
         findPVals();
         double alpha=0.05;
 //printPVals=false;
 //Bonferonni adjusted        
-        alpha/=nosClassifiers*(nosClassifiers-1)/2;
+//        alpha/=nosClassifiers*(nosClassifiers-1)/2;
+//Control adjusted 
+//        alpha/=nosClassifiers-1;
         findDifferences(alpha,false);
         //Sort classifiers by rank: assume already done
-        OutFile cliques=new OutFile("C:\\Research\\Papers\\2016\\DAMI Bake Off Tony\\Spreadsheets\\Fig8Cliques.csv");
+        OutFile cliques=new OutFile(output);
         for(int i=0;i<nosClassifiers;i++){
             for(int j=0;j<nosClassifiers;j++)
                 cliques.writeString(noDifference[i][j]+",");
             cliques.writeString("\n");
         }
+       
+    }
+    public static void main(String[] args) {
+//ASSUME INPUT IN RANK ORDER, WITH TOP RANKED CLASSIFIER FIRST, WORST LAST        
+        String input="C:\\Users\\ajb\\Dropbox\\Results\\SimulationExperiments\\BasicExperiments\\";
+        String output="C:\\Users\\ajb\\Dropbox\\Results\\SimulationExperiments\\BasicExperiments\\";
+        String[] allSimulators={"WholeSeriesElastic","Interval","Shapelet","Dictionary","ARMA"};
+//        for(String s:allSimulators)
+        String s= "testAll";//allSimulators[3];
+            runTests(input+s+".csv",output+s+"Tests.csv");
     }
     
 }

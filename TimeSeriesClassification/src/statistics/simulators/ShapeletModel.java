@@ -17,7 +17,7 @@ public class ShapeletModel extends Model {
     private static int DEFAULTNUMSHAPELETS=1;
     private static int DEFAULTSERIESLENGTH=500;
     private static int DEFAULTSHAPELETLENGTH=29;
-    private static int DEFAULTBASE=-2;
+    private static int DEFAULTBASE=-1;
     private static int DEFAULTAMP=4;
    
     protected int numShapelets;
@@ -31,7 +31,7 @@ public class ShapeletModel extends Model {
     // of the series if using the default shapelet length of 29
     public ShapeletModel()
     {
-        this(new double[]{DEFAULTNUMSHAPELETS,DEFAULTSERIESLENGTH,DEFAULTSHAPELETLENGTH});
+        this(new double[]{DEFAULTSERIESLENGTH,DEFAULTNUMSHAPELETS,DEFAULTSHAPELETLENGTH});
     }
     public final void setDefaults(){
        seriesLength=DEFAULTSERIESLENGTH; 
@@ -57,7 +57,7 @@ public class ShapeletModel extends Model {
         // must be changed in the inner class.
         for(int i=0;i<numShapelets;i++)
         {
-           Shape sh = new Shape();
+           Shape sh = new Shape(shapeletLength);
            sh.randomiseShape();
            shapes.add(sh); 
         }
@@ -78,7 +78,7 @@ public class ShapeletModel extends Model {
         
         for(int i=0;i<numShapelets;i++)
         {
-           Shape sh = new Shape();
+           Shape sh = new Shape(shapeletLength);
            sh.randomiseShape();
            shapes.add(sh); 
         }       
@@ -217,42 +217,51 @@ public class ShapeletModel extends Model {
         private double generate(int t){
              if(t<location || t>location+length-1)
                 return 0;
-            
             int offset=t-location;            
             double value=0;
-            
+            int lower=0,mid=0,upper=0;
             switch(type){
              case TRIANGLE:
-                 if(offset<=length/2) {
+                 mid=length/2;
+                 if(offset<=mid) {
                     if(offset==0)
                        value=base;
                     else
-                       value=((offset/(double)(length/2))*(amp))+base;
+                       value=((offset/(double)(mid))*(amp))+base;
                  }
                  else
                  {
-                     if(offset+1==length)
+                     if(offset>=length)
                          value=base;
+                     else if(length%2==1)
+                         value=((length-offset-1)/(double)(mid)*(amp))+base;
                      else
-                         value=((length-offset-1)/(double)(length/2)*(amp))+base;
+                         value=((length-offset)/(double)(mid)*(amp))+base;
                  }
                    break;
                 case HEADSHOULDERS:
-                    
-                if(offset<length/3)
+//Need to properly set the boundaries. Should NOT do this here! 
+                  lower=length/3;
+                  upper=2*lower;
+//                    Do something about uneven split. 
+                if(length%3==2)    //Add two the middle hump, or one each to the sides? 
+                    upper+=2;
+  //              if(offset<length/3)//First small hump.
+                if(offset<lower)//First small hump.
                     value = ((amp/2)*Math.sin(((2*Math.PI)/((length/3-1)*2))*offset))+base;
-                else
-                {
-                    if(offset+1>=(2*length)/3){
-                        if(length%3>0&&offset>=(length/3)*3)
-                            value = base;
-                        else
-                            value = ((amp/2)*Math.sin(((2*Math.PI)/((length/3-1)*2))*(offset+1-(2*length)/3)))+base;
-                    }
-                    else
-                        value = ((amp)*Math.sin(((2*Math.PI)/((length/3-1)*2))*(offset-length/3)))+base;
+                else if(offset>=upper){//last small hump
+                    value = ((amp/2)*Math.sin(((2*Math.PI)/((length/3-1)*2))*(offset-upper)))+base;
+//                    if(offset+1>=(2*length)/3){ //last small hump
+//                        if(length%3>0 && offset>=(length/3)*3)//wtf?!?
+//                            value = base;
+//                        else    //This is causing the problem when length%3==0
+//                            value = ((amp/2)*Math.sin(((2*Math.PI)/((length/3-1)*2))*(offset+1-(2*length)/3)))+base;
+//                    }
                 }
-                
+                else // middle big hump. Need to rescale for middle interval 
+                        value = ((amp)*Math.sin(((2*Math.PI)/(((upper-lower)-1)*2))*(offset-length/3)))+base;
+                if(value< base)
+                    value=base;
                    break;
                 case SINE:
                      value=amp*Math.sin(((2*Math.PI)/(length-1))*offset)/2;
@@ -264,29 +273,23 @@ public class ShapeletModel extends Model {
                     value=base+amp;
                     break;
                 case SPIKE:
-                if(offset<=length/4)
+                lower=length/4;
+                upper=3*lower;
+                if(offset<=lower)    //From 0 to base
                  {
                     if(offset==0)
                        value=0;
                     else
-                       value=offset/(double)(length/4)*(-amp/2);
+                       value=(-amp/2)*(offset/(double)(lower));
                  }
-                if(offset>length/4 && offset<=length/2)
+                else if(offset>lower && offset<upper)
                 {
-                    if(offset == length/2)
-                        value=0;
-                    else
-                        value=(-amp/2)+((length/4-offset-1)/(double)(length/4)*(-amp/2));
+                        value=-amp/2+(amp)*((offset-lower)/(double)(upper-lower-1));
+//                if(offset>length/2&&offset<=length/4*3)
+//                    value=(offset-length/2)/(double)(length/4)*(amp/2);
                 }                               
-                if(offset>length/2&&offset<=length/4*3)
-                    value=(offset-length/2)/(double)(length/4)*(amp/2);
-                              
-                if(offset>length/4*3)
-                 {
-                     if(offset+1==length)
-                         value=0;
-                     else
-                         value=(length-offset-1)/(double)(length/4)*(amp/2);
+                else{
+                      value=amp/2-amp/2*((offset-upper+1)/(double)(length-upper));
                  }
                 break;
             }
@@ -299,13 +302,23 @@ public class ShapeletModel extends Model {
         }
         private void setType(ShapeType newType){
             this.type=newType;
+            if(newType==ShapeType.HEADSHOULDERS)
+                base=-amp/4;
+            else
+                base=-amp/2;
+            
+        }
+        private void setLength(int newLength){
+            this.length=newLength;
         }
         
         // Randomises the starting location of a shape. Returns false when
         // there is insufficient space to fit all shapes within the value
         // of maxStart. This is resolved in the constructor.
         private boolean randomiseLocation(){
-            int start = Model.rand.nextInt(seriesLength-shapeletLength);       
+            int start =0;
+            if(seriesLength>shapeletLength)
+                start= Model.rand.nextInt(seriesLength-shapeletLength);       
            setLocation(start);
            return true; 
         }
@@ -326,28 +339,38 @@ public class ShapeletModel extends Model {
         }
     
 }
-    
+    public void setShapeletLength(int l){
+        shapeletLength=l;
+        for(Shape s:shapes)
+            s.setLength(l);
+    }
     
     //Test harness
    
     public static void main (String[] args) throws IOException
     {
-        OutFile out=new OutFile("C:\\temp\\shapeletExamples.csv");
-        ShapeletModel model=new ShapeletModel();
-        Shape s = model.new Shape();
-        for(ShapeType st: ShapeType.values()){
-            out.writeString(st.name());
-            s.setType(st);
-            s.setLocation(0);
-            double[] series=new double[29];
-            for(int i=0;i<29;i++){
-                series[i]=s.generate(i);
-                System.out.print(series[i]+" ");
-                out.writeString(","+series[i]);
+        Model.setDefaultSigma(0);
+        Model.setGlobalRandomSeed(0);
+
+        for(int shapeletLength=8;shapeletLength<=30;shapeletLength+=1){
+            for(ShapeType st: ShapeType.values()){
+                ShapeletModel model=new ShapeletModel();
+//                ShapeType st=ShapeType.SPIKE;
+                model.setShapeType(st);
+                model.setShapeletLength(shapeletLength);
+                OutFile out=new OutFile("C:\\temp\\"+st.toString()+shapeletLength+".csv");
+                model.seriesLength=shapeletLength;
+//                System.out.println(" nos shapelets ="+model.shapes.size());
+                out.writeString(st.name()+"\n");
+                double[] series=model.generateSeries(model.seriesLength);
+                for(int i=0;i<model.seriesLength;i++){
+//                    System.out.println(series[i]+" ");
+                    out.writeLine(series[i]+",");
+                }
+                out.writeString("\n");
+  //              System.out.print("\n");
             }
-            out.writeString("\n");
-            System.out.print("\n");
         }
-    }
+     }
     
 }

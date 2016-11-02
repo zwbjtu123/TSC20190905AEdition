@@ -97,14 +97,10 @@ public class SimulateShapeletData extends DataSimulator{
        of.writeLine(d.toString());
  }
     
-    /**
-     * 
-     * This creates a set of Instances representing a two-class problem with
-     * a 50/50 balance of classes, 1100 instances of length 500. The set is 
-     * then randomly split into training and testing 100/1000.
-     */
+
     public static void main(String[] args)
     {
+        
         checkGlobalSeedForIntervals();
         System.exit(0);
         int[] casesPerClass = {5,5};

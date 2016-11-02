@@ -14,8 +14,8 @@ import weka.core.Instances;
  * @author ajb
  */
 public class SimulateDictionaryData {
-    static int[] shapeletsPerClass={1,2};//Also defines the num classes by length
-    static int shapeLength=29;
+    static int[] shapeletsPerClass={5,20};//Also defines the num classes by length
+    static int shapeLength=11;
 //Store a global copy purely to be able to recover the latest metadata
 //Probably need to generalise this1?  
     static DataSimulator sim;
@@ -23,9 +23,10 @@ public class SimulateDictionaryData {
         shapeletsPerClass=new int[c.length];
         for(int i=0;i<c.length;i++)
            shapeletsPerClass[i]=c[i]; 
-            
     }
-    
+    public static void setShapeletLength(int s){
+        shapeLength=s;
+    }
     /**
      * This method creates and returns a set of Instances representing a
      * simulated two-class time-series problem.
@@ -40,8 +41,7 @@ public class SimulateDictionaryData {
      * exactly two values.
      */
     public static Instances generateDictionaryData(int seriesLength, int []casesPerClass)
-    {
-        
+    {        
         if( casesPerClass.length != 2)
         {
             System.err.println("Incorrect parameters, dataset will not be co"
@@ -77,9 +77,12 @@ public class SimulateDictionaryData {
             s[i]=new DictionaryModel(p1);        
         }
 //Fix all the shape types to be the same as first
-        DictionaryModel.ShapeType st = s[0].getShape();
+        DictionaryModel.ShapeType st = s[0].getShape1();
         for(int i=1;i<s.length;i++)
-            s[i].setShapeType(st);
+            s[i].setShape1Type(st);
+        st = s[0].getShape2();
+        for(int i=1;i<s.length;i++)
+            s[i].setShape2Type(st);
     }
 
     public static void generateExampleData(){

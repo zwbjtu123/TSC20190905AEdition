@@ -12,7 +12,7 @@ import java.util.ArrayList;
 import statistics.distributions.Distribution;
 import statistics.simulators.DataSimulator;
 import statistics.simulators.Model;
-import statistics.simulators.SimulateAR;
+import statistics.simulators.SimulateSpectralData;
 import statistics.simulators.SimulateShapeletData;
 import statistics.simulators.WhiteNoiseModel;
 import tsc_algorithms.*;
@@ -69,7 +69,7 @@ public class RISESimulatedDataExperiments {
            cls[nosClassifiers++]=createClassifier("RISE");
            if(hesca)
                cls[nosClassifiers++]=createClassifier("RISE_HESCA");
-            DataSimulator ds=new SimulateAR();
+            DataSimulator ds=new SimulateSpectralData();
             ds.setCasesPerClass(new int[]{20,20});
             int arLength=100,fullLength=200;
             ds.setLength(arLength);
@@ -134,7 +134,7 @@ public class RISESimulatedDataExperiments {
            cls[nosClassifiers++]=createClassifier("RISE");
            if(hesca)
                cls[nosClassifiers++]=createClassifier("RISE_HESCA");
-            DataSimulator ds=new SimulateAR();
+            DataSimulator ds=new SimulateSpectralData();
             ds.setCasesPerClass(new int[]{20,20});
             ds.setLength(100);
             Instances[] data=ds.generateTrainTest();
@@ -172,7 +172,7 @@ public class RISESimulatedDataExperiments {
         cls[nosClassifiers++]=createClassifier("PS");
         cls[nosClassifiers++]=createClassifier("PSACF");
         cls[nosClassifiers++]=createClassifier("RISE");
-        DataSimulator ds=new SimulateAR();
+        DataSimulator ds=new SimulateSpectralData();
         Distribution.setDistributionSeed(fold);
         ds.setCasesPerClass(new int[]{trainSize/2,trainSize/2});
         ds.setLength(length);

@@ -7,7 +7,7 @@ import java.util.ArrayList;
 import statistics.simulators.ArmaModel;
 import statistics.simulators.DataSimulator;
 import statistics.simulators.Model;
-import statistics.simulators.SimulateAR;
+import statistics.simulators.SimulateSpectralData;
 import weka.core.Instances;
 
 /**
@@ -26,7 +26,7 @@ public class DataSimulatorExamples {
 */
         double[][] paras={{0.1,0.5,-0.6},{0.2,0.4,-0.5}};
 // Creates a two class simulator for AR(3) models         
-        DataSimulator arma=new SimulateAR(paras);
+        DataSimulator arma=new SimulateSpectralData(paras);
         
 /* Model: All models inherit from the base Model class. Model has three abstract 
  * methods. generate: returns the next observation in the series, generate(t) 

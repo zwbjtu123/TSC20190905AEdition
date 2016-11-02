@@ -18,7 +18,8 @@ import weka.filters.*;
 
 
 
-public class SimulateAR extends DataSimulator{
+
+public class SimulateSpectralData extends DataSimulator{
     public static String path="C:\\Research\\Data\\RunLengthExperiments\\";
     public static double MIN_PARA_VALUE=-1;
     public static double MAX_PARA_VALUE=1;
@@ -30,7 +31,8 @@ public class SimulateAR extends DataSimulator{
     static double DIFF=0.15;
     static double THRESH=0.95;
     public Random rand=new Random();
-    public SimulateAR(){
+    
+    public SimulateSpectralData(){
 //Generate random model paras that are not trivial to classifier
         minParas=defaultMinSize;
         maxParas=defaultMaxSize;
@@ -62,7 +64,7 @@ public class SimulateAR extends DataSimulator{
         nosPerClass=temp2;
         
     }
-    public SimulateAR(int seed){
+    public SimulateSpectralData(int seed){
         this();
         rand=new Random(seed);
     }
@@ -117,7 +119,7 @@ public class SimulateAR extends DataSimulator{
         maxParas=max;
         randomiseModel();
     }
-    public SimulateAR(double[][] paras){
+    public SimulateSpectralData(double[][] paras){
         super(paras);
         for(int i=0;i<nosClasses;i++)
             models.add(new ArmaModel(paras[i]));
@@ -175,6 +177,39 @@ public class SimulateAR extends DataSimulator{
 
     }
     
+    public static Instances generateSpectralEmbeddedData(int s,int[] casesPerClass){
+        DataSimulator ds=new SimulateSpectralData();
+        ds.setCasesPerClass(casesPerClass);
+        int fullLength=s;
+        int arLength=fullLength/2;
+
+        ds.setLength(arLength);
+        Instances data=ds.generateDataSet();
+        NormalizeCase nc= new NormalizeCase();
+        try{
+            data=nc.process(data);
+        }catch(Exception e){
+            System.out.println("Normalisation failed : "+e);
+        }
+        ArrayList<Model> noise=new ArrayList<>();
+        WhiteNoiseModel wm=new WhiteNoiseModel();
+        noise.add(wm);
+        wm=new WhiteNoiseModel();
+        noise.add(wm);
+        DataSimulator ds2=new DataSimulator(noise); // By default it goes to white noise 
+        ds2.setCasesPerClass(casesPerClass);
+        ds2.setLength(fullLength);
+        Instances noiseData=ds2.generateDataSet();
+        
+//Choose random start
+        int startPos=(int)(Math.random()*(fullLength-arLength));
+        for(int j=startPos;j<startPos+arLength;j++){
+            for(int k=0;k<data.numInstances();k++)
+                noiseData.instance(k).setValue(j, data.instance(k).value(j-startPos));
+        }
+        return noiseData;
+    }
+    
     public static void testFFT(String fileName){
         //Debug code to test. 
         //Generate a model and series
@@ -184,7 +219,7 @@ public class SimulateAR extends DataSimulator{
         FFT ar = new FFT();
         double[][] paras={{1.3532,0.4188,-1.2153,0.3091,0.1877,-0.0876,0.0075,0.0004},
         {1.0524,0.9042,-1.2193,0.0312,0.263,-0.0567,-0.0019}	};	
-        Instances train=SimulateAR.generateARDataSet(paras,n,cases);
+        Instances train=SimulateSpectralData.generateARDataSet(paras,n,cases);
         //Fit and compare paramaters without AIC
         OutFile of = new OutFile(fileName);
         try{
@@ -229,7 +264,7 @@ public class SimulateAR extends DataSimulator{
         ar.setMaxLag(maxLag);
         double[][] paras={{1.3532,0.4188,-1.2153,0.3091,0.1877,-0.0876,0.0075,0.0004},
         {1.0524,0.9042,-1.2193,0.0312,0.263,-0.0567,-0.0019}	};	
-        Instances train=SimulateAR.generateARDataSet(paras,n,cases);
+        Instances train=SimulateSpectralData.generateARDataSet(paras,n,cases);
         //Fit and compare paramaters without AIC
         try{
                 DecimalFormat dc=new DecimalFormat("###.####");
@@ -300,7 +335,7 @@ public class SimulateAR extends DataSimulator{
         int nosCases=200;
         double diff=0.05;
         String newline=System.getProperty("line.separator");
-        SimulateAR ar= new SimulateAR(p);
+        SimulateSpectralData ar= new SimulateSpectralData(p);
         String arffHeader="@relation AR1Models\n";
         for(int i=0;i<n;i++)
                 arffHeader+="@attribute T"+i+" real"+newline;
@@ -378,7 +413,7 @@ public class SimulateAR extends DataSimulator{
                 paras=new double[nosParas];
             for(int j=0;j<nosParas;j++)
                     paras[j]=MIN_PARA_VALUE+(MAX_PARA_VALUE-MIN_PARA_VALUE)*Model.rand.nextDouble();
-            paras=SimulateAR.findCoefficients(paras);
+            paras=SimulateSpectralData.findCoefficients(paras);
             return paras;
     }
                 
@@ -446,6 +481,8 @@ public class SimulateAR extends DataSimulator{
             
         }
 
+        
+        
     public static Instances generateARDataSet(int minParas, int maxParas, int seriesLength, int[] nosCases, boolean normalize){
         double[][] paras=new double[nosCases.length][];
         for(int i=0;i<paras.length;i++)
@@ -469,7 +506,7 @@ public class SimulateAR extends DataSimulator{
     }                
 
     public static Instances generateARDataSet(double[][] p, int seriesLength, int[] nosCases){
-        SimulateAR ar=new SimulateAR(p);
+        SimulateSpectralData ar=new SimulateSpectralData(p);
         Instances data;
         FastVector atts=new FastVector();
         int totalCases=nosCases[0];
@@ -505,9 +542,56 @@ public class SimulateAR extends DataSimulator{
         return data;
     }
                 
-               
+    public static Instances generateFFTDataSet(int minParas, int maxParas, int seriesLength, int[] nosCases, boolean normalize){
+        double[][] paras=new double[nosCases.length][];
+//Generate random parameters for the first FFT        
+        Random rand= new Random();
+        SinusoidalModel[] sm=new SinusoidalModel[nosCases.length];
+        int modelSize=minParas+rand.nextInt(maxParas-minParas);
+        paras[0]=new double[3*modelSize];
+        for(int j=0;j<paras.length;j++)
+             paras[0][j]=rand.nextDouble();
+        for(int i=1;i<sm.length;i++){
+            paras[i]=new double[3*modelSize];
+            for(int j=0;j<paras.length;j++){
+                paras[i][j]=paras[0][j];
+//Perturb it 10%
+                paras[i][j]+=-0.1+0.2*rand.nextDouble();
+                if(paras[i][j]<0 || paras[i][j]>1)
+                    paras[i][j]=paras[0][j];
+            }
+        }
+        for(int i=0;i<sm.length;i++){
+            sm[i]=new SinusoidalModel(paras[i]);
+            sm[i].setFixedOffset(false);
+        }
+            
+        
+//        for(int i=0;i<paras.length;i++)
+//            paras[i]=generateStationaryParameters(minParas,maxParas);
+        DataSimulator ds = new DataSimulator(sm);
+        ds.setSeriesLength(seriesLength);
+        ds.setCasesPerClass(nosCases);
+        Instances d=ds.generateDataSet();
+        if(normalize){
+        try{
+            NormalizeCase norm=new NormalizeCase();
+            norm.setNormType(NormalizeCase.NormType.STD_NORMAL);
+            d=norm.process(d);
+            }catch(Exception e){
+                System.out.println("Exception e"+e);
+                e.printStackTrace();
+                System.exit(0);
+            }
+        }
+        return d;
+    }
+                
+    
+    
+    
     public static void main(String[] args){
-//                    Instances all=SimulateAR.generateARDataSet(minParas,maxParas,seriesLength,nosCasesPerClass,true);
+//                    Instances all=SimulateSpectralData.generateARDataSet(minParas,maxParas,seriesLength,nosCasesPerClass,true);
         System.out.println("Running SimulateAR test harness");
         ArmaModel.setGlobalVariance(1);
         int[] cases={2,2};

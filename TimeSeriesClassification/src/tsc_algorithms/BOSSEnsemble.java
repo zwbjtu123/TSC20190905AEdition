@@ -128,7 +128,7 @@ public class BOSSEnsemble implements Classifier, SaveCVAccuracy, HiveCoteModule 
                 clearClassifier();
                 return true;
             }catch(IOException e) {
-                System.out.print("Error serialiszing to " + filename);
+                System.out.print("Error serialising to " + filename);
                 e.printStackTrace();
                 return false;
             }

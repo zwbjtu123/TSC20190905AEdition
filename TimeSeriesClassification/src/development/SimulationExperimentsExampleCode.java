@@ -10,8 +10,9 @@ import java.io.File;
 import java.text.DecimalFormat;
 import statistics.simulators.DataSimulator;
 import statistics.simulators.Model;
-import statistics.simulators.SimulateAR;
+import statistics.simulators.SimulateSpectralData;
 import statistics.simulators.SimulateDictionaryData;
+import statistics.simulators.SimulateIntervalData;
 import statistics.simulators.SimulateShapeletData;
 import statistics.simulators.SimulateWholeSeriesData;
 import tsc_algorithms.*;
@@ -143,25 +144,44 @@ public class SimulationExperimentsExampleCode {
     
     public static void setStandardGlobalParameters(String str){
          switch(str){
-            case "ARMA": case "AR":
+            case "ARMA": case "AR": case "Spectral":
+                casesPerClass=new int[]{200,200};
+                seriesLength=200;
+                trainProp=0.1;
+                Model.setDefaultSigma(1);
                 break;
             case "Shapelet": 
-                casesPerClass=new int[]{50,50};
+                casesPerClass=new int[]{250,250};
                 seriesLength=300;
-                trainProp=0.5;
+                trainProp=0.1;
                 Model.setDefaultSigma(1);
                 break;
             case "Dictionary":
-                casesPerClass=new int[]{20,20};
-                seriesLength=1000;
-                trainProp=0.5;
+                casesPerClass=new int[]{200,200};
+                seriesLength=1500;
+                trainProp=0.1;
+                SimulateDictionaryData.setShapeletsPerClass(new int[]{5,10});
+                SimulateDictionaryData.setShapeletLength(29);
+ //               SimulateDictionaryData.checkGlobalSeedForIntervals();
                 Model.setDefaultSigma(1);
                break; 
-            case "WholeSeries":
- //               data=SimulateWholeSeriesData.generateWholeSeriesData(seriesLength,casesPerClass);
-//                break;
+            case "Interval":
+                seriesLength=1000;
+                trainProp=0.1;
+                casesPerClass=new int[]{200,200};
+                Model.setDefaultSigma(1);
+//                SimulateIntervalData.setAmp(1);
+                SimulateIntervalData.setNosIntervals(3);
+                SimulateIntervalData.setNoiseToSignal(10);
+                break;
            case "WholeSeriesElastic":
- //               data=SimulateWholeSeriesData.generateWholeSeriesData(seriesLength,casesPerClass);
+                seriesLength=200;
+                trainProp=0.1;
+                casesPerClass=new int[]{200,200};
+                Model.setDefaultSigma(1);
+ //               SimulateWholeSeriesElastic.
+                break;
+            case "WholeSeries":
 //                break;
         default:
                 throw new RuntimeException(" UNKNOWN SIMULATOR ");
@@ -185,7 +205,7 @@ public class SimulationExperimentsExampleCode {
         Model.setGlobalRandomSeed(seed);
         switch(str){
             case "ARMA": case "AR":
-                 data=SimulateAR.generateARDataSet(seriesLength, casesPerClass, true);
+                 data=SimulateSpectralData.generateARDataSet(seriesLength, casesPerClass, true);
                 break;
             case "Shapelet": 
                 data=SimulateShapeletData.generateShapeletData(seriesLength,casesPerClass);
