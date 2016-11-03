@@ -22,16 +22,36 @@ import weka.core.Instance;
 import weka.core.Instances;
 import weka.classifiers.Classifier;
 import utilities.SaveCVAccuracy;
+import weka.core.TechnicalInformation;
 
 /**
- * BOSS classifier with parameter search and ensembling, if parameters are known, use 'BOSS' classifier and directly provide them.
+ * BOSS classifier with parameter search and ensembling, if parameters are known, 
+ * use 'BOSS' classifier and directly provide them.
  * 
  * Params: normalise? (i.e should first fourier coefficient(mean value) be discarded)
  * Alphabetsize fixed to four
  * 
  * @author James Large
+ * 
+ * Implementation based on the algorithm described in 
  */
 public class BOSSEnsemble implements Classifier, SaveCVAccuracy, HiveCoteModule {
+
+    
+    public TechnicalInformation getTechnicalInformation() {
+    TechnicalInformation 	result;
+    result = new TechnicalInformation(TechnicalInformation.Type.ARTICLE);
+    result.setValue(TechnicalInformation.Field.AUTHOR, "P. Schafer");
+    result.setValue(TechnicalInformation.Field.TITLE, "The BOSS is concerned with time series classification in the presence of noise");
+    result.setValue(TechnicalInformation.Field.JOURNAL, "Data Mining and Knowledge Discovery");
+    result.setValue(TechnicalInformation.Field.VOLUME, "29");
+    result.setValue(TechnicalInformation.Field.NUMBER,"6");
+    result.setValue(TechnicalInformation.Field.PAGES, "1505-1530");
+    result.setValue(TechnicalInformation.Field.YEAR, "2015");
+    
+    return result;
+  }
+    
     
     private List<BOSSWindow> classifiers; 
     

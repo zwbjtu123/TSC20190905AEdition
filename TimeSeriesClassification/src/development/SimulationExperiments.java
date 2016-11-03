@@ -3,6 +3,7 @@ Class to run one of various simulations.
 */
 package development;
 
+import tsc_algorithms.depreciated.LearnShapeletsFeb2015Version;
 import tsc_algorithms.depreciated.COTE;
 import fileIO.InFile;
 import fileIO.OutFile;
@@ -358,7 +359,7 @@ public class SimulationExperiments {
                 combineTestResults(s,a);
             }
         }
-        int folds=100;
+        int folds=200;
         for(String a:allSimulators){
             if(new File(DataSets.resultsPath+a).exists()){
                 System.out.println(" Simulation = "+a);
@@ -797,7 +798,7 @@ public class SimulationExperiments {
     public static void main(String[] args){
    //      generateAllProblemFiles();
  //       createBaseExperimentScripts(false);
-       createBaseExperimentScripts(true);
+//       createBaseExperimentScripts(true);
 //        deleteThisMethod();
 //        collateLengthResults();
 //        collateErrorExperiments();
@@ -813,7 +814,7 @@ public class SimulationExperiments {
  //     createBaseExperimentScripts();
 //      collateSomeStuff();
 //generateProblemFile();
- //collateAllResults();
+ collateAllResults();
   //     collateErrorResults();     
   System.exit(0);
         if(args.length>0){

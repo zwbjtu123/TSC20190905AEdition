@@ -6,6 +6,7 @@ import weka.core.Capabilities;
 import weka.core.Instance;
 import weka.core.Instances;
 import weka.core.SparseInstance;
+import weka.core.TechnicalInformation;
 import weka.filters.timeseries.BagOfPatternsFilter;
 
 /**
@@ -15,7 +16,13 @@ import weka.filters.timeseries.BagOfPatternsFilter;
  * 
  * In training, generates class weighting matrix for SAX patterns found in the series,
  * in testing uses cosine similarity to find most similar class 
- * 
+ * @inproceedings{senin13sax_vsm,
+author="P. Senin and S. Malinchik",
+title="{SAX-VSM:} Interpretable Time Series Classification Using SAX and Vector Space Model",
+booktitle    ="Proc. 13th {IEEE ICDM}",
+year="2013"
+}
+
  * @author James
  */
 public class SAXVSM implements Classifier {
@@ -29,6 +36,17 @@ public class SAXVSM implements Classifier {
     private int windowSize;
     
     private final boolean useParamSearch; //does user want parameter search to be performed
+ 
+     public TechnicalInformation getTechnicalInformation() {
+        TechnicalInformation 	result;
+        result = new TechnicalInformation(TechnicalInformation.Type.ARTICLE);
+        result.setValue(TechnicalInformation.Field.AUTHOR, "P. Senin and S. Malinchik");
+        result.setValue(TechnicalInformation.Field.TITLE, "SAX-VSM: Interpretable Time Series Classification Using SAX and Vector Space Model");
+        result.setValue(TechnicalInformation.Field.JOURNAL, "Proc. 13th IEEE ICDM");
+        result.setValue(TechnicalInformation.Field.YEAR, "2013");
+        return result;
+    }    
+      
     
     /**
      * Will use parameter search during training

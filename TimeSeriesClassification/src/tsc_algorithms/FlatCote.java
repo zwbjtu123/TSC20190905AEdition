@@ -1,6 +1,18 @@
 /**
  * NOTE: consider this code experimental. This is a first pass and may not be final; it has been informally tested but awaiting rigurous testing before being signed off.
  * Also note that file writing/reading from file is not currently supported (will be added soon)
+ 
+ @article{bagnall15cote,
+  title={Time-Series Classification with {COTE}: The Collective of Transformation-Based Ensembles},
+  author={A. Bagnall and J. Lines and J. Hills and A. Bostrom},
+  journal={{IEEE} Transactions on Knowledge and Data Engineering},
+  volume={27},
+  issue={9},
+  pages={2522--2535},
+  year={2015}
+}
+
+ 
  */
 
 package tsc_algorithms;
@@ -14,6 +26,7 @@ import weka.classifiers.meta.timeseriesensembles.HESCA;
 import weka.classifiers.meta.timeseriesensembles.depreciated.HESCA_05_10_16;
 import weka.core.Instance;
 import weka.core.Instances;
+import weka.core.TechnicalInformation;
 import weka.filters.SimpleBatchFilter;
 import weka.filters.timeseries.ACF;
 import weka.filters.timeseries.PowerSpectrum;
@@ -25,6 +38,24 @@ import weka.filters.timeseries.shapelet_transforms.ShapeletTransformFactory;
  * @author Jason Lines (j.lines@uea.ac.uk)
  */
 public class FlatCote extends AbstractClassifier{
+
+      
+    public TechnicalInformation getTechnicalInformation() {
+        TechnicalInformation 	result;
+        result = new TechnicalInformation(TechnicalInformation.Type.ARTICLE);
+        result.setValue(TechnicalInformation.Field.AUTHOR, "A. Bagnall and J. Lines and J. Hills and A. Bostrom");
+        result.setValue(TechnicalInformation.Field.TITLE, "Time-Series Classification with COTE: The Collective of Transformation-Based Ensembles");
+        result.setValue(TechnicalInformation.Field.JOURNAL, "IEEE Transactions on Knowledge and Data Engineering");
+        result.setValue(TechnicalInformation.Field.VOLUME, "27");
+        result.setValue(TechnicalInformation.Field.NUMBER, "9");
+        
+        result.setValue(TechnicalInformation.Field.PAGES, "2522-2535");
+        result.setValue(TechnicalInformation.Field.YEAR, "2015");
+        return result;
+    }    
+    
+
+    
     
     // Flat-COTE includes 35 constituent classifiers:
     //  -   11 from the Elastic Ensemble

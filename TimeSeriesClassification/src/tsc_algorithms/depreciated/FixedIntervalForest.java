@@ -1,4 +1,4 @@
-package tsc_algorithms;
+package tsc_algorithms.depreciated;
 /**
  * Development code for PowerSpectrum Forest
  * 

@@ -47,6 +47,7 @@ public class DTW1NN extends Efficient1NN{
         this.r = 1;
         this.classifierIdentifier = "DTW_R1_1NN";
     }
+    public void setWindow(double w){ r=w;}
     
     public void turnOffCV(){
         this.allowLoocv = false;

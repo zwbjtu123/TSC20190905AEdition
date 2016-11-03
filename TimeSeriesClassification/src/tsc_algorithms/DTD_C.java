@@ -6,6 +6,7 @@ import utilities.ClassifierTools;
 import weka.classifiers.lazy.kNN;
 import weka.core.Instance;
 import weka.core.Instances;
+import weka.core.TechnicalInformation;
 import weka.core.elastic_distance_measures.DTW_DistanceBasic;
 import weka.filters.SimpleBatchFilter;
 import weka.filters.timeseries.Cosine;
@@ -73,6 +74,19 @@ Cosine.java, Sine.java, Hilbert.java
 
 */
 public class DTD_C extends DD_DTW{
+
+    @Override
+    public TechnicalInformation getTechnicalInformation() {
+        TechnicalInformation 	result;
+        result = new TechnicalInformation(TechnicalInformation.Type.ARTICLE);
+        result.setValue(TechnicalInformation.Field.AUTHOR, "T. Górecki and M. Łuczak");
+        result.setValue(TechnicalInformation.Field.TITLE, "Non-isometric transforms in time series classification using DTW");
+        result.setValue(TechnicalInformation.Field.JOURNAL, "Knowledge-Based Systems");
+        result.setValue(TechnicalInformation.Field.VOLUME, "61");
+        result.setValue(TechnicalInformation.Field.PAGES, "98-108");
+        result.setValue(TechnicalInformation.Field.YEAR, "2014");
+        return result;
+    }    
     
     public static final String DATA_DIR = "C:/Temp/Dropbox/TSC Problems/";
 //    public static final String DATA_DIR = "/Users/Jay/Dropbox/TSC Problems/";

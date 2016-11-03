@@ -14,17 +14,32 @@ import weka.clusterers.SimpleKMeans;
 import weka.core.Capabilities;
 import weka.core.Instance;
 import weka.core.Instances;
+import weka.core.TechnicalInformation;
 
 /**
  * 
  * @author Original algorithm and adjustments Josef Grabocka, initial conversion
  * Aaron Bostrom 
+
+ * 
  */
 
 public class LearnShapelets extends AbstractClassifier implements ParameterSplittable{
 
-    boolean suppressOutput = false;
+  
+    public TechnicalInformation getTechnicalInformation() {
+        TechnicalInformation 	result;
+        result = new TechnicalInformation(TechnicalInformation.Type.ARTICLE);
+        result.setValue(TechnicalInformation.Field.AUTHOR, "J. Grabocka, N. Schilling, M. Wistuba and L. Schmidt-Thieme");
+        result.setValue(TechnicalInformation.Field.TITLE, "Learning Time-Series Shapelets");
+        result.setValue(TechnicalInformation.Field.JOURNAL, "Proc. 20th SIGKDD");
+        result.setValue(TechnicalInformation.Field.YEAR, "2014");
+        return result;
+    }    
+        
     
+    
+    boolean suppressOutput = false;
     long seed;
     
     // length of a time-series 
@@ -111,8 +126,9 @@ public class LearnShapelets extends AbstractClassifier implements ParameterSplit
         paraSearch=b;
         
         //default the values to something.
-        if(paraSearch)
-            fixParameters();
+//AARON has broken this        
+//        if(paraSearch)
+//           fixParameters();
     }
 //Set to defaults recommended by the author    
     public void fixParameters(){

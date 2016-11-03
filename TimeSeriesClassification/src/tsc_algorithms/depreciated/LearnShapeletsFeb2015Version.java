@@ -1,4 +1,4 @@
-package tsc_algorithms;
+package tsc_algorithms.depreciated;
 //import grabocka_reproduction.LearnShapeletsGeneralized;
 import java.io.File;
 import java.util.ArrayList;
@@ -6,6 +6,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
+import tsc_algorithms.ParameterSplittable;
 
 import utilities.StatisticalUtilities;
 import utilities.InstanceTools;

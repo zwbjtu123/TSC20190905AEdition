@@ -1,8 +1,9 @@
 /*
 Class to run one of various simulations.  
 */
-package development;
+package examples;
 
+import development.DataSets;
 import tsc_algorithms.depreciated.COTE;
 import fileIO.InFile;
 import fileIO.OutFile;

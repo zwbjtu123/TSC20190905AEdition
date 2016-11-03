@@ -5,7 +5,7 @@ Examples include leave one person out (e.g. EpilepsyX) or leave one bottle out
 (e.g. EthanolLevel)
 
  */
-package tsc_algorithms;
+package utilities;
 
 import utilities.InstanceTools;
 import weka.core.Instances;

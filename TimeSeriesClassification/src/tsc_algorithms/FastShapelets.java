@@ -1,7 +1,11 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+@inproceedings{rakthanmanon13fastshapelets,
+author="T. Rakthanmanon and E. Keogh ",
+title="Fast-Shapelets: A Fast Algorithm for Discovering Robust Time Series Shapelets",
+booktitle    ="Proc. 13th {SDM}",
+year="2013"
+}
+
  */
 package tsc_algorithms;
 
@@ -20,6 +24,7 @@ import weka.classifiers.Classifier;
 import weka.core.Capabilities;
 import weka.core.Instance;
 import weka.core.Instances;
+import weka.core.TechnicalInformation;
 
 /**
  *
@@ -27,6 +32,21 @@ import weka.core.Instances;
  */
 public class FastShapelets implements Classifier {
 
+      
+    public TechnicalInformation getTechnicalInformation() {
+        TechnicalInformation 	result;
+        result = new TechnicalInformation(TechnicalInformation.Type.CONFERENCE);
+        result.setValue(TechnicalInformation.Field.AUTHOR, "T. Rakthanmanon and E. Keogh");
+        result.setValue(TechnicalInformation.Field.TITLE, "Fast-Shapelets: A Fast Algorithm for Discovering Robust Time Series Shapelets");
+
+        result.setValue(TechnicalInformation.Field.JOURNAL, "Proc. 13th SDM");
+        result.setValue(TechnicalInformation.Field.YEAR, "2013");
+        return result;
+    }    
+      
+    
+
+    
     static final int EXTRA_TREE_DEPTH = 2;
     static final float MIN_PERCENT_OBJ_SPLIT = 0.1f;
     static final float MAX_PURITY_SPLIT = 0.90f;

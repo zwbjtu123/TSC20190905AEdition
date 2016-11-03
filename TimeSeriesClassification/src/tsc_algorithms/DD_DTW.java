@@ -8,6 +8,7 @@ import weka.core.DenseInstance;
 import weka.core.EuclideanDistance;
 import weka.core.Instance;
 import weka.core.Instances;
+import weka.core.TechnicalInformation;
 import weka.core.elastic_distance_measures.DTW_DistanceBasic;
 import weka.core.neighboursearch.PerformanceStats;
 
@@ -63,6 +64,20 @@ NNTranformWeighting.java
 
 public class DD_DTW extends kNN{
 
+    @Override
+    public TechnicalInformation getTechnicalInformation() {
+        TechnicalInformation 	result;
+        result = new TechnicalInformation(TechnicalInformation.Type.ARTICLE);
+        result.setValue(TechnicalInformation.Field.AUTHOR, "T. Górecki and M. Łuczak");
+        result.setValue(TechnicalInformation.Field.TITLE, "Using derivatives in time series classification");
+        result.setValue(TechnicalInformation.Field.JOURNAL, "Data Mining and Knowledge Discovery");
+        result.setValue(TechnicalInformation.Field.VOLUME, "26");
+        result.setValue(TechnicalInformation.Field.NUMBER,"2");
+        result.setValue(TechnicalInformation.Field.PAGES, "310-331");
+        result.setValue(TechnicalInformation.Field.YEAR, "2015");
+        return result;
+    }    
+    
     public static final String DATA_DIR = "C:/Temp/Dropbox/TSC Problems/";
     public static final double[] ALPHAS = {
         //<editor-fold defaultstate="collapsed" desc="alpha values">

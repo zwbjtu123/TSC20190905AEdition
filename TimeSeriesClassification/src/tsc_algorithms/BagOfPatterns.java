@@ -8,6 +8,7 @@ import weka.core.FastVector;
 import weka.core.Instance;
 import weka.core.Instances;
 import weka.core.SparseInstance;
+import weka.core.TechnicalInformation;
 import weka.filters.timeseries.BagOfPatternsFilter;
 import weka.filters.timeseries.SAX;
 
@@ -20,6 +21,21 @@ import weka.filters.timeseries.SAX;
  */
 public class BagOfPatterns implements Classifier {
 
+    public TechnicalInformation getTechnicalInformation() {
+    TechnicalInformation 	result;
+    result = new TechnicalInformation(TechnicalInformation.Type.ARTICLE);
+    result.setValue(TechnicalInformation.Field.AUTHOR, "J. Lin and R. Khade and Y. Li");
+    result.setValue(TechnicalInformation.Field.TITLE, "Rotation-invariant similarity in time series using bag-of-patterns representation");
+    result.setValue(TechnicalInformation.Field.JOURNAL, "Journal of Intelligent Information Systems");
+    result.setValue(TechnicalInformation.Field.VOLUME, "39");
+    result.setValue(TechnicalInformation.Field.NUMBER,"2");
+    result.setValue(TechnicalInformation.Field.PAGES, "287-315");
+    result.setValue(TechnicalInformation.Field.YEAR, "2012");
+    
+    return result;
+  }
+    
+    
     public Instances matrix;
     public kNN knn;
     

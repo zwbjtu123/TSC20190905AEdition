@@ -30,6 +30,16 @@ import weka.core.Utils;
  *
  * @author ajb. Implementation of the learned pattern similarity algorithm
  * by M. Baydogan
+ * @article{baydogan15lps,
+  title={Time series representation and similarity based on local autopatterns},
+  author={M. Baydogan and G. Runger},
+  journal={Data Mining and Knowledge Discovery},
+  volume    = {30},
+  number    = {2},
+  pages     = {476--509},
+  year      = {2016}
+}
+
  * 
  */
 public class LPS extends AbstractClassifier implements ParameterSplittable{
@@ -67,13 +77,13 @@ public class LPS extends AbstractClassifier implements ParameterSplittable{
 
         result = new TechnicalInformation(TechnicalInformation.Type.ARTICLE);
         result.setValue(TechnicalInformation.Field.AUTHOR, "M. Baydogan and G. Runger");
-        result.setValue(TechnicalInformation.Field.YEAR, "2015");
+        result.setValue(TechnicalInformation.Field.YEAR, "2016");
         result.setValue(TechnicalInformation.Field.TITLE, "Time series representation and similarity based on local\n" +
     "autopatterns");
         result.setValue(TechnicalInformation.Field.JOURNAL, "Data Mining and Knowledge Discovery");
-        result.setValue(TechnicalInformation.Field.VOLUME, "Online First");
-        result.setValue(TechnicalInformation.Field.NUMBER, "");
-        result.setValue(TechnicalInformation.Field.PAGES, "");
+        result.setValue(TechnicalInformation.Field.VOLUME, "30");
+        result.setValue(TechnicalInformation.Field.NUMBER, "2");
+        result.setValue(TechnicalInformation.Field.PAGES, "476-509");
         return result;
       }
 

@@ -1,5 +1,15 @@
 /*
  * A new Elastic Ensemble for sharing with others
+@article{lines15elastic,
+  title={Time Series Classification with Ensembles of Elastic Distance Measures},
+  author={J. Lines and A. Bagnall},
+  journal={Data Mining and Knowledge Discovery},
+  volume={29},
+  issue={3},
+  pages={565--592},
+  year={2015}
+}
+
  */
 package tsc_algorithms;
 
@@ -25,15 +35,29 @@ import weka.core.Instances;
 import weka.filters.timeseries.DerivativeFilter;
 import utilities.SaveCVAccuracy;
 import utilities.WritableTestResults;
+import weka.core.TechnicalInformation;
 
 /**
  *
  * @author sjx07ngu
  */
 public class ElasticEnsemble implements Classifier, HiveCoteModule, SaveCVAccuracy, WritableTestResults{
-//public class ElasticEnsemble implements Classifier{
 
     
+    public TechnicalInformation getTechnicalInformation() {
+        TechnicalInformation 	result;
+        result = new TechnicalInformation(TechnicalInformation.Type.ARTICLE);
+        result.setValue(TechnicalInformation.Field.AUTHOR, "J. Lines and A. Bagnall");
+        result.setValue(TechnicalInformation.Field.TITLE, "Time Series Classification with Ensembles of Elastic Distance Measures");
+        result.setValue(TechnicalInformation.Field.JOURNAL, "Data Mining and Knowledge Discovery");
+        result.setValue(TechnicalInformation.Field.VOLUME, "29");
+        result.setValue(TechnicalInformation.Field.NUMBER, "3");
+        
+        result.setValue(TechnicalInformation.Field.PAGES, "565-592");
+        result.setValue(TechnicalInformation.Field.YEAR, "2015");
+        return result;
+    }    
+        
     
     public enum ConstituentClassifiers{ 
         Euclidean_1NN, 

@@ -1,4 +1,4 @@
-package tsc_algorithms;
+package tsc_algorithms.depreciated;
 
 import weka.classifiers.meta.timeseriesensembles.SaveableEnsemble;
 import fileIO.OutFile;
