@@ -1,5 +1,4 @@
 package tsc_algorithms;
-//import grabocka_reproduction.LearnShapeletsGeneralized;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -16,19 +15,24 @@ import weka.core.Capabilities;
 import weka.core.Instance;
 import weka.core.Instances;
 
+/**
+ * 
+ * @author Original algorithm and adjustments Josef Grabocka, initial conversion
+ * Aaron Bostrom 
+ */
+
 public class LearnShapelets extends AbstractClassifier implements ParameterSplittable{
 
+    boolean suppressOutput = false;
+    
     long seed;
     
     // length of a time-series 
     public int seriesLength;
     // length of shapelet
     public int[] L;
-    public double percentageOfSeriesLength;
     // number of latent patterns
     public int K;
-    // scales of the shapelet length
-    public int R;
     // number of classes
     public int C;
     // number of segments
@@ -46,22 +50,25 @@ public class LearnShapelets extends AbstractClassifier implements ParameterSplit
     double GradHistW[][][];
     double GradHistBiasW[];
 
+    // the regularization parameters
+    public double lambdaW=0.01;
+    // scales of the shapelet length
+    public int R=3;
+    public double percentageOfSeriesLength=0.2;
+    // the learning rate
+    public double eta=0.1;
     // the softmax parameter
-    public double alpha;
+    public double alpha=-30;
+    // the number of iterations
+    public int maxIter=300;
     
     public Instances trainSet;
-    public Instance testSet;
+//    public Instance testSet;
     // time series data and the label 
     public double[][] train, classValues_train;
-    public double[] test;
+//    public double[] test;
 
-    // the number of iterations
-    public int maxIter=1000;
-    // the learning rate
-    public double eta;
 
-    // the regularization parameters
-    public double lambdaW;
 
     public List<Double> nominalLabels;
 
@@ -94,7 +101,7 @@ public class LearnShapelets extends AbstractClassifier implements ParameterSplit
     public boolean enableParallel=true;
     
 //Parameter search settings
-    boolean paraSearch=true;
+    boolean paraSearch=false;
     
     double[] lambdaWRange = {0.01, 0.1}; 
     double[] percentageOfSeriesLengthRange = {0.15};
@@ -106,6 +113,20 @@ public class LearnShapelets extends AbstractClassifier implements ParameterSplit
         //default the values to something.
         if(paraSearch)
             fixParameters();
+    }
+//Set to defaults recommended by the author    
+    public void fixParameters(){
+   // the regularization parameters
+        lambdaW=0.01;
+    // scales of the shapelet length
+        R=3;
+        percentageOfSeriesLength=0.2;
+    // the learning rate
+        eta=0.1;
+    // the softmax parameter
+        alpha=-30;
+    // the number of iterations
+        maxIter=300;        
     }
 /* The actual parameter values should be set internally. This integer
   is just a key to maintain different parameter sets 
@@ -221,7 +242,7 @@ public class LearnShapelets extends AbstractClassifier implements ParameterSplit
         
         initializeShapeletsKMeans(); 
         
-        System.out.println("Initialization completed: L_min=" + L_min + ", K="+K
+        print("Initialization completed: L_min=" + L_min + ", K="+K
                 +", R="+R + ", C="+C + ", lambdaW="+lambdaW); 
         
         tmp2 = new double[R][];
@@ -301,16 +322,16 @@ public class LearnShapelets extends AbstractClassifier implements ParameterSplit
             
             SimpleKMeans skm = new SimpleKMeans();
             skm.setNumClusters(K);
-            skm.setMaxIterations(30); 
-            skm.setInitializeUsingKMeansPlusPlusMethod(true); 
+            skm.setMaxIterations(100); 
+            //skm.setInitializeUsingKMeansPlusPlusMethod(true); 
+            skm.setSeed((int) (rand.nextDouble() * 1000) );
             skm.buildClusterer( ins );
             Instances centroidsWeka = skm.getClusterCentroids();
-//Assume it does not have a class value?!?            
-            Shapelets[r] =  InstanceTools.fromWekaInstancesArray(centroidsWeka,false);
+            Shapelets[r] =  InstanceTools.fromWekaInstancesArray(centroidsWeka, false);
               
             // initialize the gradient history of shapelets
             if (Shapelets[r] == null)
-                System.out.println("P not set"); 
+                print("P not set"); 
         }
     }
 
@@ -380,7 +401,9 @@ public class LearnShapelets extends AbstractClassifier implements ParameterSplit
         double Y_hat_ic = predict_i(M, c);
         double sig_y_ic = calculateSigmoid(Y_hat_ic);
 
-        return -classValues[c] * Math.log(sig_y_ic) - (1 - classValues[c]) * Math.log(1 - sig_y_ic);
+        double returnVal = -classValues[c] * Math.log(sig_y_ic) - (1 - classValues[c]) * Math.log(1 - sig_y_ic);
+        
+        return returnVal;
     }
 
     // compute the accuracy loss of the train set
@@ -394,13 +417,13 @@ public class LearnShapelets extends AbstractClassifier implements ParameterSplit
                 accuracyLoss += accuracyLoss(M_train[i], classValues_train[i], c);
             }
         }
-
+       
         return accuracyLoss/train.length;
     }
     
     public void learnF(int c, int i)
     {
-       preCompute(D_train[i], E_train[i], Psi_train[i], M_train[i], sigY_train[i], train[i]);
+        preCompute(D_train[i], E_train[i], Psi_train[i], M_train[i], sigY_train[i], train[i]);
 
         dLdY = -(classValues_train[i][c] - sigY_train[i][c]);
 
@@ -460,90 +483,96 @@ public class LearnShapelets extends AbstractClassifier implements ParameterSplit
     // build a classifier using cross-validation to tune hyper-parameters
     public void buildClassifier(Instances trainData) throws Exception {
         
-        double[] paramsLambdaW;
-        double[] paramsPercentageOfSeriesLength;
-        int[] paramsShapeletLengthScale;
+        if(paraSearch){
+            double[] paramsLambdaW;
+            double[] paramsPercentageOfSeriesLength;
+            int[] paramsShapeletLengthScale;
 
-        paramsLambdaW=lambdaWRange;
-        paramsPercentageOfSeriesLength=percentageOfSeriesLengthRange;
-        paramsShapeletLengthScale=shapeletLengthScaleRange;
-        
-        int noFolds = 2; 
-        double bsfAccuracy = 0;
-        int[] params = {0,0,0};
-        double accuracy = 0;
-        
-        // randomize and stratify the data prior to cross validation
-        trainData.randomize(rand); 
-        trainData.stratify(noFolds); 
-        
-        int numHpsCombinations=1;
-        
-        
-        for (int i = 0; i < paramsLambdaW.length; i++) {
-            for (int j = 0; j < paramsPercentageOfSeriesLength.length; j++) {
-                for (int k = 0; k < paramsShapeletLengthScale.length; k++) {
-                
-                    percentageOfSeriesLength = paramsPercentageOfSeriesLength[j];
-                    R = paramsShapeletLengthScale[k];
-                    lambdaW = paramsLambdaW[i];
-                    
-//                    System.out.println("HPS Combination #"+numHpsCombinations+": {R="+R + 
-//                            ", L="+percentageOfSeriesLength + ", lambdaW="+lambdaW + "}" ); 
-//                   System.out.println("--------------------------------------");
-                    
-                    double sumAccuracy = 0;
-                    //build our test and train sets. for cross-validation.
-                    for (int l = 0; l < noFolds; l++) {
-                        Instances trainCV = trainData.trainCV(noFolds, l);
-                        Instances testCV = trainData.testCV(noFolds, l);
+            paramsLambdaW=lambdaWRange;
+            paramsPercentageOfSeriesLength=percentageOfSeriesLengthRange;
+            paramsShapeletLengthScale=shapeletLengthScaleRange;
 
-                        // fixed hyper-parameters
-                        eta = 0.1;
-                        alpha = -30;
-                        maxIter=1000;
-                        
- //                       System.out.println("Learn model for Fold-"+l + ":" ); 
-                        
-                        train(trainCV);
-                        
-                        //test on the remaining fold.
-                        accuracy = utilities.ClassifierTools.accuracy(testCV, this);
-                        sumAccuracy += accuracy;
-                     
-//                        System.out.println("Accuracy-Fold-"+l + " = " + accuracy ); 
-                        
-                        trainCV=null;
-                        testCV=null;
+            int noFolds = 2; 
+            double bsfAccuracy = 0;
+            int[] params = {0,0,0};
+            double accuracy = 0;
+
+            // randomize and stratify the data prior to cross validation
+            trainData.randomize(rand); 
+            trainData.stratify(noFolds); 
+
+            int numHpsCombinations=1;
+
+
+            for (int i = 0; i < paramsLambdaW.length; i++) {
+                for (int j = 0; j < paramsPercentageOfSeriesLength.length; j++) {
+                    for (int k = 0; k < paramsShapeletLengthScale.length; k++) {
+
+                        percentageOfSeriesLength = paramsPercentageOfSeriesLength[j];
+                        R = paramsShapeletLengthScale[k];
+                        lambdaW = paramsLambdaW[i];
+
+                        print("HPS Combination #"+numHpsCombinations+": {R="+R + 
+                                ", L="+percentageOfSeriesLength + ", lambdaW="+lambdaW + "}" ); 
+                        print("--------------------------------------");
+
+                        double sumAccuracy = 0;
+                        //build our test and train sets. for cross-validation.
+                        for (int l = 0; l < noFolds; l++) {
+                            Instances trainCV = trainData.trainCV(noFolds, l);
+                            Instances testCV = trainData.testCV(noFolds, l);
+
+                            // fixed hyper-parameters
+                            eta = 0.1;
+                            alpha = -30;
+                            maxIter=300;
+
+                            print("Learn model for Fold-"+l + ":" ); 
+
+                            train(trainCV);
+
+                            //test on the remaining fold.
+                            accuracy = utilities.ClassifierTools.accuracy(testCV, this);
+                            sumAccuracy += accuracy;
+
+                            print("Accuracy-Fold-"+l + " = " + accuracy ); 
+
+                            trainCV=null;
+                            testCV=null;
+                        }
+                        sumAccuracy/=noFolds;
+
+                        print("Accuracy-CV = " + sumAccuracy ); 
+                        print("--------------------------------------"); 
+
+                        if(sumAccuracy > bsfAccuracy){
+                            int[] p = {i,j,k};
+                            params = p;
+                            bsfAccuracy = sumAccuracy;
+                        }
+
+                        numHpsCombinations++; 
                     }
-                    sumAccuracy/=noFolds;
-                    
-//                    System.out.println("Accuracy-CV = " + sumAccuracy ); 
-//                    System.out.println("--------------------------------------"); 
-                    
-                    if(sumAccuracy > bsfAccuracy){
-                        int[] p = {i,j,k};
-                        params = p;
-                        bsfAccuracy = sumAccuracy;
-                    }
-                    
-                    numHpsCombinations++; 
                 }
             }
-        }
-         
-        System.gc();
-        maxAcc=bsfAccuracy;
-        lambdaW = paramsLambdaW[params[0]];
-        percentageOfSeriesLength = paramsPercentageOfSeriesLength[params[1]];
-        R = paramsShapeletLengthScale[params[2]];
-        
-        eta = 0.1; 
-        alpha = -30;
-        maxIter=1000;
 
- //       System.out.println("Learn final model with best hyper-parameters: R="+R
- //                           +", L="+percentageOfSeriesLength + ", lambdaW="+lambdaW); 
+            System.gc();
+            maxAcc=bsfAccuracy;
+            lambdaW = paramsLambdaW[params[0]];
+            percentageOfSeriesLength = paramsPercentageOfSeriesLength[params[1]];
+            R = paramsShapeletLengthScale[params[2]];
+
+            eta = 0.1; 
+            alpha = -30;
+            maxIter=600;
+            print("Learn final model with best hyper-parameters: R="+R
+                                +", L="+percentageOfSeriesLength + ", lambdaW="+lambdaW); 
+        }
+        else{
+            fixParameters();
+            print("Fixed parameters: R="+R
+                                +", L="+percentageOfSeriesLength + ", lambdaW="+lambdaW); 
+        }
         
         train(trainData);
     }
@@ -563,9 +592,9 @@ public class LearnShapelets extends AbstractClassifier implements ParameterSplit
         }
         
         //convert the training set into a 2D Matrix.
-        train = fromWekaInstancesArray(trainSet,true);
+        train = fromWekaInstancesArray(trainSet, true);
 
-        // Z-normalize the training time series. DONT DO THIS HERE
+        // Z-normalize the training time seriee
 //        for(int i=0; i<train.length; i++)
 //            train[i] = StatisticalUtilities.normalize(train[i]);
        
@@ -582,12 +611,9 @@ public class LearnShapelets extends AbstractClassifier implements ParameterSplit
             {
                 double lossTrain = accuracyLossTrainSet();
 
- //               System.out.println("Iter="+iter+", Loss="+lossTrain); 
+                print("Iter="+iter+", Loss="+lossTrain); 
                 
                 // if divergence is detected break
-/*THIS MAY BE THE CAUSE OF THE PROBLEM: it simply breaks out of training                
-                Surely that will leave a very poor classifier!
-                */
                 if ( Double.isNaN(lossTrain) )
                     break;
             }
@@ -597,9 +623,11 @@ public class LearnShapelets extends AbstractClassifier implements ParameterSplit
     @Override
     public double classifyInstance(Instance instance) throws Exception {
             
-        testSet = instance;
         
-        test = testSet.toDoubleArray();
+        double[] temp = instance.toDoubleArray();
+//remove the class value
+        double[] test=new double[temp.length-1];
+        System.arraycopy(temp, 0, test, 0, temp.length-1);
         
         // z-normalize time series
         test = StatisticalUtilities.normalize(test);
@@ -637,14 +665,16 @@ public class LearnShapelets extends AbstractClassifier implements ParameterSplit
 
         return nominalLabels.get(label_i);
     }
-
-    @Override
-    public double[] distributionForInstance(Instance instance) throws Exception {
-        double c=classifyInstance(instance);
-        double[] r=new double[instance.numClasses()];
-        r[(int)c]=1;
-        return r;
+    
+    public void suppressOutput(){
+        suppressOutput = true;
     }
+    
+    void print(String s){
+        if(!suppressOutput)
+            System.out.println(s);
+    }
+
 
     @Override
     public Capabilities getCapabilities() {
@@ -681,7 +711,7 @@ public class LearnShapelets extends AbstractClassifier implements ParameterSplit
     public static void main(String[] args) throws Exception{
         
         if( args.length == 0 )
-            	args = new String[]{"D:\\data\\classification\\ShapeletTransformData\\", "ItalyPowerDemand"}; 
+            	args = new String[]{"C:\\LocalData\\Dropbox\\TSC Problems", "OliveOil"}; 
         
         //resample 1 of the italypowerdemand dataset
         String dataset = args[1];
