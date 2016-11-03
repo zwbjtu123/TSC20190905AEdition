@@ -1,3 +1,15 @@
+/**
+ * Code to reproduce the results in the paper
+ * @inproceedings{bagnall12ensemble,
+	Author = {A. Bagnall and L. Davis and J. Hills  and J. Lines},
+	Title ="Transformation Based Ensembles for Time Series Classification",
+	Booktitle ="Proceedings of the 12th {SIAM} International Conference on Data Mining (SDM)",
+    pages="307--319",
+	Year = {2012}
+}
+ * 
+ */
+
 package papers;
 
 import fileIO.InFile;
@@ -27,7 +39,7 @@ import development.*;
 import weka.classifiers.AbstractClassifier;
 
 
-public class SDM2012_Bagnall {
+public class Bagnall12ensemble {
 	static String resultPath="C:\\Users\\ajb\\Dropbox\\Results\\Ensembles";
 		public static String[] sdm2012fileNames={	//Number of train,test cases,length,classes
 				"Adiac",//390,391,176,37

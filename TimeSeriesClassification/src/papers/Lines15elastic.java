@@ -1,11 +1,29 @@
 /*
 Code to generate results for the paper
-Lines, Jason and Bagnall, Anthony (2014) Time series classification with 
+Lines, Jason and Bagnall, Anthony (2015) Time series classification with 
 ensembles of elastic distance measures. Data Mining and Knowledge Discovery Journal
+
+@article{lines15elastic,
+  title={Time Series Classification with Ensembles of Elastic Distance Measures},
+  author={J. Lines and A. Bagnall},
+  journal={Data Mining and Knowledge Discovery},
+  volume={29},
+  issue={3},
+  pages={565--592},
+  year={2015}
+}
 
 also published in 
 Lines, Jason and Bagnall, Anthony (2014) Ensembles of Elastic Distance 
 easures for Time Series Classification. In: Proceedings of SDM 2014
+@inproceedings{lines14elastic,
+	Author = {J. Lines and A. Bagnall},
+	Title ="Ensembles of Elastic Distance Measures for Time Series Classification",
+	Booktitle ="Proceedings of the 14th {SIAM} International Conference on Data Mining (SDM)",
+	Year = {2014}
+}
+
+
  */
 package papers;
 
@@ -17,7 +35,7 @@ import utilities.ClassifierTools;
 import weka.core.Instances;
 
 
-public class DAMI2014_Lines {
+public class Lines15elastic {
     //CHANGE THIS
     static String path="C:\\Users\\ajb\\Dropbox\\TSC Problems\\";
 

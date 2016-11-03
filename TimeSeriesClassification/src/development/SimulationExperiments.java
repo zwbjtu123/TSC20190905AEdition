@@ -125,7 +125,7 @@ public class SimulationExperiments {
                 break;
             case "HIVECOTE":
                 c=new HiveCote();
-                ((HiveCote)c).setNosHours(2);
+//                ((HiveCote)c).setNosHours(2);
                 break;
             case "RISE":
                 c=new RISE();
@@ -668,12 +668,16 @@ public class SimulationExperiments {
                 of.writeLine("#BSUB -J "+s+a+"[1-"+folds+"]");
                 of.writeLine("#BSUB -oo output/"+a+".out");
                 of.writeLine("#BSUB -eo error/"+a+".err");
+            if(grace){
+                of.writeLine("#BSUB -R \"rusage[mem=2000]\"");
+                of.writeLine("#BSUB -M 2000");
+                of.writeLine(" module add java/jdk/1.8.0_31");
+            }
+            else{
                 of.writeLine("#BSUB -R \"rusage[mem=6000]\"");
                 of.writeLine("#BSUB -M 6000");
-                if(grace)
-                    of.writeLine(" module add java/jdk/1.8.0_31");
-                else
-                    of.writeLine("module add java/jdk1.8.0_51");
+                of.writeLine("module add java/jdk1.8.0_51");
+            }
                 of.writeLine("java -jar Simulator.jar "+a+" "+ s+" $LSB_JOBINDEX");                
                 if(grace)
                     of2.writeLine("bsub < Scripts/SimulatorExperiments/BaseExperiment/"+s+a+"Grace.bsub");
@@ -793,7 +797,7 @@ public class SimulationExperiments {
     public static void main(String[] args){
    //      generateAllProblemFiles();
  //       createBaseExperimentScripts(false);
-  //      createBaseExperimentScripts(true);
+       createBaseExperimentScripts(true);
 //        deleteThisMethod();
 //        collateLengthResults();
 //        collateErrorExperiments();
@@ -811,7 +815,7 @@ public class SimulationExperiments {
 //generateProblemFile();
  //collateAllResults();
   //     collateErrorResults();     
-  //System.exit(0);
+  System.exit(0);
         if(args.length>0){
             DataSets.resultsPath=DataSets.clusterPath+"Results/SimulationExperiments/";
             if(args.length==3){//Base experiment

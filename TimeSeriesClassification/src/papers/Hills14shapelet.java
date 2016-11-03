@@ -1,3 +1,17 @@
+/**
+ * Code to recreate the results in the paper
+ * @article{hills14shapelet,
+  title={Classification of time series by shapelet transformation},
+  author={J. Hills  and  J. Lines and E. Baranauskas and J. Mapp and A. Bagnall},
+  journal={Data Mining and Knowledge Discovery},
+  volume={28},
+  issue={4},
+  pages={851--881},
+  year={2014}
+}
+
+ */
+
 package papers;
 
 
@@ -21,7 +35,7 @@ import weka.core.Instances;
 import weka.core.shapelet.*;
 import weka.filters.timeseries.*;
 
-public class DMKD_2013 {
+public class Hills14shapelet {
 
     // There are two types of dataset assessment - LOOCV or Train/Test split
     private enum AssesmentType{LOOCV, TRAIN_TEST};
