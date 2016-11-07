@@ -20,21 +20,46 @@ import weka.core.Capabilities;
 import weka.core.Instance;
 import weka.core.Instances;
 import weka.classifiers.Classifier;
+import weka.core.TechnicalInformation;
 
 /**
  * BOSS classifier to be used with known parameters, for boss with parameter search, use BOSSEnsemble.
  * 
+ * Current implementation of BitWord as of 07/11/2016 only supports alphabetsize of 4, which is the expected value 
+ * as defined in the paper
+ * 
  * Params: wordLength, alphabetSize, windowLength, normalise?
  * 
  * @author James Large. Enhanced by original author Patrick Schaefer
+ * 
+ * Implementation based on the algorithm described in getTechnicalInformation()
  */
 public class BOSS implements Classifier, Serializable {
     
-    protected BitWord [][] SFAwords; //all sfa words found in original buildClassifier(), no numerosity reduction/shortening applied
-    public ArrayList<Bag> bags; //histograms of words of the current wordlength with numerosity reduction applied (if selected)
+    public TechnicalInformation getTechnicalInformation() {
+        TechnicalInformation 	result;
+        result = new TechnicalInformation(TechnicalInformation.Type.ARTICLE);
+        result.setValue(TechnicalInformation.Field.AUTHOR, "P. Schafer");
+        result.setValue(TechnicalInformation.Field.TITLE, "The BOSS is concerned with time series classification in the presence of noise");
+        result.setValue(TechnicalInformation.Field.JOURNAL, "Data Mining and Knowledge Discovery");
+        result.setValue(TechnicalInformation.Field.VOLUME, "29");
+        result.setValue(TechnicalInformation.Field.NUMBER,"6");
+        result.setValue(TechnicalInformation.Field.PAGES, "1505-1530");
+        result.setValue(TechnicalInformation.Field.YEAR, "2015");
+
+        return result;
+    }
+    
+    //all sfa words found in original buildClassifier(), no numerosity reduction/shortening applied
+    protected BitWord [/*instance*/][/*windowindex*/] SFAwords; 
+    
+    //histograms of words of the current wordlength with numerosity reduction applied (if selected)
+    public ArrayList<Bag> bags; 
+    
+    //breakpoints to be found by MCB
     protected double[/*letterindex*/][/*breakpointsforletter*/] breakpoints;
     
-    public static String classifierName = "BOSS";
+    public static String classifierName = "BOSS"; //for feature serialistion
     
     protected double inverseSqrtWindowSize;
     protected int windowSize;
@@ -76,6 +101,10 @@ public class BOSS implements Classifier, Serializable {
         bags = new ArrayList<>(boss.bags.size());
     }
     
+    /**
+     * Make a complete copy of the passed instance
+     * @param boss 
+     */
     private BOSS(BOSS boss) {
         this.wordLength = boss.wordLength;
         this.windowSize = boss.windowSize;
@@ -175,39 +204,6 @@ public class BOSS implements Classifier, Serializable {
         return subSequences;
     }
     
-//        /**
-//     * Gets sliding windows from data (a timeseries) and the std deviation of each window, stored 
-//     * in windows and stdDevs respectively
-//     * 
-//     * @param data original timeseries [FINAL]
-//     * @param windows sliding windows will be stored here
-//     * @param stdDevs stddev of each window will be stored here
-//     */
-//    private void slidingWindow(final double[] data, double[][] windows, double[] stdDevs) {
-//        int numWindows = data.length-windowSize+1;
-//        windows = new double[numWindows][windowSize];
-//        stdDevs = new double[numWindows];
-//        
-//        double inverseWindowSize = 1.0 / windowSize;
-//        
-//        for (int windowStart = 0; windowStart < numWindows; ++windowStart) { 
-//            //copy the elements windowStart to windowStart+windowSize from data into 
-//            //the subsequence matrix at position win
-//            //and calculate the stddev of this window
-//            double sum = 0.0;
-//            double squareSum = 0.0;
-//            for (int i = 0; i < windowSize; i++) {
-//                sum += data[windowStart+i];
-//                squareSum += data[windowStart+i]*data[windowStart+i];
-//                windows[windowStart][i] = data[windowStart+i];
-//            }
-//            
-//            double mean = sum * inverseWindowSize;
-//            double variance = squareSum * inverseWindowSize - mean*mean;
-//            stdDevs[windowStart] = Math.sqrt(variance);
-//        }
-//    }
-    
     protected double[][] performDFT(double[][] windows) {
         double[][] dfts = new double[windows.length][wordLength];
         for (int i = 0; i < windows.length; ++i) {
@@ -229,20 +225,13 @@ public class BOSS implements Classifier, Serializable {
         return variance > 0 ? Math.sqrt(variance) : 1.0;
     }
     
-    /**
-     * Performs DFT but calculates only wordLength/2 coefficients instead of the 
-     * full transform, and skips the first coefficient if it is to be normalised
-     * 
-     * @return double[] size wordLength, { real1, imag1, ... realwl/2, imagwl/2 }
-     */
     protected double[] DFT(double[] series) {
         //taken from FFT.java but 
         //return just a double[] size n, { real1, imag1, ... realn/2, imagn/2 }
         //instead of Complex[] size n/2
         
-        //also, only calculating first wordlength/2 coefficients (output values) instead of 
-        //entire transform, as it will be low pass filtered anyway, and skipping first coefficient
-        //if the data is to be normalised
+        //only calculating first wordlength/2 coefficients (output values), 
+        //and skipping first coefficient if the data is to be normalised
         int n=series.length;
         int outputLength = wordLength/2;
         int start = (norm ? 1 : 0);
@@ -272,16 +261,12 @@ public class BOSS implements Classifier, Serializable {
         //return just a double[] size n, { real1, imag1, ... realn/2, imagn/2 }
         //instead of Complex[] size n/2
         
-        //also, only calculating first wordlength/2 coefficients (output values) instead of 
-        //entire transform, as it will be low pass filtered anyway, and skipping first coefficient
-        //if the data is to be normalised
+        //only calculating first wordlength/2 coefficients (output values), 
+        //and skipping first coefficient if the data is to be normalised
         int n=series.length;
         int outputLength = wordLength/2;
         int start = (norm ? 1 : 0);
-        
-        //normalize the disjoint windows and sliding windows by dividing them by their standard deviation 
-        //all Fourier coefficients are divided by sqrt(windowSize)
-        
+                
         double[] dft = new double[outputLength*2];
         double twoPi = 2*Math.PI / n;
         
@@ -299,11 +284,11 @@ public class BOSS implements Classifier, Serializable {
     }
     
     private double[] normalizeDFT(double[] dft, double std) {
-      double normalisingFactor = (std > 0? 1.0 / std : 1.0) * inverseSqrtWindowSize;
-      for (int i = 0; i < dft.length; i++) {
-        dft[i] *= normalisingFactor;
-      }
-      return dft;
+        double normalisingFactor = (std > 0? 1.0 / std : 1.0) * inverseSqrtWindowSize;
+        for (int i = 0; i < dft.length; i++)
+            dft[i] *= normalisingFactor;
+        
+        return dft;
     }
     
     private double[][] performMFT(double[] series) {
@@ -317,14 +302,16 @@ public class BOSS implements Classifier, Serializable {
             phis[u] = realephi(uHalve, windowSize);
             phis[u + 1] = complexephi(uHalve, windowSize);
         }
+        
         // means and stddev for each sliding window
         int end = Math.max(1, series.length - windowSize + 1);
         double[] means = new double[end];
         double[] stds = new double[end];
-        calcIncreamentalMeanStddev(windowSize, series, means, stds);
+        calcIncrementalMeanStddev(windowSize, series, means, stds);
         // holds the DFT of each sliding window
         double[][] transformed = new double[end][];
         double[] mftData = null;
+        
         for (int t = 0; t < end; t++) {
             // use the MFT
             if (t > 0) {
@@ -346,7 +333,7 @@ public class BOSS implements Classifier, Serializable {
         }
         return transformed;
     }
-    private void calcIncreamentalMeanStddev(int windowLength, double[] series, double[] means, double[] stds) {
+    private void calcIncrementalMeanStddev(int windowLength, double[] series, double[] means, double[] stds) {
         double sum = 0;
         double squareSum = 0;
         // it is faster to multiply than to divide
@@ -399,50 +386,12 @@ public class BOSS implements Classifier, Serializable {
         return subSequences;
     }
     
-//    /**
-//     * Gets disjoint windows from data (a timeseries) and the std deviation of each window, stored 
-//     * in windows and stdDevs respectively
-//     * 
-//     * @param data original timeseries [FINAL]
-//     * @param windows disjoint windows will be stored here
-//     * @param stdDevs stddev of each window will be stored here
-//     */
-//    private void disjointWindows(final double[] data, double[][] windows, double[] stdDevs) {
-//        int amount = (int)Math.ceil(data.length/(double)windowSize);
-//        double[][] subSequences = new double[amount][windowSize];
-//        windows = new double[amount][windowSize];
-//        stdDevs = new double[amount];
-//        
-//        double inverseWindowSize = 1.0 / windowSize;
-//        
-//        for (int win = 0; win < amount; ++win) { 
-//            int offset = Math.min(win*windowSize, data.length-windowSize);
-//            
-//            //copy the elements windowStart to windowStart+windowSize from data into 
-//            //the subsequence matrix at position win
-//            //and calculate the stddev of this window
-//            double sum = 0.0;
-//            double squareSum = 0.0;
-//            for (int i = 0; i < windowSize; i++) {
-//                sum += data[offset+i];
-//                squareSum += data[offset+i]*data[offset+i];
-//                windows[win][i] = data[offset+i];
-//            }
-//            
-//            double mean = sum * inverseWindowSize;
-//            double variance = squareSum * inverseWindowSize - mean*mean;
-//            stdDevs[win] = Math.sqrt(variance);
-//        }
-//        
-//    }
-    
     protected double[][] MCB(Instances data) {
         double[][][] dfts = new double[data.numInstances()][][];
         
         int sample = 0;
-        for (Instance inst : data) {
+        for (Instance inst : data)
             dfts[sample++] = performDFT(disjointWindows(toArrayNoClass(inst))); //approximation
-        }
         
         int numInsts = dfts.length;
         int numWindowsPerInst = dfts[0].length;
@@ -479,7 +428,7 @@ public class BOSS implements Classifier, Serializable {
     
     /**
      * Builds a brand new boss bag from the passed fourier transformed data, rather than from
-     * looking up existing transforms from earlier builds. 
+     * looking up existing transforms from earlier builds (i.e. SFAWords). 
      * 
      * to be used e.g to transform new test instances
      */
@@ -506,20 +455,17 @@ public class BOSS implements Classifier, Serializable {
     
     protected BitWord createWord(double[] dft) {
         BitWord word = new BitWord(wordLength);
-        for (int l = 0; l < wordLength; ++l) {//for each letter
-            for (int bp = 0; bp < alphabetSize; ++bp) {//run through breakpoints until right one found
+        for (int l = 0; l < wordLength; ++l) //for each letter
+            for (int bp = 0; bp < alphabetSize; ++bp) //run through breakpoints until right one found
                 if (dft[l] <= breakpoints[l][bp]) {
                     word.push(bp); //add corresponding letter to word
                     break;
                 }
-            }
-        }
 
         return word;
     }
     
     /**
-     * Assumes class index, if present, is last
      * @return data of passed instance in a double array with the class value removed if present
      */
     protected static double[] toArrayNoClass(Instance inst) {
@@ -540,71 +486,14 @@ public class BOSS implements Classifier, Serializable {
      * @return BOSSTransform-ed bag, built using current parameters
      */
     public Bag BOSSTransform(Instance inst) {
-//        double[][] dfts = performDFT(slidingWindow(toArrayNoClass(inst))); //approximation     
-//        Bag bag = createBagSingle(dfts); //discretisation/bagging
-//        bag.setClassVal(inst.classValue());
-        
         double[][] mfts = performMFT(toArrayNoClass(inst)); //approximation     
-        Bag bag2 = createBagSingle(mfts); //discretisation/bagging
-        bag2.setClassVal(inst.classValue());
+        Bag bag = createBagSingle(mfts); //discretisation/bagging
+        bag.setClassVal(inst.classValue());
         
-//        if (!bag2.equals(bag)) {
-//          System.err.println("Error!");
-//        }
-        return bag2;
+        return bag;
     }
-//    public Bag BOSSTransform(Instance inst) {
-//        double[][] dfts = performDFT(slidingWindow(toArrayNoClass(inst))); //approximation     
-//        Bag bag = createBagSingle(dfts); //discretisation/bagging
-//        bag.setClassVal(inst.classValue());
-//        return bag;
-//    }
     
-//    /**
-//     * Creates and returns new boss instance with shortened wordLength and corresponding
-//     * histograms, the boss instance passed in is UNCHANGED, if wordLengths are same, does nothing,
-//     * just returns passed in boss instance
-//     * 
-//     * @param newWordLength wordLength to shorten it to
-//     * @return new boss classifier with newWordLength, or passed in classifier if wordlengths are same
-//     */
-//    public static BOSS shortenHistograms(int newWordLength, final BOSS oldBoss) throws Exception {
-//        if (newWordLength == oldBoss.wordLength) //case of first iteration of word length search in ensemble
-//            return oldBoss;
-//        if (newWordLength > oldBoss.wordLength)
-//            throw new Exception("Cannot incrementally INCREASE word length, current:"+oldBoss.wordLength+", requested:"+newWordLength);
-//        if (newWordLength < 2)
-//            throw new Exception("Invalid wordlength requested, current:"+oldBoss.wordLength+", requested:"+newWordLength);
-//       
-//        //copies/updates meta data
-//        BOSS newBoss = new BOSS(oldBoss, newWordLength); 
-//        
-//        //shorten/copy actual histograms
-//        for (Bag bag : oldBoss.bags)
-//            newBoss.bags.add(shortenHistogram(newWordLength, bag));
-//            
-//        return newBoss;
-//    }
-//    
-//    private static Bag shortenHistogram(int newWordLength, Bag oldBag) {
-//        Bag newBag = new Bag();
-//        
-//        for (Entry<String, Integer> origWord : oldBag.entrySet()) {
-//            String shortWord = origWord.getKey().substring(0, newWordLength);
-//            
-//            Integer val = newBag.get(shortWord);
-//            if (val == null)
-//                val = 0;
-//                
-//            newBag.put(shortWord, val + origWord.getValue());
-//        }
-//        
-//        newBag.setClassVal(oldBag.getClassVal());
-//        
-//        return newBag;
-//    }
-    
-        /**
+    /**
      * Shortens all bags in this BOSS instance (histograms) to the newWordLength, if wordlengths
      * are same, instance is UNCHANGED
      * 
@@ -629,23 +518,6 @@ public class BOSS implements Classifier, Serializable {
         }
         
         return newBoss;
-    }
-    
-    protected Bag shortenBag(int newWordLength, int bagIndex) {
-        Bag newBag = new Bag();
-        
-        for (BitWord word : SFAwords[bagIndex]) {
-            BitWord shortWord = new BitWord(word);
-            shortWord.shortenByFourierCoefficient();
-            
-            Integer val = newBag.get(shortWord);
-            if (val == null)
-                val = 0;
-                
-            newBag.put(shortWord, val + 1);
-        }
-        
-        return newBag;
     }
     
     /**
@@ -675,27 +547,13 @@ public class BOSS implements Classifier, Serializable {
         return bag;
     }
     
-//    protected BitWord[] createSFAwords(Instance inst) throws Exception {
-//        double[][] dfts = performDFT(slidingWindow(toArrayNoClass(inst))); //approximation     
-//        BitWord[] words = new BitWord[dfts.length];
-//        for (int window = 0; window < dfts.length; ++window) 
-//            words[window] = createWord(dfts[window]);//discretisation
-//            
-//        return words;
-//    }
-//    
-    protected BitWord[] createSFAwords(Instance inst) throws Exception {
-//        double[][] dfts = performDFT(slidingWindow(toArrayNoClass(inst))); //approximation     
-//        String[] words = new String[dfts.length];
-//        for (int window = 0; window < dfts.length; ++window) 
-//            words[window] = createWord(dfts[window]);//discretisation
-            
-        double[][] dfts2 = performMFT(toArrayNoClass(inst)); //approximation     
-        BitWord[] words2 = new BitWord[dfts2.length];
-        for (int window = 0; window < dfts2.length; ++window) 
-            words2[window] = createWord(dfts2[window]);//discretisation
+    protected BitWord[] createSFAwords(Instance inst) throws Exception {            
+        double[][] dfts = performMFT(toArrayNoClass(inst)); //approximation     
+        BitWord[] words = new BitWord[dfts.length];
+        for (int window = 0; window < dfts.length; ++window) 
+            words[window] = createWord(dfts[window]);//discretisation
         
-        return words2;
+        return words;
     }
    
     @Override
@@ -719,7 +577,7 @@ public class BOSS implements Classifier, Serializable {
 
     /**
      * Computes BOSS distance between two bags d(test, train), is NON-SYMETRIC operation, ie d(a,b) != d(b,a)
-     * @return distance FROM instA TO instB
+     * @return squared distance FROM instA TO instB
      */
     public double BOSSdistance(Bag instA, Bag instB) {
         double dist = 0.0;
@@ -736,10 +594,10 @@ public class BOSS implements Classifier, Serializable {
         return dist;
     }
     
-       /**
+    /**
      * Computes BOSS distance between two bags d(test, train), is NON-SYMETRIC operation, ie d(a,b) != d(b,a).
      * 
-     * Quits early if the dist-so-far is greater than bestDist (assumed is in fact the dist still squared), and returns Double.MAX_VALUE
+     * Quits early if the dist-so-far is greater than bestDist (assumed dist is still the squared distance), and returns Double.MAX_VALUE
      * 
      * @return distance FROM instA TO instB, or Double.MAX_VALUE if it would be greater than bestDist
      */
@@ -813,6 +671,7 @@ public class BOSS implements Classifier, Serializable {
 
     @Override
     public double[] distributionForInstance(Instance instance) throws Exception {
+        //TODO implement
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
@@ -821,25 +680,41 @@ public class BOSS implements Classifier, Serializable {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
     
-    public static void main(String[] args){
-        basicTest();
-        System.out.println("\n\n\n\n");
-        tonyTest();
+    public static void main(String[] args) throws Exception{
+        //Minimum working example
+        String dataset = "BeetleFly";
+        Instances train = ClassifierTools.loadData("C:\\TSC Problems\\"+dataset+"\\"+dataset+"_TRAIN.arff");
+        Instances test = ClassifierTools.loadData("C:\\TSC Problems\\"+dataset+"\\"+dataset+"_TEST.arff");
+        
+        //example parameters found through the ensemble, 1.0 training accuracy reported
+        int windowSize = 10; 
+        int alphabetSize = 4;
+        int wordLength = 43;
+        boolean norm = true;
+        
+        Classifier c = new BOSS(windowSize, alphabetSize, wordLength, norm); 
+        c.buildClassifier(train);
+        double accuracy = ClassifierTools.accuracy(test, c);
+        
+        System.out.println("BOSS("+windowSize+","+wordLength+","+alphabetSize+","+norm+") accuracy on " + dataset + " fold 0 = " + accuracy);
+        
+        //Other examples/tests
+//        detailedFold0Test(dataset);
     }
     
-     public static void basicTest() {
-        System.out.println("BOSSBasicTest\n\n");
+    public static void detailedFold0Test(String dset) {
+        System.out.println("BOSS DetailedTest\n");
         try {
-//            Instances train = ClassifierTools.loadData("C:\\tempbakeoff\\TSC Problems\\ItalyPowerDemand\\ItalyPowerDemand_TRAIN.arff");
-//            Instances test = ClassifierTools.loadData("C:\\tempbakeoff\\TSC Problems\\ItalyPowerDemand\\ItalyPowerDemand_TEST.arff");
-            Instances train = ClassifierTools.loadData("C:\\TSC Problems\\Car\\Car_TRAIN.arff");
-            Instances test = ClassifierTools.loadData("C:\\TSC Problems\\Car\\Car_TEST.arff");
-//            Instances train = ClassifierTools.loadData("C:\\tempbakeoff\\TSC Problems\\BeetleFly\\BeetleFly_TRAIN.arff");
-//            Instances test = ClassifierTools.loadData("C:\\tempbakeoff\\TSC Problems\\BeetleFly\\BeetleFly_TEST.arff");
-
+            Instances train = ClassifierTools.loadData("C:\\TSC Problems\\"+dset+"\\"+dset+"_TRAIN.arff");
+            Instances test = ClassifierTools.loadData("C:\\TSC Problems\\"+dset+"\\"+dset+"_TEST.arff");
             System.out.println(train.relationName());
             
-            BOSS boss = new BOSS(8,4,16,true);
+            int windowSize = 10; 
+            int alphabetSize = 4;
+            int wordLength = 43;
+            boolean norm = true;
+            
+            BOSS boss = new BOSS(windowSize, alphabetSize, wordLength, norm);
             System.out.println(boss.getWordLength() + " " + boss.getAlphabetSize() + " " + boss.getWindowSize() + " " + boss.isNorm());
             
             System.out.println("Training starting");
@@ -870,38 +745,4 @@ public class BOSS implements Classifier, Serializable {
             e.printStackTrace();
         }
     }
-     
-     public static void tonyTest() {
-        System.out.println("BOSS Sanity Checks\n");
-        DecimalFormat df = new DecimalFormat("##.####");
-        int[] p={8,10,12,14,16};
-        try {
-            String pr="ItalyPowerDemand";
-            Instances train = ClassifierTools.loadData("/Users/bzcschae/workspace/TSC_Bagnall/datasets/"+pr+"/"+pr+"_TRAIN.arff");
-            Instances test = ClassifierTools.loadData("/Users/bzcschae/workspace/TSC_Bagnall/datasets/"+pr+"/"+pr+"_TEST.arff");
-            System.out.println("Problem ="+pr+" has "+(train.numAttributes()-1)+" atts");
-            double maxAcc=0;
-            int bestP=0;
-            int bestW=0;
-            for(int k:p){
-                for(int w=10;w<train.numAttributes()-1;w+=1){
-                    BOSS b=new BOSS(k,4,w,false);
-                    double a=ClassifierTools.stratifiedCrossValidation(train, b, 10, w);
-                    if(a>maxAcc){
-                        maxAcc=a;
-                        bestP=k;
-                        bestW=w;
-                        System.out.println("Current best train p="+k+" w ="+w+" acc = "+a);
-                    }
-                }
-            }
-            BOSS b=new BOSS(bestP,4,bestW,false);
-            System.out.println("BEST p="+bestP+" w = "+bestW+" acc ="+ClassifierTools.singleTrainTestSplitAccuracy(b, train, test));
-               
-        }
-        catch (Exception e) {
-            System.out.println(e);
-            e.printStackTrace();
-        }
-     }
 }

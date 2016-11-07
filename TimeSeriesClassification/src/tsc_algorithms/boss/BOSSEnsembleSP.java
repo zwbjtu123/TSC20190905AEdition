@@ -1,4 +1,4 @@
-package tsc_algorithms;
+package tsc_algorithms.boss;
 
 import fileIO.OutFile;
 import java.io.File;
@@ -14,61 +14,60 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import tsc_algorithms.cote.HiveCoteModule;
 import utilities.ClassifierTools;
 import utilities.InstanceTools;
+import utilities.SaveCVAccuracy;
 import weka.core.Capabilities;
 import weka.core.Instance;
 import weka.core.Instances;
 import weka.classifiers.Classifier;
-import utilities.SaveCVAccuracy;
 import weka.core.TechnicalInformation;
 
 /**
- * BOSS classifier with parameter search and ensembling, if parameters are known, 
- * use 'BOSS.java' classifier and directly provide them.
+ * BOSSSpatialPyramids classifier with parameter search and ensembling, if parameters are known, use 'BOSSSpatialPyramids' classifier and directly provide them.
  * 
  * Intended use is with the default constructor, however can force the normalisation 
  * parameter to true/false by passing a boolean, e.g c = new BOSSEnsemble(true)
  * 
+ * Params: normalise? (i.e should first fourier coefficient(mean value) be discarded)
  * Alphabetsize fixed to four
  * 
  * @author James Large
  * 
- * Implementation based on the algorithm described in getTechnicalInformation()
+ * Base algorithm information found in BOSSEnsemble.java
+ * Spatial Pyramids based on the algorithm described in getTechnicalInformation()
  */
-public class BOSSEnsemble implements Classifier, SaveCVAccuracy, HiveCoteModule {
-  
+public class BOSSEnsembleSP implements Classifier, SaveCVAccuracy {
+    
     public TechnicalInformation getTechnicalInformation() {
         TechnicalInformation 	result;
         result = new TechnicalInformation(TechnicalInformation.Type.ARTICLE);
-        result.setValue(TechnicalInformation.Field.AUTHOR, "P. Schafer");
-        result.setValue(TechnicalInformation.Field.TITLE, "The BOSS is concerned with time series classification in the presence of noise");
-        result.setValue(TechnicalInformation.Field.JOURNAL, "Data Mining and Knowledge Discovery");
-        result.setValue(TechnicalInformation.Field.VOLUME, "29");
-        result.setValue(TechnicalInformation.Field.NUMBER,"6");
-        result.setValue(TechnicalInformation.Field.PAGES, "1505-1530");
-        result.setValue(TechnicalInformation.Field.YEAR, "2015");
+        result.setValue(TechnicalInformation.Field.AUTHOR, "Lazebnik, Svetlana and Schmid, Cordelia and Ponce, Jean");
+        result.setValue(TechnicalInformation.Field.TITLE, "Beyond bags of features: Spatial pyramid matching for recognizing natural scene categories");
+        result.setValue(TechnicalInformation.Field.BOOKTITLE, "Computer Vision and Pattern Recognition, 2006 IEEE Computer Society Conference on");
+        result.setValue(TechnicalInformation.Field.VOLUME, "2");
+        result.setValue(TechnicalInformation.Field.PAGES, "2169--2178");
+        result.setValue(TechnicalInformation.Field.YEAR, "2006");
 
         return result;
     }
     
     private List<BOSSWindow> classifiers; 
-    
+
     private final double correctThreshold = 0.92;
-    private int maxEnsembleSize = Integer.MAX_VALUE;
+//    private int maxEnsembleSize = Integer.MAX_VALUE;
+    private int maxEnsembleSize = 100;
+    
     
     private final Integer[] wordLengths = { 16, 14, 12, 10, 8 };
+    private final Integer[] levels = { 1, 2, 3 };
     private final int alphabetSize = 4;
-    
-    private boolean loadFeatureSets = false;
-    private int fold = 0;
     
     public enum SerialiseOptions { 
         //dont do any seriealising, run as normal
         NONE, 
         
-        //serialise the final boss classifiers which made it into ensemble (does not serialise the entire BOSSEnsemble object)
+        //serialise the final boss classifiers which made it into ensemble (does not serialise the entire BOSSEnsembleSP_Redo object)
         //slight runtime cost 
         STORE, 
         
@@ -81,16 +80,11 @@ public class BOSSEnsemble implements Classifier, SaveCVAccuracy, HiveCoteModule 
     
     private SerialiseOptions serOption = SerialiseOptions.NONE;
     private static String serFileLoc = "BOSSWindowSers\\";
-    private static String featureFileLoc = "C:/JamesLPHD/featuresets/BOSSEnsemble/";
      
     private boolean[] normOptions;
     
     private String trainCVPath;
     private boolean trainCV=false;
-
-    private Instances train;
-    private double ensembleCvAcc = -1;
-    private double[] ensembleCvPreds = null;
     
     /**
      * Providing a particular value for normalisation will force that option, if 
@@ -98,7 +92,7 @@ public class BOSSEnsemble implements Classifier, SaveCVAccuracy, HiveCoteModule 
      * 
      * @param normalise whether or not to normalise by dropping the first Fourier coefficient
      */
-    public BOSSEnsemble(boolean normalise) {
+    public BOSSEnsembleSP(boolean normalise) {
         normOptions = new boolean[] { normalise };
     }
     
@@ -106,12 +100,12 @@ public class BOSSEnsemble implements Classifier, SaveCVAccuracy, HiveCoteModule 
      * During buildClassifier(...), will search through normalisation as well as 
      * window size and word length if no particular normalisation option is provided
      */
-    public BOSSEnsemble() {
+    public BOSSEnsembleSP() {
         normOptions = new boolean[] { true, false };
     }  
 
     public static class BOSSWindow implements Comparable<BOSSWindow>, Serializable { 
-        private BOSS classifier;
+        private BOSSSpatialPyramids classifier;
         public double accuracy;
         public String filename;
         
@@ -121,7 +115,7 @@ public class BOSSEnsemble implements Classifier, SaveCVAccuracy, HiveCoteModule 
             this.filename = filename;
         }
         
-        public BOSSWindow(BOSS classifer, double accuracy, String dataset) {
+        public BOSSWindow(BOSSSpatialPyramids classifer, double accuracy, String dataset) {
             this.classifier = classifer;
             this.accuracy = accuracy;
             buildFileName(dataset);
@@ -147,7 +141,7 @@ public class BOSSEnsemble implements Classifier, SaveCVAccuracy, HiveCoteModule 
                 clearClassifier();
                 return true;
             }catch(IOException e) {
-                System.out.print("Error serialising to " + filename);
+                System.out.print("Error serialiszing to " + filename);
                 e.printStackTrace();
                 return false;
             }
@@ -209,6 +203,8 @@ public class BOSSEnsemble implements Classifier, SaveCVAccuracy, HiveCoteModule 
         public int getWordLength()   { return classifier.getWordLength();  }
         public int getAlphabetSize() { return classifier.getAlphabetSize(); }
         public boolean isNorm()      { return classifier.isNorm(); }
+        public double getLevelWeighting() { return classifier.getLevelWeighting(); }
+        public int getLevels() { return classifier.getLevels(); }
         
         @Override
         public int compareTo(BOSSWindow other) {
@@ -268,26 +264,10 @@ public class BOSSEnsemble implements Classifier, SaveCVAccuracy, HiveCoteModule 
         serFileLoc = path;
     }
     
-    public void setFeatureFileLoc(String path) {
-        featureFileLoc = path;
-    }
-    
-    public void setMaxEnsembleSize(int max) {
-        maxEnsembleSize = max;
-    }
-    
-    public void setLoadFeatures(boolean load, int fold) {
-        this.loadFeatureSets = load;
-        this.fold = fold;
-    }
-    
     @Override
     public void buildClassifier(final Instances data) throws Exception {
-        
-        this.train=data;
-        
         if (data.classIndex() != data.numAttributes()-1)
-            throw new Exception("BOSSEnsemble_BuildClassifier: Class attribute not set as last attribute in dataset");
+            throw new Exception("BOSSEnsembleSP_BuildClassifier: Class attribute not set as last attribute in dataset");
  
         if (serOption == SerialiseOptions.STORE || serOption == SerialiseOptions.STORE_LOAD) {
             DateFormat dateFormat = new SimpleDateFormat("yyyyMMddHHmmss");
@@ -309,7 +289,7 @@ public class BOSSEnsemble implements Classifier, SaveCVAccuracy, HiveCoteModule 
 
         //int winInc = 1; //check every window size in range
         
-        //whats the max number of window sizes that should be searched through
+//        //whats the max number of window sizes that should be searched through
         //double maxWindowSearches = Math.min(200, Math.sqrt(seriesLength)); 
         double maxWindowSearches = seriesLength/4.0;
         int winInc = (int)((maxWindow - minWindow) / maxWindowSearches); 
@@ -318,39 +298,21 @@ public class BOSSEnsemble implements Classifier, SaveCVAccuracy, HiveCoteModule 
         
         //keep track of current max window size accuracy, constantly check for correctthreshold to discard to save space
         double maxAcc = -1.0;
-        
         //the acc of the worst member to make it into the final ensemble as it stands
         double minMaxAcc = -1.0; 
         
         for (boolean normalise : normOptions) {
             for (int winSize = minWindow; winSize <= maxWindow; winSize += winInc) {          
-                BOSS boss = null;
-                
-                //for feature saving/loading, one set per windowsize (with wordLengths[0]) is saved
-                //since shortening words to form histograms of different lengths is fast enough
-                //and saving EVERY feature set would very quickly eat up a disk
-                if (loadFeatureSets) {
-                    try {
-                        boss = BOSS.loadFeatureSet(featureFileLoc, data.relationName(), fold, "BOSS", winSize, wordLengths[0], alphabetSize, normalise);
-                    } catch (Exception e){
-                        //dont already exist or not found, so make them as usual and serialise them after
-                        //todo print to a log file in case of genuine error
-                        boss = new BOSS(wordLengths[0], alphabetSize, winSize, normalise);  
-                        boss.buildClassifier(data); //initial setup for this windowsize, with max word length 
-                        BOSS.serialiseFeatureSet(boss, featureFileLoc, data.relationName(), fold);
-                    }
-                } else {
-                    boss = new BOSS(wordLengths[0], alphabetSize, winSize, normalise);  
-                    boss.buildClassifier(data); //initial setup for this windowsize, with max word length     
-                }
-                
-                BOSS bestClassifierForWinSize = null; 
+                BOSSSpatialPyramids boss = new BOSSSpatialPyramids(wordLengths[0], alphabetSize, winSize, normalise, levels[0]); //1 level, find best 'normal' boss classifier
+                boss.buildClassifier(data); //initial setup for this windowsize, with max word length     
+
+                BOSSSpatialPyramids bestClassifierForWinSize = null; 
                 double bestAccForWinSize = -1.0;
 
                 //find best word length for this window size
                 for (Integer wordLen : wordLengths) {            
-                    boss = boss.buildShortenedBags(wordLen); //in first iteration, same lengths (wordLengths[0]), will do nothing
-                    
+                    boss = boss.buildShortenedSPBags(wordLen); //in first iteration, same lengths (wordLengths[0]), will do nothing
+
                     int correct = 0; 
                     for (int i = 0; i < numSeries; ++i) {
                         double c = boss.classifyInstance(i); //classify series i, while ignoring its corresponding histogram i
@@ -364,9 +326,31 @@ public class BOSSEnsemble implements Classifier, SaveCVAccuracy, HiveCoteModule 
                         bestClassifierForWinSize = boss;
                     }
                 }
+                
+                //best 'normal' boss classifier found, now find the best number of levels
+                //effectively determining whether the feature this member/classifier specialises in is 
+                //local or global
+                int bestLevels = bestClassifierForWinSize.getLevels();
+                for (int l = 1; l < levels.length; ++l) { //skip first, already found acc for it before 
+                    bestClassifierForWinSize.changeNumLevels(levels[l]);
+                    
+                    int correct = 0; 
+                    for (int i = 0; i < numSeries; ++i) {
+                        double c = bestClassifierForWinSize.classifyInstance(i); //classify series i, while ignoring its corresponding histogram i
+                        if (c == data.get(i).classValue())
+                            ++correct;
+                    }
 
-                //if this window size's accuracy is not good enough to make it into the ensemble, dont bother storing at all
+                    double acc = (double)correct/(double)numSeries;     
+                    if (acc > bestAccForWinSize) { //only store if >, not >= (favours lower levels = less space)
+                        bestAccForWinSize = acc;
+                        bestLevels = levels[l];
+                    }
+                }
+
                 if (makesItIntoEnsemble(bestAccForWinSize, maxAcc, minMaxAcc, classifiers.size())) {
+                    bestClassifierForWinSize.changeNumLevels(bestLevels);
+                    
                     BOSSWindow bw = new BOSSWindow(bestClassifierForWinSize, bestAccForWinSize, data.relationName());
                     bw.classifier.clean();
                     
@@ -379,7 +363,7 @@ public class BOSSEnsemble implements Classifier, SaveCVAccuracy, HiveCoteModule 
                     
                     if (bestAccForWinSize > maxAcc) {
                         maxAcc = bestAccForWinSize;       
-                        //get rid of any extras that dont fall within the new max threshold
+                        //get rid of any extras that dont fall within the final max threshold
                         Iterator<BOSSWindow> it = classifiers.iterator();
                         while (it.hasNext()) {
                             BOSSWindow b = it.next();
@@ -405,19 +389,19 @@ public class BOSSEnsemble implements Classifier, SaveCVAccuracy, HiveCoteModule 
         }
         
         if (trainCV) {
+            int folds=setNumberOfFolds(data);
             OutFile of=new OutFile(trainCVPath);
-            of.writeLine(data.relationName()+",BOSSEnsemble,train");
+            of.writeLine(data.relationName()+",BOSSEnsembleSP_Redo,train");
            
             double[][] results = findEnsembleTrainAcc(data);
             of.writeLine(getParameters());
             of.writeLine(results[0][0]+"");
-            ensembleCvAcc = results[0][0];
             for(int i=1;i<results[0].length;i++)
                 of.writeLine(results[0][i]+","+results[1][i]);
             System.out.println("CV acc ="+results[0][0]);
         }
     }
-
+    
     //[0] = index, [1] = acc
     private double[] findMinEnsembleAcc() {
         double minAcc = Double.MIN_VALUE;
@@ -443,11 +427,10 @@ public class BOSSEnsemble implements Classifier, SaveCVAccuracy, HiveCoteModule 
         
         return false;
     }
-    
+
     private double[][] findEnsembleTrainAcc(Instances data) throws Exception {
         
         double[][] results = new double[2][data.numInstances() + 1];
-        this.ensembleCvPreds = new double[data.numInstances()];
         
         double correct = 0; 
         for (int i = 0; i < data.numInstances(); ++i) {
@@ -457,7 +440,6 @@ public class BOSSEnsemble implements Classifier, SaveCVAccuracy, HiveCoteModule 
             
             results[0][i+1] = data.get(i).classValue();
             results[1][i+1] = c;
-            this.ensembleCvPreds[i] = c;
         }
         
         results[0][0] = correct / data.numInstances();
@@ -466,35 +448,9 @@ public class BOSSEnsemble implements Classifier, SaveCVAccuracy, HiveCoteModule 
         return results;
     }
     
-    public double getEnsembleCvAcc(){
-        if(ensembleCvAcc>=0){
-            return this.ensembleCvAcc;
-        }
-        
-        try{
-            return this.findEnsembleTrainAcc(train)[0][0];
-        }catch(Exception e){
-            e.printStackTrace();
-        }
-        return -1;
-    }
-    
-    public double[] getEnsembleCvPreds(){
-        if(this.ensembleCvPreds==null){   
-            try{
-                this.findEnsembleTrainAcc(train);
-            }catch(Exception e){
-                e.printStackTrace();
-            }
-        }
-        
-        return this.ensembleCvPreds;
-    }
-    
-    
     /**
      * Classify the train instance at index 'test', whilst ignoring the corresponding bags 
-     * in each of the members of the ensemble, for use in CV of BOSSEnsemble
+     * in each of the members of the ensemble, for use in CV of BOSSEnsembleSP_Redo
      */
     public double classifyInstance(int test, int numclasses) throws Exception {
         double[] dist = distributionForInstance(test, numclasses);
@@ -548,15 +504,16 @@ public class BOSSEnsemble implements Classifier, SaveCVAccuracy, HiveCoteModule 
     @Override
     public double[] distributionForInstance(Instance instance) throws Exception {
         double[] classHist = new double[instance.numClasses()];
+        double sum = 0;
         
         //get votes from all windows 
-        double sum = 0;
         for (BOSSWindow classifier : classifiers) {
             if (serOption == SerialiseOptions.STORE_LOAD)
                 classifier.load();
             double classification = classifier.classifyInstance(instance);
             if (serOption == SerialiseOptions.STORE_LOAD)
                 classifier.clearClassifier();
+            
             classHist[(int)classification]++;
             sum++;
         }
@@ -573,31 +530,31 @@ public class BOSSEnsemble implements Classifier, SaveCVAccuracy, HiveCoteModule 
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
-    public static void main(String[] args) throws Exception{
+     public static void main(String[] args) throws Exception{
         //Minimum working example
         String dataset = "BeetleFly";
         Instances train = ClassifierTools.loadData("C:\\TSC Problems\\"+dataset+"\\"+dataset+"_TRAIN.arff");
         Instances test = ClassifierTools.loadData("C:\\TSC Problems\\"+dataset+"\\"+dataset+"_TEST.arff");
         
-        Classifier c = new BOSSEnsemble();
+        Classifier c = new BOSSEnsembleSP();
         c.buildClassifier(train);
         double accuracy = ClassifierTools.accuracy(test, c);
         
-        System.out.println("BOSSEnsemble accuracy on " + dataset + " fold 0 = " + accuracy);
+        System.out.println("BOSSEnsembleSP accuracy on " + dataset + " fold 0 = " + accuracy);
         
         //Other examples/tests
 //        detailedFold0Test(dataset);
-//        resampleTest(dataset, 5);
+//        resampleTest(dataset, 25);
     }
     
     public static void detailedFold0Test(String dset) {
-        System.out.println("BOSSEnsemble DetailedTest\n");
+        System.out.println("BOSSEnsembleSPDetailedTest\n");
         try {
             Instances train = ClassifierTools.loadData("C:\\TSC Problems\\"+dset+"\\"+dset+"_TRAIN.arff");
             Instances test = ClassifierTools.loadData("C:\\TSC Problems\\"+dset+"\\"+dset+"_TEST.arff");
             System.out.println(train.relationName());
             
-            BOSSEnsemble boss = new BOSSEnsemble();
+            BOSSEnsembleSP boss = new BOSSEnsembleSP();
             
             //TRAINING
             System.out.println("Training starting");
@@ -611,7 +568,7 @@ public class BOSSEnsemble implements Classifier, SaveCVAccuracy, HiveCoteModule 
             System.out.println("Param sets: ");
             int[][] params = boss.getParametersValues();
             for (int i = 0; i < params.length; ++i)
-                System.out.println(i + ": " + params[i][0] + " " + params[i][1] + " " + params[i][2] + " " + boss.classifiers.get(i).isNorm() + " " + boss.classifiers.get(i).accuracy);
+                System.out.println(i + ": " + params[i][0] + " " + params[i][1] + " " + params[i][2] + " " + boss.classifiers.get(i).isNorm() + " " + boss.classifiers.get(i).getLevels() + " " + boss.classifiers.get(i).accuracy);
             
             //TESTING
             System.out.println("\nTesting starting");
@@ -632,7 +589,7 @@ public class BOSSEnsemble implements Classifier, SaveCVAccuracy, HiveCoteModule 
         Instances train = ClassifierTools.loadData("C:\\TSC Problems\\"+dset+"\\"+dset+"_TRAIN.arff");
         Instances test = ClassifierTools.loadData("C:\\TSC Problems\\"+dset+"\\"+dset+"_TEST.arff");
          
-        Classifier c = new BOSSEnsemble();
+        Classifier c = new BOSSEnsembleSP();
          
         //c.setCVPath("C:\\tempproject\\BOSSEnsembleCVtest.csv");
          
@@ -655,6 +612,6 @@ public class BOSSEnsemble implements Classifier, SaveCVAccuracy, HiveCoteModule 
             mean += accs[i];
         mean/=resamples;
          
-        System.out.println("\n\nBOSSEnsemble mean acc over " + resamples + " resamples: " + mean);
+        System.out.println("\n\nBOSSEnsembleSP mean acc over " + resamples + " resamples: " + mean);
     }
 }
