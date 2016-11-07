@@ -25,9 +25,9 @@ import weka.core.SelectedTag;
 import weka.core.TechnicalInformation;
 
 /**
- * Bag of Temporal SIFT Words classifier to be used with known parameters, for boss with parameter search, use BoTSWEnsemble.
+ * Bag of Temporal SIFT Words classifier to be used with known parameters, for botsw with parameter search, use BoTSWEnsemble.
  * 
- * Will use BOSSDistance by default. If svm wanted, call setUseSVM(true). Precise SVM implementation/accuracy could not be recreated, likewise 
+ * Will use euclidean distance by default. If svm wanted, call setUseSVM(true). Precise SVM implementation/accuracy could not be recreated, likewise 
  * for kmeans, epsilon value ignored
  * 
  * Params: n_b, a, k, c_svm(if using svm)
@@ -605,7 +605,7 @@ public class BoTSW implements Classifier, Serializable, SaveCVAccuracy{
 
         //find dist FROM testBag TO all trainBags
         for (int i = 0; i < bags.length; ++i) {
-            double dist = BOSSdistance(testBag, bags[i], bestDist); 
+            double dist = distance(testBag, bags[i], bestDist); 
             
             if (dist < bestDist) {
                 bestDist = dist;
@@ -638,7 +638,7 @@ public class BoTSW implements Classifier, Serializable, SaveCVAccuracy{
             if (i == test) //skip 'this' one, leave-one-out
                 continue;
             
-            double dist = BOSSdistance(testBag, bags[i], bestDist); 
+            double dist = distance(testBag, bags[i], bestDist); 
             
             if (dist < bestDist) {
                 bestDist = dist;
@@ -649,7 +649,7 @@ public class BoTSW implements Classifier, Serializable, SaveCVAccuracy{
         return nn;
     }
     
-    public double BOSSdistance(BoTSW_Bag instA, BoTSW_Bag instB, double bestDist) {
+    public double distance(BoTSW_Bag instA, BoTSW_Bag instB, double bestDist) {
         double dist = 0.0;
         
         //find dist only from values in instA
