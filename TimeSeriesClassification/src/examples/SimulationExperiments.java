@@ -1,5 +1,11 @@
-/*
-Class to run one of various simulations.  
+/**
+ *
+ * @author ajb
+ * FINAL VERSION of simulator experiments for stand alone execution only
+ * Just the main experiments, copied here for clarity. For sensitivity analysis
+ * and cluster based versions, see the class 
+ * Please read the technical report 
+LINK HERE
 */
 package examples;
 
@@ -28,14 +34,8 @@ import weka.classifiers.trees.EnhancedRandomForest;
 import weka.core.Instances;
 import tsc_algorithms.*;
 import utilities.ClassifierTools;
-/**
- *
- * @author ajb
- * FINAL VERSION of simulator experiments for stand alone execution only
- * Just the main experiments, copied here for clarity. For sensitivity analysis
- * and cluster based versions, see the class 
- */
-public class SimulationExperimentsExampleCode {
+
+public class SimulationExperiments {
 //Global variables that relate to the data set. These are different for different
 //simulators, and are set to default values in setStandardGlobalParameters    
     static int []casesPerClass={50,50};

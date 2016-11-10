@@ -17,7 +17,7 @@ import statistics.simulators.SimulateDictionaryData;
 import statistics.simulators.SimulateIntervalData;
 import statistics.simulators.SimulateShapeletData;
 import statistics.simulators.SimulateWholeSeriesData;
-import statistics.simulators.SimulateWholeSeriesElasticData;
+import statistics.simulators.SimulateElasticData;
 import tsc_algorithms.*;
 import utilities.InstanceTools;
 import utilities.SaveCVAccuracy;
@@ -220,7 +220,7 @@ public class SimulationExperiments {
  //               data=SimulateWholeSeriesData.generateWholeSeriesData(seriesLength,casesPerClass);
 //                break;
            case "WholeSeriesElastic":
-                data=SimulateWholeSeriesElasticData.generateElasticData(seriesLength,casesPerClass);
+                data=SimulateElasticData.generateElasticData(seriesLength,casesPerClass);
                 break;
         default:
                 throw new RuntimeException(" UNKNOWN SIMULATOR "+str);
@@ -796,9 +796,11 @@ public class SimulationExperiments {
     }
 
     public static void main(String[] args){
-   //      generateAllProblemFiles();
+        
+InFile inf=new InFile("C:\\Users\\ajb\\Dropbox\\Results\\SimulationExperiments\\BasicExperiments\\Interval//FLATCOTE.csv");
+       generateAllProblemFiles();
  //       createBaseExperimentScripts(false);
-//       createBaseExperimentScripts(true);
+ //      createBaseExperimentScripts(true);
 //        deleteThisMethod();
 //        collateLengthResults();
 //        collateErrorExperiments();
@@ -814,7 +816,7 @@ public class SimulationExperiments {
  //     createBaseExperimentScripts();
 //      collateSomeStuff();
 //generateProblemFile();
- collateAllResults();
+// collateAllResults();
   //     collateErrorResults();     
   System.exit(0);
         if(args.length>0){

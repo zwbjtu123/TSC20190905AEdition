@@ -1,7 +1,14 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+/**
+ * BoTSW classifier with parameter search and ensembling, if parameters are known, 
+ * use 'BoTSW.java' classifier and directly provide them.
+ * 
+ * Will use BOSSDistance by default. If svm wanted, call setUseSVM(true). 
+ * Precise SVM implementation/accuracy could not be recreated, likewise 
+ * for kmeans, epsilon value ignored
+ *  
+ * @author James Large
+ * 
+ * Implementation based on the algorithm described in getTechnicalInformation()
  */
 package tsc_algorithms.boss;
 
@@ -29,17 +36,7 @@ import weka.core.Instance;
 import weka.core.Instances;
 import weka.core.TechnicalInformation;
 
-/**
- * BoTSW classifier with parameter search and ensembling, if parameters are known, 
- * use 'BoTSW.java' classifier and directly provide them.
- * 
- * Will use BOSSDistance by default. If svm wanted, call setUseSVM(true). Precise SVM implementation/accuracy could not be recreated, likewise 
- * for kmeans, epsilon value ignored
- *  
- * @author James Large
- * 
- * Implementation based on the algorithm described in getTechnicalInformation()
- */
+
 public class BoTSWEnsemble implements Classifier, SaveCVAccuracy /*, HiveCoteModule*/ {
     
     public TechnicalInformation getTechnicalInformation() {

@@ -38,7 +38,7 @@ import utilities.SaveCVAccuracy;
 VERSION 1: 
     for each tree
     pick a random interval:
-    do a PS on the interval: TO DO: SELECT ATTRIBUTES AND REPEAT
+    do a PS on the interval: 
     Build tree on the interval
 
 
@@ -80,7 +80,7 @@ public class RISE extends AbstractClassifier implements SaveCVAccuracy, SubSampl
     }
     
     public enum Filter{PS,ACF,FFT,PS_ACF};
-    Filter f=Filter.PS;
+    Filter f=Filter.PS_ACF;
     public void setTransformType(Filter fil){
         f=fil;
     }
@@ -147,7 +147,7 @@ public class RISE extends AbstractClassifier implements SaveCVAccuracy, SubSampl
 //            int folds=setNumberOfFolds(data);
             int folds=10;
             OutFile of=new OutFile(trainCVPath);
-           of.writeLine(data.relationName()+",RIF,train");
+           of.writeLine(data.relationName()+",RISE,train");
     //Estimate train accuracy HERE. Use another classifier to make sure. 
             RISE tsf=new RISE();
             tsf.setTransformType(f);

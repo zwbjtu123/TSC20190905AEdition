@@ -1,8 +1,18 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+/**
+ * Bag of Temporal SIFT Words classifier to be used with known parameters, for 
+ * botsw with parameter search, use BoTSWEnsemble.
+ * 
+ * Will use euclidean distance by default. If svm wanted, call setUseSVM(true). 
+ * Precise SVM implementation/accuracy could not be recreated, likewise 
+ * for kmeans, epsilon value ignored
+ * 
+ * Params: n_b, a, k, c_svm(if using svm)
+ * 
+ * @author James Large
+ * 
+ * Implementation based on the algorithm described in getTechnicalInformation()
  */
+
 package tsc_algorithms.boss;
 
 import java.io.Serializable;
@@ -24,18 +34,6 @@ import weka.core.Instances;
 import weka.core.SelectedTag;
 import weka.core.TechnicalInformation;
 
-/**
- * Bag of Temporal SIFT Words classifier to be used with known parameters, for botsw with parameter search, use BoTSWEnsemble.
- * 
- * Will use euclidean distance by default. If svm wanted, call setUseSVM(true). Precise SVM implementation/accuracy could not be recreated, likewise 
- * for kmeans, epsilon value ignored
- * 
- * Params: n_b, a, k, c_svm(if using svm)
- * 
- * @author James Large
- * 
- * Implementation based on the algorithm described in getTechnicalInformation()
- */
 public class BoTSW implements Classifier, Serializable, SaveCVAccuracy{
 
     public TechnicalInformation getTechnicalInformation() {

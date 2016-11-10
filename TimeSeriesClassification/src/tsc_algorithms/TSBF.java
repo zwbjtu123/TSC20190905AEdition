@@ -56,7 +56,7 @@ import fileIO.OutFile;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Random;
-import tsc_algorithms.TimeSeriesForest.FeatureSet;
+import tsc_algorithms.TSF.FeatureSet;
 import utilities.ClassifierTools;
 import utilities.InstanceTools;
 import weka.classifiers.AbstractClassifier;

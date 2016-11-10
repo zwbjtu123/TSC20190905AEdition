@@ -24,7 +24,8 @@ import weka.classifiers.Classifier;
 import weka.core.TechnicalInformation;
 
 /**
- * BOSSSpatialPyramids classifier with parameter search and ensembling, if parameters are known, use 'BOSSSpatialPyramids' classifier and directly provide them.
+ * BOSSSpatialPyramids classifier with parameter search and ensembling, 
+ * if parameters are known, use 'BOSSSpatialPyramids' classifier and directly provide them.
  * 
  * Intended use is with the default constructor, however can force the normalisation 
  * parameter to true/false by passing a boolean, e.g c = new BOSSEnsemble(true)
