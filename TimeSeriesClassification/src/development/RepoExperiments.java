@@ -12,10 +12,12 @@ import fileIO.InFile;
 import fileIO.OutFile;
 import java.io.File;
 import static papers.Bagnall16bakeoff.singleClassifierAndFold;
+import utilities.ClassifierTools;
+import weka.core.Instances;
 
 public class RepoExperiments {
 
-    static String[] classifiers={"HESCA","RISE"};
+    public static String[] classifiers={"HESCA","RISE","RIF_PS_ACF"};
 
     
     public static void createBaseExperimentScripts(boolean grace){
@@ -66,7 +68,6 @@ public class RepoExperiments {
         }
     } 
     public static boolean foldComplete(String path, int fold, int numTrain,int numTest){
-       boolean complete=true;
 //Check both train and test present
       File f=new File(path+"//testFold"+fold+".csv");
       File f2=new File(path+"//trainFold"+fold+".csv");
@@ -78,7 +79,7 @@ public class RepoExperiments {
 //Check number of lines
           int c1=inf1.countLines();
           int c2=inf2.countLines();
-          if(c1!=(numTest+3) || c2!=(numTrain+3))
+          if(c1<(3) || c2<(3))
               return false;
       }
       return true;
@@ -93,12 +94,23 @@ public class RepoExperiments {
 //Write collated results for this classifier to a single file                
                 OutFile clsResults=new OutFile(basePath+cls+"//"+cls+".csv");
                 OutFile missing=null;
+                int missingCount=0;
                 for(int i=0;i<DataSets.fileNames.length;i++){
+                    int testSize,trainSize;
+                    Instances test,train;
+                    String name=DataSets.fileNames[i];
+                    test=ClassifierTools.loadData(DataSets.problemPath+name+"//"+name+"_TEST");
+                    train=ClassifierTools.loadData(DataSets.problemPath+name+"//"+name+"_TRAIN");
+                    testSize=test.numInstances();
+                    trainSize=train.numInstances();
                     clsResults.writeString(DataSets.fileNames[i]+",");
                     String path=basePath+cls+"//Predictions//"+DataSets.fileNames[i];
+                    if(missing!=null && missingCount>0)
+                        missing.writeString("\n");
+                    missingCount=0;
                     for(int j=0;j<folds;j++){
     //Check fold exists
-                        if(foldComplete(path,j,1,1)){ //This could fail if file partial//
+                        if(foldComplete(path,j,trainSize,testSize)){ //This could fail if file only has partial probabilities on the line
     //Read in accuracy and store                    
                             InFile inf=new InFile(path+"//testFold"+j+".csv");
                             inf.readLine();
@@ -108,7 +120,10 @@ public class RepoExperiments {
                         else{
                             if(missing==null)
                                 missing=new OutFile(basePath+cls+"//"+cls+"MISSING.csv");
-                            missing.writeLine("fold,"+j);
+                            if(missingCount==0)
+                                missing.writeString(name);
+                            missingCount++;
+                           missing.writeString(","+j);
                         }
                     }
                     clsResults.writeString("\n");
@@ -160,8 +175,8 @@ public class RepoExperiments {
     }
     public static void main(String[] args){
         collateResults(100);
-        createBaseExperimentScripts(true);
-       createBaseExperimentScripts(false);
+//        createBaseExperimentScripts(true);
+//       createBaseExperimentScripts(false);
         System.exit(0);
         if(args.length>0){//Cluster run
             DataSets.problemPath=DataSets.clusterPath+"TSC Problems/";

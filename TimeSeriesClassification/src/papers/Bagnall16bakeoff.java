@@ -157,7 +157,7 @@ public class Bagnall16bakeoff {
                 c=new LPS();
                 break; 
            default:
-                System.out.println("UNKNOWN CLASSIFIER");
+                System.out.println("UNKNOWN CLASSIFIER "+classifier);
                 System.exit(0);
 //                throw new Exception("Unknown classifier "+classifier);
         }
@@ -251,6 +251,7 @@ public class Bagnall16bakeoff {
             for(int j=0;j<data[1].numInstances();j++)
             {
                 act=(int)data[1].instance(j).classValue();
+                data[1].instance(j).setClassMissing();//Just in case ....
                 double[] probs=c.distributionForInstance(data[1].instance(j));
                 pred=0;
                 for(int i=1;i<probs.length;i++){
