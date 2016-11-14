@@ -39,7 +39,7 @@ public class InstanceTools {
     }
     
     /**
-     * NOTE: Try to avoid using this and see the ClassDistribution wrapper object!
+     * By Aaron:
      * Public method to calculate the class distributions of a dataset. Main
      * purpose is for computing shapelet qualities. 
      * 
@@ -66,7 +66,20 @@ public class InstanceTools {
         
         return classDistribution;
     }
-    
+    /**
+     * by Tony
+     * Public method to calculate the class distributions of a dataset.
+     */
+    public static double[] findClassDistributions(Instances data)
+    {
+        double[] dist=new double[data.numClasses()];
+        for(Instance d:data)
+            dist[(int)d.classValue()]++;
+        for(int i=0;i<dist.length;i++)
+            dist[i]/=data.numInstances();
+        return dist;
+    }
+     
     public static Map<Double, Instances> createClassInstancesMap(Instances data)
     {
         Map<Double, Instances> instancesMap = new TreeMap<>();
@@ -137,10 +150,10 @@ public class InstanceTools {
  * 
  * @param all full data set
  * @param seed random seed so that the split can be exactly duplicated
- * @param prop proportion of data for training
+ * @param propInTrain proportion of data for training
  * @return 
  */
-    public static Instances[] resampleInstances(Instances all, int seed, double prop){
+    public static Instances[] resampleInstances(Instances all, int seed, double propInTrain){
         ClassDistribution classDist = new TreeSetClassDistribution(all);
         Map<Double, Instances> classBins = createClassInstancesMap(all);
        
@@ -154,7 +167,7 @@ public class InstanceTools {
             double classVal = keys.next();
             //Get the number of this class to put in train and test
             int classCount = classDist.get(classVal);
-            int occurences=(int)(classCount*prop);
+            int occurences=(int)(classCount*propInTrain);
             Instances bin = classBins.get(classVal);
             bin.randomize(r); //randomise the instances in this class.
 

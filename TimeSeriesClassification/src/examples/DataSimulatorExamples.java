@@ -14,7 +14,7 @@ import weka.core.Instances;
  *
  * @author ajb
  */
-public class DataSimulatorExamples {
+public class DataSimulatorExamples extends DataSimulator{
     
     
     public static void main(String[] args){

@@ -1,4 +1,4 @@
-package tsc_algorithms;
+package tsc_algorithms.depreciated;
 /**
  * Basic implementation of Deng's Time Series Forest
  * without the discretisation or the resulting tie deciding entropy measure

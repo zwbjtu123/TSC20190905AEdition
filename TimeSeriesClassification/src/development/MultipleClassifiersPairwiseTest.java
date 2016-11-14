@@ -1,4 +1,4 @@
-package new_COTE_experiments;
+package development;
 
 import fileIO.InFile;
 import fileIO.OutFile;
@@ -125,7 +125,7 @@ public class MultipleClassifiersPairwiseTest {
 //Bonferonni adjusted        
 //        alpha/=nosClassifiers*(nosClassifiers-1)/2;
 //Control adjusted 
-//        alpha/=nosClassifiers-1;
+        alpha/=nosClassifiers-1;
         findDifferences(alpha,false);
         //Sort classifiers by rank: assume already done
         OutFile cliques=new OutFile(output);
@@ -138,12 +138,13 @@ public class MultipleClassifiersPairwiseTest {
     }
     public static void main(String[] args) {
 //ASSUME INPUT IN RANK ORDER, WITH TOP RANKED CLASSIFIER FIRST, WORST LAST        
-        String input="C:\\Users\\ajb\\Dropbox\\Results\\SimulationExperiments\\BasicExperiments\\";
-        String output="C:\\Users\\ajb\\Dropbox\\Results\\SimulationExperiments\\BasicExperiments\\";
-        String[] allSimulators={"WholeSeriesElastic","Interval","Shapelet","Dictionary","ARMA"};
+//        String input="C:\\Users\\ajb\\Dropbox\\Results\\SimulationExperiments\\BasicExperiments\\";
+//        String output="C:\\Users\\ajb\\Dropbox\\Results\\SimulationExperiments\\BasicExperiments\\";
+//        String[] allSimulators={"WholeSeriesElastic","Interval","Shapelet","Dictionary","ARMA","All"};
 //        for(String s:allSimulators)
-        String s= "testAll";//allSimulators[3];
-            runTests(input+s+".csv",output+s+"Tests.csv");
+        String input="C:\\Research\\Results\\";
+        String s= "UCIHesca";
+            runTests(input+s+".csv",input+s+"Tests.csv");
     }
     
 }

@@ -87,8 +87,8 @@ public class DataSets {
 			"MiddlePhalanxOutlineAgeGroup", // 400,154,80,3
 			"MiddlePhalanxTW", // 399,154,80,6
 			"MoteStrain", // 20,1252,84,2
-			"NonInvasiveFatalECGThorax1", // 1800,1965,750,42
-			"NonInvasiveFatalECGThorax2", // 1800,1965,750,42
+			"NonInvasiveFetalECGThorax1", // 1800,1965,750,42
+			"NonInvasiveFetalECGThorax2", // 1800,1965,750,42
 			"OliveOil", // 30,30,570,4
 			"OSULeaf", // 200,242,427,6
 			"PhalangesOutlinesCorrect", // 1800,858,80,2
@@ -218,8 +218,8 @@ public class DataSets {
 			"FordA", // 3601,1320,500,2
 			"FordB", // 3636,810,500,2
                         "HandOutlines", // 1000,370,2709,2
-			"NonInvasiveFatalECGThorax1", // 1800,1965,750,42
-			"NonInvasiveFatalECGThorax2", // 1800,1965,750,42
+			"NonInvasiveFetalECGThorax1", // 1800,1965,750,42
+			"NonInvasiveFetalECGThorax2", // 1800,1965,750,42
 			"StarlightCurves", // 1000,8236,1024,3
 			"UWaveGestureLibraryAll", // 896,3582,945,8
       }
@@ -256,8 +256,8 @@ public class DataSets {
 			"Mallat", // 55,2345,1024,8
                         "MedicalImages", // 381,760,99,10
 			"MoteStrain", // 20,1252,84,2
-			"NonInvasiveFatalECGThorax1", // 1800,1965,750,42
-			"NonInvasiveFatalECGThorax2", // 1800,1965,750,42
+			"NonInvasiveFetalECGThorax1", // 1800,1965,750,42
+			"NonInvasiveFetalECGThorax2", // 1800,1965,750,42
 			"OliveOil", // 30,30,570,4
 			"OSULeaf", // 200,242,427,6
 			"Plane", // 105,105,144,7
@@ -497,6 +497,8 @@ All included except Cricket. There are three criket problems and they are not
                 //</editor-fold>
 
 
+static int[] testSizes={391,175,30,20,20,60,900,3840,1380,28,250,390,390,390,306,276,139,139,139,100,4500,861,7711,1690,88,2050,455,175,1320,810,150,105,370,308,64,550,1980,1029,375,61,73,2345,60,760,291,154,154,1252,1965,1965,30,242,858,1896,105,291,205,205,375,375,180,600,375,601,953,8236,370,625,995,300,228,130,100,1139,4000,3582,3582,3582,3582,6164,54,638,77,77,3000};                
+                
 //UCI Classification problems: NOTE THESE ARE -train NOT _TRAIN
 //<editor-fold defaultstate="collapsed" desc="UCI Classification problems">                 
   public static String[] uciFileNames={             
@@ -592,8 +594,8 @@ tiianic
         "MiddlePhalanxOutlineAgeGroup", // 400,154,80,3
         "MiddlePhalanxTW", // 399,154,80,6
         "MoteStrain", // 20,1252,84,2
-        "NonInvasiveFatalECG_Thorax1", // 1800,1965,750,42
-        "NonInvasiveFatalECG_Thorax2", // 1800,1965,750,42
+        "NonInvasiveFetalECG_Thorax1", // 1800,1965,750,42
+        "NonInvasiveFetalECG_Thorax2", // 1800,1965,750,42
         "OliveOil", // 30,30,570,4
         "OSULeaf", // 200,242,427,6
         "PhalangesOutlinesCorrect", // 1800,858,80,2
