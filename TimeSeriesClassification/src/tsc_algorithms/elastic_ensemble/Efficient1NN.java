@@ -6,6 +6,7 @@ import java.text.DecimalFormat;
 import java.util.Scanner;
 import utilities.ClassifierTools;
 import utilities.InstanceTools;
+import weka.classifiers.AbstractClassifier;
 import weka.classifiers.Classifier;
 import weka.core.DenseInstance;
 import weka.core.Instance;
@@ -24,7 +25,7 @@ import weka.core.Instances;
  * 
  * @author Jason Lines (j.lines@uea.ac.uk)
  */
-public abstract class Efficient1NN implements Classifier{
+public abstract class Efficient1NN extends AbstractClassifier{
     
     protected Instances train;
     protected Instances[] trainGroup;

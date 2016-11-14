@@ -207,10 +207,10 @@ Instances all=ClassifierTools.loadData(DataSets.problemPath+"/EpilepsyX/Epilepsy
     
     public static void main(String[] args){
         
-       collateResults();
+//       collateResults();
 //        createEpilepsyScripts(true);
 //       createEpilepsyScripts(false);
-        System.exit(0);
+//        System.exit(0);
         if(args.length>0){//Cluster run
             DataSets.problemPath=DataSets.clusterPath+"TSC Problems/";
             DataSets.resultsPath=DataSets.clusterPath+"Results/EpilepsyXResults/";

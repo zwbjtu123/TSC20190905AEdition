@@ -13,7 +13,7 @@ SCRIPTS
 5. Copy all over to this directory on the cluster
 6. Copy the file <problemName>.txt into your cluster root directory
 RUNNING A PROBLEM LOCALLY
-DOES YOUR PROBLEM REQUIRE BESPOKE TRAIN/TEST SPLITS?
+DOES YOUR PROBLEM REQUIRE BESPOKE TRAIN/TEST SPLITS? If unclear, ask Tony 
 No: Go to 9
 Yes: Go to 7
 7. Define the array sampleID with the splitting criteria. Look at EpilepsyX or talk to Tony if you are unsure
@@ -188,17 +188,11 @@ Only used if sampleByAttribute set to true
         int fold=Integer.parseInt(args[1])-1;
         Classifier c=SimulationExperiments.createClassifier(classifier);
         Instances[] split=sample(fold); 
-        File f=new File(DataSets.resultsPath+classifier);
-        if(!f.exists())
-            f.mkdir();
         String predictions=DataSets.resultsPath+classifier+"/Predictions";
-        f=new File(predictions);
-        if(!f.exists())
-            f.mkdir();
         predictions=predictions+"/"+problemName;
-        f=new File(predictions);
+        File f=new File(predictions);
         if(!f.exists())
-            f.mkdir();
+            f.mkdirs();
 //Check whether fold already exists, if so, dont do it, just quit
         f=new File(predictions+"/testFold"+fold+".csv");
         if(!f.exists() || f.length()==0){
@@ -271,13 +265,10 @@ Only used if sampleByAttribute set to true
 //Set up the dropboxPath where you want them        
         int folds=100;
         String path=DataSets.dropboxPath+"\\Cluster Scripts\\";
+        path+=problemName+"Scripts\\";
         File f=new File(path);
         if(!f.isDirectory())
-            f.mkdir();
-        path+=problemName+"Scripts\\";
-       f=new File(path);
-        if(!f.isDirectory())
-            f.mkdir();
+            f.mkdirs();
         OutFile of2;
         if(grace)
             of2=new OutFile(path+problemName+"Grace.txt");
@@ -325,7 +316,7 @@ Only used if sampleByAttribute set to true
  */        
 //1. Must set this, and it must equal the arff name. ALL results will be 
 //put in places based on this name        
-        setProblemName("EthanolLevel");
+        setProblemName("ItalyPowerDemand");
 //If this is set to true, you must list the attribute names in the array
 //sampleID. If you do not call this method, it will simply randomly sample train
 //and test        
