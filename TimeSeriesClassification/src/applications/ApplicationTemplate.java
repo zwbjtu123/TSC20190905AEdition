@@ -1,6 +1,44 @@
 /*
-Code to run EthanolLevel data using a leave one bottle out sampling
- */
+Template code for a single problem. Steps:
+
+SET UP
+1. Copy and rename this class <problemName>.java using Refactor -> Copy
+2. In main, call setProblemName(<problemName>) 
+3. In main, change these variables
+       DataSets.dropboxPath="C:/Users/ajb/Dropbox/"; //Somewhere to put files locally. Doesnt have to be dropbox
+        DataSets.clusterPath="/gpfs/home/ajb/";   //The cluster path, based on your username
+SCRIPTS
+3. Run this class to run the method createScripts. Verify the scripts are ok by reading them. 
+4. On the cluster, create a Directory Scripts/. Inside this, create a Directory <problemName>Scripts/
+5. Copy all over to this directory on the cluster
+6. Copy the file <problemName>.txt into your cluster root directory
+RUNNING A PROBLEM LOCALLY
+DOES YOUR PROBLEM REQUIRE BESPOKE TRAIN/TEST SPLITS?
+No: Go to 9
+Yes: Go to 7
+7. Define the array sampleID with the splitting criteria. Look at EpilepsyX or talk to Tony if you are unsure
+8. In main, uncomment the line setSampleByAttribute(true); 
+9. In main, comment out the method createScripts and the System.exit(0). REMEMBER TO DO THIS!
+10. Run this class. It should create a file system with a single fold of RotF. Debug to your satisfaction
+RUNNING A PROBLEM ON THE CLUSTER
+11. Clean and build your project
+12. Go to the dist folder in your project and copy the file TimeSeriesClassification.jar and rename <problemName>.jar
+13. Copy problemName.jar into your root cluster directory
+14. Open a Putty window, and try running a classifier 
+bsub < Scripts/<problemName>Scripts/RotF.bsub
+15. If you want to queue all classifiers, enter
+sh <problemName>.txt
+COLLATING RESULTS
+16. Copy the whole results directory into 
+DataSets.dropboxPath+"Results/<problemName>Results/
+17. Uncomment out 
+    collateResults();       
+    System.exit(0);
+18. This will create a file collatedResults.csv. Show this to Tony! 
+
+repeat ad nauseam. 
+
+*/
 package applications;
 
 import development.DataSets;
@@ -291,7 +329,7 @@ Only used if sampleByAttribute set to true
 //If this is set to true, you must list the attribute names in the array
 //sampleID. If you do not call this method, it will simply randomly sample train
 //and test        
-        setSampleByAttribute(true);  
+ //       setSampleByAttribute(true);  
 //Set up file locations. 
         DataSets.dropboxPath="C:/Users/ajb/Dropbox/"; //Somewhere to put files locally. Doesnt have to be dropbox
         DataSets.clusterPath="/gpfs/home/ajb/";   //The cluster path, based on your username
@@ -308,7 +346,7 @@ Only used if sampleByAttribute set to true
        
 // Once you have results, copy them into DataSets.resultsPath+problemName+"Results/"
 // then call this method
-        collateResults();
+//        collateResults();
         
         System.exit(0);
         
