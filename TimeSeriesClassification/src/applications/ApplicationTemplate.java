@@ -29,7 +29,9 @@ MUST be in the location
 DataSets.problemPath+"/"+problemName+"/"+problemName.arff    
     */
     public static String problemName="EthanolLevel";
-    
+    public static void setProblemName(String s){
+        problemName=s;
+    }
     
 /**Set to true if the fold sampling method is set by a string attribute 
 If it is true, the String attribute *must* be the first attribute, and 
@@ -42,6 +44,9 @@ The number of folds equals sampleID.length
 /** If you do not sample by a string attribute, you need to set  the proportion 
  * in the train fold
  */
+   public static void setSampleByAttribute(boolean b){
+       sampleByAttribute=b;
+   }
     static double proportionInTrain=0.3;
 /**
 If you are performing a specific sampling, sampleID strings dictate the folds
@@ -115,7 +120,7 @@ Only used if sampleByAttribute set to true
     }
     
     public static void collateResults(){
-        String resultsPath="C:/Research/Results/"+problemName+"Results/";
+        String resultsPath=DataSets.resultsPath+problemName+"Results/";
         OutFile out=new OutFile(resultsPath+"collatedResults.csv");
         for(String c:classifiers)
             out.writeString(","+c);
@@ -222,19 +227,24 @@ Only used if sampleByAttribute set to true
         }
          return acc;
     }    
-    public static void createEthanolScripts(boolean grace){
+    public static void createScripts(boolean grace, int mem){
 //Generates cluster scripts for all combos of classifier and data set
-//Generates txt files to run jobs for a single classifier        
-        String path="C:\\Users\\ajb\\Dropbox\\Code\\Cluster Scripts\\"+problemName+"Scripts\\";
+//Generates txt files to run jobs for a single classifier  
+//Set up the dropboxPath where you want them        
+        int folds=100;
+        String path=DataSets.dropboxPath+"\\Cluster Scripts\\";
         File f=new File(path);
         if(!f.isDirectory())
             f.mkdir();
-        int mem=4000;
-            OutFile of2;
-            if(grace)
-                of2=new OutFile(path+problemName+"Grace.txt");
-            else
-                of2=new OutFile(path+problemName+".txt");
+        path+=problemName+"Scripts\\";
+       f=new File(path);
+        if(!f.isDirectory())
+            f.mkdir();
+        OutFile of2;
+        if(grace)
+            of2=new OutFile(path+problemName+"Grace.txt");
+        else
+            of2=new OutFile(path+problemName+".txt");
         for(String s:classifiers){
             OutFile of;
             if(grace)
@@ -246,7 +256,10 @@ Only used if sampleByAttribute set to true
                 of.writeLine("#BSUB -q short");
             else
                 of.writeLine("#BSUB -q long-eth");
-            of.writeLine("#BSUB -J "+s+"[1-"+sampleID.length+"]");
+            if(sampleByAttribute)
+                of.writeLine("#BSUB -J "+s+"[1-"+sampleID.length+"]");
+            else
+                of.writeLine("#BSUB -J "+s+"[1-"+folds+"]");
             of.writeLine("#BSUB -oo output/"+problemName+s+".out");
             of.writeLine("#BSUB -eo error/"+problemName+s+".err");
             if(grace){
@@ -255,8 +268,8 @@ Only used if sampleByAttribute set to true
                 of.writeLine(" module add java/jdk/1.8.0_31");
             }
             else{
-                of.writeLine("#BSUB -R \"rusage[mem="+(4000+mem)+"]\"");
-                of.writeLine("#BSUB -M "+(4000+mem));
+                of.writeLine("#BSUB -R \"rusage[mem="+(mem)+"]\"");
+                of.writeLine("#BSUB -M "+(mem));
                 of.writeLine("module add java/jdk1.8.0_51");
             }
             of.writeLine("java -jar "+problemName+".jar "+s+"  $LSB_JOBINDEX");                
@@ -269,11 +282,36 @@ Only used if sampleByAttribute set to true
   
     
     public static void main(String[] args){
-        
+/**
+ * Usage
+ */        
+//1. Must set this, and it must equal the arff name. ALL results will be 
+//put in places based on this name        
+        setProblemName("EthanolLevel");
+//If this is set to true, you must list the attribute names in the array
+//sampleID. If you do not call this method, it will simply randomly sample train
+//and test        
+        setSampleByAttribute(true);  
+//Set up file locations. 
+        DataSets.dropboxPath="C:/Users/ajb/Dropbox/"; //Somewhere to put files locally. Doesnt have to be dropbox
+        DataSets.clusterPath="/gpfs/home/ajb/";   //The cluster path, based on your username
+// Create all the cluster scripts locally in a folder in DataSets.dropboxPath  
+//It is up to you to then copy them over        
+//True if using Grace, false if using HPC, second argument is amount of memory
+//will default to 100 folds unless setSampleByAttribute set to true        
+//        createScripts(true,4000);
+       createScripts(false,6000);
+//This creates a load of scripts you need to copy over. You can run individual classifiers with
+// bsub < <ClusterLocation>/RotF.bsub
+//If you copy the file  problemName.txt into your root, you can run all classifiers using
+// sh < problemName.txt       
+       
+// Once you have results, copy them into DataSets.resultsPath+problemName+"Results/"
+// then call this method
         collateResults();
-//        createEthanolScripts(true);
-//       createEthanolScripts(false);
+        
         System.exit(0);
+        
         if(args.length>0){//Cluster run
             DataSets.problemPath=DataSets.clusterPath+"TSC Problems/";
             DataSets.resultsPath=DataSets.clusterPath+"Results/"+problemName+"Results/";
@@ -282,7 +320,7 @@ Only used if sampleByAttribute set to true
                 f.mkdir();
             singleClassifierAndFold(args);
         }
-        else{
+        else{ //Local run, do this first to debug
             DataSets.problemPath=DataSets.dropboxPath+"TSC Problems/";
             DataSets.resultsPath=DataSets.dropboxPath+"Results/"+problemName+"Results/";
             File f=new File(DataSets.resultsPath);
