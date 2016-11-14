@@ -114,7 +114,7 @@ public class SimulationExperimentsExampleCode {
                 c=new BagOfPatterns();
                 break;
             case "BOSS":
-                c=new BOSSEnsemble();
+                c=new BOSS();
                 break;
             case "COTE":
                 c=new COTE();
@@ -346,7 +346,7 @@ public class SimulationExperimentsExampleCode {
                         c=new BagOfPatterns();
                         break;
                     case "BOSS":
-                        c=new BOSSEnsemble();
+                        c=new BOSS();
                         break;
                     case "COTE":
                         c=new COTE();

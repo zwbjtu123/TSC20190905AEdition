@@ -64,7 +64,7 @@ public class HiveCote extends AbstractClassifier{
         RISE rise = new RISE();
         rise.setTransformType(RISE.Filter.PS_ACF);
         classifiers.add(rise);
-        classifiers.add(new BOSSEnsemble());
+        classifiers.add(new BOSS());
         classifiers.add(new TSF());
         
         names.add("EE");
