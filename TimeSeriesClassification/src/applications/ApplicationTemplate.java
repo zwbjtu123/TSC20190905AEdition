@@ -286,9 +286,9 @@ Only used if sampleByAttribute set to true
             else
                 of.writeLine("#BSUB -q long-eth");
             if(sampleByAttribute)
-                of.writeLine("#BSUB -J "+s+"[1-"+sampleID.length+"]");
+                of.writeLine("#BSUB -J "+problemName+s+"[1-"+sampleID.length+"]");
             else
-                of.writeLine("#BSUB -J "+s+"[1-"+folds+"]");
+                of.writeLine("#BSUB -J "+problemName+s+"[1-"+folds+"]");
             of.writeLine("#BSUB -oo output/"+problemName+s+".out");
             of.writeLine("#BSUB -eo error/"+problemName+s+".err");
             if(grace){
