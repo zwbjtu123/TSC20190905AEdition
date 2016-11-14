@@ -148,8 +148,8 @@ public class ClassificationExamples {
                 c=new BagOfPatterns();
                 break;
              case "BOSS": case "BOSSEnsemble": 
-                c=new BOSSEnsemble();
-                break;
+                c=new BOSS();
+                break; 
              case "SAXVSM": case "SAX": 
                 c=new SAXVSM();
                 break;

@@ -148,7 +148,7 @@ public class Bagnall16bakeoff {
                 c=new BagOfPatterns();
                 break;
              case "BOSS": case "BOSSEnsemble": 
-                c=new BOSSEnsemble();
+                c=new BOSS();
                 break;
              case "SAXVSM": case "SAX": 
                 c=new SAXVSM();
