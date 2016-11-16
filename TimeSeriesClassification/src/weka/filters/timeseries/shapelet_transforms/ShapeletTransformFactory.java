@@ -175,6 +175,7 @@ public class ShapeletTransformFactory
         transform.setNumberOfShapelets(numInstances);
         transform.useCandidatePruning();
         transform.turnOffLog();
+        transform.supressOutput();
         
         return transform;
     }
@@ -206,6 +207,7 @@ public class ShapeletTransformFactory
         
         if(st1 == null)
             st1 = new ShapeletTransform();
+        
         
         st1.supressOutput();
         

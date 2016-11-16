@@ -14,6 +14,7 @@ import weka.classifiers.AbstractClassifier;
 import weka.classifiers.meta.timeseriesensembles.depreciated.HESCA_05_10_16;
 import weka.core.Instance;
 import weka.core.Instances;
+import weka.core.shapelet.Shapelet;
 import weka.filters.timeseries.shapelet_transforms.ShapeletTransform;
 import weka.filters.timeseries.shapelet_transforms.ShapeletTransformFactory;
 import static weka.filters.timeseries.shapelet_transforms.ShapeletTransformFactory.nanoToOp;
@@ -32,6 +33,7 @@ public class RandomST_Ensemble  extends AbstractClassifier implements SaveableEn
     //Minimum number of instances per class in the train set
     public static final int minimumRepresentation = 25;
     
+    private boolean preferShortShapelets = false;
     private String shapeletOutputPath;
     
     private HESCA_05_10_16 hesca;
@@ -155,6 +157,10 @@ public class RandomST_Ensemble  extends AbstractClassifier implements SaveableEn
     public void setShapeletOutputFilePath(String path){
         shapeletOutputPath = path;
     }
+    
+    public void preferShortShapelets(){
+        preferShortShapelets = true;
+    }
 
     public Instances createTransformData(Instances train, long time){
         int n = train.numInstances();
@@ -165,9 +171,11 @@ public class RandomST_Ensemble  extends AbstractClassifier implements SaveableEn
         if(shapeletOutputPath != null)
             transform.setLogOutputFile(shapeletOutputPath);
         
+        if(preferShortShapelets)
+            transform.setShapeletComparator(new Shapelet.ShortOrder());
         
         //Stop it printing everything
-        transform.supressOutput();
+        //transform.supressOutput();
         
         BigInteger opCountTarget = new BigInteger(Long.toString(time / nanoToOp));
         

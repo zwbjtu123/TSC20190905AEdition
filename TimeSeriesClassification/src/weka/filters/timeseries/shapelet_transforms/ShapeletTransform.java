@@ -85,7 +85,7 @@ public class ShapeletTransform extends SimpleBatchFilter {
     protected boolean useCandidatePruning;
     protected boolean useRoundRobin;
 
-    protected Comparator shapeletComparator;
+    protected Comparator<Shapelet> shapeletComparator;
 
     protected SubSeqDistance subseqDistance;
     protected NormalClassValue classValue;
@@ -125,6 +125,10 @@ public class ShapeletTransform extends SimpleBatchFilter {
 
     public void useSeparationGap() {
         shapeletComparator = new Shapelet.ReverseSeparationGap();
+    }
+    
+    public void setShapeletComparator(Comparator<Shapelet> comp){
+        shapeletComparator = comp;
     }
 
     public void setUseRoundRobin(boolean b) {
@@ -205,7 +209,7 @@ public class ShapeletTransform extends SimpleBatchFilter {
         this.recordShapelets = true; // default action is to write an output file
         this.roundRobin = false;
         this.useRoundRobin = false;
-        this.shapeletComparator = new Shapelet.ReverseOrder();
+        this.shapeletComparator = new Shapelet.LongOrder();
         this.kShapelets = new ArrayList<>();
 
         setQualityMeasure(qualityChoice);

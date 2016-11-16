@@ -239,15 +239,28 @@ public class Shapelet implements Comparable<Shapelet>, Serializable
 
         return str;
     }
+    
+    public static class ShortOrder implements Comparator<Shapelet>, Serializable{
+        
+        @Override
+        public int compare(Shapelet s1, Shapelet s2)
+        {
+            int compare1 = Double.compare(s2.qualityValue, s1.qualityValue); // prefer higher info gain
+            int compare2 = (s2.content.length - s1.content.length); //prefer the short ones.
+            return compare1 != 0 ? compare1 : compare2;
+        }
+    }
+    
 
-    public static class ReverseOrder implements Comparator<Shapelet>, Serializable
+    public static class LongOrder implements Comparator<Shapelet>, Serializable
     {
 
         @Override
         public int compare(Shapelet s1, Shapelet s2)
         {
-            //invert our compare.
-            return -s1.compareTo(s2);
+            int compare1 = Double.compare(s2.qualityValue, s1.qualityValue); //prefer higher info gain
+            int compare2 = (s1.content.length - s2.content.length); //prefer the short ones.
+            return compare1 != 0 ? compare1 : compare2;
         }
     }
 
