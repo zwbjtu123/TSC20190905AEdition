@@ -109,7 +109,7 @@ public class EthanolLevel {
         
     }
     
-    public static void singleClassifierAndPerson(String[] args){
+    public static void singleClassifierAndBottle(String[] args){
 //first gives the problem file      
         String classifier=args[0];
         int fold=Integer.parseInt(args[1])-1;
@@ -132,13 +132,13 @@ public class EthanolLevel {
       //      of.writeString(problem+","); );
             if(c instanceof SaveCVAccuracy)
                 ((SaveCVAccuracy)c).setCVPath(predictions+"/trainFold"+fold+".csv");
-            double acc =singleClassifierAndPerson(split[0],split[1],c,fold,predictions);
+            double acc =EthanolLevel.singleClassifierAndBottle(split[0],split[1],c,fold,predictions);
             System.out.println(classifier+","+problemName+","+fold+","+acc);
             
  //       of.writeString("\n");
         }
     }
-    public static double singleClassifierAndPerson(Instances train, Instances test, Classifier c, int fold,String resultsPath){
+    public static double singleClassifierAndBottle(Instances train, Instances test, Classifier c, int fold,String resultsPath){
         double acc=0;
         int act;
         int pred;
@@ -247,13 +247,13 @@ public class EthanolLevel {
         if(args.length>0){//Cluster run
             DataSets.problemPath=DataSets.clusterPath+"TSC Problems/";
             DataSets.resultsPath=DataSets.clusterPath+"Results/"+problemName+"Results/";
-            singleClassifierAndPerson(args);
+            singleClassifierAndBottle(args);
         }
         else{
             DataSets.problemPath=DataSets.dropboxPath+"TSC Problems/";
             DataSets.resultsPath=DataSets.dropboxPath+"Results/"+problemName+"Results/";
             String[] paras={"RotF","6"};
-            singleClassifierAndPerson(paras);            
+            singleClassifierAndBottle(paras);            
         }
     }    
     

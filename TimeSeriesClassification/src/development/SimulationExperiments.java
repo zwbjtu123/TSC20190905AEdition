@@ -100,12 +100,12 @@ public class SimulationExperiments {
                 c=new FastShapelets();
                 break;
             case "ST":
-                c=new ST_Ensemble();
+                c=new ST_HESCA();
                 if(local)
-                    ((ST_Ensemble)c).setOneMinuteLimit();
+                    ((ST_HESCA)c).setOneMinuteLimit();
                 else
-                   ((ST_Ensemble)c).setOneHourLimit();
-//                ((ST_Ensemble)c).setOneMinuteLimit();//DEBUG
+                   ((ST_HESCA)c).setOneHourLimit();
+//                ((ST_HESCA)c).setOneMinuteLimit();//DEBUG
                 break;
             case "LearnShapelets":
                 c=new LearnShapeletsFeb2015Version();
@@ -440,8 +440,8 @@ public class SimulationExperiments {
                         c=new FastShapelets();
                         break;
                     case "ST":
-                        c=new ST_Ensemble();
-                            ((ST_Ensemble)c).setOneMinuteLimit();
+                        c=new ST_HESCA();
+                            ((ST_HESCA)c).setOneMinuteLimit();
                         break;
                     case "LearnShapelets":
                         c=new LearnShapelets();

@@ -94,7 +94,7 @@ public class MultipleClassifiersPairwiseTest {
         System.out.print("\t");
         for(int i=0;i<nosClassifiers;i++)
             System.out.print(names[i]+"\t");
-        System.out.println("\n");
+        System.out.println(" alpha =\n"+alpha);
         for(int i=0;i<nosClassifiers;i++){
             System.out.print(names[i]+"\t");
             for(int j=0;j<nosClassifiers;j++){
@@ -102,7 +102,7 @@ public class MultipleClassifiersPairwiseTest {
                     System.out.print("\t");
                 else
                     if(printPVals)
-                    System.out.print(pValsSignRankTest[i][j]+"\t");
+                        System.out.print(pValsSignRankTest[i][j]+"\t");
                 else
                     System.out.print(noDifference[i][j]+"\t");
             }
@@ -126,7 +126,7 @@ public class MultipleClassifiersPairwiseTest {
 //        alpha/=nosClassifiers*(nosClassifiers-1)/2;
 //Control adjusted 
         alpha/=nosClassifiers-1;
-        findDifferences(alpha,false);
+        findDifferences(alpha,true);
         //Sort classifiers by rank: assume already done
         OutFile cliques=new OutFile(output);
         for(int i=0;i<nosClassifiers;i++){
@@ -138,13 +138,13 @@ public class MultipleClassifiersPairwiseTest {
     }
     public static void main(String[] args) {
 //ASSUME INPUT IN RANK ORDER, WITH TOP RANKED CLASSIFIER FIRST, WORST LAST        
-//        String input="C:\\Users\\ajb\\Dropbox\\Results\\SimulationExperiments\\BasicExperiments\\";
+        String input="C:\\Users\\ajb\\Dropbox\\Results\\SimulationExperiments\\BasicExperiments\\";
 //        String output="C:\\Users\\ajb\\Dropbox\\Results\\SimulationExperiments\\BasicExperiments\\";
 //        String[] allSimulators={"WholeSeriesElastic","Interval","Shapelet","Dictionary","ARMA","All"};
 //        for(String s:allSimulators)
-        String input="C:\\Research\\Results\\";
-        String s= "UCIHesca";
-            runTests(input+s+".csv",input+s+"Tests.csv");
+//        String input="C:\\Research\\Results\\";
+        String s= "Dictionary";
+            runTests(input+s+"CombinedResults.csv",input+s+"Tests.csv");
     }
     
 }

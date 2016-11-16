@@ -133,7 +133,7 @@ public class ClassificationExamples {
                 c=new FastShapelets();
                 break;
             case "ShapeletTransform": case "ST": case "ST_Ensemble":
-                c=new ST_Ensemble();
+                c=new ST_HESCA();
                 break;
             case "TSF":
                 c=new TSF();

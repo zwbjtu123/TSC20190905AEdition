@@ -7,7 +7,7 @@ Proportion train/test to 50/50
 
 Increase lengths for the data
 for 100 to 1000 in 100's
-for each length, do 100 resamples for ST_Ensemble with time limit set to
+for each length, do 100 resamples for ST_HESCA with time limit set to
 1 minute
 1 hour 
 1 day
@@ -21,7 +21,7 @@ package development;
 import fileIO.OutFile;
 import statistics.simulators.Model;
 import statistics.simulators.SimulateShapeletData;
-import tsc_algorithms.ST_Ensemble;
+import tsc_algorithms.ST_HESCA;
 import utilities.ClassifierTools;
 import utilities.InstanceTools;
 import weka.core.Instances;
@@ -43,11 +43,11 @@ public class ShapeletExperiments {
         Instances data=SimulateShapeletData.generateShapeletData(seriesLength,casesPerClass);
 //Split data
         Instances[] split=InstanceTools.resampleInstances(data, fold,trainProp);
-        ST_Ensemble stMinute=new ST_Ensemble();
+        ST_HESCA stMinute=new ST_HESCA();
         stMinute.setOneMinuteLimit();
-        ST_Ensemble stHour=new ST_Ensemble();
+        ST_HESCA stHour=new ST_HESCA();
         stHour.setOneHourLimit();
-//        ST_Ensemble stDay=new ST_Ensemble();
+//        ST_HESCA stDay=new ST_HESCA();
 //        stDay.setOneDayLimit();
         double acc1=ClassifierTools.singleTrainTestSplitAccuracy(stMinute, split[0], split[1]);
         double acc2=ClassifierTools.singleTrainTestSplitAccuracy(stHour, split[0], split[1]);

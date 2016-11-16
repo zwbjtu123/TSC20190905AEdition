@@ -21,7 +21,7 @@ import weka.filters.timeseries.shapelet_transforms.searchFuntions.ShapeletSearch
  *
  * @author raj09hxu
  */
-public class ST_Ensemble  extends AbstractClassifier implements SaveableEnsemble{
+public class ST_HESCA  extends AbstractClassifier implements SaveableEnsemble{
 
     public enum ST_TimeLimit {MINUTE, HOUR, DAY};
 
@@ -231,7 +231,7 @@ public class ST_Ensemble  extends AbstractClassifier implements SaveableEnsemble
         String testS=saveLocation+datasetName+File.separator+"TestPreds.csv";
         String preds=saveLocation+datasetName;
 
-        ST_Ensemble st= new ST_Ensemble();
+        ST_HESCA st= new ST_HESCA();
         //st.saveResults(trainS, testS);
         st.doSTransform(true);
         st.setTimeLimit(ShapeletTransformFactory.dayNano);

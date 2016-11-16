@@ -102,9 +102,9 @@ public class SimulationExperiments {
                 c=new FastShapelets();
                 break;
             case "ST":
-                c=new ST_Ensemble();
+                c=new ST_HESCA();
 //Just to make sure it is feasible                
-               ((ST_Ensemble)c).setOneHourLimit();
+               ((ST_HESCA)c).setOneHourLimit();
                 break;
             case "LearnShapelets":
                 c=new LearnShapelets();
@@ -336,8 +336,8 @@ public class SimulationExperiments {
                         c=new FastShapelets();
                         break;
                     case "ST":
-                        c=new ST_Ensemble();
-                            ((ST_Ensemble)c).setOneHourLimit();
+                        c=new ST_HESCA();
+                            ((ST_HESCA)c).setOneHourLimit();
                         break;
                     case "LearnShapelets":
                         c=new LearnShapelets();
