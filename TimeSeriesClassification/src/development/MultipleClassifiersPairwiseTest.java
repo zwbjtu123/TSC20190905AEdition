@@ -68,9 +68,9 @@ public class MultipleClassifiersPairwiseTest {
                 String str=test.performTests(diff);
                 System.out.println("TEST Classifier "+names[i]+" VS "+names[j]+" IS "+str);
                 String[] tmp=str.split(",");
-                pValsSignTest[i][j]=Double.parseDouble(tmp[2]);
-                pValsSignRankTest[i][j]=Double.parseDouble(tmp[5]);
-                pValsTTest[i][j]=Double.parseDouble(tmp[8]);
+                pValsTTest[i][j]=Double.parseDouble(tmp[2]);
+                pValsSignTest[i][j]=Double.parseDouble(tmp[5]);
+                pValsSignRankTest[i][j]=Double.parseDouble(tmp[8]);
             }
         }
     }
@@ -138,13 +138,14 @@ public class MultipleClassifiersPairwiseTest {
     }
     public static void main(String[] args) {
 //ASSUME INPUT IN RANK ORDER, WITH TOP RANKED CLASSIFIER FIRST, WORST LAST        
-        String input="C:\\Users\\ajb\\Dropbox\\Results\\SimulationExperiments\\BasicExperiments\\";
+//        String input="C:\\Users\\ajb\\Dropbox\\Results\\SimulationExperiments\\BasicExperiments\\";
 //        String output="C:\\Users\\ajb\\Dropbox\\Results\\SimulationExperiments\\BasicExperiments\\";
-//        String[] allSimulators={"WholeSeriesElastic","Interval","Shapelet","Dictionary","ARMA","All"};
+        String[] allSimulators={"WholeSeriesElastic","Interval","Shapelet","Dictionary","ARMA","All"};
 //        for(String s:allSimulators)
-//        String input="C:\\Research\\Results\\";
-        String s= "Dictionary";
-            runTests(input+s+"CombinedResults.csv",input+s+"Tests.csv");
+        String input="C:\\Research\\Results\\RepoResults\\HIVE Results";
+//        String s= "All";
+//            runTests(input+s+"CombinedResults.csv",input+s+"Tests.csv");
+            runTests(input+".csv",input+"Tests.csv");
     }
     
 }

@@ -61,6 +61,7 @@ public class SimulationExperiments {
     
     
     public static Classifier createClassifier(String str) throws RuntimeException{
+        
         Classifier c;
         switch(str){
             case "ED":
@@ -795,8 +796,8 @@ public class SimulationExperiments {
         
     }
 
-    public static void main(String[] args){
-        
+    public static void main(String[] args) throws Exception{
+
 InFile inf=new InFile("C:\\Users\\ajb\\Dropbox\\Results\\SimulationExperiments\\BasicExperiments\\Interval//FLATCOTE.csv");
        generateAllProblemFiles();
  //       createBaseExperimentScripts(false);

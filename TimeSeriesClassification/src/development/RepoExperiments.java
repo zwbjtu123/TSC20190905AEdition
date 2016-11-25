@@ -17,7 +17,7 @@ import weka.core.Instances;
 
 public class RepoExperiments {
 
-    public static String[] classifiers={"HESCA","RISE","RIF_PS_ACF"};
+    public static String[] classifiers={"HESCA","RISE","RISE Repeat"};
 
     
     public static void createBaseExperimentScripts(boolean grace){
@@ -174,13 +174,16 @@ public class RepoExperiments {
         
     }
     public static void main(String[] args){
-        collateResults(100);
+//        collateResults(100);
 //        createBaseExperimentScripts(true);
 //       createBaseExperimentScripts(false);
-        System.exit(0);
+//        System.exit(0);
         if(args.length>0){//Cluster run
-            DataSets.problemPath=DataSets.clusterPath+"TSC Problems/";
-            DataSets.resultsPath=DataSets.clusterPath+"Results/RepoExperiments/";
+            String jasonPath="/gpfs/home/sjx07ngu/";
+            DataSets.problemPath=jasonPath+"TSC Problems/";
+            DataSets.resultsPath=jasonPath+"Results/RepoExperiments/";
+//            DataSets.problemPath=DataSets.clusterPath+"TSC Problems/";
+//            DataSets.resultsPath=DataSets.clusterPath+"Results/RepoExperiments/";
             singleClassifierAndFold(args);
         }
         else{

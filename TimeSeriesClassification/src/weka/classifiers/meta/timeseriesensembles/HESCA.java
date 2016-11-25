@@ -21,8 +21,6 @@ import weka.classifiers.functions.SMO;
 import weka.classifiers.functions.supportVector.PolyKernel;
 import weka.classifiers.lazy.kNN;
 import weka.classifiers.meta.RotationForest;
-import weka.classifiers.meta.timeseriesensembles.depreciated.HESCA_05_10_16;
-import weka.classifiers.trees.EnhancedRandomForest;
 import weka.classifiers.trees.J48;
 import weka.classifiers.trees.RandomForest;
 import weka.core.EuclideanDistance;
@@ -41,32 +39,30 @@ import utilities.SaveCVAccuracy;
 // NOTE: this version doesn't currently support file writing (to-do)
 
 public class HESCA extends AbstractClassifier implements HiveCoteModule, SaveCVAccuracy{
-//public class HESCA extends AbstractClassifier {
-
-    private final SimpleBatchFilter transform;
-    private double[] individualCvAccs;
-    private double[][] individualCvPreds;
-    private double[] ensembleCvPreds;
-    private double ensembleCvAcc;
+    protected final SimpleBatchFilter transform;
+    protected double[] individualCvAccs;
+    protected double[][] individualCvPreds;
+    protected double[] ensembleCvPreds;
+    protected double ensembleCvAcc;
     
-    private boolean setSeed = false;
-    private int seed;
+    protected boolean setSeed = false;
+    protected int seed;
     
-    private Classifier[] classifiers;
-    private String[] classifierNames;
+    protected Classifier[] classifiers;
+    protected String[] classifierNames;
     
-    private Instances train;
+    protected Instances train;
     
     // used for file writing nameing only
-    private boolean writeIndividualClassifierOutputs = false;
-    private String outputResultsDir;
-    private String datasetIdentifier;
-    private String ensembleIdentifier;
-    private int resampleIdentifier;
+    protected boolean writeIndividualClassifierOutputs = false;
+    protected String outputResultsDir;
+    protected String datasetIdentifier;
+    protected String ensembleIdentifier;
+    protected int resampleIdentifier;
     
     
-    private boolean writeTraining = false;
-    private String outputTrainingPathAndFile;
+    protected boolean writeTraining = false;
+    protected String outputTrainingPathAndFile;
     public HESCA(SimpleBatchFilter transform) {
         this.transform = transform;
         this.setDefaultClassifiers();
@@ -82,7 +78,8 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule, SaveCVA
         this.classifiers = classifiers;
         this.classifierNames = classifierNames;
     }
-    
+   public Classifier[] getClassifiers(){ return classifiers;}
+   
     public final void setDefaultClassifiers(){
         this.classifiers = new Classifier[8];
         this.classifierNames = new String[8];
@@ -118,7 +115,7 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule, SaveCVA
         classifiers[4] =svmq;
         classifierNames[4] = "SVMQ";
         
-        RandomForest r=new EnhancedRandomForest();
+        RandomForest r=new RandomForest();
         r.setNumTrees(500);
         if(setSeed)
            r.setSeed(seed);            
@@ -150,12 +147,40 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule, SaveCVA
         this.writeIndividualClassifierOutputs = true;
     }
     
+//Constants that determine the number of CV folds
+//    The number of folds is all pretty arbitrary, but practically makes little difference
+//especially if RandomForest and RotationForest use OOB error    
+    public static int MAX_NOS_FOLDS=100;
+    public static int FOLDS1=20;
+    public static int FOLDS2=10;
+    public static int NUM_CASES_THRESHOLD1=300;
+    public static int NUM_CASES_THRESHOLD2=200;
+    public static int NUM_CASES_THRESHOLD3=100;
+    public static int NUM_ATTS_THRESHOLD1=200;
+    public static int NUM_ATTS_THRESHOLD2=500;
+
+  
+    public static int findNumFolds(Instances train){
+        int numFolds = train.numInstances();
+        if(train.numInstances()>=NUM_CASES_THRESHOLD1)
+            numFolds=FOLDS2;
+        else if(train.numInstances()>=NUM_CASES_THRESHOLD2 && train.numAttributes()>=NUM_ATTS_THRESHOLD1)
+            numFolds=FOLDS2;
+        else if(train.numAttributes()>=NUM_ATTS_THRESHOLD2)
+            numFolds=FOLDS2;
+        else if (train.numInstances()>=NUM_CASES_THRESHOLD3) 
+            numFolds=FOLDS1;
+        return numFolds;
+    }
+      
+    
+/**
+ * this method is very memory intensive
+ * 
+ */    
     public double[] crossValidate(Classifier classifier, Instances train) throws Exception{
         
-        int numFolds = train.numInstances();
-        if(numFolds>HESCA_05_10_16.MAX_NOS_FOLDS){
-            numFolds = HESCA_05_10_16.MAX_NOS_FOLDS;
-        }      
+        int numFolds = findNumFolds(train);
                
         Random r = null;
         if(this.setSeed){
@@ -228,7 +253,8 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule, SaveCVA
         for(int f = 0; f < numFolds; f++){
 
             
-            thisSum = lastSum+foldSize+0.000000000001;  // to try and avoid double imprecision errors (shouldn't ever be big enough to effect folds when double imprecision isn't an issue)
+            thisSum = lastSum+foldSize+0.000000000001;  
+// to try and avoid double imprecision errors (shouldn't ever be big enough to effect folds when double imprecision isn't an issue)
             floor = (int)thisSum;
             
             if(f==numFolds-1){
@@ -248,45 +274,37 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule, SaveCVA
         if(foldSum!=train.numInstances()){
             throw new Exception("Error! Some instances got lost file creating folds (maybe a double precision bug). Training instances contains "+train.numInstances()+", but the sum of the training folds is "+foldSum);
         }
+        Instances trainCV;
+        Instances testCV;
         
-
-        Instances trainLoocv;
-        Instances testLoocv;
-        
-        double pred, actual;
+        double pred;
         double[] predictions = new double[train.numInstances()];
         
-        int correct = 0;
         Instances temp; // had to add in redundant instance storage so we don't keep killing the base set of Instances by mistake
         
         for(int testFold = 0; testFold < numFolds; testFold++){
             
-            trainLoocv = null;
-            testLoocv = new Instances(folds.get(testFold));
+            trainCV = null;
+            testCV = new Instances(folds.get(testFold));
             
             for(int f = 0; f < numFolds; f++){
                 if(f==testFold){
                     continue;
                 }
                 temp = new Instances(folds.get(f));
-                if(trainLoocv==null){
-                    trainLoocv = temp;
+                if(trainCV==null){
+                    trainCV = temp;
                 }else{
-                    trainLoocv.addAll(temp);
+                    trainCV.addAll(temp);
                 }
             }
             
-            classifier.buildClassifier(trainLoocv);
-            for(int i = 0; i < testLoocv.numInstances(); i++){
-                pred = classifier.classifyInstance(testLoocv.instance(i));
-                actual = testLoocv.instance(i).classValue();
+            classifier.buildClassifier(trainCV);
+            for(int i = 0; i < testCV.numInstances(); i++){
+                pred = classifier.classifyInstance(testCV.instance(i));
                 predictions[foldIndexing.get(testFold).get(i)] = pred;
-                if(pred==actual){
-                    correct++;
-                }
             }
         }
-        
         return predictions;
     }
 
@@ -304,16 +322,25 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule, SaveCVA
         this.individualCvAccs = new double[this.classifiers.length];
         
         for(int c = 0; c < this.classifiers.length; c++){
-            this.individualCvPreds[c] = crossValidate(this.classifiers[c],this.train);
-            correct = 0;
-            
-            for(int i = 0; i < this.individualCvPreds[c].length; i++){
-                if(train.instance(i).classValue()==this.individualCvPreds[c][i]){
-                    correct++;
-                }
+//            if(classifiers[c] instanceof BaggedRandomForest){
+// Implement after testing whether 10x fold is as accurate             
+            if(classifiers[c] instanceof RandomForest){
+                classifiers[c].buildClassifier(train);
+                individualCvAccs[c]=1-((RandomForest)classifiers[c]).measureOutOfBagError();                
             }
-            this.individualCvAccs[c] = (double)correct/train.numInstances();
-            
+            else 
+            {
+                this.individualCvPreds[c] = crossValidate(this.classifiers[c],this.train);
+                correct = 0;
+
+                for(int i = 0; i < this.individualCvPreds[c].length; i++){
+                    if(train.instance(i).classValue()==this.individualCvPreds[c][i]){
+                        correct++;
+                    }
+                }
+                this.individualCvAccs[c] = (double)correct/train.numInstances();
+                classifiers[c].buildClassifier(train);
+            }
             if(this.writeIndividualClassifierOutputs){
                 StringBuilder st = new StringBuilder();
                 st.append(this.datasetIdentifier+","+this.ensembleIdentifier+"_"+classifierNames[c]+",train\n");
@@ -392,6 +419,7 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule, SaveCVA
             fullTrain.append(output);
             fullTrain.close();
         }
+        
     }
 
 //    @Override

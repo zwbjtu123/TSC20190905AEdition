@@ -295,7 +295,7 @@ public class Bagnall16bakeoff {
 //Example usage: 
         
 //1. Set up the paths
-        DataSets.problemPath=DataSets.dropboxPath+"TSC Problems/";
+        DataSets.problemPath=DataSets.dropboxPath+"UCI Problems/";
         DataSets.resultsPath="C:/Temp/";
 //2. Set up the arguments: Classifier, Problem, Fold
         String[] paras={"BOSS","ItalyPowerDemand","1"};

@@ -38,7 +38,6 @@ Instances all=ClassifierTools.loadData(DataSets.problemPath+"/EpilepsyX/Epilepsy
         Instances[] split=new Instances[2];
         split[0]=new Instances(all,0);
         split[1]=new Instances(all,0);
-        
         for(Instance ins:all){
             if(ins.stringValue(0).equals(personID[person]))    //Stringvalues? Debug
                 split[1].add(ins);

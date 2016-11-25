@@ -1,7 +1,10 @@
 /*
 This classifier is enhanced so that classifier builds a random forest with the 
 facility to build by forward selection addition of trees to minimize OOB error.    
+
 Further enhanced to include OOB error estimates and predictions
+
+
  */
 package weka.classifiers.trees;
 
@@ -154,6 +157,10 @@ public class EnhancedRandomForest extends RandomForest{
         }
         
  //       public double getOOBError
+    }
+    public double findOOBError() throws Exception{
+        ((EnhancedBagging)m_bagger).findOOBProbabilities();
+        return ((EnhancedBagging)m_bagger).findOOBError();
     }
     public double[][] findOOBProbabilities() throws Exception{
         ((EnhancedBagging)m_bagger).findOOBProbabilities();

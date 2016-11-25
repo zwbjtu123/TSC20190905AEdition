@@ -7,6 +7,7 @@ SET UP
 3. In main, change these variables
        DataSets.dropboxPath="C:/Users/ajb/Dropbox/"; //Somewhere to put files locally. Doesnt have to be dropbox
         DataSets.clusterPath="/gpfs/home/ajb/";   //The cluster path, based on your username
+
 SCRIPTS
 3. Run this class to run the method createScripts. Verify the scripts are ok by reading them. 
 4. On the cluster, create a Directory Scripts/. Inside this, create a Directory <problemName>Scripts/
@@ -21,7 +22,7 @@ Yes: Go to 7
 9. In main, comment out the method createScripts and the System.exit(0). REMEMBER TO DO THIS!
 10. Run this class. It should create a file system with a single fold of RotF. Debug to your satisfaction
 RUNNING A PROBLEM ON THE CLUSTER
-11. Clean and build your project
+11. Clean and build your project. Remember to set the project executable class through project properties -> run to your class
 12. Go to the dist folder in your project and copy the file TimeSeriesClassification.jar and rename <problemName>.jar
 13. Copy problemName.jar into your root cluster directory
 14. Open a Putty window, and try running a classifier 

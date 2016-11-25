@@ -1,6 +1,6 @@
 package tsc_algorithms;
 /**
- * Development code for PowerSpectrum Forest
+ * Development code for RISE
  * 1. set number of trees to max(500,m)
  * 2. Set the first tree to the full interval
  * 2. Randomly select the interval length and start point for each other tree *
@@ -146,13 +146,13 @@ public class RISE extends AbstractClassifier implements SaveCVAccuracy, SubSampl
         if(trainCV){
 //            int folds=setNumberOfFolds(data);
             int folds=10;
-            OutFile of=new OutFile(trainCVPath);
-           of.writeLine(data.relationName()+",RISE,train");
     //Estimate train accuracy HERE. Use another classifier to make sure. 
             RISE tsf=new RISE();
             tsf.setTransformType(f);
             tsf.trainCV=false;
             double[][] results=ClassifierTools.crossValidationWithStats(tsf, data, folds);
+            OutFile of=new OutFile(trainCVPath);
+           of.writeLine(data.relationName()+",RISE,train");
             of.writeLine(getParameters());
             of.writeLine(results[0][0]+"");
             for(int i=1;i<results[0].length;i++)
