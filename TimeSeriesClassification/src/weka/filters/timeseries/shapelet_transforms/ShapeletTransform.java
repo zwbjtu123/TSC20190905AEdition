@@ -486,15 +486,13 @@ public class ShapeletTransform extends SimpleBatchFilter {
         
         //setup subseqDistance
         subseqDistance.init(data);
-        
-        //setup search function.
-        searchFunction.init(data);
-        
+
         //checks if the shapelets haven't been found yet, finds them if it needs too.
         if (!m_FirstBatchDone) {
+            //setup search function.
+            searchFunction.init(data);
             
             trainShapelets(data);
-            
             //we log the count from the subseqdistance before we reset it in the transform.
             //we only care about the count from the train.
             count = subseqDistance.getCount();

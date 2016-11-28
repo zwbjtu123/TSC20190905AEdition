@@ -21,7 +21,7 @@ import weka.core.shapelet.Shapelet;
  */
 public class ImpRandomSearch extends RandomSearch{
     
-    Map<Integer, ArrayList<Pair<Integer,Integer>>> shapeletsToFind = new HashMap<>();
+    protected Map<Integer, ArrayList<Pair<Integer,Integer>>> shapeletsToFind = new HashMap<>();
     
     int currentSeries =0;
     public  Map<Integer, ArrayList<Pair<Integer,Integer>>> getShapeletsToFind(){

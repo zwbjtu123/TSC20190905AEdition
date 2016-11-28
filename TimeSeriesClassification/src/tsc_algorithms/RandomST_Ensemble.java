@@ -20,6 +20,7 @@ import weka.filters.timeseries.shapelet_transforms.ShapeletTransformFactory;
 import static weka.filters.timeseries.shapelet_transforms.ShapeletTransformFactory.nanoToOp;
 import weka.filters.timeseries.shapelet_transforms.searchFuntions.ImpRandomSearch;
 import weka.filters.timeseries.shapelet_transforms.searchFuntions.RandomSearch;
+import weka.filters.timeseries.shapelet_transforms.searchFuntions.RefinedRandomSearch;
 import weka.filters.timeseries.shapelet_transforms.searchFuntions.ShapeletSearch;
 
 /**
@@ -182,8 +183,7 @@ public class RandomST_Ensemble  extends AbstractClassifier implements SaveableEn
         BigInteger opCount = ShapeletTransformFactory.calculateOps(n, m, 1, 1);
         
         //clamp K to 2000.
-        int K = n > 2000 ? 2000 : n;
-        
+        int K = n > 2000 ? 2000 : n;       
 
         //how much time do we have vs. how long our algorithm will take.
         if(opCount.compareTo(opCountTarget) == 1){
@@ -199,6 +199,7 @@ public class RandomST_Ensemble  extends AbstractClassifier implements SaveableEn
             
             //we need to find atleast one shapelet in every series.
             transform.setSearchFunction(new ImpRandomSearch(3,m, shapelets, seed));
+            //transform.setSearchFunction(new RefinedRandomSearch(3,m, shapelets, seed, 0.01f)); //1% of the shapelet set size.
             
             // can't have more final shapelets than we actually search through.
             K =  shapelets > K ? K : (int) shapelets;
@@ -213,7 +214,7 @@ public class RandomST_Ensemble  extends AbstractClassifier implements SaveableEn
     public static void main(String[] args) throws Exception {
         String dataLocation = "C:\\LocalData\\Dropbox\\TSC Problems\\";
         //String dataLocation = "..\\..\\resampled transforms\\BalancedClassShapeletTransform\\";
-        String saveLocation = "..\\..\\resampled results\\BalancedClassShapeletTransform\\";
+        String saveLocation = "..\\..\\resampled results\\RefinedRandomTransform\\";
         String datasetName = "Earthquakes";
         int fold = 0;
         

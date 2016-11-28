@@ -175,6 +175,7 @@ public class ShapeletTransformFactory
         transform.setNumberOfShapelets(numInstances);
         transform.useCandidatePruning();
         transform.turnOffLog();
+        transform.setRoundRobin(true);
         transform.supressOutput();
         
         return transform;
