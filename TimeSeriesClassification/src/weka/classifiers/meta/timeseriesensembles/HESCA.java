@@ -34,6 +34,8 @@ import utilities.SaveCVAccuracy;
 /**
  *
  * @author Jason Lines (j.lines@uea.ac.uk)
+ * 
+ * Needs documentation and comments
  */
 
 // NOTE: this version doesn't currently support file writing (to-do)
@@ -98,6 +100,7 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule, SaveCVA
         classifierNames[2] = "C4.5";
             
         SMO svml = new SMO();
+        svml.turnChecksOff();
         PolyKernel kl = new PolyKernel();
         kl.setExponent(1);
         svml.setKernel(kl);
@@ -107,6 +110,8 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule, SaveCVA
         classifierNames[3] = "SVML";
         
         SMO svmq =new SMO();
+//Assumes no missing, all real valued and a discrete class variable        
+        svmq.turnChecksOff();
         PolyKernel kq = new PolyKernel();
         kq.setExponent(2);
         svmq.setKernel(kq);
@@ -324,11 +329,13 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule, SaveCVA
         for(int c = 0; c < this.classifiers.length; c++){
 //            if(classifiers[c] instanceof BaggedRandomForest){
 // Implement after testing whether 10x fold is as accurate             
+/*      Need to recover the CVPredictions for RandomForest using Enhanced RandomForest    
             if(classifiers[c] instanceof RandomForest){
                 classifiers[c].buildClassifier(train);
                 individualCvAccs[c]=1-((RandomForest)classifiers[c]).measureOutOfBagError();                
             }
             else 
+*/
             {
                 this.individualCvPreds[c] = crossValidate(this.classifiers[c],this.train);
                 correct = 0;

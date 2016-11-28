@@ -234,8 +234,10 @@ public class ClassifierTools {
 	
 	
 /**
-* 	This method does a cross validation using the EvaluationUtils and stores the predicted and actual values.
-* Accuracy is stored in preds[0][0], StdDev of accuracy between folds SHOULD BE stored in preds[1][0].
+* 	This method does a cross validation using the EvaluationUtils and stores t
+* he predicted and actual values.
+* Accuracy is stored in preds[0][0], StdDev of accuracy between folds SHOULD BE 
+* stored in preds[1][0].
 * TO IMPLEMENT!
 * Could do with some testing, there is some uncertainty over the last fold.
 * @param allData
