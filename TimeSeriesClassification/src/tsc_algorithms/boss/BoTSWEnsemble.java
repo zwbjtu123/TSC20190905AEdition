@@ -48,6 +48,14 @@ import weka.core.TechnicalInformation;
  * If svm wanted, call setUseSVM(true). Precise SVM implementation/accuracy could not be recreated, 
  * likely due to differences in implementation between java/WEKA c++/CV, and likewise there is a 
  * small difference in kmeans, epsilon value ignored
+ * 
+ * Structure: 
+ *      buildClassifier() contains ensemble building and training
+ *      classifyInstance() classifies a single test instance via majority vote of all ensemble members 
+ * 
+ *      in the nested class BoTSW:
+ *          buildClassifier() trains a BoTSW classifier with a given parameter set
+ *          classifyInstance() classifies a single test instance with a given parameter set 
  *  
  * @author James Large
  * 
@@ -74,11 +82,9 @@ public class BoTSWEnsemble implements Classifier, SaveCVAccuracy /*, HiveCoteMod
     private final Integer[] n_bRanges = { 4, 8, 12, 16, 20 };
     private final Integer[] aRanges = { 4, 8 };
     private final Integer[] kRanges = { 32, 64, 128, 256, 512, 1024 };
-    private final Integer[] csvmRanges = {1, 10, 100}; //not currently used, using BOSSDistance
-    private final int alphabetSize = 4;
+    private final Integer[] csvmRanges = {1, 10, 100}; //not currently used, using 1NN
     
     private BoTSW.DistFunction dist = BoTSW.DistFunction.EUCLIDEAN_DISTANCE;
-    //private boolean norm;
     
     public enum SerialiseOptions { 
         //dont do any seriealising, run as normal
@@ -97,8 +103,6 @@ public class BoTSWEnsemble implements Classifier, SaveCVAccuracy /*, HiveCoteMod
     
     private SerialiseOptions serOption = SerialiseOptions.NONE;
     private static String serFileLoc = "BOSSWindowSers\\";
-     
-    private boolean[] normOptions;
     
     private String trainCVPath;
     private boolean trainCV=false;
@@ -859,8 +863,8 @@ public class BoTSWEnsemble implements Classifier, SaveCVAccuracy /*, HiveCoteMod
 
             if (!clusteringDataPreBuilt) { 
                 //describe the keypoints found before using the current parameter settings 
-                //n_b and a, may have already been found during parameter search if now just 
-                //searching for values of k in the clustering or c_svm (if using svm)
+                //n_b and a, may have already been done during parameter search if now just 
+                //searching for values of k
                 double[][][] features = new double[data.numInstances()][][];   
                 for (int i = 0; i < data.numInstances(); ++i)
                     features[i] = describeKeyPoints(fdData[i].gdata.guassSeries, fdData[i].keypoints);
@@ -909,6 +913,7 @@ public class BoTSWEnsemble implements Classifier, SaveCVAccuracy /*, HiveCoteMod
     //        kmeans = new SimpleKMeans();
     //        kmeans.setMaxIterations(maxIterations);
     //        kmeans.setInitializeUsingKMeansPlusPlusMethod(true);
+    //        kmeans.setSeed(0);
     //        kmeans.setNumClusters(params.k);
     //        kmeans.setPreserveInstancesOrder(true); //needed to call .getAssignments()
     //        kmeans.buildClusterer(clusterData);
