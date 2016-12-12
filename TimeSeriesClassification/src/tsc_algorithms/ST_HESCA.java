@@ -5,17 +5,20 @@ package tsc_algorithms;
 
 import weka.classifiers.meta.timeseriesensembles.SaveableEnsemble;
 import java.io.File;
+import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.math.MathContext;
 import utilities.ClassifierTools;
 import utilities.InstanceTools;
 import weka.classifiers.AbstractClassifier;
 import weka.classifiers.meta.timeseriesensembles.depreciated.HESCA_05_10_16;
 import weka.core.Instance;
 import weka.core.Instances;
+import weka.core.shapelet.Shapelet;
 import weka.filters.timeseries.shapelet_transforms.ShapeletTransform;
 import weka.filters.timeseries.shapelet_transforms.ShapeletTransformFactory;
 import static weka.filters.timeseries.shapelet_transforms.ShapeletTransformFactory.nanoToOp;
-import weka.filters.timeseries.shapelet_transforms.searchFuntions.ShapeletSearch;
+import weka.filters.timeseries.shapelet_transforms.searchFuntions.ImpRandomSearch;
 
 /**
  *
@@ -28,6 +31,7 @@ public class ST_HESCA  extends AbstractClassifier implements SaveableEnsemble{
     //Minimum number of instances per class in the train set
     public static final int minimumRepresentation = 25;
     
+    private boolean preferShortShapelets = false;
     private String shapeletOutputPath;
     
     private HESCA_05_10_16 hesca;
@@ -39,6 +43,8 @@ public class ST_HESCA  extends AbstractClassifier implements SaveableEnsemble{
     private String testPredictions="";
     private boolean doTransform=true;
     
+    
+    private long numShapelets = 0;
     private long seed = 0;
     private long timeLimit = Long.MAX_VALUE;
     
@@ -103,6 +109,10 @@ public class ST_HESCA  extends AbstractClassifier implements SaveableEnsemble{
         setTimeLimit(ST_TimeLimit.MINUTE, 1);
     }
     
+    public void setNumberOfShapelets(long numS){
+        numShapelets = numS;
+    }
+    
     @Override
     public void buildClassifier(Instances data) throws Exception {
         format = doTransform ? createTransformData(data, timeLimit) : data;
@@ -116,7 +126,7 @@ public class ST_HESCA  extends AbstractClassifier implements SaveableEnsemble{
             hesca.saveTestPreds(testPredictions);
         }
         
-//        System.out.println("transformed");
+        System.out.println("transformed");
         hesca.buildClassifier(format);
         format=new Instances(data,0);
     }
@@ -151,6 +161,10 @@ public class ST_HESCA  extends AbstractClassifier implements SaveableEnsemble{
     public void setShapeletOutputFilePath(String path){
         shapeletOutputPath = path;
     }
+    
+    public void preferShortShapelets(){
+        preferShortShapelets = true;
+    }
 
     public Instances createTransformData(Instances train, long time){
         int n = train.numInstances();
@@ -158,71 +172,54 @@ public class ST_HESCA  extends AbstractClassifier implements SaveableEnsemble{
 
         //construct shapelet classifiers from the factory.
         transform = ShapeletTransformFactory.createTransform(train);
-        
         if(shapeletOutputPath != null)
             transform.setLogOutputFile(shapeletOutputPath);
+        
+        if(preferShortShapelets)
+            transform.setShapeletComparator(new Shapelet.ShortOrder());
         
         //Stop it printing everything
         //transform.supressOutput();
         
-        //at the moment this could be overrided.
-        //transform.setSearchFunction(new LocalSearch(3, m, 10, seed));
-
         BigInteger opCountTarget = new BigInteger(Long.toString(time / nanoToOp));
         
         BigInteger opCount = ShapeletTransformFactory.calculateOps(n, m, 1, 1);
         
-        //we need to resample.
-        if(opCount.compareTo(opCountTarget) == 1){
-            
-            double recommendedProportion = ShapeletTransformFactory.calculateN(n, m, time);
-            
-            //calculate n for minimum class rep of 25.
-            int small_sf = InstanceTools.findSmallestClassAmount(train);           
-            double proportion = 1.0;
-            if (small_sf>minimumRepresentation){
-                proportion = (double)minimumRepresentation/(double)small_sf;
-            }
-            
-            //if recommended is smaller than our cutoff threshold set it to the cutoff.
-            if(recommendedProportion < proportion){
-                recommendedProportion = proportion;
-            }
-            
-            //subsample out dataset.
-            Instances subsample = utilities.InstanceTools.subSampleFixedProportion(train, recommendedProportion, seed);
-            
-            int i=1;
-            //if we've properly resampled this should pass on first go. IF we haven't we'll try and reach our target. 
-            //calculate N is an approximation, so the subsample might need to tweak q and p just to bring us under. 
-            while(ShapeletTransformFactory.calculateOps(subsample.numInstances(), m, i, i).compareTo(opCountTarget) == 1){
-                i++;
-            }
-            
-//            System.out.println("new q and p: " + i);
-            
-            
-            double percentageOfSeries = (double)i/(double)m * 100.0;
-            
-//            System.out.println("percentageOfSeries: "+ percentageOfSeries);
+        //clamp K to 2000.
+        int K = n > 2000 ? 2000 : n;       
 
-  //          System.out.println("new n: " + subsample.numInstances());
+        //how much time do we have vs. how long our algorithm will take.
+        if(opCount.compareTo(opCountTarget) == 1){
+            BigDecimal oct = new BigDecimal(opCountTarget);
+            BigDecimal oc = new BigDecimal(opCount);
+            BigDecimal prop = oct.divide(oc, MathContext.DECIMAL64);
             
-            //we should look for less shapelets if we've resampled. 
-            //e.g. Eletric devices can be sampled to from 8000 for 2000 so we should be looking for 20,000 shapelets not 80,000
-            transform.setNumberOfShapelets(subsample.numInstances());
-            transform.setSearchFunction(new ShapeletSearch(3, m, i, i));
-            transform.process(subsample);
+            //if we've not set a shapelet count, calculate one, based on the time set.
+            if(numShapelets == 0){
+                numShapelets = ShapeletTransformFactory.calculateNumberOfShapelets(n,m,3,m);
+                numShapelets *= prop.doubleValue();
+            }
+                
+            
+            //we need to find atleast one shapelet in every series.
+            transform.setSearchFunction(new ImpRandomSearch(3,m, numShapelets, seed));
+            //transform.setSearchFunction(new RefinedRandomSearch(3,m, shapelets, seed, 0.01f)); //1% of the shapelet set size.
+            
+            // can't have more final shapelets than we actually search through.
+            K =  numShapelets > K ? K : (int) numShapelets;
+
+            transform.setNumberOfShapelets(K);
         }
+
         
         return transform.process(train);
     }
     
     public static void main(String[] args) throws Exception {
-        String dataLocation = "C:\\LocalData\\Dropbox\\TSC Problems (1)\\";
+        String dataLocation = "C:\\LocalData\\Dropbox\\TSC Problems\\";
         //String dataLocation = "..\\..\\resampled transforms\\BalancedClassShapeletTransform\\";
-        String saveLocation = "..\\..\\resampled results\\BalancedClassShapeletTransform\\";
-        String datasetName = "HeartbeatBIDMC";
+        String saveLocation = "..\\..\\resampled results\\RefinedRandomTransform\\";
+        String datasetName = "Earthquakes";
         int fold = 0;
         
         Instances train= ClassifierTools.loadData(dataLocation+datasetName+File.separator+datasetName+"_TRAIN");
@@ -234,7 +231,7 @@ public class ST_HESCA  extends AbstractClassifier implements SaveableEnsemble{
         ST_HESCA st= new ST_HESCA();
         //st.saveResults(trainS, testS);
         st.doSTransform(true);
-        st.setTimeLimit(ShapeletTransformFactory.dayNano);
+        st.setOneMinuteLimit();
         st.buildClassifier(train);
         double accuracy = utilities.ClassifierTools.accuracy(test, st);
         

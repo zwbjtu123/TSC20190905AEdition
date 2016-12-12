@@ -1,40 +1,33 @@
 /*
 Shaplet transform with the weighted ensemble
  */
-package tsc_algorithms;
+package tsc_algorithms.depreciated;
 
 import weka.classifiers.meta.timeseriesensembles.SaveableEnsemble;
 import java.io.File;
-import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.math.MathContext;
 import utilities.ClassifierTools;
 import utilities.InstanceTools;
 import weka.classifiers.AbstractClassifier;
 import weka.classifiers.meta.timeseriesensembles.depreciated.HESCA_05_10_16;
 import weka.core.Instance;
 import weka.core.Instances;
-import weka.core.shapelet.Shapelet;
 import weka.filters.timeseries.shapelet_transforms.ShapeletTransform;
 import weka.filters.timeseries.shapelet_transforms.ShapeletTransformFactory;
 import static weka.filters.timeseries.shapelet_transforms.ShapeletTransformFactory.nanoToOp;
-import weka.filters.timeseries.shapelet_transforms.searchFuntions.ImpRandomSearch;
-import weka.filters.timeseries.shapelet_transforms.searchFuntions.RandomSearch;
-import weka.filters.timeseries.shapelet_transforms.searchFuntions.RefinedRandomSearch;
 import weka.filters.timeseries.shapelet_transforms.searchFuntions.ShapeletSearch;
 
 /**
  *
  * @author raj09hxu
  */
-public class RandomST_Ensemble  extends AbstractClassifier implements SaveableEnsemble{
+public class ST_HESCA  extends AbstractClassifier implements SaveableEnsemble{
 
     public enum ST_TimeLimit {MINUTE, HOUR, DAY};
 
     //Minimum number of instances per class in the train set
     public static final int minimumRepresentation = 25;
     
-    private boolean preferShortShapelets = false;
     private String shapeletOutputPath;
     
     private HESCA_05_10_16 hesca;
@@ -48,6 +41,10 @@ public class RandomST_Ensemble  extends AbstractClassifier implements SaveableEn
     
     private long seed = 0;
     private long timeLimit = Long.MAX_VALUE;
+    
+    public ShapeletTransform getTransform(){
+        return transform;
+    }
     
     protected void saveResults(boolean s){
         saveResults=s;
@@ -123,7 +120,7 @@ public class RandomST_Ensemble  extends AbstractClassifier implements SaveableEn
             hesca.saveTestPreds(testPredictions);
         }
         
-        System.out.println("transformed");
+//        System.out.println("transformed");
         hesca.buildClassifier(format);
         format=new Instances(data,0);
     }
@@ -158,10 +155,6 @@ public class RandomST_Ensemble  extends AbstractClassifier implements SaveableEn
     public void setShapeletOutputFilePath(String path){
         shapeletOutputPath = path;
     }
-    
-    public void preferShortShapelets(){
-        preferShortShapelets = true;
-    }
 
     public Instances createTransformData(Instances train, long time){
         int n = train.numInstances();
@@ -169,53 +162,72 @@ public class RandomST_Ensemble  extends AbstractClassifier implements SaveableEn
 
         //construct shapelet classifiers from the factory.
         transform = ShapeletTransformFactory.createTransform(train);
+        transform.supressOutput();
+        
         if(shapeletOutputPath != null)
             transform.setLogOutputFile(shapeletOutputPath);
-        
-        if(preferShortShapelets)
-            transform.setShapeletComparator(new Shapelet.ShortOrder());
         
         //Stop it printing everything
         //transform.supressOutput();
         
+        //at the moment this could be overrided.
+        //transform.setSearchFunction(new LocalSearch(3, m, 10, seed));
+
         BigInteger opCountTarget = new BigInteger(Long.toString(time / nanoToOp));
         
         BigInteger opCount = ShapeletTransformFactory.calculateOps(n, m, 1, 1);
         
-        //clamp K to 2000.
-        int K = n > 2000 ? 2000 : n;       
-
-        //how much time do we have vs. how long our algorithm will take.
+        //we need to resample.
         if(opCount.compareTo(opCountTarget) == 1){
-            BigDecimal oct = new BigDecimal(opCountTarget);
-            BigDecimal oc = new BigDecimal(opCount);
-            BigDecimal prop = oct.divide(oc, MathContext.DECIMAL64);
             
-            long shapelets = ShapeletTransformFactory.calculateNumberOfShapelets(n,m,3,m);
+            double recommendedProportion = ShapeletTransformFactory.calculateN(n, m, time);
             
-            shapelets *= prop.doubleValue();
+            //calculate n for minimum class rep of 25.
+            int small_sf = InstanceTools.findSmallestClassAmount(train);           
+            double proportion = 1.0;
+            if (small_sf>minimumRepresentation){
+                proportion = (double)minimumRepresentation/(double)small_sf;
+            }
             
-            System.out.println(shapelets);
+            //if recommended is smaller than our cutoff threshold set it to the cutoff.
+            if(recommendedProportion < proportion){
+                recommendedProportion = proportion;
+            }
             
-            //we need to find atleast one shapelet in every series.
-            transform.setSearchFunction(new ImpRandomSearch(3,m, shapelets, seed));
-            //transform.setSearchFunction(new RefinedRandomSearch(3,m, shapelets, seed, 0.01f)); //1% of the shapelet set size.
+            //subsample out dataset.
+            Instances subsample = utilities.InstanceTools.subSampleFixedProportion(train, recommendedProportion, seed);
             
-            // can't have more final shapelets than we actually search through.
-            K =  shapelets > K ? K : (int) shapelets;
+            int i=1;
+            //if we've properly resampled this should pass on first go. IF we haven't we'll try and reach our target. 
+            //calculate N is an approximation, so the subsample might need to tweak q and p just to bring us under. 
+            while(ShapeletTransformFactory.calculateOps(subsample.numInstances(), m, i, i).compareTo(opCountTarget) == 1){
+                i++;
+            }
+            
+//            System.out.println("new q and p: " + i);
+            
+            
+            double percentageOfSeries = (double)i/(double)m * 100.0;
+            
+//            System.out.println("percentageOfSeries: "+ percentageOfSeries);
 
-            transform.setNumberOfShapelets(K);
+  //          System.out.println("new n: " + subsample.numInstances());
+            
+            //we should look for less shapelets if we've resampled. 
+            //e.g. Eletric devices can be sampled to from 8000 for 2000 so we should be looking for 20,000 shapelets not 80,000
+            transform.setNumberOfShapelets(subsample.numInstances());
+            transform.setSearchFunction(new ShapeletSearch(3, m, i, i));
+            transform.process(subsample);
         }
-
         
         return transform.process(train);
     }
     
     public static void main(String[] args) throws Exception {
-        String dataLocation = "C:\\LocalData\\Dropbox\\TSC Problems\\";
+        String dataLocation = "C:\\LocalData\\Dropbox\\TSC Problems (1)\\";
         //String dataLocation = "..\\..\\resampled transforms\\BalancedClassShapeletTransform\\";
-        String saveLocation = "..\\..\\resampled results\\RefinedRandomTransform\\";
-        String datasetName = "Earthquakes";
+        String saveLocation = "..\\..\\resampled results\\BalancedClassShapeletTransform\\";
+        String datasetName = "HeartbeatBIDMC";
         int fold = 0;
         
         Instances train= ClassifierTools.loadData(dataLocation+datasetName+File.separator+datasetName+"_TRAIN");
@@ -224,10 +236,10 @@ public class RandomST_Ensemble  extends AbstractClassifier implements SaveableEn
         String testS=saveLocation+datasetName+File.separator+"TestPreds.csv";
         String preds=saveLocation+datasetName;
 
-        RandomST_Ensemble st= new RandomST_Ensemble();
+        ST_HESCA st= new ST_HESCA();
         //st.saveResults(trainS, testS);
         st.doSTransform(true);
-        st.setOneMinuteLimit();
+        st.setTimeLimit(ShapeletTransformFactory.dayNano);
         st.buildClassifier(train);
         double accuracy = utilities.ClassifierTools.accuracy(test, st);
         
