@@ -7,6 +7,7 @@ package weka.filters.timeseries.shapelet_transforms.searchFuntions;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Comparator;
 import weka.core.Instance;
 import weka.core.Instances;
 import weka.core.shapelet.Shapelet;
@@ -27,6 +28,13 @@ public class ShapeletSearch implements Serializable{
     public ArrayList<String> getShapeletsVisited() {
         return shapeletsVisited;
     }
+    
+    protected Comparator<Shapelet> comparator;
+    
+    public void setComparator(Comparator<Shapelet> comp){
+        comparator = comp;
+    }
+    
     
     protected int minShapeletLength;
     protected int maxShapeletLength;

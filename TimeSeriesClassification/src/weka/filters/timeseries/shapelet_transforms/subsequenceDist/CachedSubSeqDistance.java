@@ -38,7 +38,8 @@ public class CachedSubSeqDistance extends SubSeqDistance{
     {
         super.setShapelet(shp);
         
-        stats.computeStats(seriesId, data);
+        //for transforming we don't want to use the stats. it doesn't make sense.
+        stats = null;
     }
     
     @Override
@@ -55,13 +56,20 @@ public class CachedSubSeqDistance extends SubSeqDistance{
         if(stats == null)
             return super.calculate(timeSeries,timeSeriesId);
                 
+        //the series we're comparing too.
         stats.setCurrentY(timeSeriesId);
         
         double minSum = Double.MAX_VALUE;
         int subLength = candidate.length;
         
+        //System.out.println(startPos);
+        
         double xMean = stats.getMeanX(startPos, subLength);
         double xStdDev = stats.getStdDevX(startPos, subLength);
+        
+        //System.out.println("mean "+ xMean);
+        //System.out.println("stdv "+xStdDev);
+        
         double yMean;
         double yStdDev;
         double crossProd;
@@ -73,13 +81,17 @@ public class CachedSubSeqDistance extends SubSeqDistance{
             yStdDev = stats.getStdDevY(v, subLength);
             crossProd = stats.getSumOfProds(startPos, v, subLength);
 
+           /* System.out.println(v);
+            System.out.println("mean "+ yMean);
+            System.out.println("stdv "+ yStdDev);*/
+            
             double cXY = 0.0;
             if (xStdDev != 0 && yStdDev != 0)
             {
-                cXY = (crossProd - (subLength * xMean * yMean)) / (subLength * xStdDev * yStdDev);
+                cXY = (crossProd - (subLength * xMean * yMean)) / ((double)subLength * xStdDev * yStdDev);
             }
 
-            double dist = 2 * (1 - cXY);
+            double dist = 2.0 * (1.0 - cXY);
 
             if (dist < minSum)
             {
@@ -87,6 +99,9 @@ public class CachedSubSeqDistance extends SubSeqDistance{
             }
         }
 
+        
+        //System.out.println(minSum);
+        
         return minSum;
     }
     
@@ -169,7 +184,8 @@ public class CachedSubSeqDistance extends SubSeqDistance{
          */
         public double getMeanX(int startPos, int subLength)
         {
-            return (cummSums[xIndex][startPos + subLength] - cummSums[xIndex][startPos]) / subLength;
+            double diff = cummSums[xIndex][startPos + subLength] - cummSums[xIndex][startPos];
+            return diff / (double) subLength;
         }
 
         /**
@@ -182,7 +198,8 @@ public class CachedSubSeqDistance extends SubSeqDistance{
          */
         public double getMeanY(int startPos, int subLength)
         {
-            return (cummSums[yIndex][startPos + subLength] - cummSums[yIndex][startPos]) / subLength;
+            double diff = cummSums[yIndex][startPos + subLength] - cummSums[yIndex][startPos];
+            return diff / (double) subLength;
         }
 
         /**
@@ -195,7 +212,11 @@ public class CachedSubSeqDistance extends SubSeqDistance{
          */
         public double getStdDevX(int startPos, int subLength)
         {
-            return Math.sqrt(((cummSqSums[xIndex][startPos + subLength] - cummSqSums[xIndex][startPos]) / subLength) - (getMeanX(startPos, subLength) * getMeanX(startPos, subLength)));
+            double diff = cummSqSums[xIndex][startPos + subLength] - cummSqSums[xIndex][startPos];
+            double meanSqrd = getMeanX(startPos, subLength) * getMeanX(startPos, subLength);
+            double temp = diff / (double) subLength;
+            double temp1 = temp - meanSqrd;
+            return Math.sqrt(temp1);
         }
 
         /**
@@ -209,7 +230,11 @@ public class CachedSubSeqDistance extends SubSeqDistance{
          */
         public double getStdDevY(int startPos, int subLength)
         {
-            return  Math.sqrt(((cummSqSums[yIndex][startPos + subLength] - cummSqSums[yIndex][startPos]) / subLength) - (getMeanY(startPos, subLength) * getMeanY(startPos, subLength)));
+            double diff = cummSqSums[yIndex][startPos + subLength] - cummSqSums[yIndex][startPos];
+            double meanSqrd = getMeanX(startPos, subLength) * getMeanX(startPos, subLength);
+            double temp = diff / (double) subLength;
+            double temp1 = temp - meanSqrd;
+            return Math.sqrt(temp1);
         }
 
         /**
@@ -248,7 +273,8 @@ public class CachedSubSeqDistance extends SubSeqDistance{
 
         private double[][] computeCrossProd(double[] x, double[] y)
         {
-
+            //im assuming the starting from 1 with -1 is because of class values at the end.
+            
             double[][] output = new double[x.length][y.length];
 
             for (int u = 1; u < x.length; u++)

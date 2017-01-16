@@ -88,6 +88,17 @@ public class ClassifierTools {
             return d;
 	}
         
+        /** 
+        * simply loads the instances from the file
+        * @param file the File pointer rather than the path. Useful if you use FilenameFilters.
+        * @return Instances from file.
+        */
+        public static Instances loadData(File file) throws IOException{
+            Instances inst = new Instances(new FileReader(file));
+            inst.setClassIndex(inst.numAttributes()-1);
+            return inst;
+        }
+        
     /**
      *  Simple util to saveDatasets out. Useful for shapelet transform.
      * 

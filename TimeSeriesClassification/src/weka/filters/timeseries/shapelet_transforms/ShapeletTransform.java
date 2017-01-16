@@ -480,18 +480,9 @@ public class ShapeletTransform extends SimpleBatchFilter {
 
         //check the input data is correct and assess whether the filter has been setup correctly.
         inputCheck(data);
-
-        //setup classsValue
-        classValue.init(data);
         
-        //setup subseqDistance
-        subseqDistance.init(data);
-
         //checks if the shapelets haven't been found yet, finds them if it needs too.
         if (!m_FirstBatchDone) {
-            //setup search function.
-            searchFunction.init(data);
-            
             trainShapelets(data);
             //we log the count from the subseqdistance before we reset it in the transform.
             //we only care about the count from the train.
@@ -503,15 +494,25 @@ public class ShapeletTransform extends SimpleBatchFilter {
     }
 
     protected void trainShapelets(Instances data) {
-        //we might round robin the data in here. So we return the changed dataset.
-        Instances dataset = initDataSouce(data);
-
-        shapelets = findBestKShapeletsCache(dataset); // get k shapelets
+        //we might round robin the data in here. So we need to override the input data with the new ordering.
+        inputData = initDataSouce(data);
+        init(inputData);
+        
+        shapelets = findBestKShapeletsCache(inputData); // get k shapelets
         m_FirstBatchDone = true;
 
         outputPrint(shapelets.size() + " Shapelets have been generated");
         
         //we don't need to undo the roundRobin because we clone the data into a different order.
+    }
+    
+    private void init(Instances dataset){
+        searchFunction.setComparator(shapeletComparator);
+        searchFunction.init(dataset);
+        //setup subseqDistance
+        subseqDistance.init(dataset);
+        //setup classsValue
+        classValue.init(dataset);
     }
 
     private Instances initDataSouce(Instances data) {
@@ -537,8 +538,8 @@ public class ShapeletTransform extends SimpleBatchFilter {
         //Reorder the training data and reset the shapelet indexes
         Instances output = determineOutputFormat(data);
 
-        //reinit our data.
-        subseqDistance.init(data);
+        //init out data for transforming.
+        init(data);
 
         Shapelet s;
         // for each data, get distance to each shapelet and create new instance

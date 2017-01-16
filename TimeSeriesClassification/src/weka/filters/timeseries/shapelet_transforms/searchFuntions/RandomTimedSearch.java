@@ -16,7 +16,7 @@ import weka.core.shapelet.Shapelet;
  */
 public class RandomTimedSearch extends RandomSearch{
         
-    long timeLimit;
+    protected long timeLimit;
 
     protected RandomTimedSearch(int min, int max){
         super(min,max);

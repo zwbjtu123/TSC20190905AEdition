@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Random;
 
 /**
  *
@@ -36,5 +37,10 @@ public class GenericTools {
             }
         }
         return list;
+    }
+    
+    //this is inclusive of the top value.
+    public static int randomRange(Random rand, int min, int max){
+        return rand.nextInt((max - min) + 1) + min;
     }
 }

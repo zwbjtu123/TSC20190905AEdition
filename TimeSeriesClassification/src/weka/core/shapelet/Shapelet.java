@@ -259,7 +259,7 @@ public class Shapelet implements Comparable<Shapelet>, Serializable
         public int compare(Shapelet s1, Shapelet s2)
         {
             int compare1 = Double.compare(s2.qualityValue, s1.qualityValue); //prefer higher info gain
-            int compare2 = (s1.content.length - s2.content.length); //prefer the short ones.
+            int compare2 = (s1.content.length - s2.content.length); //prefer the long ones.
             return compare1 != 0 ? compare1 : compare2;
         }
     }
