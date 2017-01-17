@@ -310,7 +310,7 @@ public class ClassifierTools {
                     if(pred==ins.classValue())
                         correct++;
                 }
-                System.out.println("Finished fold "+n+" acc ="+((double)correct/((n+1)*test.numInstances())));
+//                System.out.println("Finished fold "+n+" acc ="+((double)correct/((n+1)*test.numInstances())));
            }catch(Exception e){
                System.err.println("ERROR BUILDING FOLD "+n+" for data set "+data.relationName());
                e.printStackTrace();

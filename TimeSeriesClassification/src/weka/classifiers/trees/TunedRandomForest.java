@@ -4,15 +4,25 @@ facility to build by forward selection addition of trees to minimize OOB error.
 
 Further enhanced to include OOB error estimates and predictions
 
-
+Further changes: 
+1. set number of trees (m_numTrees) via grid search on a range (using OOB) that
+defaults to 
+{10 [Weka Default],100,200,.., 500 [R default],...,1000} (11 values)
+2. set number of features  (max value m==numAttributes without class)
+per tree (m_numFeatures) and m_numTrees through grid
+search on a range 
+1, 10, sqrt(m) [R default], log_2(m)+1 [Weka default], m [full set]}
+(4 values)+add an option to choose randomly for each tree?
+grid search is then just 55 values and because it uses OOB no CV is required
  */
 package weka.classifiers.trees;
 
-import development.DataSets;
 import java.text.DecimalFormat;
+import java.util.ArrayList;
 import java.util.Random;
-import tsc_algorithms.TSBF;
 import utilities.ClassifierTools;
+import utilities.SaveCVAccuracy;
+import weka.classifiers.Evaluation;
 import weka.classifiers.meta.Bagging;
 import weka.core.Instance;
 import weka.core.Instances;
@@ -22,28 +32,187 @@ import weka.core.Utils;
  *
  * @author ajb
  */
-public class EnhancedRandomForest extends RandomForest{
+public class TunedRandomForest extends RandomForest implements SaveCVAccuracy{
+    boolean tune=true;
+    boolean tuneFeatures=true;
+    boolean debug=false;
+    int[] numTreesRange;
+    int[] numFeaturesRange;
+    double trainAcc;
+    String trainPath="";
+    Random rng;
+    ArrayList<Double> accuracy;
 
-    public EnhancedRandomForest(){
+    
+    public TunedRandomForest(){
         super();
-        m_numTrees=50;
-        m_numExecutionSlots=1;
-        
+        m_numTrees=500;
+        m_numExecutionSlots=1; 
+        m_bagger=new EnhancedBagging();
+        rng=new Random();
+        accuracy=new ArrayList<>();
     }
-    double OOBError;
+    public void setSeed(int s){
+        super.setSeed(s);
+        rng=new Random();
+        rng.setSeed(s);
+    }
+    
+    public void debug(boolean b){
+        this.debug=b;
+    }
+    
+    public void tuneTree(boolean b){
+        tune=b;
+    }
+    public void tuneFeatures(boolean b){
+        tuneFeatures=b;
+    }
+    public void setNumTreesRange(int[] d){
+        numTreesRange=d;
+    }
+    public void setNumFeaturesRange(int[] d){
+        numFeaturesRange=d;
+    }
+    @Override
+    public void setCVPath(String train) {
+        trainPath=train;
+    }
+
+    @Override
+    public String getParameters() {
+        String result="TrainAcc,"+trainAcc+",numTrees,"+this.getNumTrees()+",NumFeatures,"+this.getNumFeatures();
+        for(double d:accuracy)
+            result+=","+d;
+        return result;
+    }
+    protected final void setDefaultGridSearchRange(int m){
+//This only involves 55 or 44 parameter searches, unlike RBF that uses 625 by default.   
+        if(debug)
+            System.out.println("Setting defaults ....");
+        numTreesRange=new int[11];
+        numTreesRange[0]=10; //Weka default
+        for(int i=1;i<numTreesRange.length;i++)
+            numTreesRange[i]=100*i;
+        if(tuneFeatures){
+            if(m>10)//Include defaults for Weka (Utils.log2(m)+1) and R version  (int)Math.sqrt(m)
+                numFeaturesRange=new int[]{1,10,(int)Math.sqrt(m),(int) Utils.log2(m)+1,m-1};
+            else
+                numFeaturesRange=new int[]{1,(int)Math.sqrt(m),(int) Utils.log2(m)+1,m-1};
+        }
+        else
+            numFeaturesRange=new int[]{(int)Math.sqrt(m)};
+            
+  }
+
+    protected final void setDefaultFeatureRange(int m){
+//This only involves 55 or 44 parameter searches, unlike RBF that uses 625 by default.   
+        if(debug)
+            System.out.println("Setting default features....");
+
+        if(tuneFeatures){
+            if(m>10)//Include defaults for Weka (Utils.log2(m)+1) and R version  (int)Math.sqrt(m)
+                numFeaturesRange=new int[]{1,10,(int)Math.sqrt(m),(int) Utils.log2(m)+1,m-1};
+            else
+                numFeaturesRange=new int[]{1,(int)Math.sqrt(m),(int) Utils.log2(m)+1,m-1};
+        }
+        else
+            numFeaturesRange=new int[]{(int)Math.sqrt(m)};
+            
+  }
+    
+    
     double[][] OOBPredictions;
 /*This 
     */    
     @Override
     public void buildClassifier(Instances data) throws Exception{
+        int folds=10;
+        if(folds>data.numInstances())
+            folds=data.numInstances();
+        if(debug)
+            System.out.print(" Folds ="+folds);
+        
     // can classifier handle the data?
         getCapabilities().testWithFail(data);
-
         // remove instances with missing class
         data = new Instances(data);
         data.deleteWithMissingClass();
-        m_bagger = new EnhancedBagging();
-        RandomTree rTree = new RandomTree();
+        super.setSeed(rng.nextInt());
+        if(tune){
+            if(numTreesRange==null)
+                setDefaultGridSearchRange(data.numAttributes()-1);
+            else if(numFeaturesRange==null)
+                setDefaultFeatureRange(data.numAttributes()-1);
+            double bestErr=1.0;
+  //Its a local nested class! urggg            
+            class Pair{
+                int x,y;
+                Pair(int a, int b){
+                    x=a;
+                    y=b;
+                }
+            }
+           ArrayList<Pair> ties=new ArrayList<>();
+             for(int numFeatures:numFeaturesRange){//Need to start from scratch for each
+                if(debug)
+                    System.out.print(" numFeatures ="+numFeatures);
+                
+                for(int numTrees:numTreesRange){//Need to start from scratch for each                   t= new RandomForest();
+                    RandomForest t= new RandomForest();
+                    t.setSeed(rng.nextInt());
+                    t.setNumFeatures(numFeatures);
+                    t.setNumTrees(numTrees);
+                    Instances temp=new Instances(data);
+                    Evaluation eval=new Evaluation(temp);
+                    eval.crossValidateModel(t, temp, folds, rng);
+                    double e=eval.errorRate();
+//                    double e=1-ClassifierTools.stratifiedCrossValidation(data,t, folds,0);
+                    accuracy.add(1-e);
+                    if(debug)
+                        System.out.println(" numTrees ="+numTrees+" Acc = "+(1-e));
+                    
+//                    double e=t.measureOutOfBagError();
+//                    System.out.println(" CV Error ="+e);
+//                    t.addTrees(numTreesRange[j]-numTreesRange[j-1], data);
+//                    double e=t.findOOBError();
+                    if(e<bestErr){
+                        bestErr=e;
+                       ties=new ArrayList<>();//Remove previous ties
+                        ties.add(new Pair(numFeatures,numTrees));
+                    }
+                    else if(e==bestErr){//tied best, chosen randomeli
+                        ties.add(new Pair(numFeatures,numTrees));
+   
+                    }
+                }
+            }
+            int bestNumTrees;
+            int bestNumAtts;
+            Pair best=ties.get(rng.nextInt(ties.size()));
+            bestNumAtts=best.x;
+            bestNumTrees=best.y;
+            
+            this.setNumTrees(bestNumTrees);
+            this.setNumFeatures(bestNumAtts);
+            trainAcc=1-bestErr;
+            if(debug)
+                System.out.println("Best num atts ="+bestNumAtts+" best num trees = "+bestNumTrees+" best train acc = "+trainAcc);
+            if(trainPath!=""){  //Save train results not implemented
+            }
+        }
+/*        else{
+            int numF=(int)Math.sqrt(data.numAttributes()-1);
+            if(numF<1)
+                numF=1;
+            setNumFeatures(numF);
+*/            
+        super.buildClassifier(data);
+/*
+// Cant do this         super.buildClassifier(data);
+//cos it recreates the bagger
+    m_bagger = new EnhancedBagging();
+    RandomTree rTree = new RandomTree();
 
         // set up the random tree options
         m_KValue = m_numFeatures;
@@ -57,9 +226,8 @@ public class EnhancedRandomForest extends RandomForest{
         m_bagger.setNumIterations(m_numTrees);
         m_bagger.setCalcOutOfBag(true);
         m_bagger.setNumExecutionSlots(m_numExecutionSlots);
-        m_bagger.buildClassifier(data);
-        ((EnhancedBagging)m_bagger).findOOBProbabilities();
-        
+        m_bagger.buildClassifier(data);        
+*/        
     }
 
     public void addTrees(int n, Instances data) throws Exception{
@@ -69,7 +237,7 @@ public class EnhancedRandomForest extends RandomForest{
         m_KValue = m_numFeatures;
         rTree.setKValue(m_KValue);
         rTree.setMaxDepth(getMaxDepth());
-//Change this
+//Change this so that it is reproducable
         Random r= new Random();
         newTrees.setSeed(r.nextInt());
         newTrees.setClassifier(rTree);
@@ -85,12 +253,13 @@ public class EnhancedRandomForest extends RandomForest{
         
         m_numTrees+=n;
         m_bagger.setNumIterations(m_numTrees); 
-        
         ((EnhancedBagging)m_bagger).mergeBaggers(newTrees);
+        
     }
     public double getBaggingPercent(){
       return m_bagger.getBagSizePercent();
     }
+
     private class EnhancedBagging extends Bagging{
 // 
         @Override
@@ -115,7 +284,7 @@ public class EnhancedRandomForest extends RandomForest{
             for(int i=0;i<m_inBag.length;i++)
                 inBags[i]=m_inBag[i];
             for(int i=0;i<other.m_inBag.length;i++)
-                inBags[m_inBag.length+i]=m_inBag[i];
+                inBags[m_inBag.length+i]=other.m_inBag[i];
             m_inBag=inBags;
             findOOBError();
         }
@@ -182,7 +351,7 @@ public class EnhancedRandomForest extends RandomForest{
                 System.out.println(" PROBLEM ="+s);
                 Instances train=ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\TSC Problems\\"+s+"\\"+s+"_TRAIN");
                 Instances test=ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\TSC Problems\\"+s+"\\"+s+"_TEST");
-                EnhancedRandomForest rf=new EnhancedRandomForest();
+                TunedRandomForest rf=new TunedRandomForest();
                rf.buildClassifier(train);
                 System.out.println(" bag percent ="+rf.getBaggingPercent()+" OOB error "+rf.measureOutOfBagError());
                 for(int i=0;i<5;i++){
