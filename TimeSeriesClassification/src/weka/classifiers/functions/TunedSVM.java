@@ -52,7 +52,7 @@ public class TunedSVM extends SMO implements SaveCVAccuracy {
     Random rng;
     ArrayList<Double> accuracy;
 
-    enum KernelType {LINEAR,QUADRATIC,RBF};
+    public enum KernelType {LINEAR,QUADRATIC,RBF};
     KernelType kernel;
     public TunedSVM(){
         kernelOptimise=false;
@@ -71,6 +71,25 @@ public class TunedSVM extends SMO implements SaveCVAccuracy {
         this.debug=b;
     }
 
+    public void setKernalType(KernelType type) {
+        switch (type) {
+            case LINEAR:                     
+                PolyKernel p=new PolyKernel();
+                p.setExponent(1);
+                setKernel(p);
+            break;
+            case QUADRATIC:
+                PolyKernel p2=new PolyKernel();
+                p2.setExponent(2);
+                setKernel(p2);
+            break;
+            case RBF:
+                RBFKernel kernel2 = new RBFKernel();
+                setKernel(kernel2);
+            break;
+        }
+    }
+    
     public void setParaSpace(double[] p){
         paraSpace=p;
     }
