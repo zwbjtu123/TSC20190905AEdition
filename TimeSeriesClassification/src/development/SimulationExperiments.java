@@ -26,7 +26,7 @@ import weka.classifiers.lazy.DTW_1NN;
 import weka.classifiers.meta.RotationForest;
 import weka.classifiers.meta.timeseriesensembles.HESCA;
 import weka.classifiers.meta.timeseriesensembles.SaveableEnsemble;
-import weka.classifiers.trees.EnhancedRandomForest;
+import weka.classifiers.trees.TunedRandomForest;
 import weka.core.Instances;
 import tsc_algorithms.*;
 import utilities.ClassifierTools;
@@ -71,7 +71,7 @@ public class SimulationExperiments {
                 c=new HESCA();
                 break;
             case "RandF":
-                c=new EnhancedRandomForest();
+                c=new TunedRandomForest();
                 break;
             case "RotF":
                 c=new RotationForest();

@@ -4,22 +4,13 @@
     <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group>
-            <file>file:/C:/Jay/time-series-classification/TimeSeriesClassification/src/weka/classifiers/meta/timeseriesensembles/depreciated/HESCA_05_10_16.java</file>
-            <file>file:/C:/Jay/time-series-classification/TimeSeriesClassification/src/tsc_algorithms/cote/HiveCote.java</file>
-            <file>file:/C:/Jay/time-series-classification/TimeSeriesClassification/src/weka/filters/timeseries/shapelet_transforms/ShapeletTransformFactory.java</file>
-            <file>file:/C:/Jay/time-series-classification/TimeSeriesClassification/src/tsc_algorithms/elastic_ensemble/Efficient1NN.java</file>
-            <file>file:/C:/Jay/time-series-classification/TimeSeriesClassification/src/weka/classifiers/evaluation/EvaluationUtils.java</file>
-            <file>file:/C:/Jay/time-series-classification/TimeSeriesClassification/src/tsc_algorithms/cote/FlatCote.java</file>
-            <file>file:/C:/Jay/time-series-classification/TimeSeriesClassification/src/weka/classifiers/meta/timeseriesensembles/HESCA.java</file>
-            <file>file:/C:/Jay/time-series-classification/TimeSeriesClassification/src/weka/classifiers/AbstractClassifier.java</file>
-            <file>file:/C:/Jay/time-series-classification/TimeSeriesClassification/src/tsc_algorithms/ElasticEnsemble.java</file>
-            <file>file:/C:/Jay/time-series-classification/TimeSeriesClassification/src/statistics/simulators/SimulateDictionaryData.java</file>
-            <file>file:/C:/Jay/time-series-classification/TimeSeriesClassification/src/tsc_algorithms/cote/HiveCoteModule.java</file>
-            <file>file:/C:/Jay/time-series-classification/TimeSeriesClassification/src/utilities/ClassifierTools.java</file>
-            <file>file:/C:/Jay/time-series-classification/TimeSeriesClassification/src/tsc_algorithms/RISE.java</file>
-            <file>file:/C:/Jay/time-series-classification/TimeSeriesClassification/src/new_COTE_experiments/RISESimulatedDataExperiments.java</file>
-            <file>file:/C:/Jay/time-series-classification/TimeSeriesClassification/src/weka/classifiers/meta/timeseriesensembles/SaveableEnsemble.java</file>
-            <file>file:/C:/Jay/time-series-classification/TimeSeriesClassification/src/tsc_algorithms/TSF.java</file>
+            <file>file:/C:/Users/ajb/Dropbox/Code/time-series-classification/TimeSeriesClassification/src/development/SVMExperiments.java</file>
+            <file>file:/C:/Users/ajb/Dropbox/Code/time-series-classification/TimeSeriesClassification/src/weka/classifiers/functions/TunedSVM.java</file>
+            <file>file:/C:/Users/ajb/Dropbox/Code/time-series-classification/TimeSeriesClassification/src/development/ClassifierComparison.java</file>
+            <file>file:/C:/Users/ajb/Dropbox/Code/time-series-classification/TimeSeriesClassification/src/weka/classifiers/trees/TunedRandomForest.java</file>
+            <file>file:/C:/Users/ajb/Dropbox/Code/time-series-classification/TimeSeriesClassification/src/weka/classifiers/meta/TunedRotationForest.java</file>
+            <file>file:/C:/Users/ajb/Dropbox/Code/time-series-classification/TimeSeriesClassification/src/weka/classifiers/functions/Logistic.java</file>
+            <file>file:/C:/Users/ajb/Dropbox/Code/time-series-classification/TimeSeriesClassification/src/weka/classifiers/functions/supportVector/RBFKernel.java</file>
         </group>
     </open-files>
 </project-private>

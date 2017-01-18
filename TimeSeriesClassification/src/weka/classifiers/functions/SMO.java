@@ -639,7 +639,7 @@ public class SMO
     public double SVMOutput(int index, Instance inst) throws Exception {
       
       double result = 0;
-      
+
       // Is the machine linear?
       if (m_KernelIsLinear) {
 	

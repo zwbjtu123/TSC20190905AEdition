@@ -61,7 +61,7 @@ import utilities.ClassifierTools;
 import utilities.InstanceTools;
 import weka.classifiers.AbstractClassifier;
 import weka.classifiers.Classifier;
-import weka.classifiers.trees.EnhancedRandomForest;
+import weka.classifiers.trees.TunedRandomForest;
 import weka.classifiers.trees.RandomForest;
 import weka.core.Attribute;
 import weka.core.DenseInstance;
@@ -374,7 +374,7 @@ public TechnicalInformation getTechnicalInformation() {
         double curOOBerror=0;
         double prevOOBerror=1;
 //Build first model
-        EnhancedRandomForest rf= new EnhancedRandomForest();
+        TunedRandomForest rf= new TunedRandomForest();
         rf.setNumTrees(nofTreeStep);
         rf.buildClassifier(data);
         curOOBerror=rf.measureOutOfBagError();
@@ -473,7 +473,7 @@ public TechnicalInformation getTechnicalInformation() {
         */
                 double[][] probs;
                 if(stepWise){
-                    subseriesRandomForest = new EnhancedRandomForest();
+                    subseriesRandomForest = new TunedRandomForest();
                     subseriesRandomForest.buildClassifier(features);
                     double currentOOBError=subseriesRandomForest.measureOutOfBagError();
                     double prevOOBError=1;
@@ -481,10 +481,10 @@ public TechnicalInformation getTechnicalInformation() {
                     while(iter<20&&currentOOBError<(1-TOLERANCE)*prevOOBError){    
     //This implementation is faithful to the original
                         prevOOBError=currentOOBError;
-                        ((EnhancedRandomForest)subseriesRandomForest).addTrees(numOfTreeStep, features);
+                        ((TunedRandomForest)subseriesRandomForest).addTrees(numOfTreeStep, features);
                         currentOOBError=subseriesRandomForest.measureOutOfBagError();
                     } 
-                    probs=((EnhancedRandomForest)subseriesRandomForest).getOBProbabilities();
+                    probs=((TunedRandomForest)subseriesRandomForest).getOBProbabilities();
                 }   
                 else{
                     subseriesRandomForest=new RandomForest();
@@ -505,14 +505,14 @@ public TechnicalInformation getTechnicalInformation() {
 
                 double acc=0;    
                 if(stepWise){
-                     finalRandForest = new EnhancedRandomForest();
+                     finalRandForest = new TunedRandomForest();
                      finalRandForest.buildClassifier(second);
                      double currentOOBError=finalRandForest.measureOutOfBagError();
                      double prevOOBError=1;
                      int iter=1;
                      while(iter<20&&currentOOBError<(1-TOLERANCE)*prevOOBError){    //The way he has coded it will add in too many trees!
                          prevOOBError=currentOOBError;
-                         ((EnhancedRandomForest)finalRandForest).addTrees(numOfTreeStep, second);
+                         ((TunedRandomForest)finalRandForest).addTrees(numOfTreeStep, second);
                          currentOOBError=finalRandForest.measureOutOfBagError();
                      } 
                      acc=1-currentOOBError;

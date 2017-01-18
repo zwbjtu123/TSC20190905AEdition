@@ -13,6 +13,7 @@ package weka.classifiers.functions;
 import fileIO.OutFile;
 import java.io.File;
 import java.text.DecimalFormat;
+import java.util.ArrayList;
 import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -40,13 +41,17 @@ import weka.core.*;
  * 
  */
 public class TunedSVM extends SMO implements SaveCVAccuracy {
-    int min=-16;
-    int max=8;
+    int min=-8;
+    int max=16;
     double[] paraSpace;
     private static int MAX_FOLDS=10;
     private double[] paras;
     private double cvAcc=0;
     String trainPath;
+    boolean debug=false;
+    Random rng;
+    ArrayList<Double> accuracy;
+
     enum KernelType {LINEAR,QUADRATIC,RBF};
     KernelType kernel;
     public TunedSVM(){
@@ -54,7 +59,25 @@ public class TunedSVM extends SMO implements SaveCVAccuracy {
         kernel=KernelType.RBF;
         paraOptimise=true;
         setKernel(new RBFKernel());
-        
+        rng=new Random();
+       accuracy=new ArrayList<>();
+         
+    }
+    public void setSeed(int s){
+        rng=new Random();
+        rng.setSeed(s);
+    }
+    public void debug(boolean b){
+        this.debug=b;
+    }
+
+    public void setParaSpace(double[] p){
+        paraSpace=p;
+    }
+    public void setStandardParas(){
+        paraSpace=new double[max-min+1];
+        for(int i=min;i<=max;i++)
+            paraSpace[i-min]=Math.pow(2,i);
     }
     private boolean kernelOptimise=false;   //Choose between linear, quadratic and RBF kernel
     private boolean paraOptimise=true;
@@ -63,59 +86,92 @@ public class TunedSVM extends SMO implements SaveCVAccuracy {
     public void buildRBF(Instances train) throws Exception {
         paras=new double[2];
         int folds=MAX_FOLDS;
+        if(folds>train.numInstances())
+            folds=train.numInstances();
+
         double minErr=1;
-        double bestC=min;
-        double bestSigma=min;
-        for(int i=min;i<=max;i++){
-            for(int j=min;j<=max;j++){
-                Instances temp=new Instances(train);
-                Evaluation eval;
+        this.setSeed(rng.nextInt());
+            class Pair{
+                double x,y;
+                Pair(double a, double b){
+                    x=a;
+                    y=b;
+                }
+            }
+           ArrayList<Pair> ties=new ArrayList<>();
+        
+        for(double p1:paraSpace){
+            for(double p2:paraSpace){
                 SMO model = new SMO();
                 RBFKernel kernel = new RBFKernel();
-                kernel.setGamma(Math.pow(2,j));
+                kernel.setGamma(p2);
                 model.setKernel(kernel);
-                model.setC(Math.pow(2,i));
-       
-                eval = new Evaluation(train);
-                eval.crossValidateModel(model, temp, folds,new Random());
+                model.setC(p1);
+                Instances temp=new Instances(train);
+                Evaluation eval=new Evaluation(temp);
+                eval.crossValidateModel(model, temp, folds, rng);
                 double e=eval.errorRate();
+                accuracy.add(1-e);
+
+                if(debug)
+                    System.out.println(" C= "+p1+" Gamma = "+p2+" Acc = "+(1-e));
                 if(e<minErr){
                     minErr=e;
-                    bestC=i;
-                    bestSigma=j;
+                       ties=new ArrayList<>();//Remove previous ties
+                        ties.add(new Pair(p1,p2));
+                    }
+                else if(e==minErr){//Sort out ties
+                        ties.add(new Pair(p1,p2));
                 }
             }
         }
-        paras[0]=Math.pow(2,bestC);
-          setC(Math.pow(2,bestC));
-          ((RBFKernel)m_kernel).setGamma(Math.pow(2,bestSigma));
-        paras[1]=Math.pow(2,bestSigma);
+        
+        double bestC;
+        double bestSigma;
+        Pair best=ties.get(rng.nextInt(ties.size()));
+        bestC=best.x;
+        bestSigma=best.y;
+        paras[0]=bestC;
+        setC(bestC);
+        ((RBFKernel)m_kernel).setGamma(bestSigma);
+        paras[1]=bestSigma;
         cvAcc=1-minErr;  
+        if(debug)
+            System.out.println("Best C ="+bestC+" best Gamma = "+bestSigma+" best train acc = "+cvAcc);
     }
     
- 
    public void buildQuadratic(Instances train) throws Exception {
         paras=new double[1];
         int folds=MAX_FOLDS;
+        if(folds>train.numInstances())
+            folds=train.numInstances();
         double minErr=1;
-        double bestC=min;
-        for(int i=min;i<=max;i++){
+           ArrayList<Double> ties=new ArrayList<>();
+        
+        
+        for(double d: paraSpace){
             Instances temp=new Instances(train);
-            Evaluation eval;
             SMO model = new SMO();
             model.setKernel(m_kernel);
-            model.setC(Math.pow(2,i));
-            eval = new Evaluation(train);
-            eval.crossValidateModel(model, temp, folds,new Random());
+            model.setC(d);
+            Evaluation eval=new Evaluation(temp);
+            eval.crossValidateModel(model, temp, folds, rng);
             double e=eval.errorRate();
+            accuracy.add(1-e);
+            
             if(e<minErr){
                 minErr=e;
-                bestC=i;
+               ties=new ArrayList<>();//Remove previous ties
+                ties.add(d);
+            }
+            else if(e==minErr){//Sort out ties
+                ties.add(d);
             }
         }
-        setC(Math.pow(2,bestC));
+        double bestC=ties.get(rng.nextInt(ties.size()));
+        setC(bestC);
         cvAcc=1-minErr;
-        paras[0]=Math.pow(2,bestC);  
+        paras[0]=bestC;  
     }
      
     public void selectKernel(Instances train) throws Exception {
@@ -130,9 +186,10 @@ public class TunedSVM extends SMO implements SaveCVAccuracy {
             TunedSVM temp=new TunedSVM();
             Kernel kernel;
             switch(k){
-                case LINEAR: 
+                case LINEAR:                     
                     PolyKernel p=new PolyKernel();
                     p.setExponent(1);
+
                     temp.setKernel(p);
                     temp.buildQuadratic(train);
                     linearCVAcc=temp.cvAcc;
@@ -186,6 +243,9 @@ public class TunedSVM extends SMO implements SaveCVAccuracy {
     
     @Override
     public void buildClassifier(Instances train) throws Exception {
+        if(paraSpace==null)
+            setStandardParas();
+        
         if(kernelOptimise)
             selectKernel(train);
         else if(paraOptimise){
@@ -252,6 +312,9 @@ public class TunedSVM extends SMO implements SaveCVAccuracy {
         String result="CVAcc,"+cvAcc+",C,"+paras[0];
         if(paras.length>1)
             result+=",Gamma,"+paras[1];
+       for(double d:accuracy)
+            result+=","+d;
+        
         return result;
     }
     

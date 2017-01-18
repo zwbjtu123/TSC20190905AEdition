@@ -2,6 +2,7 @@ package development;
 
 import fileIO.InFile;
 import fileIO.OutFile;
+import java.text.DecimalFormat;
 import statistics.tests.OneSampleTests;
 import statistics.tests.TwoSampleTests;
 
@@ -90,11 +91,12 @@ public class MultipleClassifiersPairwiseTest {
                 }
             }
         }
-        
+        DecimalFormat df = new DecimalFormat("##.#####");
+        System.out.println(" alpha =\n"+alpha);
         System.out.print("\t");
         for(int i=0;i<nosClassifiers;i++)
             System.out.print(names[i]+"\t");
-        System.out.println(" alpha =\n"+alpha);
+            System.out.print("\n");
         for(int i=0;i<nosClassifiers;i++){
             System.out.print(names[i]+"\t");
             for(int j=0;j<nosClassifiers;j++){
@@ -102,7 +104,7 @@ public class MultipleClassifiersPairwiseTest {
                     System.out.print("\t");
                 else
                     if(printPVals)
-                        System.out.print(pValsSignRankTest[i][j]+"\t");
+                        System.out.print(df.format(pValsSignRankTest[i][j])+"\t");
                 else
                     System.out.print(noDifference[i][j]+"\t");
             }
@@ -143,6 +145,8 @@ public class MultipleClassifiersPairwiseTest {
         String[] allSimulators={"WholeSeriesElastic","Interval","Shapelet","Dictionary","ARMA","All"};
 //        for(String s:allSimulators)
         String input="C:\\Research\\Results\\RepoResults\\HIVE Results";
+
+        input="C:\\Users\\ajb\\Dropbox\\Results\\UCIResults\\muppets1";
 //        String s= "All";
 //            runTests(input+s+"CombinedResults.csv",input+s+"Tests.csv");
             runTests(input+".csv",input+"Tests.csv");

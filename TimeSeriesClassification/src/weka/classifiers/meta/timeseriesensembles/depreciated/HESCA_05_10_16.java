@@ -26,7 +26,7 @@ import weka.classifiers.lazy.kNN;
 import weka.classifiers.meta.RotationForest;
 import weka.classifiers.meta.timeseriesensembles.SaveableEnsemble;
 import weka.classifiers.rules.ZeroR;
-import weka.classifiers.trees.EnhancedRandomForest;
+import weka.classifiers.trees.TunedRandomForest;
 import weka.classifiers.trees.J48;
 import weka.classifiers.trees.RandomForest;
 import weka.core.*;
@@ -174,7 +174,7 @@ tation Forest [30] (with 50 trees), and a Bayesian network.
                svm.setRandomSeed(seed);
             classifiers.add(svm);
             names.add("SVMQ");
-            RandomForest r=new EnhancedRandomForest();
+            RandomForest r=new TunedRandomForest();
             r.setNumTrees(500);
             if(setSeed)
                r.setSeed(seed);            
@@ -261,9 +261,9 @@ tation Forest [30] (with 50 trees), and a Bayesian network.
 /*Speed things up by using the OOB error rather than the CV error for random forest.                
     it should be possible to do this for rotation forest also            
                 */
-                if(c[i] instanceof EnhancedRandomForest){
+                if(c[i] instanceof TunedRandomForest){
                     c[i].buildClassifier(train);
-                    cvAccs[i]=1-((EnhancedRandomForest)c[i]).measureOutOfBagError();
+                    cvAccs[i]=1-((TunedRandomForest)c[i]).measureOutOfBagError();
                     sum+=cvAccs[i];
 //                    System.out.println(" OOB ="+(1-cvAccs[i]));
                 }

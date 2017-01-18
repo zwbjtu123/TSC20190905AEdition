@@ -4,10 +4,14 @@ Class demonstrating how to use the data simulators to generate weka instances
 package examples;
 
 import java.util.ArrayList;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import statistics.simulators.ArmaModel;
 import statistics.simulators.DataSimulator;
 import statistics.simulators.Model;
 import statistics.simulators.SimulateSpectralData;
+import weka.classifiers.Classifier;
+import weka.classifiers.trees.J48;
 import weka.core.Instances;
 
 /**
@@ -17,7 +21,24 @@ import weka.core.Instances;
 public class DataSimulatorExamples extends DataSimulator{
     
     
-    public static void main(String[] args){
+    public static void main(String[] args) {
+        Classifier c=new J48();
+        try {
+            c.buildClassifier(null);
+        } catch (Exception ex) {
+            Logger.getLogger(DataSimulatorExamples.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        
+        
+        try {
+            c.buildClassifier(null);
+        } catch (Exception ex) {  
+            System.out.println("ERRRORRR!!!!");
+            System.exit(0);
+        }
+        
+        
+        
 /**DataSimulator: All the simulators inherit from  DataSimulator
  * a DataSimulator contains an ArrayList of Models, one for each class
  * To create a data simulator, you can either pass it a 2D array of parameters

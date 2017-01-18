@@ -22,7 +22,7 @@ import weka.classifiers.Classifier;
 import weka.classifiers.lazy.DTW_1NN;
 import weka.classifiers.meta.RotationForest;
 import weka.classifiers.meta.timeseriesensembles.HESCA;
-import weka.classifiers.trees.EnhancedRandomForest;
+import weka.classifiers.trees.TunedRandomForest;
 import weka.core.Instances;
 import development.SimulationExperiments;
 import static development.SimulationExperiments.createClassifier;
