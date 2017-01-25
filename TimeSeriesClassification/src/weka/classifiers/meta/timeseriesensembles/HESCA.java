@@ -12,6 +12,7 @@ import java.util.Collections;
 import java.util.Random;
 import tsc_algorithms.cote.HiveCoteModule;
 import utilities.ClassifierTools;
+import utilities.CrossValidator;
 import utilities.InstanceTools;
 import weka.classifiers.AbstractClassifier;
 import weka.classifiers.Classifier;
@@ -80,7 +81,7 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule, SaveCVA
         this.classifiers = classifiers;
         this.classifierNames = classifierNames;
     }
-   public Classifier[] getClassifiers(){ return classifiers;}
+    public Classifier[] getClassifiers(){ return classifiers;}
    
     public final void setDefaultClassifiers(){
         this.classifiers = new Classifier[8];
@@ -177,142 +178,6 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule, SaveCVA
             numFolds=FOLDS1;
         return numFolds;
     }
-      
-    
-/**
- * this method is very memory intensive
- * 
- */    
-    public double[] crossValidate(Classifier classifier, Instances train) throws Exception{
-        
-        int numFolds = findNumFolds(train);
-               
-        Random r = null;
-        if(this.setSeed){
-            r = new Random(this.seed);
-        }else{
-            r = new Random();
-        }
-        ArrayList<Instances> folds = new ArrayList<>();
-        ArrayList<ArrayList<Integer>> foldIndexing = new ArrayList<>();
-        
-        for(int i = 0; i < numFolds; i++){
-            folds.add(new Instances(train,0));
-            foldIndexing.add(new ArrayList<>());
-        }
-        
-        ArrayList<Integer> instanceIds = new ArrayList<>();
-        for(int i = 0; i < train.numInstances(); i++){
-            instanceIds.add(i);
-        }
-        Collections.shuffle(instanceIds, r);
-        
-        ArrayList<Instances> byClass = new ArrayList<>();
-        ArrayList<ArrayList<Integer>> byClassIndices = new ArrayList<>();
-        for(int i = 0; i < train.numClasses(); i++){
-            byClass.add(new Instances(train,0));
-            byClassIndices.add(new ArrayList<>());
-        }
-        
-        int thisInstanceId;
-        double thisClassVal;
-        for(int i = 0; i < train.numInstances(); i++){
-            thisInstanceId = instanceIds.get(i);
-            thisClassVal = train.instance(thisInstanceId).classValue();
-            
-            byClass.get((int)thisClassVal).add(train.instance(thisInstanceId));
-            byClassIndices.get((int)thisClassVal).add(thisInstanceId);
-        }
-
-         // now stratify        
-        Instances strat = new Instances(train,0);
-        ArrayList<Integer> stratIndices = new ArrayList<>();
-        int stratCount = 0;
-        int[] classCounters = new int[train.numClasses()];
-        
-        while(stratCount < train.numInstances()){
-            
-            for(int c = 0; c < train.numClasses(); c++){
-                if(classCounters[c] < byClass.get(c).size()){
-                    strat.add(byClass.get(c).instance(classCounters[c]));
-                    stratIndices.add(byClassIndices.get(c).get(classCounters[c]));
-                    classCounters[c]++;
-                    stratCount++;
-                }
-            }
-        }
-        
-
-        train = strat;
-        instanceIds = stratIndices;
-       
-        double foldSize = (double)train.numInstances()/numFolds;
-        
-        double thisSum = 0;
-        double lastSum = 0;
-        int floor;
-        int foldSum = 0;
-        
-
-        int currentStart = 0;
-        for(int f = 0; f < numFolds; f++){
-
-            
-            thisSum = lastSum+foldSize+0.000000000001;  
-// to try and avoid double imprecision errors (shouldn't ever be big enough to effect folds when double imprecision isn't an issue)
-            floor = (int)thisSum;
-            
-            if(f==numFolds-1){
-                floor = train.numInstances(); // to make sure all instances are allocated in case of double imprecision causing one to go missing
-            }
-            
-            for(int i = currentStart; i < floor; i++){
-                folds.get(f).add(train.instance(i));
-                foldIndexing.get(f).add(instanceIds.get(i));
-            }
-
-            foldSum+=(floor-currentStart);
-            currentStart = floor;
-            lastSum = thisSum;
-        }
-        
-        if(foldSum!=train.numInstances()){
-            throw new Exception("Error! Some instances got lost file creating folds (maybe a double precision bug). Training instances contains "+train.numInstances()+", but the sum of the training folds is "+foldSum);
-        }
-        Instances trainCV;
-        Instances testCV;
-        
-        double pred;
-        double[] predictions = new double[train.numInstances()];
-        
-        Instances temp; // had to add in redundant instance storage so we don't keep killing the base set of Instances by mistake
-        
-        for(int testFold = 0; testFold < numFolds; testFold++){
-            
-            trainCV = null;
-            testCV = new Instances(folds.get(testFold));
-            
-            for(int f = 0; f < numFolds; f++){
-                if(f==testFold){
-                    continue;
-                }
-                temp = new Instances(folds.get(f));
-                if(trainCV==null){
-                    trainCV = temp;
-                }else{
-                    trainCV.addAll(temp);
-                }
-            }
-            
-            classifier.buildClassifier(trainCV);
-            for(int i = 0; i < testCV.numInstances(); i++){
-                pred = classifier.classifyInstance(testCV.instance(i));
-                predictions[foldIndexing.get(testFold).get(i)] = pred;
-            }
-        }
-        return predictions;
-    }
-
     
     @Override
     public void buildClassifier(Instances input) throws Exception{
@@ -323,31 +188,26 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule, SaveCVA
         }
         
         int correct;  
-        this.individualCvPreds = new double[this.classifiers.length][this.train.numInstances()];
         this.individualCvAccs = new double[this.classifiers.length];
         
+        int numFolds = findNumFolds(train);
+        CrossValidator cv = new CrossValidator(); 
+        cv.setNumFolds(numFolds);
+        cv.setSeed(seed);
+        this.individualCvPreds = cv.crossValidate(classifiers, input);
+        
+        
         for(int c = 0; c < this.classifiers.length; c++){
-//            if(classifiers[c] instanceof BaggedRandomForest){
-// Implement after testing whether 10x fold is as accurate             
-/*      Need to recover the CVPredictions for RandomForest using Enhanced RandomForest    
-            if(classifiers[c] instanceof RandomForest){
-                classifiers[c].buildClassifier(train);
-                individualCvAccs[c]=1-((RandomForest)classifiers[c]).measureOutOfBagError();                
-            }
-            else 
-*/
-            {
-                this.individualCvPreds[c] = crossValidate(this.classifiers[c],this.train);
-                correct = 0;
+            correct = 0;
 
-                for(int i = 0; i < this.individualCvPreds[c].length; i++){
-                    if(train.instance(i).classValue()==this.individualCvPreds[c][i]){
-                        correct++;
-                    }
+            for(int i = 0; i < this.individualCvPreds[c].length; i++){
+                if(train.instance(i).classValue()==this.individualCvPreds[c][i]){
+                    correct++;
                 }
-                this.individualCvAccs[c] = (double)correct/train.numInstances();
-                classifiers[c].buildClassifier(train);
             }
+            this.individualCvAccs[c] = (double)correct/train.numInstances();
+            classifiers[c].buildClassifier(train);
+            
             if(this.writeIndividualClassifierOutputs){
                 StringBuilder st = new StringBuilder();
                 st.append(this.datasetIdentifier+","+this.ensembleIdentifier+"_"+classifierNames[c]+",train\n");
@@ -634,6 +494,7 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule, SaveCVA
     
     
     public static void main(String[] args) throws Exception{
+
         Instances train = ClassifierTools.loadData("c:/users/sjx07ngu/dropbox/tsc problems/ItalyPowerDemand/ItalyPowerDemand_TRAIN");
         Instances test = ClassifierTools.loadData("c:/users/sjx07ngu/dropbox/tsc problems/ItalyPowerDemand/ItalyPowerDemand_TEST");
         ShapeletTransform st = ShapeletTransformFactory.createTransform(train);
