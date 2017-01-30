@@ -16,7 +16,7 @@ import weka.core.shapelet.Shapelet;
  *
  * @author raj09hxu
  */
-public class PixelSearch extends ImpRandomSearch{
+public class MagnifySearch extends ImpRandomSearch{
 
     int numShapeletsPerSeries;
     
@@ -24,7 +24,7 @@ public class PixelSearch extends ImpRandomSearch{
     //how many times do we want to make our search area smaller.
     int maxDepth = 3;
     
-    public PixelSearch(int min, int max, long shapelets, long seed) {
+    public MagnifySearch(int min, int max, long shapelets, long seed) {
         super(min, max, shapelets, seed);
     }
     
@@ -33,6 +33,7 @@ public class PixelSearch extends ImpRandomSearch{
     public void init(Instances input){
         inputData = input;
         numShapeletsPerSeries = (int) (numShapelets / inputData.numInstances());  
+        numShapeletsPerSeries /= maxDepth;
         
         if(numShapeletsPerSeries < 1)
             System.err.println("Too Few Starting shapelets");
@@ -40,8 +41,6 @@ public class PixelSearch extends ImpRandomSearch{
     
     @Override
     public ArrayList<Shapelet> SearchForShapeletsInSeries(Instance timeSeries, ShapeletSearch.ProcessCandidate checkCandidate){
-    
-
         double[] candidate = timeSeries.toDoubleArray();
         
         //we want to iteratively shrink our search area.
@@ -58,11 +57,14 @@ public class PixelSearch extends ImpRandomSearch{
         
         ArrayList<Shapelet> candidateList = new ArrayList<>();
         
+        
         for(int depth = 0; depth < maxDepth; depth++){
             
             Shapelet bsf = null;
-            //abrtitrary 10. TODO: calculate the proper number, based on depth and amount of shapelets available.
-            for(int i=0; i<500; i++){
+            //we divide the numShapeletsPerSeries by maxDepth.
+            for(int i=0; i<numShapeletsPerSeries; i++){
+                
+                
                 
                 Pair<Integer, Integer> sh = createRandomShapelet(timeSeries.numAttributes()-1, minLength, maxLength, minPos, maxPos);
                 Shapelet shape = checkCandidate.process(candidate, sh.var1, sh.var2);
@@ -78,16 +80,13 @@ public class PixelSearch extends ImpRandomSearch{
                 if(depth == maxDepth-1)
                     candidateList.add(shape);
                 
-                
-               if(comparator.compare(bsf, shape) < 0){
-                   bsf = shape;
-               }
+                if(comparator.compare(bsf, shape) < 0){
+                    bsf = shape;
+                }
             }
             
             //add each best so far.
             //should give us a bit of a range of improving shapelets and a really gone one.
-            
-            
             //do another trial. -- this is super unlikly.
             if(bsf==null) {
                 maxDepth--;
@@ -130,7 +129,7 @@ public class PixelSearch extends ImpRandomSearch{
     
     public static void main(String[] args){
         
-        PixelSearch ps = new PixelSearch(3, 100, 1000, 0);
+        MagnifySearch ps = new MagnifySearch(3, 100, 1000, 0);
         
         for(int i=0; i<100; i++)
             System.out.println(ps.createRandomShapelet(100, 3, 100, 0, 100));
