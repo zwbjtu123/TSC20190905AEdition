@@ -6,15 +6,6 @@
 package tsc_algorithms.boss;
 
 import fileIO.OutFile;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.Iterator;
 import java.util.LinkedList;
 
@@ -86,45 +77,21 @@ public class BoTSWEnsemble implements Classifier, SaveCVAccuracy /*, HiveCoteMod
     
     private BoTSW.DistFunction dist = BoTSW.DistFunction.EUCLIDEAN_DISTANCE;
     
-    public enum SerialiseOptions { 
-        //dont do any seriealising, run as normal
-        NONE, 
-        
-        //serialise the final botsw classifiers which made it into ensemble (does not serialise the entire BoTSWEnsemble object)
-        //slight runtime cost 
-        STORE, 
-        
-        //serialise the final botsw classifiers, and delete from main memory. reload each from ser file when needed in classification. 
-        //the most memory used at any one time is therefore ~2 individual botsw classifiers during training. 
-        //massive runtime cost, order of magnitude 
-        STORE_LOAD 
-    };
-    
-    
-    private SerialiseOptions serOption = SerialiseOptions.NONE;
-    private static String serFileLoc = "BOSSWindowSers\\";
-    
     private String trainCVPath;
     private boolean trainCV=false;
 
     private Instances train;
     private double ensembleCvAcc = -1;
 
-    public static class BoTSWWindow implements Comparable<BoTSWWindow>, Serializable { 
+    public static class BoTSWWindow implements Comparable<BoTSWWindow> { 
         private BoTSW classifier;
         public double accuracy;
-        public String filename;
         
         private static final long serialVersionUID = 2L;
-
-        public BoTSWWindow(String filename) {
-            this.filename = filename;
-        }
         
         public BoTSWWindow(BoTSW classifer, double accuracy, String dataset) {
             this.classifier = classifer;
             this.accuracy = accuracy;
-            buildFileName(dataset);
         }
 
         public double classifyInstance(Instance inst) throws Exception { 
@@ -135,70 +102,8 @@ public class BoTSWEnsemble implements Classifier, SaveCVAccuracy /*, HiveCoteMod
             return classifier.classifyInstance(test); 
         }
         
-        private void buildFileName(String dataset) {
-            filename = serFileLoc + dataset + "_" + classifier.params.toString() + ".ser";
-        }
-        
-        public boolean storeAndClearClassifier() {
-            try {
-                ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(filename));
-                out.writeObject(this);
-                out.close();   
-                clearClassifier();
-                return true;
-            }catch(IOException e) {
-                System.out.print("Error serialiszing to " + filename);
-                e.printStackTrace();
-                return false;
-            }
-        }
-        
-        public boolean store() {
-            try {
-                ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(filename));
-                out.writeObject(this);
-                out.close();         
-                return true;
-            }catch(IOException e) {
-                System.out.print("Error serialiszing to " + filename);
-                e.printStackTrace();
-                return false;
-            }
-        }
-        
         public void clearClassifier() {
             classifier = null;
-        }
-        
-        public boolean load() {
-            BoTSWWindow bw = null;
-            try {
-                ObjectInputStream in = new ObjectInputStream(new FileInputStream(filename));
-                bw = (BoTSWWindow) in.readObject();
-                in.close();
-                this.accuracy = bw.accuracy;
-                this.classifier = bw.classifier;
-                return true;
-            }catch(IOException i) {
-                System.out.print("Error deserialiszing from " + filename);
-                i.printStackTrace();
-                return false;
-            }catch(ClassNotFoundException c) {
-                System.out.println("BoTSWWindow class not found");
-                c.printStackTrace();
-                return false;
-            }
-        }
-        
-        public boolean deleteSerFile() {
-            try {
-                File f = new File(filename);
-                return f.delete();
-            } catch(SecurityException s) {
-                System.out.println("Unable to delete, access denied: " + filename);
-                s.printStackTrace();
-                return false;
-            }
         }
         
         /**
@@ -258,14 +163,6 @@ public class BoTSWEnsemble implements Classifier, SaveCVAccuracy /*, HiveCoteMod
         return params;
     }
     
-    public void setSerOption(SerialiseOptions option) { 
-        serOption = option;
-    }
-    
-    public void setSerFileLoc(String path) {
-        serFileLoc = path;
-    }
-    
     public void setMaxEnsembleSize(int max) {
         maxEnsembleSize = max;
     }
@@ -283,15 +180,6 @@ public class BoTSWEnsemble implements Classifier, SaveCVAccuracy /*, HiveCoteMod
         if (data.classIndex() != data.numAttributes()-1)
             throw new Exception("BOSSEnsemble_BuildClassifier: Class attribute not set as last attribute in dataset");
  
-        if (serOption == SerialiseOptions.STORE || serOption == SerialiseOptions.STORE_LOAD) {
-            DateFormat dateFormat = new SimpleDateFormat("yyyyMMddHHmmss");
-            Date date = new Date();
-            serFileLoc += data.relationName() + "_" + dateFormat.format(date) + "\\";
-            File f = new File(serFileLoc);
-            if (!f.isDirectory())
-                f.mkdirs();
-        }
-        
         classifiers = new LinkedList<BoTSWWindow>();
         int numSeries = data.numInstances();
         //keep track of current max window size accuracy, constantly check for correctthreshold to discard to save space
@@ -301,13 +189,10 @@ public class BoTSWEnsemble implements Classifier, SaveCVAccuracy /*, HiveCoteMod
         boolean firstBuild = true;
         BoTSW.FeatureDiscoveryData[] fdData = null; //keypoint location and guassian of series data
         for (Integer n_b : n_bRanges) {
-            Timer n_bTimer = new Timer("n_b="+n_b);
             
             for (Integer a : aRanges) {
                 if (n_b*a > data.numAttributes()-1)
-                    continue; //series not long enough to provide suffient gradient data
-                
-                Timer aTimer = new Timer("\ta="+a);
+                    continue; //series not long enough to provide suffient gradient data for these params
                 
                 BoTSW botsw = new BoTSW(n_b, a, kRanges[0]);  
                 botsw.setSearchingForK(true);
@@ -328,9 +213,6 @@ public class BoTSWEnsemble implements Classifier, SaveCVAccuracy /*, HiveCoteMod
                 
                 boolean firstk = true;
                 for (Integer k : kRanges) {       
-                
-                    Timer kTimer = new Timer("\t\tk="+k);
-                    
                     if (firstk) //of this loop
                         firstk = false; //do nothing here, next loop go to the else
                     else {
@@ -357,11 +239,6 @@ public class BoTSWEnsemble implements Classifier, SaveCVAccuracy /*, HiveCoteMod
                         BoTSWWindow bw = new BoTSWWindow(botsw, acc, data.relationName());
                         //bw.classifier.clean();
 
-                        if (serOption == SerialiseOptions.STORE)
-                            bw.store();
-                        else if (serOption == SerialiseOptions.STORE_LOAD)
-                            bw.storeAndClearClassifier();
-
                         classifiers.add(bw);
 
                         if (acc > maxAcc) {
@@ -370,30 +247,21 @@ public class BoTSWEnsemble implements Classifier, SaveCVAccuracy /*, HiveCoteMod
                             Iterator<BoTSWWindow> it = classifiers.iterator();
                             while (it.hasNext()) {
                                 BoTSWWindow b = it.next();
-                                if (b.accuracy < maxAcc * correctThreshold) {
-                                    if (serOption == SerialiseOptions.STORE || serOption == SerialiseOptions.STORE_LOAD)
-                                        b.deleteSerFile();
+                                if (b.accuracy < maxAcc * correctThreshold)
                                     it.remove();
-                                }
                             }
                         }
                         
                         while (classifiers.size() > maxEnsembleSize) {
                             //cull the 'worst of the best' until back under the max size                            
                             int minAccInd = (int)findMinEnsembleAcc()[0];
-                            
-                            if (serOption == SerialiseOptions.STORE || serOption == SerialiseOptions.STORE_LOAD)
-                                classifiers.get(minAccInd).deleteSerFile();
                             classifiers.remove(minAccInd);
                         }
                         
                         minMaxAcc = findMinEnsembleAcc()[1]; //new 'worst of the best' acc
                     }
-                    kTimer.printlnTimeSoFar();
                 }
-                aTimer.printlnTimeSoFar();
             }
-            n_bTimer.printlnTimeSoFar();
         }
         
         if (trainCV) {
@@ -493,11 +361,7 @@ public class BoTSWEnsemble implements Classifier, SaveCVAccuracy /*, HiveCoteMod
         //get votes from all windows 
         double sum = 0;
         for (BoTSWWindow classifier : classifiers) {
-            if (serOption == SerialiseOptions.STORE_LOAD)
-                classifier.load();
             double classification = classifier.classifyInstance(test);
-            if (serOption == SerialiseOptions.STORE_LOAD)
-                classifier.clearClassifier();
             classHist[(int)classification]++;
             sum++;
         }
@@ -530,11 +394,7 @@ public class BoTSWEnsemble implements Classifier, SaveCVAccuracy /*, HiveCoteMod
         //get votes from all windows 
         double sum = 0;
         for (BoTSWWindow classifier : classifiers) {
-            if (serOption == SerialiseOptions.STORE_LOAD)
-                classifier.load();
             double classification = classifier.classifyInstance(instance);
-            if (serOption == SerialiseOptions.STORE_LOAD)
-                classifier.clearClassifier();
             classHist[(int)classification]++;
             sum++;
         }
@@ -558,6 +418,7 @@ public class BoTSWEnsemble implements Classifier, SaveCVAccuracy /*, HiveCoteMod
         Instances test = ClassifierTools.loadData("C:\\TSC Problems\\"+dataset+"\\"+dataset+"_TEST.arff");
         
         Classifier c = new BoTSWEnsemble();
+        ((BoTSWEnsemble)c).dist = BoTSW.DistFunction.BOSS_DISTANCE;
         c.buildClassifier(train);
         double accuracy = ClassifierTools.accuracy(test, c);
         
@@ -671,9 +532,10 @@ public class BoTSWEnsemble implements Classifier, SaveCVAccuracy /*, HiveCoteMod
         private boolean searchingForK = false;
 
         DistFunction distFunc = DistFunction.EUCLIDEAN_DISTANCE;
-        public enum DistFunction {
+        public enum DistFunction { //TODO replace with a distance function interface and move to more general package
             EUCLIDEAN_DISTANCE,
-            HISTOGRAM_INTERSECTION
+            HISTOGRAM_INTERSECTION,
+            BOSS_DISTANCE
         }
 
         //keeping these as members so that when header info is found in training, can be reused for testing
@@ -881,12 +743,13 @@ public class BoTSWEnsemble implements Classifier, SaveCVAccuracy /*, HiveCoteMod
             }
 
             //cluster the feature descriptions that have been found/provided
-
-            Timer clusteringTimer = new Timer("\t\t\tclustering: n_b="+params.n_b+" a="+params.a+" k="+params.k);
-
             int maxIterations = 10;
             int numAttempts = searchingForK ? 2 : 10;
-            double epsilon = 0.001; //not used atm, simplekmeans does not support/non trivial to implement
+            
+            double epsilon = 0.001; //not used currently, simplekmeans does not support, and is non trivial to implement
+            //defines the minimum change in centroids before stopping the iteration, has potential implications for runtime,
+            //however final clasification is extremely unlikely to change
+            
             double bestCompactness = Double.MAX_VALUE; //custom implemented
 
             for (int i = 0; i < numAttempts; ++i) {
@@ -908,16 +771,6 @@ public class BoTSWEnsemble implements Classifier, SaveCVAccuracy /*, HiveCoteMod
                     kmeans = t_kmeans;
             }
 
-            //code for single attempt of x iterations 
-    //        int maxIterations = 100;
-    //        kmeans = new SimpleKMeans();
-    //        kmeans.setMaxIterations(maxIterations);
-    //        kmeans.setInitializeUsingKMeansPlusPlusMethod(true);
-    //        kmeans.setSeed(0);
-    //        kmeans.setNumClusters(params.k);
-    //        kmeans.setPreserveInstancesOrder(true); //needed to call .getAssignments()
-    //        kmeans.buildClusterer(clusterData);
-
             int [] assignments = kmeans.getAssignments(); //final assignments of each FEATURE
 
             //build histograms
@@ -935,7 +788,7 @@ public class BoTSWEnsemble implements Classifier, SaveCVAccuracy /*, HiveCoteMod
                 bags[i] = new BoTSW_Bag(hist, data.get(i).classValue());
             }
 
-            //CODE FOR USING SVM FOR CORRECTNESS TESTING PURPOSES, WASNT REALLY WOKRING (DISCREPANCIES IN SVM IMPLEMENTATIONS)
+            //CODE FOR USING SVM FOR CORRECTNESS TESTING PURPOSES, DOES NOT REPRODUCE AUTHORS RESULTS EXACTLY (DISCREPANCIES IN SVM IMPLEMENTATIONS)
             if (useSVM) {
                 Timer svmTimer = new Timer("\t\t\ttrainingsvm");
 
@@ -1280,6 +1133,8 @@ public class BoTSWEnsemble implements Classifier, SaveCVAccuracy /*, HiveCoteMod
                     return euclidean(instA, instB, bestDist);
                 case HISTOGRAM_INTERSECTION:
                     return histIntersection(instA, instB);
+                case BOSS_DISTANCE:
+                    return bossDistance(instA, instB, bestDist);
                 default:
                     throw new Exception("No distance function set");
             }
@@ -1301,6 +1156,25 @@ public class BoTSWEnsemble implements Classifier, SaveCVAccuracy /*, HiveCoteMod
             return dist;
         }
 
+        protected double bossDistance(BoTSW_Bag instA, BoTSW_Bag instB, double bestDist) {
+            double dist = 0.0;
+            
+            //find dist only from values in instA
+            for (int i = 0; i < instA.hist.length; ++i) {
+                double valA = instA.hist[i];
+                if (instA.hist[i] == 0)
+                    continue;
+                
+                double valB = instB.hist[i];
+                dist += (valA-valB)*(valA-valB);
+
+                if (dist > bestDist)
+                    return Double.MAX_VALUE;
+            }
+
+            return dist;
+        }
+        
         protected double histIntersection(BoTSW_Bag instA, BoTSW_Bag instB) {
             double sim = 0.0;
 
@@ -1311,7 +1185,7 @@ public class BoTSWEnsemble implements Classifier, SaveCVAccuracy /*, HiveCoteMod
             }
 
             //keep it as a value minimisation problem just for ease of code
-            return 1 - sim;
+            return -sim;
         }
 
         public double classifyInstanceSVM(Instance instnc) throws Exception {
