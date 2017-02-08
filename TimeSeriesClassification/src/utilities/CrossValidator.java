@@ -66,10 +66,14 @@ public class CrossValidator {
      * i.e for each prediction, all classifiers will have trained on the exact same
      * subset data to have made that classification
      * 
+     * If folds have already been defined (by a call to buildFolds()), will use those,
+     * else will create them internally 
+     * 
      * @return double[classifier][prediction]
      */
     public double[][] crossValidate(Classifier[] classifiers, Instances train) throws Exception{
-        buildFolds(train);
+        if (folds == null)
+            buildFolds(train);
 
         double pred;
         double[][] predictions = new double[classifiers.length][train.numInstances()];
