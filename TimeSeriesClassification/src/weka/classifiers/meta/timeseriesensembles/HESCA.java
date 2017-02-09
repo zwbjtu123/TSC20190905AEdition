@@ -621,7 +621,7 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule, SaveCVA
         Instances train = ClassifierTools.loadData("c:/tsc problems/ItalyPowerDemand/ItalyPowerDemand_TRAIN");
         Instances test = ClassifierTools.loadData("c:/tsc problems/ItalyPowerDemand/ItalyPowerDemand_TEST");
         
-//        buildAndWriteFullIndividualTrainTestResults(train, test, "hescatest/", "ItalyPowerDemand", "htest", 0, null);
+        buildAndWriteFullIndividualTrainTestResults(train, test, "hescatest/", "ItalyPowerDemand", "", 0, null);
         HESCA h = new HESCA();
         h.setRandSeed(0);
         h.setDebug(true);
@@ -722,6 +722,9 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule, SaveCVA
         while(scan.hasNext()){
             lineParts = scan.next().split(",");
 
+            if (lineParts == null || lineParts.length < 2)
+                continue;
+            
             alpreds.add(Double.parseDouble(lineParts[1].trim()));
             
             if (lineParts.length > 3) {//dist for inst is present
