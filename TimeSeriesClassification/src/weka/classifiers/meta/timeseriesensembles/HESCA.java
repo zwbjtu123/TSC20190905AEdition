@@ -79,6 +79,11 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule, SaveCVA
         this.transform = null;
         this.setDefaultClassifiers();
     }
+    public HESCA(Classifier[] classifiers, String[] classifierNames) {
+        this.transform = null;
+        this.classifiers = classifiers;
+        this.classifierNames = classifierNames;
+    }
     
     public HESCA(SimpleBatchFilter transform, Classifier[] classifiers, String[] classifierNames) {
         this.transform = transform;
@@ -589,10 +594,10 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule, SaveCVA
         FileWriter out;
         String outPath;
         for(int c = 0; c < h.classifiers.length; c++){
-            outPath = h.resultsDir+h.ensembleIdentifier+"_"+h.classifierNames[c]+"/Predictions/"+h.datasetIdentifier;
+            outPath = h.resultsDir+h.ensembleIdentifier+h.classifierNames[c]+"/Predictions/"+h.datasetIdentifier;
             new File(outPath).mkdirs();
             out = new FileWriter(outPath+"/testFold"+h.resampleIdentifier+".csv");
-            out.append(h.datasetIdentifier+","+h.ensembleIdentifier+"_"+h.classifierNames[c]+",test\n");
+            out.append(h.datasetIdentifier+","+h.ensembleIdentifier+h.classifierNames[c]+",test\n");
             out.append("noParamInfo\n");
             out.append((double)correctByClassifier[c]/test.numInstances()+"\n");
             out.append(byClassifier[c]);
@@ -696,7 +701,7 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule, SaveCVA
     }         
     
     public File findResultsFile(String classifierName, String trainOrTest) {
-        File file = new File(resultsDir+ensembleIdentifier+"_"+classifierName+"/Predictions/"+datasetIdentifier+"/"+trainOrTest+"Fold"+resampleIdentifier+".csv");
+        File file = new File(resultsDir+ensembleIdentifier+classifierName+"/Predictions/"+datasetIdentifier+"/"+trainOrTest+"Fold"+resampleIdentifier+".csv");
         if(!file.exists() || file.length() == 0)
             return null;
         else 
@@ -753,14 +758,14 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule, SaveCVA
         printlnDebug(classifierName + " " + trainOrTest + " writing...");
         
         StringBuilder st = new StringBuilder();
-        st.append(this.datasetIdentifier).append(",").append(this.ensembleIdentifier).append("_").append(classifierName).append(","+trainOrTest+"\n");
+        st.append(this.datasetIdentifier).append(",").append(this.ensembleIdentifier).append(classifierName).append(","+trainOrTest+"\n");
         st.append(parameters + "\n"); //st.append("internalHesca\n");
         st.append(results.acc).append("\n");
         
         for(int i = 0; i < results.preds.length;i++)
             st.append(train.instance(i).classValue()).append(",").append(results.preds[i]).append("\n");
 
-        String fullPath = this.resultsDir+this.ensembleIdentifier+"_"+classifierName+"/Predictions/"+datasetIdentifier;
+        String fullPath = this.resultsDir+this.ensembleIdentifier+classifierName+"/Predictions/"+datasetIdentifier;
         new File(fullPath).mkdirs();
         FileWriter out = new FileWriter(fullPath+"/" + trainOrTest + "Fold"+this.resampleIdentifier+".csv");
         out.append(st);
