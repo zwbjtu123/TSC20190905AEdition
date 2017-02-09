@@ -724,9 +724,9 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule, SaveCVA
 
             alpreds.add(Double.parseDouble(lineParts[1].trim()));
             
-            if (lineParts.length > 2) {//dist for inst is present
+            if (lineParts.length > 3) {//dist for inst is present
                 ArrayList<Double> dist = new ArrayList<>();
-                for (int i = 3; i < lineParts.length; ++i)  //act,pred,[empty],firstclassprob.... therefore 3 start
+                for (int i = 3; i < 3+train.numClasses(); ++i)  //act,pred,[empty],firstclassprob.... therefore 3 start
                     dist.add(Double.parseDouble(lineParts[i].trim()));
                 aldists.add(dist);
             }
@@ -762,9 +762,16 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule, SaveCVA
         st.append(parameters + "\n"); //st.append("internalHesca\n");
         st.append(results.acc).append("\n");
         
-        for(int i = 0; i < results.preds.length;i++)
-            st.append(train.instance(i).classValue()).append(",").append(results.preds[i]).append("\n");
-
+        for(int i = 0; i < results.preds.length;i++) {
+            st.append(train.instance(i).classValue()).append(",").append(results.preds[i]).append(","); //pred
+            
+            if (results.distsForInsts != null && results.distsForInsts[i] != null)
+                for (int j = 0; j < results.distsForInsts[i].length; j++)
+                    st.append("," + results.distsForInsts[i][j]);
+            
+            st.append("\n");
+        }
+        
         String fullPath = this.resultsDir+this.ensembleIdentifier+classifierName+"/Predictions/"+datasetIdentifier;
         new File(fullPath).mkdirs();
         FileWriter out = new FileWriter(fullPath+"/" + trainOrTest + "Fold"+this.resampleIdentifier+".csv");
