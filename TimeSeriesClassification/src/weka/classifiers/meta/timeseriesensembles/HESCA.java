@@ -66,10 +66,16 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule, SaveCVA
     protected String datasetIdentifier;
     protected String ensembleIdentifier;
     protected int resampleIdentifier;
-    
+       
     
     protected boolean writeEnsembleTrainingFile = false;
     protected String outputTrainingPathAndFile;
+    
+    //todo work out better way of doing this stuff 
+    protected int testInstCounter = 0;
+    protected int numTestInsts = -1;
+    protected Instance prevTestInstance = null;
+    
     public HESCA(SimpleBatchFilter transform) {
         this.transform = transform;
         this.setDefaultClassifiers();
@@ -201,7 +207,9 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule, SaveCVA
     }
     
     @Override
-    public void buildClassifier(Instances input) throws Exception{        
+    public void buildClassifier(Instances input) throws Exception{   
+        printlnDebug("**HESCA TRAIN**");
+        
         //transform data if specified
         if(this.transform==null){
             this.train = input;
@@ -232,6 +240,7 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule, SaveCVA
         for(int c = 0; c < this.classifiers.length; c++){
             
             boolean trainResultsLoaded = false;
+            boolean testResultsLoaded = false; 
             
             if (useResultsFileReadingWriting) {
                 File moduleTrainResultsFile = findResultsFile(classifierNames[c], "train");
@@ -256,6 +265,14 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule, SaveCVA
                     ModulePredictions res = loadResultsFile(moduleTestResultsFile);
                     individualTestPreds[c] = res.preds; 
                     individualTestDists[c] = res.distsForInsts; //dists not used atm, will be at later date
+                    
+                    if (numTestInsts != res.preds.length)
+                        if (numTestInsts == -1) //first time here
+                            numTestInsts = res.preds.length;
+                        else
+                            throw new Exception("test results file sizes disagree, " + classifierNames[0] + " reports " + numTestInsts + ", " + classifierNames[c] + " reports " + res.preds.length);
+                    
+                    testResultsLoaded = true;
                 }
             }
             
@@ -274,8 +291,9 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule, SaveCVA
                 this.individualCvAccs[c] = (double)correct/train.numInstances();
             }
             
-            //and do final buildclassifier on the full training data
-            classifiers[c].buildClassifier(train);
+            //if this classifier does not already have test preds loaded, do final buildclassifier on the full training data
+            if (!testResultsLoaded)
+                classifiers[c].buildClassifier(train);
             
             //write trainfold# for module if file writing and file doesnt already exist
             if(useResultsFileReadingWriting && !trainResultsLoaded){
@@ -359,6 +377,8 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule, SaveCVA
             fullTrain.close();
         }
         
+        
+        testInstCounter = 0;
     }
 
 //    @Override
@@ -412,42 +432,60 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule, SaveCVA
 //        return super.classifyInstance(instance);
 //    }
 
+//    @Override
+//    public double[] distributionForInstance(Instance instance) throws Exception{
+//        //transform data if specified
+//        Instance ins = instance;
+//        if(this.transform!=null){
+//            Instances rawContainer = new Instances(instance.dataset(),0);
+//            rawContainer.add(instance);
+//            Instances converted = transform.process(rawContainer);
+//            ins = converted.instance(0);
+//        }
+//        
+//        double thisPred;
+//        double[] preds=new double[ins.numClasses()];
+//        
+//        //get predictions for each module, turn that into a vote with the weight of 
+//        //that module's train acc
+//        for(int i=0;i<classifiers.length;i++){
+//            thisPred=classifiers[i].classifyInstance(ins);
+//            preds[(int)thisPred]+=this.individualCvAccs[i];
+//        }
+//        
+//        //normalise so all sum to one 
+//        double sum=preds[0];
+//        for(int i=1;i<preds.length;i++){
+//            sum+=preds[i];
+//        }
+//        for(int i=0;i<preds.length;i++)
+//            preds[i]/=sum;
+//
+//        return preds;
+//    }
+    
+    
     @Override
     public double[] distributionForInstance(Instance instance) throws Exception{
-        //transform data if specified
-        Instance ins = instance;
-        if(this.transform!=null){
-            Instances rawContainer = new Instances(instance.dataset(),0);
-            rawContainer.add(instance);
-            Instances converted = transform.process(rawContainer);
-            ins = converted.instance(0);
-        }
+        if (testInstCounter == numTestInsts) //if no test files loaded, numTestInsts == -1
+            throw new Exception("Received more test instances than expected, when loading test results files, found " + numTestInsts + " test cases");
+                
+        double[] preds = distributionForInstance(instance, testInstCounter);
         
-        double thisPred;
-        double[] preds=new double[ins.numClasses()];
+        if (prevTestInstance != instance)
+            ++testInstCounter;
+        prevTestInstance = instance;
         
-        //get predictions for each module, turn that into a vote with the weight of 
-        //that module's train acc
-        for(int i=0;i<classifiers.length;i++){
-            thisPred=classifiers[i].classifyInstance(ins);
-            preds[(int)thisPred]+=this.individualCvAccs[i];
-        }
-        
-        //normalise so all sum to one 
-        double sum=preds[0];
-        for(int i=1;i<preds.length;i++){
-            sum+=preds[i];
-        }
-        for(int i=0;i<preds.length;i++)
-            preds[i]/=sum;
-
         return preds;
     }
     
     /**
      * Will try to use each individual's loaded test predictions (via the testInstIndex), else will find distribution normally (via testInst)
      */
-    public double[] distributionForInstance(Instance testInst, int testInstIndex) throws Exception{       
+    public double[] distributionForInstance(Instance testInst, int testInstIndex) throws Exception{      
+        if (testInstIndex == 0 && prevTestInstance == null) //definitely the first call, not e.g the first inst being classified for the second time
+            printlnDebug("\n**TEST**");
+        
         Instance ins = testInst;
         if(this.transform!=null){
             Instances rawContainer = new Instances(testInst.dataset(),0);
@@ -462,10 +500,16 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule, SaveCVA
         
         double pred;
         for(int c = 0; c < classifiers.length; c++){
-            if (useResultsFileReadingWriting && individualTestPreds[c] != null) //if results loaded for this classifier
+            if (useResultsFileReadingWriting && individualTestPreds[c] != null) {//if results loaded for this classifier
                 pred = individualTestPreds[c][testInstIndex]; //use them
-            else 
+                if (testInstIndex == 0 && prevTestInstance == null)
+                    printlnDebug(classifierNames[c] + " reading prediction from test file...");
+            }
+            else { 
                 pred = classifiers[c].classifyInstance(ins); //else find them from scratch
+                if (testInstIndex == 0 && prevTestInstance == null)
+                    printlnDebug(classifierNames[c] + " making prediction from scratch...");
+            }
             
             preds[(int)pred] += this.individualCvAccs[c];
         }
@@ -477,6 +521,7 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule, SaveCVA
         }
         for(int i=0;i<preds.length;i++)
             preds[i]/=sum;
+        
         
         return preds;
     }
@@ -520,7 +565,7 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule, SaveCVA
         return predsByClassifier;
     }
     
-    public static void buildAndWriteFullIndividualTrainTestResults(Instances defaultTrainPartition, Instances defaultTestPartition, String resultOutputDir, String datasetIdentifier, String ensembleIdentifier, int resampleIdentifier, SimpleBatchFilter transform) throws Exception{
+    public static void buildAndWriteFullIndividualTrainTestResults(Instances defaultTrainPartition, Instances defaultTestPartition, String resultOutputDir, String datasetIdentifier, String ensembleIdentifier, int resampleIdentifier, SimpleBatchFilter transform, boolean setSeed) throws Exception{
         HESCA h;
         if(transform!=null){
             h = new HESCA(transform);
@@ -536,6 +581,8 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule, SaveCVA
             test = temp[1];
         }
         
+        if (setSeed)
+            h.setRandSeed(resampleIdentifier);
         
         h.turnOnResultsFileReadingWriting(resultOutputDir, ensembleIdentifier, datasetIdentifier, resampleIdentifier);
         h.setCVPath(resultOutputDir+ensembleIdentifier+"/Predictions/"+datasetIdentifier+"/trainFold"+resampleIdentifier+".csv");
@@ -621,11 +668,11 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule, SaveCVA
         Instances train = ClassifierTools.loadData("c:/tsc problems/ItalyPowerDemand/ItalyPowerDemand_TRAIN");
         Instances test = ClassifierTools.loadData("c:/tsc problems/ItalyPowerDemand/ItalyPowerDemand_TEST");
         
-        buildAndWriteFullIndividualTrainTestResults(train, test, "hescatest/", "ItalyPowerDemand", "", 0, null);
+//        buildAndWriteFullIndividualTrainTestResults(train, test, "hescatest/", "ItalyPowerDemand", "", 0, null, true);
         HESCA h = new HESCA();
         h.setRandSeed(0);
         h.setDebug(true);
-        h.turnOnResultsFileReadingWriting("hescatest/", "htest", "ItalyPowerDemand", 0);
+        h.turnOnResultsFileReadingWriting("hescatest/", "", "ItalyPowerDemand", 0);
         h.buildClassifier(train);
         
         double correct = 0;
