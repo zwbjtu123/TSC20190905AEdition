@@ -14,6 +14,7 @@ import java.util.Scanner;
 import tsc_algorithms.cote.HiveCoteModule;
 import utilities.ClassifierTools;
 import utilities.CrossValidator;
+import utilities.DebugPrinting;
 import utilities.InstanceTools;
 import weka.classifiers.AbstractClassifier;
 import weka.classifiers.Classifier;
@@ -40,8 +41,7 @@ import utilities.SaveCVAccuracy;
  *      
  */
 
-public class HESCA extends AbstractClassifier implements HiveCoteModule, SaveCVAccuracy{
-    private boolean debug = false;
+public class HESCA extends AbstractClassifier implements HiveCoteModule, SaveCVAccuracy, DebugPrinting {
     
     protected final SimpleBatchFilter transform;
     protected double[] individualCvAccs;
@@ -97,17 +97,10 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule, SaveCVA
         this.classifierNames = classifierNames;
     }
     public Classifier[] getClassifiers(){ return classifiers;}
-   
-    public void setDebug(boolean b) { debug = b; }
     
-    private void printDebug(String str) {
-        if (debug)
-            System.out.print(str);
-    }
-    
-    private void printlnDebug(String str) {
-        if (debug)
-            System.out.println(str);
+    public void setClassifiers(Classifier[] classifiers, String[] classifierNames) {
+        this.classifiers = classifiers;
+        this.classifierNames = classifierNames;
     }
     
     public final void setDefaultClassifiers(){
@@ -298,7 +291,7 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule, SaveCVA
             //write trainfold# for module if file writing and file doesnt already exist
             if(useResultsFileReadingWriting && !trainResultsLoaded){
                 ModulePredictions results = new ModulePredictions(individualCvAccs[c], individualCvPreds[c], null);
-                writeResultsFile(classifierNames[c], "internalHESCA", results, "train"); 
+                writeIndividualTrainResultsFile(classifierNames[c], "internalHESCA", results, "train"); 
                 //todo ask about parameters section, should make more informative. e.g maybe number of cv folds
                 //if not the actual clasifiers parameters (that would requires some funky stuff though,
                 //that's why it's not already there)
@@ -668,11 +661,11 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule, SaveCVA
         Instances train = ClassifierTools.loadData("c:/tsc problems/ItalyPowerDemand/ItalyPowerDemand_TRAIN");
         Instances test = ClassifierTools.loadData("c:/tsc problems/ItalyPowerDemand/ItalyPowerDemand_TEST");
         
-//        buildAndWriteFullIndividualTrainTestResults(train, test, "hescatest/", "ItalyPowerDemand", "", 0, null, true);
+//        buildAndWriteFullIndividualTrainTestResults(train, test, "testResults/", "ItalyPowerDemand", "", 0, null, true);
         HESCA h = new HESCA();
         h.setRandSeed(0);
-        h.setDebug(true);
-        h.turnOnResultsFileReadingWriting("hescatest/", "", "ItalyPowerDemand", 0);
+        h.setDebugPrinting(true);
+        h.turnOnResultsFileReadingWriting("testResults/", "", "ItalyPowerDemand", 0);
         h.buildClassifier(train);
         
         double correct = 0;
@@ -733,19 +726,7 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule, SaveCVA
 //        }
 //        System.out.println(correct+"/"+test.numInstances());
 //        System.out.println((double)correct/test.numInstances());
-    }
-    
-    public static class ModulePredictions { 
-        public double[][] distsForInsts;
-        public double[] preds;
-        public double acc; 
-
-        public ModulePredictions(double acc, double[] preds, double[][] distsForInsts) {
-            this.preds = preds;
-            this.acc = acc;
-            this.distsForInsts = distsForInsts;
-        }
-    }         
+    }       
     
     public File findResultsFile(String classifierName, String trainOrTest) {
         File file = new File(resultsDir+ensembleIdentifier+classifierName+"/Predictions/"+datasetIdentifier+"/"+trainOrTest+"Fold"+resampleIdentifier+".csv");
@@ -804,7 +785,7 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule, SaveCVA
      * @param parameters for now, seems to just be 'internalHESCA', added as param for 
      * potential future use
      */
-    private void writeResultsFile(String classifierName, String parameters, ModulePredictions results, String trainOrTest) throws IOException {
+    private void writeIndividualTrainResultsFile(String classifierName, String parameters, ModulePredictions results, String trainOrTest) throws IOException {
         printlnDebug(classifierName + " " + trainOrTest + " writing...");
         
         StringBuilder st = new StringBuilder();
