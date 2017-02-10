@@ -25,6 +25,7 @@ public class TunedRotationForest extends RotationForest implements SaveCVAccurac
     String trainPath="";
     boolean tuneFeatures=false;
     boolean debug=false;
+    boolean findTrainAcc=true;
     Random rng;
     ArrayList<Double> accuracy;
     
@@ -46,6 +47,9 @@ public class TunedRotationForest extends RotationForest implements SaveCVAccurac
     }
      public void debug(boolean b){
         this.debug=b;
+    }
+     public void estimateAccFromTrain(boolean b){
+        this.findTrainAcc=b;
     }
   
     public void tuneTree(boolean b){
@@ -158,12 +162,12 @@ public class TunedRotationForest extends RotationForest implements SaveCVAccurac
                     }
                 }
             }
-        int bestNumTrees=0;
-          int bestNumAtts=0;
+            int bestNumTrees=0;
+            int bestNumAtts=0;
  
-          Pair best=ties.get(rng.nextInt(ties.size()));
-          bestNumAtts=best.x;
-          bestNumTrees=best.y;
+            Pair best=ties.get(rng.nextInt(ties.size()));
+            bestNumAtts=best.x;
+            bestNumTrees=best.y;
             this.setNumIterations(bestNumTrees);
             this.setMaxGroup(bestNumAtts);
             this.setMinGroup(bestNumAtts);
@@ -173,6 +177,20 @@ public class TunedRotationForest extends RotationForest implements SaveCVAccurac
             if(trainPath!=""){  //Save train results
                 
             }
+        }
+/*If there is no parameter search, then there is no train CV available.        
+this gives the option of finding one. It is inefficient
+*/        
+        else if(findTrainAcc){
+             RotationForest t= new RotationForest();
+            t.setMaxGroup(this.getMaxGroup());
+            t.setMinGroup(this.getMinGroup());
+            t.setNumIterations(this.getNumIterations());
+            Instances temp=new Instances(data);
+            Evaluation eval=new Evaluation(temp);
+            t.setSeed(rng.nextInt());
+            eval.crossValidateModel(t, temp, folds, rng);
+            trainAcc=1-eval.errorRate();
         }
         super.buildClassifier(data);
     }

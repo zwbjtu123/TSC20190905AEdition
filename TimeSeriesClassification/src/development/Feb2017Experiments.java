@@ -21,30 +21,27 @@ import utilities.SaveCVAccuracy;
 import weka.classifiers.Classifier;
 import weka.classifiers.lazy.IBk;
 import weka.classifiers.meta.RotationForest;
+import weka.classifiers.meta.TunedRotationForest;
 import weka.classifiers.meta.timeseriesensembles.HESCA;
 import weka.classifiers.trees.TunedRandomForest;
 import weka.core.Instances;
 
 
 public class Feb2017Experiments{
-    public static String[] classifiers={"HESCA"};
+    public static String[] classifiers={"EnhancedRotF","RotFCV"};
     public static double propInTrain=0.5;
     public static int folds=30; 
-    static String[] fileNames={"abalone",
-        "acute-inflammation","acute-nephritis","adult","annealing","arrhythmia","audiology-std","balance-scale","balloons","bank","blood","breast-cancer","breast-cancer-wisc","breast-cancer-wisc-diag","breast-cancer-wisc-prog","breast-tissue","car","cardiotocography-10clases","cardiotocography-3clases",
-        "chess-krvk","chess-krvkp",
-        "congressional-voting","conn-bench-sonar-mines-rocks","conn-bench-vowel-deterding",
-        "connect-4",
-        "contrac","credit-approval","cylinder-bands","dermatology","echocardiogram","ecoli","energy-y1","energy-y2","fertility","flags","glass","haberman-survival","hayes-roth","heart-cleveland","heart-hungarian","heart-switzerland","heart-va","hepatitis","hill-valley","horse-colic","ilpd-indian-liver","image-segmentation","ionosphere","iris","led-display","lenses","letter","libras","low-res-spect","lung-cancer","lymphography","magic","mammographic",
-        "miniboone",
-        "molec-biol-promoter","molec-biol-splice","monks-1","monks-2","monks-3","mushroom","musk-1","musk-2","nursery","oocytes_merluccius_nucleus_4d","oocytes_merluccius_states_2f","oocytes_trisopterus_nucleus_2f","oocytes_trisopterus_states_5b","optical","ozone","page-blocks","parkinsons","pendigits","pima","pittsburg-bridges-MATERIAL","pittsburg-bridges-REL-L","pittsburg-bridges-SPAN","pittsburg-bridges-T-OR-D","pittsburg-bridges-TYPE","planning","plant-margin","plant-shape","plant-texture","post-operative","primary-tumor","ringnorm","seeds","semeion","soybean","spambase","spect","spectf","statlog-australian-credit","statlog-german-credit","statlog-heart","statlog-image","statlog-landsat","statlog-shuttle","statlog-vehicle","steel-plates","synthetic-control","teaching","thyroid","tic-tac-toe","titanic","trains","twonorm","vertebral-column-2clases","vertebral-column-3clases","wall-following","waveform","waveform-noise","wine","wine-quality-red","wine-quality-white","yeast","zoo"};
+    static String[] fileNames={"abalone","acute-inflammation","acute-nephritis","adult","annealing","arrhythmia","audiology-std","balance-scale","balloons","bank","blood","breast-cancer","breast-cancer-wisc","breast-cancer-wisc-diag","breast-cancer-wisc-prog","breast-tissue","car","cardiotocography-10clases","cardiotocography-3clases",
+        "chess-krvk","chess-krvkp","congressional-voting","conn-bench-sonar-mines-rocks","conn-bench-vowel-deterding",
+        "connect-4","contrac","credit-approval","cylinder-bands","dermatology","echocardiogram","ecoli","energy-y1","energy-y2","fertility","flags","glass","haberman-survival","hayes-roth","heart-cleveland","heart-hungarian","heart-switzerland","heart-va","hepatitis","hill-valley","horse-colic","ilpd-indian-liver","image-segmentation","ionosphere","iris","led-display","lenses","letter","libras","low-res-spect","lung-cancer","lymphography","magic","mammographic",
+        "miniboone","molec-biol-promoter","molec-biol-splice","monks-1","monks-2","monks-3","mushroom","musk-1","musk-2","nursery","oocytes_merluccius_nucleus_4d","oocytes_merluccius_states_2f","oocytes_trisopterus_nucleus_2f","oocytes_trisopterus_states_5b","optical","ozone","page-blocks","parkinsons","pendigits","pima","pittsburg-bridges-MATERIAL","pittsburg-bridges-REL-L","pittsburg-bridges-SPAN","pittsburg-bridges-T-OR-D","pittsburg-bridges-TYPE","planning","plant-margin","plant-shape","plant-texture","post-operative","primary-tumor","ringnorm","seeds","semeion","soybean","spambase","spect","spectf","statlog-australian-credit","statlog-german-credit","statlog-heart","statlog-image","statlog-landsat","statlog-shuttle","statlog-vehicle","steel-plates","synthetic-control","teaching","thyroid","tic-tac-toe","titanic","trains","twonorm","vertebral-column-2clases","vertebral-column-3clases","wall-following","waveform","waveform-noise","wine","wine-quality-red","wine-quality-white","yeast","zoo"};
     static boolean debug=false;
 //Parameter ranges for search, use same for C and gamma   
     static double[] svmParas={0.00390625, 0.015625, 0.0625, 0.25, 0.5, 1, 2, 4, 16, 256};
 //Parameter ranges for trees for randF and rotF
     static int[] numTrees={10,50,100,200,300,400,500,600,700,800,900,1000,1250,1500,1750,2000};
 
-    public static void generateScripts(boolean grace,int mem){
+    public static void generateScripts(boolean grace,int mem, String jar){
 //Generates cluster scripts for allTest combos of classifier and data set
 //Generates txt files to run jobs for a single classifier        
         String path=DataSets.dropboxPath+"Code\\Cluster Scripts\\UCIScripts\\";
@@ -82,7 +79,7 @@ public class Feb2017Experiments{
                     of.writeLine("#BSUB -M "+(2000+mem));
                     of.writeLine("module add java/jdk1.8.0_51");
                 }
-                of.writeLine("java -jar HESCA.jar "+s+" "+a+" $LSB_JOBINDEX");                
+                of.writeLine("java -jar "+jar+".jar "+s+" "+a+" $LSB_JOBINDEX");                
                 if(grace)
                     of2.writeLine("bsub < Scripts/UCIScripts/"+s+a+"Grace.bsub");
                 else
@@ -148,13 +145,13 @@ public class Feb2017Experiments{
     }
 
 
-    public static void collateResults(int folds, boolean onCluster, String[] classifiers){
+    public static void collateResults(int folds, boolean onCluster, String[] classif){
         if(onCluster)
            DataSets.resultsPath=DataSets.clusterPath+"Results/UCIResults/";
 
         String basePath=DataSets.resultsPath;
 //1. Collate single folds into single classifier_problem files        
-        for(String cls:classifiers){
+        for(String cls:classif){
 //Check classifier directory exists. 
             File f=new File(basePath+cls);
             if(f.isDirectory()){
@@ -249,7 +246,7 @@ public class Feb2017Experiments{
         //NEED TO REWRITE FOR TRAIN TEST DIFF
         OutFile acc=new OutFile(basePath+"CombinedAcc.csv");
         OutFile count=new OutFile(basePath+"CombinedCount.csv");
-        for(String cls:classifiers){
+        for(String cls:classif){
             acc.writeString(","+cls);
             count.writeString(","+cls);
         }
@@ -409,7 +406,15 @@ public class Feb2017Experiments{
     public static Classifier setClassifier(String classifier, int fold){
 //RandF or RotF
         TunedRandomForest randF;
+        TunedRotationForest r;
         switch(classifier){
+            case "EnhancedRotF":
+                r=new EnhancedRotationForest();
+                r.setNumIterations(100);
+                r.tuneFeatures(false);
+                r.tuneTree(false);
+                r.estimateAccFromTrain(false);
+                return r;
             case "HESCA":
                 String[] names={"RotF","RandF","SVM"};
                 Classifier[] c=new Classifier[3];
@@ -419,6 +424,13 @@ public class Feb2017Experiments{
                 HESCA h = new HESCA(c,names);
                 h.setDebug(true);
                 return h;    
+            case "RotFCV":
+                r = new TunedRotationForest();
+                r.setNumIterations(100);
+                r.tuneFeatures(false);
+                r.tuneTree(false);
+                r.estimateAccFromTrain(false);
+                return r;
             case "RandFCV":
                 randF = new TunedRandomForest();
                 randF.tuneTree(false);
@@ -668,12 +680,12 @@ public class Feb2017Experiments{
       
 //        DataSets.problemPath=DataSets.clusterPath+"UCIContinuous/";
   //      DataSets.dataDescriptionDataNotSplit(fileNames);
-        collateResults(30,true,args);
-        System.exit(0);
+//        collateResults(30,true,args);
+//        System.exit(0);
  //       collateTrain();
-//    generateScripts(true,2000);
-//    generateScripts(false,2000);
-//System.exit(0);
+ //   generateScripts(true,4000,"RotFDev");
+   // generateScripts(false,4000,"RotFDev");
+ //   System.exit(0);
  
 //        collateTrainTestResults(30);
  /*       Runtime rt=Runtime.getRuntime();
@@ -697,10 +709,31 @@ public class Feb2017Experiments{
             if(!f.isDirectory()){
                 f.mkdirs();
             }
-            String[] paras={"TunedRandF","balloons","1"};
-            
+
+            String[] paras={"","semeion","1"};
+            DataSets.problemPath="C:/Data/UCI Problems/";
+            DataSets.resultsPath=DataSets.dropboxPath+"Results/UCIResults/";
+            File file =new File("C:\\Users\\ajb\\Dropbox\\Results\\UCIResults");
+            paras[0]="EnhancedRotF";
             singleClassifierAndFold(paras);            
-        }
+            long t3=System.currentTimeMillis();
+            for(int i=2;i<=11;i++){
+                paras[2]=i+"";
+                singleClassifierAndFold(paras);            
+            }
+            long t4=System.currentTimeMillis();
+            paras[0]="RotFCV";
+            paras[2]="1";
+            singleClassifierAndFold(paras);            
+            long t1=System.currentTimeMillis();
+            for(int i=2;i<=11;i++){
+                paras[2]=i+"";
+                singleClassifierAndFold(paras);            
+            }
+            long t2=System.currentTimeMillis();
+            System.out.println("Standard = "+(t2-t1)+", Enhanced = "+(t4-t3));
+            
+       }
     }
 }
 
