@@ -14,6 +14,7 @@ import utilities.ClassifierTools;
 import utilities.DebugPrinting;
 import utilities.SaveCVAccuracy;
 import weka.classifiers.Classifier;
+import weka.classifiers.meta.timeseriesensembles.weightings.*;
 import weka.core.Capabilities;
 import weka.core.Instance;
 import weka.core.Instances;
@@ -22,16 +23,18 @@ import weka.core.Instances;
  * Given a results directory and classifiers to use (the results for which lie in that directory),
  * will ensemble those classifier's classifications to form a collective classification
  * 
- * Unless a specific name for the ensemble is provided, will attempt to construct a name
- * by concatenating the names of it's constituents
+ * By default, will use each member's train accuracy as it's vote weighting
  * 
- * ensembleIdentifier is (as of writing) only used for saving the cv accuracy of the ensemble (for SaveCVAccuracy)
+ * Unless a specific name for the ensemble is provided, will attempt to construct a name
+ * by concatenating the names of it's constituent. ensembleIdentifier is (as of writing) 
+ * only used for saving the cv accuracy of the ensemble (for SaveCVAccuracy)
  * 
  * @author James Large
  */
 public class EnsembleFromFile implements Classifier, DebugPrinting, SaveCVAccuracy {
+   
+    protected ModuleWeightingScheme weightingScheme = new TrainAccWeighting();
     
-
     protected String[] classifierNames = null;
     
     //stores for data that is read in
@@ -39,7 +42,8 @@ public class EnsembleFromFile implements Classifier, DebugPrinting, SaveCVAccura
     protected double[][] individualCvPreds;
     protected double[][] individualTestPreds;
     protected double[][][] individualTestDists;
-    
+    protected double[] individualWeights;
+
     //data generated during buildclassifier
     protected double[] ensembleCvPreds;
     protected double ensembleCvAcc;
@@ -91,6 +95,19 @@ public class EnsembleFromFile implements Classifier, DebugPrinting, SaveCVAccura
     public void setEnsembleIdentifier(String ensembleIdentifier) {
         this.ensembleIdentifier = ensembleIdentifier;
     }
+
+    public double[] getIndividualWeights() {
+        return individualWeights;
+    }
+    
+    
+    public ModuleWeightingScheme getWeightingScheme() {
+        return weightingScheme;
+    }
+
+    public void setWeightingScheme(ModuleWeightingScheme weightingScheme) {
+        this.weightingScheme = weightingScheme;
+    }
     
     /**
      * This will also set ensembleIdentifier to a default value (the concatenated classifiernames)
@@ -133,52 +150,6 @@ public class EnsembleFromFile implements Classifier, DebugPrinting, SaveCVAccura
             return file;
     }
     
-    private ModulePredictions loadResultsFile(File file) throws Exception {
-        ArrayList<Double> alpreds = new ArrayList<>();
-        ArrayList<ArrayList<Double>> aldists = new ArrayList<>();
-        
-        Scanner scan = new Scanner(file);
-        scan.useDelimiter("\n");
-        scan.next();
-        scan.next();
-        double acc = Double.parseDouble(scan.next().trim());
-        
-        String [] lineParts = null;
-        while(scan.hasNext()){
-            lineParts = scan.next().split(",");
-
-            if (lineParts == null || lineParts.length < 2)
-                continue;
-            
-            alpreds.add(Double.parseDouble(lineParts[1].trim()));
-            
-            if (lineParts.length > 3) {//dist for inst is present
-                ArrayList<Double> dist = new ArrayList<>();
-                for (int i = 3; i < 3+numClasses; ++i)  //act,pred,[empty],firstclassprob.... therefore 3 start
-                    dist.add(Double.parseDouble(lineParts[i].trim()));
-                aldists.add(dist);
-            }
-        }
-        
-        scan.close();
-        
-        double [] preds = new double[alpreds.size()];
-        for (int i = 0; i < alpreds.size(); ++i)
-            preds[i]= alpreds.get(i);
-        
-        double[][] distsForInsts = null;
-        if (aldists.size() != 0) {
-            distsForInsts = new double[aldists.size()][aldists.get(0).size()];
-            for (int i = 0; i < aldists.size(); ++i)
-                for (int j = 0; j < aldists.get(i).size(); ++j) 
-                    distsForInsts[i][j] = aldists.get(i).get(j);
-            
-        }
-        
-        return new ModulePredictions(acc, preds, distsForInsts);
-    }
-    
-    
     @Override
     public void buildClassifier(Instances data) throws Exception {
         printlnDebug("**EnsembleFromFile TRAIN**");
@@ -192,6 +163,7 @@ public class EnsembleFromFile implements Classifier, DebugPrinting, SaveCVAccura
         
         int correct;  
         this.individualCvAccs = new double[this.classifierNames.length];
+        this.individualWeights = new double[this.classifierNames.length];
         this.individualCvPreds = new double[this.classifierNames.length][];
         
         this.individualTestPreds = new double[this.classifierNames.length][];
@@ -212,10 +184,12 @@ public class EnsembleFromFile implements Classifier, DebugPrinting, SaveCVAccura
             if (moduleTrainResultsFile != null) { 
                 printlnDebug(classifierNames[c] + " train loading...");
 
-                ModulePredictions res = loadResultsFile(moduleTrainResultsFile);
+                ModulePredictions res = ModulePredictions.loadResultsFile(moduleTrainResultsFile, numClasses);
                 individualCvAccs[c] = res.acc;
                 individualCvPreds[c] = res.preds;
-
+                
+                individualWeights[c] = weightingScheme.defineWeighting(res);
+                
                 trainResultsLoaded = true;
             }
 
@@ -225,16 +199,12 @@ public class EnsembleFromFile implements Classifier, DebugPrinting, SaveCVAccura
                 //only loaded for future use when classifying with ensemble
                 printlnDebug(classifierNames[c] + " test loading...");
 
-                ModulePredictions res = loadResultsFile(moduleTestResultsFile);
+                ModulePredictions res = ModulePredictions.loadResultsFile(moduleTestResultsFile, numClasses);
+                //class vals found in results file obviously NOT used at all
                 individualTestPreds[c] = res.preds; 
                 individualTestDists[c] = res.distsForInsts; //dists not used atm, will be at later date
 
-                if (numTestInsts != res.preds.length)
-                    if (numTestInsts == -1) //first time here
-                        numTestInsts = res.preds.length;
-                    else
-                        throw new Exception("Test results file sizes disagree, " + classifierNames[0] + " reports " + numTestInsts + ", " + classifierNames[c] + " reports " + res.preds.length);
-
+                numTestInsts = res.preds.length;
                 testResultsLoaded = true;
             }
             
@@ -273,7 +243,8 @@ public class EnsembleFromFile implements Classifier, DebugPrinting, SaveCVAccura
             for(int m = 0; m < classifierNames.length; m++){
                 
                 //this module makes a vote, with weight equal to its overall accuracy, for it's predicted class
-                weightByClass[(int)individualCvPreds[m][i]]+=this.individualCvAccs[m];
+                weightByClass[(int)individualCvPreds[m][i]]+=this.individualWeights[m];
+//                weightByClass[(int)individualCvPreds[m][i]]+=this.individualCvAccs[m];
                 
                 //update max class weighting so far
                 //if two classes are tied for first, record both
@@ -349,7 +320,8 @@ public class EnsembleFromFile implements Classifier, DebugPrinting, SaveCVAccura
         double pred;
         for(int c = 0; c < classifierNames.length; c++){
             pred = individualTestPreds[c][testInstIndex]; 
-            preds[(int)pred] += this.individualCvAccs[c];
+//            preds[(int)pred] += this.individualCvAccs[c];
+            preds[(int)pred] += this.individualWeights[c];
         }
         
         //normalise so all sum to one 
@@ -367,16 +339,16 @@ public class EnsembleFromFile implements Classifier, DebugPrinting, SaveCVAccura
      */
     public double classifyInstance(int testInstIndex) throws Exception{     
         double[] dist = distributionForInstance(testInstIndex);
-        return maxIndex(dist);
+        return indexOfMax(dist);
     }
     
     @Override
     public double classifyInstance(Instance instance) throws Exception {
         double[] dist = distributionForInstance(instance);
-        return maxIndex(dist);
+        return indexOfMax(dist);
     }
     
-    protected double maxIndex(double[] dist) {
+    protected double indexOfMax(double[] dist) {
         double max = dist[0];
         double maxInd = 0;
         
@@ -415,8 +387,19 @@ public class EnsembleFromFile implements Classifier, DebugPrinting, SaveCVAccura
         
         EnsembleFromFile eff = new EnsembleFromFile();
         eff.setDebugPrinting(true);
+        
+//        eff.setWeightingScheme(new EqualWeighting());
+        eff.setWeightingScheme(new MCCWeighting());
+//        eff.setWeightingScheme(new TrainAccWeighting());
+//        eff.setWeightingScheme(new CENAccWeighting()); //to implement
+//        eff.setWeightingScheme(new pCENAccWeighting()); //to implement
+        
         eff.setFileReadingParameters(individualResultsDirectory, classifierNames, dataset, 0);
         eff.buildClassifier(train);
+        
+        System.out.println("weights:");
+        for (int i = 0; i < classifierNames.length; i++)
+            System.out.println(classifierNames[i] + ": " + eff.getIndividualWeights()[i]);
         
         double correct = 0;
         for (int i = 0; i < test.numInstances(); ++i) {
@@ -425,6 +408,6 @@ public class EnsembleFromFile implements Classifier, DebugPrinting, SaveCVAccura
                 correct++;
         }
         
-        System.out.println("\n acc for " + eff.ensembleIdentifier +" =" + (correct/test.numInstances()));
+        System.out.println("\nacc for " + eff.ensembleIdentifier +" =" + (correct/test.numInstances()));
     }
 }
