@@ -10,9 +10,13 @@ import weka.classifiers.meta.timeseriesensembles.ModulePredictions;
  */
 public class TrainAccWeighting extends ModuleWeightingScheme {
 
+    public TrainAccWeighting() {
+        uniformWeighting = true;
+    }
+    
     @Override
-    public double defineWeighting(ModulePredictions trainPredictions) {
-        return trainPredictions.acc;
+    public double[] defineWeighting(ModulePredictions trainPredictions, int numClasses) {
+        return makeUniformWeighting(trainPredictions.acc, numClasses);
     }
     
 }

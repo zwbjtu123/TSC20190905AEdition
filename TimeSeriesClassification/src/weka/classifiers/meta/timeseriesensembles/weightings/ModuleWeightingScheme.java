@@ -9,6 +9,20 @@ import weka.classifiers.meta.timeseriesensembles.ModulePredictions;
  */
 public abstract class ModuleWeightingScheme {
     
-    public abstract double defineWeighting(ModulePredictions trainPredictions);
+    boolean uniformWeighting;
+    
+    public abstract double[] defineWeighting(ModulePredictions trainPredictions, int numClasses);
+    
+    protected double[] makeUniformWeighting(double weight, int numClasses) {
+        double[] weights = new double[numClasses];
+        for (int i = 0; i < weights.length; ++i)
+            weights[i] = weight;
+        return weights;
+    }
+    
+    @Override
+    public String toString() {
+        return this.getClass().getSimpleName();
+    }
     
 }

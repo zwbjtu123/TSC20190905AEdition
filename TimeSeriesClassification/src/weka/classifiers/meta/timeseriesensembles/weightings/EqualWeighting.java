@@ -11,9 +11,13 @@ import weka.classifiers.meta.timeseriesensembles.ModulePredictions;
  */
 public class EqualWeighting extends ModuleWeightingScheme {
 
+    public EqualWeighting() {
+        uniformWeighting = true;
+    }
+    
     @Override
-    public double defineWeighting(ModulePredictions trainPredictions) {
-        return 1;
+    public double[] defineWeighting(ModulePredictions trainPredictions, int numClasses) {
+        return makeUniformWeighting(1.0, numClasses);
     }
     
 }

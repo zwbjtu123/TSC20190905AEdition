@@ -5,13 +5,17 @@
  */
 package weka.classifiers.meta.timeseriesensembles;
 
+import fileIO.OutFile;
 import java.io.File;
 import java.io.FileWriter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Random;
 import java.util.Scanner;
+import java.util.function.Consumer;
 import utilities.ClassifierTools;
 import utilities.DebugPrinting;
+import utilities.InstanceTools;
 import utilities.SaveCVAccuracy;
 import weka.classifiers.Classifier;
 import weka.classifiers.meta.timeseriesensembles.weightings.*;
@@ -42,7 +46,16 @@ public class EnsembleFromFile implements Classifier, DebugPrinting, SaveCVAccura
     protected double[][] individualCvPreds;
     protected double[][] individualTestPreds;
     protected double[][][] individualTestDists;
-    protected double[] individualWeights;
+    
+    //each module makes a vote, with a weight defined for this classifier when predicting this class 
+    //most weighting schemes will have weights for each class for a single classifier equal, but leaving open the
+    //possibility of having e.g certain members being experts at classifying certains classes etc
+    protected double[][] posteriorIndividualWeights; //[classifier][weightforclass]
+    
+    //by default (and i imagine in the vast majority of cases) all prior weights are equal (i.e 1)
+    //however may be circumstances where certain classifiers are themselves part of 
+    //a subensemble or something
+    protected double[] priorIndividualWeights;
 
     //data generated during buildclassifier
     protected double[] ensembleCvPreds;
@@ -74,6 +87,8 @@ public class EnsembleFromFile implements Classifier, DebugPrinting, SaveCVAccura
         this.classifierNames = null;
         this.datasetName = null;
         this.resampleIdentifier = -1;
+        
+        this.priorIndividualWeights = null;
     }
 
     public String[] getClassifierNames() {
@@ -96,9 +111,11 @@ public class EnsembleFromFile implements Classifier, DebugPrinting, SaveCVAccura
         this.ensembleIdentifier = ensembleIdentifier;
     }
 
-    public double[] getIndividualWeights() {
-        return individualWeights;
+    public double[][] getPosteriorIndividualWeights() {
+        return posteriorIndividualWeights;
     }
+    
+
     
     
     public ModuleWeightingScheme getWeightingScheme() {
@@ -109,8 +126,22 @@ public class EnsembleFromFile implements Classifier, DebugPrinting, SaveCVAccura
         this.weightingScheme = weightingScheme;
     }
     
+    public double[] getPriorIndividualWeights() {
+        return priorIndividualWeights;
+    }
+    
+    public void setPriorIndividualWeights(double[] priorWeights) {
+        this.priorIndividualWeights = priorWeights;
+    }
+            
+    private void setDefaultPriorWeights() {
+        priorIndividualWeights = new double[classifierNames.length];
+        for (int i = 0; i < priorIndividualWeights.length; i++)
+            priorIndividualWeights[i] = 1;
+    }
+    
     /**
-     * This will also set ensembleIdentifier to a default value (the concatenated classifiernames)
+     * This will also set ensembleIdentifier to a default value (the concatenated classifiernames with a & separator)
      * 
      * If a unique identifier is wanted, call setEnsembleIdentifier AFTER the call to this
      */
@@ -125,6 +156,9 @@ public class EnsembleFromFile implements Classifier, DebugPrinting, SaveCVAccura
         this.ensembleIdentifier = classifierNames[0];
         for (int i = 1; i < classifierNames.length; ++i)
             this.ensembleIdentifier += "&" + classifierNames[i];
+        
+        if (priorIndividualWeights == null)
+            setDefaultPriorWeights();
     }
     
     @Override
@@ -161,9 +195,8 @@ public class EnsembleFromFile implements Classifier, DebugPrinting, SaveCVAccura
         numClasses = data.numClasses();
         numAttributes = data.numAttributes();
         
-        int correct;  
         this.individualCvAccs = new double[this.classifierNames.length];
-        this.individualWeights = new double[this.classifierNames.length];
+        this.posteriorIndividualWeights = new double[this.classifierNames.length][];
         this.individualCvPreds = new double[this.classifierNames.length][];
         
         this.individualTestPreds = new double[this.classifierNames.length][];
@@ -172,7 +205,7 @@ public class EnsembleFromFile implements Classifier, DebugPrinting, SaveCVAccura
         //will look for all files and report all that are missing, instead of bailing on the first file not found
         //just helps debugging/running experiments a little 
         boolean anyFilesNotFound = false;
-        String exceptionString = "";
+        String exceptionString = "Directory given: " + individualResultsFilesDirectory;
         
         //for each module
         for(int c = 0; c < this.classifierNames.length; c++){
@@ -182,14 +215,18 @@ public class EnsembleFromFile implements Classifier, DebugPrinting, SaveCVAccura
             //try and load in the train/test results for this module
             File moduleTrainResultsFile = findResultsFile(classifierNames[c], "train");
             if (moduleTrainResultsFile != null) { 
-                printlnDebug(classifierNames[c] + " train loading...");
+                printlnDebug(classifierNames[c] + " train loading... " + moduleTrainResultsFile.getAbsolutePath());
 
                 ModulePredictions res = ModulePredictions.loadResultsFile(moduleTrainResultsFile, numClasses);
                 individualCvAccs[c] = res.acc;
                 individualCvPreds[c] = res.preds;
                 
-                individualWeights[c] = weightingScheme.defineWeighting(res);
-                
+                posteriorIndividualWeights[c] = weightingScheme.defineWeighting(res, numClasses);
+//                
+//                for (double d : posteriorIndividualWeights[c])
+//                    if (Double.compare(Double.NaN, d) == 0)
+//                        throw new Exception("Weight is NaN, " + classifierNames[c] + ": " + Arrays.toString(posteriorIndividualWeights[c]));
+//                
                 trainResultsLoaded = true;
             }
 
@@ -197,7 +234,7 @@ public class EnsembleFromFile implements Classifier, DebugPrinting, SaveCVAccura
             if (moduleTestResultsFile != null) { 
                 //of course these results not actually used at all during training, 
                 //only loaded for future use when classifying with ensemble
-                printlnDebug(classifierNames[c] + " test loading...");
+                printlnDebug(classifierNames[c] + " test loading..." + moduleTestResultsFile.getAbsolutePath());
 
                 ModulePredictions res = ModulePredictions.loadResultsFile(moduleTestResultsFile, numClasses);
                 //class vals found in results file obviously NOT used at all
@@ -209,13 +246,11 @@ public class EnsembleFromFile implements Classifier, DebugPrinting, SaveCVAccura
             }
             
             if (!trainResultsLoaded) {
-                exceptionString += "\nTrain results files for '" + classifierNames[c] + "' on '" + datasetName + "' fold '" + resampleIdentifier + "' not found. "
-                        + "Directory given:\n" + individualResultsFilesDirectory;
+                exceptionString += "\nTrain results files for '" + classifierNames[c] + "' on '" + datasetName + "' fold '" + resampleIdentifier + "' not found. ";
                 anyFilesNotFound = true;
             }
             if (!testResultsLoaded) {
-                exceptionString += "\nTest results files for '" + classifierNames[c] + "' on '" + datasetName + "' fold '" + resampleIdentifier + "' not found. "
-                        + "Directory given:\n" + individualResultsFilesDirectory;
+                exceptionString += "\nTest results files for '" + classifierNames[c] + "' on '" + datasetName + "' fold '" + resampleIdentifier + "' not found. ";
                 anyFilesNotFound = true;
             }
         }
@@ -226,9 +261,9 @@ public class EnsembleFromFile implements Classifier, DebugPrinting, SaveCVAccura
         //got module trainpreds, time to combine to find overall ensemble trainpreds 
         this.ensembleCvPreds = new double[numTrainInsts];
         
-        double actual, pred;
+        double actual, pred = .0;
         double bsfWeight;
-        correct = 0;
+        int correct = 0;
         ArrayList<Double> bsfClassVals;
         double[] weightByClass;
         
@@ -236,25 +271,39 @@ public class EnsembleFromFile implements Classifier, DebugPrinting, SaveCVAccura
         for(int i = 0; i < numTrainInsts; i++){
             actual = data.instance(i).classValue();
             bsfClassVals = null;
-            bsfWeight = -1;
+            bsfWeight = -Double.MAX_VALUE;
             weightByClass = new double[numClasses];
 
             //for each module
             for(int m = 0; m < classifierNames.length; m++){
                 
-                //this module makes a vote, with weight equal to its overall accuracy, for it's predicted class
-                weightByClass[(int)individualCvPreds[m][i]]+=this.individualWeights[m];
+                //this module makes a vote, with a weight defined for this classifier when predicting this class 
+                //most weighting schemes will have weights for each class for a single classifier equal, but leaving open the
+                //possibility
+                pred = individualCvPreds[m][i];
+                weightByClass[(int)pred]+= priorIndividualWeights[m] * posteriorIndividualWeights[m][(int)pred];
 //                weightByClass[(int)individualCvPreds[m][i]]+=this.individualCvAccs[m];
                 
                 //update max class weighting so far
                 //if two classes are tied for first, record both
-                if(weightByClass[(int)individualCvPreds[m][i]] > bsfWeight){
-                    bsfWeight = weightByClass[(int)individualCvPreds[m][i]];
+                
+                if(weightByClass[(int)pred] > bsfWeight){
+                    bsfWeight = weightByClass[(int)pred];
                     bsfClassVals = new ArrayList<>();
-                    bsfClassVals.add(individualCvPreds[m][i]);
-                }else if(weightByClass[(int)individualCvPreds[m][i]] == bsfWeight){
-                    bsfClassVals.add(individualCvPreds[m][i]);
+                    bsfClassVals.add(pred);
+                }else if(weightByClass[(int)pred] == bsfWeight){
+                    bsfClassVals.add(pred);
                 }
+            }
+            
+            if (bsfClassVals == null) {
+                System.out.println(numClasses);
+                System.out.println(pred);
+                System.out.println(weightByClass[(int)pred]);
+                System.out.println(bsfWeight);
+                System.out.println(Arrays.toString(weightByClass));
+                System.out.println(bsfClassVals);
+                throw new Exception("Problem with weight setting: all weights are 0, " + weightingScheme.getClass().getName());
             }
             
             //if there's a tie for highest voted class after all module have voted, settle randomly
@@ -321,7 +370,7 @@ public class EnsembleFromFile implements Classifier, DebugPrinting, SaveCVAccura
         for(int c = 0; c < classifierNames.length; c++){
             pred = individualTestPreds[c][testInstIndex]; 
 //            preds[(int)pred] += this.individualCvAccs[c];
-            preds[(int)pred] += this.individualWeights[c];
+            preds[(int)pred] += priorIndividualWeights[c] * posteriorIndividualWeights[c][(int)pred];
         }
         
         //normalise so all sum to one 
@@ -366,11 +415,120 @@ public class EnsembleFromFile implements Classifier, DebugPrinting, SaveCVAccura
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
-    public static void main(String [] args) throws Exception {
-        String dataset = "ItalyPowerDemand";
+    public static void main(String [] args) throws Exception {   
+//        buildBulkResultsFiles("E:/PHDEnsembleResFiles/BasicHesca/");
+        weightingSchemeTests("E:/PHDEnsembleResFiles/BasicHesca/");
         
-        Instances train = ClassifierTools.loadData("c:/tsc problems/"+dataset+"/"+dataset+"_TRAIN");
-        Instances test = ClassifierTools.loadData("c:/tsc problems/"+dataset+"/"+dataset+"_TEST");
+//        String dataset = "ItalyPowerDemand";
+//        
+//        Instances train = ClassifierTools.loadData("c:/tsc problems/"+dataset+"/"+dataset+"_TRAIN");
+//        Instances test = ClassifierTools.loadData("c:/tsc problems/"+dataset+"/"+dataset+"_TEST");
+//        
+//        String[] classifierNames = new String[] {
+//            "bayesNet",
+//            "C4.5",
+//            "NB",
+//            "NN",
+//            "RandF",
+//            "RotF",
+//            "SVML",
+//            "SVMQ"
+//        };
+//        
+//        String individualResultsDirectory = "testResults/";
+//        
+//        EnsembleFromFile eff = new EnsembleFromFile();
+//        eff.setDebugPrinting(true);
+//        
+////        eff.setWeightingScheme(new EqualWeighting());
+////        eff.setWeightingScheme(new MCCWeighting());
+////        eff.setWeightingScheme(new F1Weighting());
+//        eff.setWeightingScheme(new TrainAccWeighting());
+////        eff.setWeightingScheme(new CENWeighting()); 
+////        eff.setWeightingScheme(new pCENAccWeighting()); //to implement
+//        
+//        eff.setFileReadingParameters(individualResultsDirectory, classifierNames, dataset, 0);
+//        eff.buildClassifier(train);
+//        
+//        System.out.println("weights:");
+//        for (int i = 0; i < classifierNames.length; i++)
+//            System.out.println(classifierNames[i] + ": " + Arrays.toString(eff.getPosteriorIndividualWeights()[i]));
+//        
+//        double correct = 0;
+//        for (int i = 0; i < test.numInstances(); ++i) {
+//            double pred = eff.classifyInstance(test.get(i));
+//            if (pred == test.get(i).classValue())
+//                correct++;
+//        }
+//        
+//        System.out.println("\nacc for " + eff.ensembleIdentifier +" =" + (correct/test.numInstances()));
+    }
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    public static int numResamples = 25;
+    
+    public static final String[] smallishUCRdatasets  = { //smallish
+        "Adiac",
+        "ArrowHead",
+        "CBF",
+        "ChlorineConcentration",
+        "Coffee",
+        "CricketX",
+        "CricketY",
+        "CricketZ",
+        "DiatomSizeReduction",
+        "DistalPhalanxOutlineAgeGroup",
+        "DistalPhalanxOutlineCorrect",
+        "DistalPhalanxTW",
+        "ECG200",
+        "ItalyPowerDemand",
+        "MiddlePhalanxOutlineAgeGroup",
+        "MiddlePhalanxOutlineCorrect",
+        "MiddlePhalanxTW",
+        "MoteStrain",
+        "ProximalPhalanxOutlineAgeGroup",
+        "ProximalPhalanxOutlineCorrect",
+        "ProximalPhalanxTW",
+        "SonyAIBORobotSurface1",
+        "SonyAIBORobotSurface2",
+        "SyntheticControl",
+        "TwoLeadECG"
+    };
+    
+    public static void buildBulkResultsFiles(String outpath) throws Exception {
+        System.out.println("buildBulkResultsFiles()");
+        
+        double done = 0;
+        for (String dset : smallishUCRdatasets) {
+            Instances train = ClassifierTools.loadData("c:/tsc problems/"+dset+"/"+dset+"_TRAIN");
+            Instances test = ClassifierTools.loadData("c:/tsc problems/"+dset+"/"+dset+"_TEST");
+            
+            for (int r = 0; r < numResamples; ++r) 
+                HESCA.buildAndWriteFullIndividualTrainTestResults(train, test, outpath, dset, "", r, null, true); 
+            
+            System.out.println(((++done)/smallishUCRdatasets.length));
+        }
+    }
+    
+    
+    public static void weightingSchemeTests(String individualResultsDirectory) throws Exception {
+        System.out.println("weightingSchemeTests()");
         
         String[] classifierNames = new String[] {
             "bayesNet",
@@ -383,31 +541,67 @@ public class EnsembleFromFile implements Classifier, DebugPrinting, SaveCVAccura
             "SVMQ"
         };
         
-        String individualResultsDirectory = "testResults/";
+        ModuleWeightingScheme[] schemes = new ModuleWeightingScheme[] { 
+            new cCENWeighting(),
+            new CENWeighting(),
+            new EqualWeighting(),
+            new MCCWeighting(),
+            new TrainAccWeighting(),
+            new FScoreWeighting(),
+            new FScoreWeighting(0.5),
+            new FScoreWeighting(2.0),
+        };
         
-        EnsembleFromFile eff = new EnsembleFromFile();
-        eff.setDebugPrinting(true);
+        double[][] accs = new double[schemes.length][smallishUCRdatasets.length];
         
-//        eff.setWeightingScheme(new EqualWeighting());
-        eff.setWeightingScheme(new MCCWeighting());
-//        eff.setWeightingScheme(new TrainAccWeighting());
-//        eff.setWeightingScheme(new CENAccWeighting()); //to implement
-//        eff.setWeightingScheme(new pCENAccWeighting()); //to implement
-        
-        eff.setFileReadingParameters(individualResultsDirectory, classifierNames, dataset, 0);
-        eff.buildClassifier(train);
-        
-        System.out.println("weights:");
-        for (int i = 0; i < classifierNames.length; i++)
-            System.out.println(classifierNames[i] + ": " + eff.getIndividualWeights()[i]);
-        
-        double correct = 0;
-        for (int i = 0; i < test.numInstances(); ++i) {
-            double pred = eff.classifyInstance(test.get(i));
-            if (pred == test.get(i).classValue())
-                correct++;
+        for (int i = 0; i < schemes.length; i++) {
+            ModuleWeightingScheme scheme = schemes[i];
+            
+            for (int j = 0; j < smallishUCRdatasets.length; j++) {
+                String dataset = smallishUCRdatasets[j];
+                        
+                Instances train = ClassifierTools.loadData("c:/tsc problems/"+dataset+"/"+dataset+"_TRAIN");
+                Instances test = ClassifierTools.loadData("c:/tsc problems/"+dataset+"/"+dataset+"_TEST");
+
+                double acc = .0;
+                for (int r = 0; r < numResamples; ++r)  {
+
+                    Instances[] data = InstanceTools.resampleTrainAndTestInstances(train, test, r);
+
+                    EnsembleFromFile eff = new EnsembleFromFile();
+//                    eff.setDebugPrinting(true);
+                    eff.setWeightingScheme(scheme);
+
+                    eff.setFileReadingParameters(individualResultsDirectory, classifierNames, dataset, r);
+                    eff.buildClassifier(data[0]);
+
+                    double a = ClassifierTools.accuracy(data[1], eff);
+                    acc += a;
+                    
+//                    System.out.println(a);
+                }
+                
+                acc /= numResamples;
+                accs[i][j] = acc;
+            }
+            
+            System.out.println(scheme.getClass().getName() + " done");
         }
         
-        System.out.println("\nacc for " + eff.ensembleIdentifier +" =" + (correct/test.numInstances()));
+        OutFile out = new OutFile("weightingschemeTests.csv");
+        
+        for (int i = 0; i < schemes.length; i++) 
+            out.writeString("," + schemes[i]);
+        out.writeLine("");
+        
+        for (int i = 0; i < smallishUCRdatasets.length; ++i) {
+            out.writeString(smallishUCRdatasets[i]);
+            
+            for (int j = 0; j < schemes.length; j++)
+                out.writeString("," + accs[j][i]);
+            out.writeLine("");
+        }
+        
+        out.closeFile();
     }
 }

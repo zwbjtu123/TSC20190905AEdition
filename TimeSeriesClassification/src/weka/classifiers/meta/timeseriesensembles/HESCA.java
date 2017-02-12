@@ -658,25 +658,27 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule, SaveCVA
     
     
     public static void main(String[] args) throws Exception{
-        Instances train = ClassifierTools.loadData("c:/tsc problems/ItalyPowerDemand/ItalyPowerDemand_TRAIN");
-        Instances test = ClassifierTools.loadData("c:/tsc problems/ItalyPowerDemand/ItalyPowerDemand_TEST");
-        
+                
+//        Instances train = ClassifierTools.loadData("c:/tsc problems/ItalyPowerDemand/ItalyPowerDemand_TRAIN");
+//        Instances test = ClassifierTools.loadData("c:/tsc problems/ItalyPowerDemand/ItalyPowerDemand_TEST");
+//        
+//        
 //        buildAndWriteFullIndividualTrainTestResults(train, test, "testResults/", "ItalyPowerDemand", "", 0, null, true);
-        HESCA h = new HESCA();
-        h.setRandSeed(0);
-        h.setDebugPrinting(true);
-        h.turnOnResultsFileReadingWriting("testResults/", "", "ItalyPowerDemand", 0);
-        h.buildClassifier(train);
-        
-        double correct = 0;
-        for (int i = 0; i < test.numInstances(); ++i) {
-            double pred = h.classifyInstance(test.get(i), i);
-            if (pred == test.get(i).classValue())
-                correct++;
-        }
-        
-        System.out.println("\n acc=" + (correct/test.numInstances()));
-        
+//        HESCA h = new HESCA();
+//        h.setRandSeed(0);
+//        h.setDebugPrinting(true);
+//        h.turnOnResultsFileReadingWriting("testResults/", "", "ItalyPowerDemand", 0);
+//        h.buildClassifier(train);
+//        
+//        double correct = 0;
+//        for (int i = 0; i < test.numInstances(); ++i) {
+//            double pred = h.classifyInstance(test.get(i), i);
+//            if (pred == test.get(i).classValue())
+//                correct++;
+//        }
+//        
+//        System.out.println("\n acc=" + (correct/test.numInstances()));
+//        
 //        System.out.println("cv change test");
 //        for (int a = 0; a < 10; ++a) {
 //        

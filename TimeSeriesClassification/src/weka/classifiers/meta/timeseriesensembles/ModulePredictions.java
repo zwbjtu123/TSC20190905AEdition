@@ -25,7 +25,7 @@ public class ModulePredictions {
     public final double[] preds;
     public final double acc; 
     public final double[][] distsForInsts; //may be null
-    public final double[][] confusionMatrix;
+    public final double[][] confusionMatrix; //[actual class][predicted class]
     private final double[] classVals;
     
     private int numClasses;
@@ -123,7 +123,7 @@ public class ModulePredictions {
         
         double [] classVals = new double[alclassvals.size()];
         for (int i = 0; i < alclassvals.size(); ++i)
-            classVals[i]= alpreds.get(i);
+            classVals[i]= alclassvals.get(i);
         
         double [] preds = new double[alpreds.size()];
         for (int i = 0; i < alpreds.size(); ++i)

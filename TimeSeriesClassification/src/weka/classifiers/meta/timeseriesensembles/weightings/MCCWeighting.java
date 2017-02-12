@@ -11,9 +11,13 @@ import weka.classifiers.meta.timeseriesensembles.ModulePredictions;
  */
 public class MCCWeighting extends ModuleWeightingScheme {
     
+    public MCCWeighting() {
+        uniformWeighting = true;
+    }
+    
     @Override
-    public double defineWeighting(ModulePredictions trainPredictions) {
-        return computeMCC(trainPredictions.confusionMatrix);
+    public double[] defineWeighting(ModulePredictions trainPredictions, int numClasses) {
+        return makeUniformWeighting(computeMCC(trainPredictions.confusionMatrix), numClasses);
     }
     
     /**
