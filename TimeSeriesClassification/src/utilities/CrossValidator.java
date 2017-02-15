@@ -10,6 +10,7 @@ import java.util.Collections;
 import java.util.Random;
 import weka.classifiers.Classifier;
 import weka.classifiers.lazy.kNN;
+import weka.classifiers.meta.timeseriesensembles.ModuleResults;
 import weka.core.Instances;
 
 /**
@@ -57,12 +58,83 @@ public class CrossValidator {
         return foldIndexing.get(fold).get(indexInFold);
     }
 
+
+    public ModuleResults crossValidateWithStats(Classifier classifier, Instances train) throws Exception {
+        return crossValidateWithStats(new Classifier[] { classifier }, train)[0];
+    }
+    
+    /**
+     * TODO return/report variance across folds too
+     * 
+     * Performs more extensive cross validation using dist for instance and 
+     * returns more information. 
+     * 
+     * Each classifier is built/validated using the same subsets of the data provided 
+     * i.e for each prediction, all classifiers will have trained on the exact same
+     * subset data to have made that classification
+     * 
+     * If folds have already been defined (by a call to buildFolds()), will use those,
+     * else will create them internally 
+     * 
+     * @return double[classifier][prediction]
+     */
+    public ModuleResults[] crossValidateWithStats(Classifier[] classifiers, Instances train) throws Exception {
+        if (folds == null)
+            buildFolds(train);
+
+        double[][] predictions = new double[classifiers.length][train.numInstances()];
+        double[][][] distsForInsts = new double[classifiers.length][train.numInstances()][];
+        
+        double pred;
+        double[] dist;
+        
+        //for each fold as test
+        for(int testFold = 0; testFold < numFolds; testFold++){
+            Instances[] trainTest = buildTrainTestSet(testFold);
+
+            //for each classifier in ensemble
+            for (int c = 0; c < classifiers.length; ++c) {
+                classifiers[c].buildClassifier(trainTest[0]);
+
+                //for each test instance on this fold
+                for(int i = 0; i < trainTest[1].numInstances(); i++){
+                    int instIndex = getOriginalInstIndex(testFold, i);
+                    
+                    //classify and store prediction
+                    dist = classifiers[c].distributionForInstance(trainTest[1].instance(i));
+                    pred = indexOfMax(dist);
+                    
+                    distsForInsts[c][instIndex] = dist;
+                    predictions[c][instIndex] = pred;
+                }    
+            }
+        }
+        
+        
+        //shove data into moduleresults objects 
+        ModuleResults[] results = new ModuleResults[classifiers.length];
+        double[] classVals = train.attributeToDoubleArray(train.classIndex());
+        
+        for (int i = 0; i < classifiers.length; i++) {
+            double acc = 0.0;
+            for (int j = 0; j < predictions[i].length; j++)
+                if (predictions[i][j] == classVals[j])
+                    ++acc;
+            acc/=predictions[i].length;
+            
+            results[i] = new ModuleResults(acc, classVals, predictions[i], distsForInsts[i],/* variance,*/ train.numClasses());
+        }
+        
+        return results;
+    }
+    
     public double[] crossValidate(Classifier classifier, Instances train) throws Exception{
         return crossValidate(new Classifier[] { classifier }, train)[0];
     }
 
     /**
-     * Crossvalidates all classifiers provided using the same fold split for all,
+     * Performs simple crossvalidation (i.e only returns preds) on all classifiers provided 
+     * using the same fold split for all
      * i.e for each prediction, all classifiers will have trained on the exact same
      * subset data to have made that classification
      * 
@@ -217,6 +289,19 @@ public class CrossValidator {
         }
     }
     
+    private double indexOfMax(double[] dist) {
+        double max = dist[0];
+        double maxInd = 0;
+        
+        for (int i = 1; i < dist.length; ++i) {
+            if (dist[i] > max) {
+                max = dist[i];
+                maxInd = i;
+            }
+        }
+        return maxInd;
+    }
+    
     
     public static void main(String[] args) throws Exception {
         CrossValidator cv = new CrossValidator();
@@ -239,4 +324,6 @@ public class CrossValidator {
         acc /= preds.length;
         System.out.println("\n Acc: " + acc);
     }
+    
+    
 }

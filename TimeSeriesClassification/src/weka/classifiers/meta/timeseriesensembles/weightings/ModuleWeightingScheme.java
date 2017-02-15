@@ -1,6 +1,6 @@
 package weka.classifiers.meta.timeseriesensembles.weightings;
 
-import weka.classifiers.meta.timeseriesensembles.ModulePredictions;
+import weka.classifiers.meta.timeseriesensembles.EnsembleModule;
 
 /**
  * Base class for defining the weighting of a classifiers votes in ensemble classifiers
@@ -11,7 +11,16 @@ public abstract class ModuleWeightingScheme {
     
     boolean uniformWeighting;
     
-    public abstract double[] defineWeighting(ModulePredictions trainPredictions, int numClasses);
+    
+    public void defineWeightings(EnsembleModule[] modules, int numClasses) {
+        for (EnsembleModule m : modules) //by default, sets weights independently for each module
+            m.posteriorWeights = defineWeighting(m, numClasses);
+        
+        //some schemes may sets weights for each moduel relative to the rest, and 
+        //so will need to override this method
+    }
+    
+    protected abstract double[] defineWeighting(EnsembleModule trainPredictions, int numClasses);
     
     protected double[] makeUniformWeighting(double weight, int numClasses) {
         double[] weights = new double[numClasses];

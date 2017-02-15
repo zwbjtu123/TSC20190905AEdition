@@ -1,6 +1,6 @@
 package weka.classifiers.meta.timeseriesensembles.weightings;
 
-import weka.classifiers.meta.timeseriesensembles.ModulePredictions;
+import weka.classifiers.meta.timeseriesensembles.EnsembleModule;
 
 
 /**
@@ -16,8 +16,10 @@ public class MCCWeighting extends ModuleWeightingScheme {
     }
     
     @Override
-    public double[] defineWeighting(ModulePredictions trainPredictions, int numClasses) {
-        return makeUniformWeighting(computeMCC(trainPredictions.confusionMatrix), numClasses);
+    public double[] defineWeighting(EnsembleModule module, int numClasses) {
+        double weight = (computeMCC(module.trainResults.confusionMatrix) + 1) / 2;
+        //mcc returns vals in range -1,1, need it in range 0,1
+        return makeUniformWeighting(weight, numClasses);
     }
     
     /**

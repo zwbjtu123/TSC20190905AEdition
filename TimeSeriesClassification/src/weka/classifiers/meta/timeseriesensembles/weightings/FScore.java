@@ -1,6 +1,6 @@
 package weka.classifiers.meta.timeseriesensembles.weightings;
 
-import weka.classifiers.meta.timeseriesensembles.ModulePredictions;
+import weka.classifiers.meta.timeseriesensembles.EnsembleModule;
 
 /**
  * Non uniform weighting scheme, uses F-measure to give a weighting composed of 
@@ -8,25 +8,25 @@ import weka.classifiers.meta.timeseriesensembles.ModulePredictions;
  * 
  * @author James Large
  */
-public class FScoreWeighting extends ModuleWeightingScheme {
+public class FScore extends ModuleWeightingScheme {
 
     double beta;
     
-    public FScoreWeighting() {
+    public FScore() {
         this.beta = 1;
         uniformWeighting = false;
     }
     
-    public FScoreWeighting(double beta) {
+    public FScore(double beta) {
         this.beta = beta;
         uniformWeighting = false;
     }
     
     @Override
-    public double[] defineWeighting(ModulePredictions trainPredictions, int numClasses) {
+    public double[] defineWeighting(EnsembleModule module, int numClasses) {
         double[] weights = new double[numClasses];
         for (int c = 0; c < numClasses; c++) 
-            weights[c] = computeFScore(trainPredictions.confusionMatrix, c);
+            weights[c] = computeFScore(module.trainResults.confusionMatrix, c);
 
         return weights;
     }

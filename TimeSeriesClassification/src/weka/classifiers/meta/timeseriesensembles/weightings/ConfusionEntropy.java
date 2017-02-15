@@ -1,7 +1,7 @@
 package weka.classifiers.meta.timeseriesensembles.weightings;
 
 import java.util.Arrays;
-import weka.classifiers.meta.timeseriesensembles.ModulePredictions;
+import weka.classifiers.meta.timeseriesensembles.EnsembleModule;
 
 /**
  *
@@ -14,15 +14,15 @@ import weka.classifiers.meta.timeseriesensembles.ModulePredictions;
  * 
  * @author James Large
  */
-public class CENWeighting extends ModuleWeightingScheme {
+public class ConfusionEntropy extends ModuleWeightingScheme {
 
-    public CENWeighting() {
+    public ConfusionEntropy() {
         uniformWeighting = true;
     }
     
     @Override
-    public double[] defineWeighting(ModulePredictions trainPredictions, int numClasses) {
-        return makeUniformWeighting(computeCEN(trainPredictions.confusionMatrix), numClasses);
+    public double[] defineWeighting(EnsembleModule module, int numClasses) {
+        return makeUniformWeighting(computeCEN(module.trainResults.confusionMatrix), numClasses);
     }
     
     protected double computeCEN(double[][] confMat) {

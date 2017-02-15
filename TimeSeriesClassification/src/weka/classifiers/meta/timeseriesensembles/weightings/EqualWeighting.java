@@ -1,6 +1,6 @@
 package weka.classifiers.meta.timeseriesensembles.weightings;
 
-import weka.classifiers.meta.timeseriesensembles.ModulePredictions;
+import weka.classifiers.meta.timeseriesensembles.EnsembleModule;
 
 
 /**
@@ -16,7 +16,7 @@ public class EqualWeighting extends ModuleWeightingScheme {
     }
     
     @Override
-    public double[] defineWeighting(ModulePredictions trainPredictions, int numClasses) {
+    public double[] defineWeighting(EnsembleModule trainPredictions, int numClasses) {
         return makeUniformWeighting(1.0, numClasses);
     }
     

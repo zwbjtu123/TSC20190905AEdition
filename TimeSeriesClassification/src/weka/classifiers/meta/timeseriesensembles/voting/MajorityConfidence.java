@@ -1,0 +1,78 @@
+package weka.classifiers.meta.timeseriesensembles.voting;
+
+import weka.classifiers.meta.timeseriesensembles.EnsembleModule;
+import weka.core.Instance;
+
+/**
+ * Uses the weighted confidences of each module that the instance is in EACH class (not just the most likely)
+ * 
+ * i.e in a 2-class problem, a module's distforinst maybe be .6 / .4, 
+ *      .6 * weight_c1 will be added to class 1
+ *      .4 * weight_c2 will be added to class 2 as well
+ * 
+ * @author James Large
+ */
+public class MajorityConfidence extends ModuleVotingScheme {
+    
+    public MajorityConfidence() {
+        this.requiresDistsForInstances = true;
+    }
+    
+    public MajorityConfidence(int numClasses) {
+        this.numClasses = numClasses;
+    }
+    
+    @Override
+    public void trainVotingScheme(EnsembleModule[] modules, int numClasses) {
+        this.numClasses = numClasses;
+    }
+
+    @Override
+    public double[] distributionForTrainInstance(EnsembleModule[] modules, int trainInstanceIndex) {
+        double[] preds = new double[numClasses];
+        
+        for(int m = 0; m < modules.length; m++){
+            for (int c = 0; c < numClasses; c++) {
+                preds[c] += modules[m].priorWeight * 
+                            modules[m].posteriorWeights[c] * 
+                            modules[m].trainResults.distsForInsts[trainInstanceIndex][c];
+            }
+        }
+        
+        return normalise(preds);
+    }
+    
+    @Override
+    public double[] distributionForTestInstance(EnsembleModule[] modules, int testInstanceIndex) {
+        double[] preds = new double[numClasses];
+        
+        for(int m = 0; m < modules.length; m++){
+            for (int c = 0; c < numClasses; c++) {
+                preds[c] += modules[m].priorWeight * 
+                            modules[m].posteriorWeights[c] * 
+                            modules[m].testResults.distsForInsts[testInstanceIndex][c];
+            }
+        }
+        
+        return normalise(preds);
+    }
+
+    @Override
+    public double[] distributionForInstance(EnsembleModule[] modules, Instance testInstance) throws Exception {
+        double[] preds = new double[numClasses];
+        
+        double[] dist;
+        for(int m = 0; m < modules.length; m++){
+            dist = modules[m].classifier.distributionForInstance(testInstance);
+            
+            for (int c = 0; c < numClasses; c++) {
+                preds[c] += modules[m].priorWeight * 
+                            modules[m].posteriorWeights[c] * 
+                            dist[c];
+            }
+        }
+        
+        return normalise(preds);
+    }
+    
+}
