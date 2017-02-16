@@ -433,12 +433,17 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveCVAcc
                 }
             }
             
+            
+            if(bsfClassVals == null)
+                throw new Exception("bsfClassVals == null, shit dun fucked up enough for 0 <= -infinity");
+//                pred = new Random().nextInt(numClasses);
+            
             //if there's a tie for highest voted class after all module have voted, settle randomly
             if(bsfClassVals.size()>1)
                 pred = bsfClassVals.get(new Random().nextInt(bsfClassVals.size()));
             else
                 pred = bsfClassVals.get(0);
-
+    
             //and make ensemble prediction
             if(pred==actual)
                 correct++;
@@ -856,7 +861,8 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveCVAcc
     }
     
     public static void main(String[] args) throws Exception {
-        exampleUseCase(); //look here for how to use, below is my random testing
+        schemeTests("C:/JamesLPHD/SmallUCRHESCAResultsFiles/");
+//        exampleUseCase(); //look here for how to use, below is my random testing
         System.exit(0);
         
         String dataset = "ItalyPowerDemand";
@@ -1071,7 +1077,7 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveCVAcc
     
     
     private static void schemeTests(String individualResultsDirectory) throws Exception {
-        System.out.println("weightingSchemeTests()");
+        System.out.println("schemeTests()");
         
         String[] classifierNames = new String[] {
             "bayesNet",
@@ -1085,11 +1091,12 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveCVAcc
         };
         
         ModuleWeightingScheme[] weightSchemes = new ModuleWeightingScheme[] { 
-            new ConfusionEntropyByClass(),
+//            new ConfusionEntropyByClass(), //broke
             new ConfusionEntropy(),
             new EqualWeighting(),
             new MCCWeighting(),
             new TrainAcc(),
+            new TrainAccByClass(),
             new FScore(),
             new FScore(0.5),
             new FScore(2.0),
@@ -1098,7 +1105,8 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveCVAcc
         ModuleVotingScheme[] voteSchemes = new ModuleVotingScheme[] { 
             new MajorityVote(),
             new MajorityVoteByConfidence(),
-            new MajorityConfidence()
+            new MajorityConfidence(),
+            new NP_MAX()
         };
         
         
@@ -1127,6 +1135,7 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveCVAcc
                         h.setVotingScheme(vscheme);
 
                         h.setResultsFileLocationParameters(individualResultsDirectory, dataset, r);
+                        h.setBuildIndividualsFromResultsFiles(true);
                         h.buildClassifier(data[0]);
 
                         double a = ClassifierTools.accuracy(data[1], h);
@@ -1143,26 +1152,60 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveCVAcc
             System.out.println(vscheme.getClass().getName() + " done");
         }
         
-        OutFile out = new OutFile("schemeTests.csv");
-        
+        OutFile out = new OutFile("schemeTestsByVote.csv");
         for (int v = 0; v < voteSchemes.length; v++) {
             out.writeLine("" + voteSchemes[v]);
         
-            for (int i = 0; i < weightSchemes.length; i++) 
-                out.writeString("," + weightSchemes[i]);
+            for (int w = 0; w < weightSchemes.length; w++) 
+                out.writeString("," + weightSchemes[w]);
             out.writeLine("");
 
-            for (int i = 0; i < smallishUCRdatasets.length; ++i) {
-                out.writeString(smallishUCRdatasets[i]);
+            for (int d = 0; d < smallishUCRdatasets.length; ++d) {
+                out.writeString(smallishUCRdatasets[d]);
 
-                for (int j = 0; j < weightSchemes.length; j++)
-                    out.writeString("," + accs[v][j][i]);
+                for (int w = 0; w < weightSchemes.length; w++)
+                    out.writeString("," + accs[v][w][d]);
                 out.writeLine("");
             }
             
-            out.writeLine("");
+            out.writeLine("\n\n");
         }
-        
         out.closeFile();
+        
+        OutFile out2 = new OutFile("schemeTestsByWeight.csv");
+         for (int w = 0; w < weightSchemes.length; w++) {
+            out2.writeLine("" + weightSchemes[w]);
+        
+            for (int v = 0; v < voteSchemes.length; v++)
+                out2.writeString("," + voteSchemes[v]);
+            out2.writeLine("");
+
+            for (int d = 0; d < smallishUCRdatasets.length; ++d) {
+                out2.writeString(smallishUCRdatasets[d]);
+
+                for (int v = 0; v < voteSchemes.length; v++)
+                    out2.writeString("," + accs[v][w][d]);
+                out2.writeLine("");
+            }
+            
+            out2.writeLine("\n\n");
+        }
+        out2.closeFile();
+        
+        OutFile out3 = new OutFile("schemeTestsCombined.csv");
+        for (int v = 0; v < voteSchemes.length; v++)
+            for (int w = 0; w < weightSchemes.length; w++) 
+                out3.writeString("," + voteSchemes[v] + "+" + weightSchemes[w]);
+        out3.writeLine("");
+
+        for (int d = 0; d < smallishUCRdatasets.length; ++d) {
+            out3.writeString(smallishUCRdatasets[d]);
+
+            for (int v = 0; v < voteSchemes.length; v++)
+                for (int w = 0; w < weightSchemes.length; w++)
+                    out3.writeString("," + accs[v][w][d]);
+            out3.writeLine("");
+        }
+        out3.closeFile();
     }
 }

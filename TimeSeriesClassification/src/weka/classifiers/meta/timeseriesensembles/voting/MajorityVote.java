@@ -18,6 +18,7 @@ public class MajorityVote extends ModuleVotingScheme {
     
     public MajorityVote(int numClasses) {
         this.numClasses = numClasses;
+        this.requiresDistsForInstances = true;
     }
     
     @Override
