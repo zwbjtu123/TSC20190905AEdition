@@ -42,6 +42,15 @@ public class TunedRandomForest extends RandomForest implements SaveCVAccuracy{
     String trainPath="";
     Random rng;
     ArrayList<Double> accuracy;
+    boolean crossValidate=true;
+    boolean findTrainAcc=true;  //If there is no tuning, this will find the estimate with the fixed values
+    
+    public void setCrossValidate(boolean b){
+        crossValidate=b;
+    }
+    public void setTrainAcc(boolean b){
+        findTrainAcc=b;
+    }
 
     
     public TunedRandomForest(){
@@ -128,10 +137,12 @@ public class TunedRandomForest extends RandomForest implements SaveCVAccuracy{
     @Override
     public void buildClassifier(Instances data) throws Exception{
         int folds=10;
-        if(folds>data.numInstances())
-            folds=data.numInstances();
-        if(debug)
-            System.out.print(" Folds ="+folds);
+        if(crossValidate){
+            if(folds>data.numInstances())
+                folds=data.numInstances();
+            if(debug)
+                System.out.print(" Folds ="+folds);
+        }
         
     // can classifier handle the data?
         getCapabilities().testWithFail(data);
@@ -153,8 +164,8 @@ public class TunedRandomForest extends RandomForest implements SaveCVAccuracy{
                     y=b;
                 }
             }
-           ArrayList<Pair> ties=new ArrayList<>();
-             for(int numFeatures:numFeaturesRange){//Need to start from scratch for each
+            ArrayList<Pair> ties=new ArrayList<>();
+            for(int numFeatures:numFeaturesRange){//Need to start from scratch for each
                 if(debug)
                     System.out.print(" numFeatures ="+numFeatures);
                 
@@ -165,8 +176,15 @@ public class TunedRandomForest extends RandomForest implements SaveCVAccuracy{
                     t.setNumTrees(numTrees);
                     Instances temp=new Instances(data);
                     Evaluation eval=new Evaluation(temp);
-                    eval.crossValidateModel(t, temp, folds, rng);
-                    double e=eval.errorRate();
+                    double e;
+                    if(crossValidate){  
+                        eval.crossValidateModel(t, temp, folds, rng);
+                        e=eval.errorRate();
+                    }
+                    else{
+                        t.buildClassifier(temp);
+                        e=t.measureOutOfBagError();
+                    }
 //                    double e=1-ClassifierTools.stratifiedCrossValidation(data,t, folds,0);
                     accuracy.add(1-e);
                     if(debug)
@@ -201,13 +219,28 @@ public class TunedRandomForest extends RandomForest implements SaveCVAccuracy{
             if(trainPath!=""){  //Save train results not implemented
             }
         }
-/*        else{
-            int numF=(int)Math.sqrt(data.numAttributes()-1);
-            if(numF<1)
-                numF=1;
-            setNumFeatures(numF);
-*/            
+        else
+            setNumTrees(Math.max(1,(int)Math.sqrt(data.numAttributes()-1)));
+        
         super.buildClassifier(data);
+        if(findTrainAcc){   //Need find train acc, either through CV or OOB
+            if(crossValidate){  
+                    RandomForest t= new RandomForest();
+                    t.setNumFeatures(this.getNumFeatures());
+                    t.setNumTrees(this.getNumTrees());
+                    t.setSeed(rng.nextInt());
+                    Instances temp=new Instances(data);
+                    Evaluation eval=new Evaluation(temp);
+                    double e;
+                eval.crossValidateModel(t, data, folds, rng);
+                trainAcc=1-eval.errorRate();
+            }
+            else{
+                trainAcc=1-this.measureOutOfBagError();
+            }
+        }
+        
+        
 /*
 // Cant do this         super.buildClassifier(data);
 //cos it recreates the bagger

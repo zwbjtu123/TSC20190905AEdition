@@ -714,14 +714,6 @@ public class Feb2017Experiments{
             DataSets.problemPath="C:/Data/UCI Problems/";
             DataSets.resultsPath=DataSets.dropboxPath+"Results/UCIResults/";
             File file =new File("C:\\Users\\ajb\\Dropbox\\Results\\UCIResults");
-            paras[0]="EnhancedRotF";
-            singleClassifierAndFold(paras);            
-            long t3=System.currentTimeMillis();
-            for(int i=2;i<=11;i++){
-                paras[2]=i+"";
-                singleClassifierAndFold(paras);            
-            }
-            long t4=System.currentTimeMillis();
             paras[0]="RotFCV";
             paras[2]="1";
             singleClassifierAndFold(paras);            
@@ -731,6 +723,14 @@ public class Feb2017Experiments{
                 singleClassifierAndFold(paras);            
             }
             long t2=System.currentTimeMillis();
+            paras[0]="EnhancedRotF";
+            singleClassifierAndFold(paras);            
+            long t3=System.currentTimeMillis();
+            for(int i=2;i<=11;i++){
+                paras[2]=i+"";
+                singleClassifierAndFold(paras);            
+            }
+            long t4=System.currentTimeMillis();
             System.out.println("Standard = "+(t2-t1)+", Enhanced = "+(t4-t3));
             
        }
