@@ -60,11 +60,14 @@ public class MajorityVote extends ModuleVotingScheme {
         double[] preds = new double[numClasses];
         
         int pred;
-        for(int c = 0; c < modules.length; c++){
-            pred = (int) modules[c].classifier.classifyInstance(testInstance); 
+        double[] dist;
+        for(int m = 0; m < modules.length; m++){
+            dist = modules[m].getClassifier().distributionForInstance(testInstance); 
+            storeModuleTestResult(modules[m], dist);
             
-            preds[pred] += modules[c].priorWeight * 
-                           modules[c].posteriorWeights[pred];
+            pred = (int)indexOfMax(dist);
+            preds[pred] += modules[m].priorWeight * 
+                           modules[m].posteriorWeights[pred];
         }
         
         return normalise(preds);

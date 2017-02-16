@@ -2,6 +2,7 @@
 package weka.classifiers.meta.timeseriesensembles.voting;
 
 import weka.classifiers.meta.timeseriesensembles.EnsembleModule;
+import weka.classifiers.meta.timeseriesensembles.ModuleResults;
 import weka.core.Instance;
 
 /**
@@ -11,7 +12,7 @@ import weka.core.Instance;
  */
 public abstract class ModuleVotingScheme {
     
-    protected int numClasses;
+    protected int numClasses;  
     protected boolean requiresDistsForInstances;
     
     public boolean getRequiresDistsForInstances() { return requiresDistsForInstances; }
@@ -63,6 +64,13 @@ public abstract class ModuleVotingScheme {
         for(int i=0;i<dist.length;i++)
             dist[i]/=sum;
         return dist;
+    }
+    
+    protected void storeModuleTestResult(EnsembleModule module, double[] dist) {
+        if (module.testResults == null)
+            module.testResults = new ModuleResults();
+        
+        module.testResults.storeSingleTestResult(dist);
     }
     
     @Override

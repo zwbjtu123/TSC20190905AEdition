@@ -62,12 +62,13 @@ public class MajorityVoteByConfidence extends ModuleVotingScheme {
         
         int pred;
         double[] dist;
-        for(int c = 0; c < modules.length; c++){
-            dist = modules[c].classifier.distributionForInstance(testInstance);
-            pred = (int)indexOfMax(dist);
+        for(int m = 0; m < modules.length; m++){
+            dist = modules[m].getClassifier().distributionForInstance(testInstance);
+            storeModuleTestResult(modules[m], dist);
             
-            preds[pred] += modules[c].priorWeight * 
-                            modules[c].posteriorWeights[pred] * 
+            pred = (int)indexOfMax(dist);
+            preds[pred] += modules[m].priorWeight * 
+                            modules[m].posteriorWeights[pred] * 
                             dist[pred];
         }
         

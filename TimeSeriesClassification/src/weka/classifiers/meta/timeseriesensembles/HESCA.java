@@ -30,6 +30,7 @@ import weka.filters.SimpleBatchFilter;
 import utilities.SaveCVAccuracy;
 import weka.classifiers.meta.timeseriesensembles.weightings.*;
 import weka.classifiers.meta.timeseriesensembles.voting.*;
+import weka.filters.timeseries.SAX;
 
 /**
  *
@@ -55,6 +56,10 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveCVAcc
     
     protected Classifier[] classifiers; //todo classifiers essentially stored in the modules
     //can get rid of this reference at some point 
+    
+    
+    protected String[] classifierNames;
+    protected String[] classifierParameters;
     
     protected final SimpleBatchFilter transform;
     protected Instances train;
@@ -98,6 +103,13 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveCVAcc
         public String getLog() { return errorLog; };
     }
     
+    public HESCA() {
+        this.ensembleIdentifier = "HESCA";
+        
+        this.transform = null;
+        this.setDefaultClassifiers();
+    }
+    
     public HESCA(SimpleBatchFilter transform) {
         this.ensembleIdentifier = "HESCA";
         
@@ -105,18 +117,14 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveCVAcc
         this.setDefaultClassifiers();
     }
     
-    public HESCA() {
-        this.ensembleIdentifier = "HESCA";
-        
-        this.transform = null;
-        this.setDefaultClassifiers();
-    }
     public HESCA(Classifier[] classifiers, String[] classifierNames) {
         this.ensembleIdentifier = "HESCA";
         
         this.transform = null;
         this.classifiers = classifiers;
         this.classifierNames = classifierNames;
+        
+        setDefaultClassifierParameters();
     }
     
     public HESCA(SimpleBatchFilter transform, Classifier[] classifiers, String[] classifierNames) {
@@ -125,6 +133,8 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveCVAcc
         this.transform = transform;
         this.classifiers = classifiers;
         this.classifierNames = classifierNames;
+        
+        setDefaultClassifierParameters();
     }
     
     public Classifier[] getClassifiers(){ return classifiers;}
@@ -132,6 +142,19 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveCVAcc
     public void setClassifiers(Classifier[] classifiers, String[] classifierNames) {
         this.classifiers = classifiers;
         this.classifierNames = classifierNames;
+        setDefaultClassifierParameters();
+    }
+    
+    public void setClassifiers(Classifier[] classifiers, String[] classifierNames, String[] parameters) {
+        this.classifiers = classifiers;
+        this.classifierNames = classifierNames;
+        this.classifierParameters = parameters;
+    }
+    
+    protected final void setDefaultClassifierParameters(){
+        classifierParameters = new String[classifiers.length];
+        for (String s : classifierParameters)
+            s = "internalHESCA";
     }
     
     public final void setDefaultClassifiers(){
@@ -150,7 +173,7 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveCVAcc
         
         classifiers[2] = new J48();
         classifierNames[2] = "C4.5";
-            
+        
         SMO svml = new SMO();
         svml.turnChecksOff();
         PolyKernel kl = new PolyKernel();
@@ -188,7 +211,10 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveCVAcc
         classifierNames[6] = "RotF";
         
         classifiers[7] = new BayesNet();
-        classifierNames[7] = "bayesNet";    
+        classifierNames[7] = "bayesNet";   
+        
+        
+        setDefaultClassifierParameters();
     }
     
     public void setRandSeed(int seed){
@@ -224,10 +250,7 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveCVAcc
     
     @Override
     public void buildClassifier(Instances data) throws Exception {
-        printlnDebug("**EnsembleFromFile TRAIN**");
-        
-//        if (!resultsFilesParametersInitialised)
-//            throw new Exception("Parameters for results file reading have not been initialised");
+        printlnDebug("**HESCA TRAIN**");
         
         //transform data if specified
         if(this.transform==null){
@@ -247,9 +270,9 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveCVAcc
         votingScheme.trainVotingScheme(modules, numClasses);
         
         //combine modules to find overall ensemble trainpreds 
-        findEnsembleCVAcc(data);
+        performEnsembleCV(data);
         
-        //if writing results of this ensemble (to be read later as an individual module of a meta ensemble, 
+        //[SaveCVAccuracy] if writing results of this ensemble (to be read later as an individual module of a meta ensemble, 
         //i.e cote or maybe a meta-hesca), write the full ensemble trainFold# file
         if(this.writeEnsembleTrainingFile)
             writeEnsembleCVResults(data);
@@ -282,12 +305,16 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveCVAcc
     protected void initialiseModules() throws Exception {
         this.modules = new EnsembleModule[classifierNames.length];
         for (int m = 0; m < modules.length; m++)
-            modules[m] = new EnsembleModule(classifierNames[m], classifiers[m]);
+            modules[m] = new EnsembleModule(classifierNames[m], classifiers[m], classifierParameters[m]);
         
         //currently will only have file reading ON or OFF (not load some files, train the rest) 
         //having that creates many, many, many annoying issues, especially when classifying test cases
-        if (resultsFilesParametersInitialised)
-            loadModules(); //will throw exception if exitOnFilesNotFound = true and a module cannot be loaded
+        if (readIndividualsResults) {
+            if (!resultsFilesParametersInitialised)
+                throw new Exception("Trying to load HESCA modules from file, but parameters for results file reading have not been initialised");
+            loadModules(); //will throw exception if a module cannot be loaded (rather than e.g training that individual instead)
+        }
+            
         else 
             trainModules();
     }
@@ -308,16 +335,18 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveCVAcc
             if (module.trainResults == null) {
                 //train file for this classifier not found
                 printlnDebug(module.getModuleName() + " performing cv...");
-                module.trainResults = cv.crossValidateWithStats(module.classifier, train);
+                module.trainResults = cv.crossValidateWithStats(module.getClassifier(), train);
 
-                if (resultsFilesParametersInitialised) //if we're doign file reading/writing, but are here because we couldn't find the files previously... 
-                    writeResultsFile(module.getModuleName(), "internalHesca", module.trainResults, "train"); //write them out
+                if (writeIndividualsResults) { //if we're doing tainFold# file writing
+                    writeResultsFile(module.getModuleName(), module.getParameters(), module.trainResults, "train"); //write results out
+                    printlnDebug(module.getModuleName() + " writing train file...");
+                }
             }
             if (module.testResults == null) {
                 //test file for this clasifier not found
                 //build it so we can classify test samples later
                 printlnDebug(module.getModuleName() + " building...");
-                module.classifier.buildClassifier(train);
+                module.getClassifier().buildClassifier(train);
             }
         }
     }
@@ -372,7 +401,7 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveCVAcc
         errors.throwIfErrors();
     }
     
-    protected void findEnsembleCVAcc(Instances data) throws Exception {
+    protected void performEnsembleCV(Instances data) throws Exception {
         this.ensembleCvPreds = new double[numTrainInsts];
         this.ensembleCvDists = new double[numTrainInsts][];
         
@@ -418,6 +447,39 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveCVAcc
             this.ensembleCvDists[i] = weightByClass;
         }
         this.ensembleCvAcc = (double)correct/numTrainInsts;
+    }
+    
+    /**
+     * If building individuals from scratch, i.e not read results from files, call this
+     * after testing is complete to build each module's testResults (accessible by module.testResults)
+     * 
+     * This will be done internally anyway if writeIndividualTestFiles(...) is called, this method
+     * is made public only so that results can be accessed from memory during the same run if wanted 
+     */
+    public void finaliseIndividualModuleTestResults(double[] testSetClassVals) throws Exception {
+        for (EnsembleModule module : modules)
+            module.testResults.finaliseTestResults(testSetClassVals); //converts arraylists to double[]s and preps for writing
+    }
+    
+    /**
+     * @param throwExceptionOnFileParamsNotSetProperly added to make experimental code smoother, 
+     *  i.e if false, can leave the call to writeIndividualTestFiles(...) in even if building from file, and this 
+     *  function will just do nothing. else if actually intending to write test results files, pass true
+     *  for exceptions to be thrown in case of genuine missing parameter settings
+     * @throws Exception 
+     */
+    public void writeIndividualTestFiles(double[] testSetClassVals, boolean throwExceptionOnFileParamsNotSetProperly) throws Exception {
+        if (!writeIndividualsResults || !resultsFilesParametersInitialised) {
+            if (throwExceptionOnFileParamsNotSetProperly)
+                throw new Exception("to call writeIndividualTestFiles(), must have called setResultsFileLocationParameters(...) and setWriteIndividualsResultsFiles()");
+            else 
+                return; //do nothing
+        }
+        
+        finaliseIndividualModuleTestResults(testSetClassVals);
+        
+        for (EnsembleModule module : modules)
+            writeResultsFile(module.getModuleName(), module.getParameters(), module.testResults, "test");
     }
 
     public String[] getClassifierNames() {
@@ -532,10 +594,10 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveCVAcc
             throw new Exception("Received more test instances than expected, when loading test results files, found " + numTestInsts + " test cases");
                 
         double[] preds;
-        if (resultsFilesParametersInitialised)
+        if (readIndividualsResults) //have results loaded from file
             preds = votingScheme.distributionForTestInstance(modules, testInstCounter);
-        else
-            preds = votingScheme.distributionForInstance(modules, instance);
+        else //need to classify them normally
+            preds = votingScheme.distributionForInstance(modules, ins);
         
         if (prevTestInstance != instance)
             ++testInstCounter;
@@ -713,8 +775,8 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveCVAcc
         
         h.setResultsFileLocationParameters(resultOutputDir, datasetIdentifier, resampleIdentifier); //dat hack... set after building/testing
         
-        for (EnsembleModule m : h.modules)
-            h.writeResultsFile(m.getModuleName(), "internalHESCA", m.trainResults, "train");
+        for (EnsembleModule module : h.modules)
+            h.writeResultsFile(module.getModuleName(), module.getParameters(), module.trainResults, "train");
         
         FileWriter out;
         String outPath;
@@ -741,38 +803,61 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveCVAcc
     }
     
     public static void exampleUseCase() throws Exception {
-        //without file reading
-        String dataset = "ItalyPowerDemand";
+        String datasetName = "ItalyPowerDemand";
         
-        Instances train = ClassifierTools.loadData("c:/tsc problems/"+dataset+"/"+dataset+"_TRAIN");
-        Instances test = ClassifierTools.loadData("c:/tsc problems/"+dataset+"/"+dataset+"_TEST");
+        Instances train = ClassifierTools.loadData("c:/tsc problems/"+datasetName+"/"+datasetName+"_TRAIN");
+        Instances test = ClassifierTools.loadData("c:/tsc problems/"+datasetName+"/"+datasetName+"_TEST");
         
-        HESCA hesca = new HESCA(); //default classifiers
+        SimpleBatchFilter transform = new SAX();
+        HESCA hesca = new HESCA(transform); //default classifiers, can still use different transforms if wanted
+        
         
         Classifier[] classifiers = new Classifier[] { new kNN() };
         String [] names = new String[] { "NN" };
+        String [] params = new String[] { "k=100" };
         
-        hesca = new HESCA(classifiers, names); //either/or for bespoke members 
-        hesca.setClassifiers(classifiers, names); //(default ones still old/untuned, for old results recreation purposes)
+        hesca = new HESCA(classifiers, names); //to specify classsifiers, either this
+        hesca.setClassifiers(classifiers, names); //or this 
+        hesca.setClassifiers(classifiers, names, params); //can also pass parameter strings for each if wanted, defaults to "internalHESCA" otherwise
+        //does not check for \n characters or anything (which would break file format), just dont pass them
+        
+        hesca.setDefaultClassifiers();//default ones still old/untuned, for old results recreation/correctness testing purposes
         
         //default uses train acc weighting and majority voting (as before) 
         hesca.setWeightingScheme(new TrainAccByClass()); //or set new methods
-        hesca.setVotingScheme(new MajorityConfidence());
+        hesca.setVotingScheme(new MajorityVote()); //some voting schemes require dist for inst to be defined
         
-        //include this to turn on file reading. 
-        //if file reading is off, 
+        //some old results files may not have written them, will break in this case
+        //buildAndWriteFullIndividualTrainTestResults(...) will produce files with dists if needed (outside of a normal
+        //hesca experiemental run)
+        
         int resampleID = 0;
-        hesca.setResultsFileLocationParameters("directory", dataset, resampleID);
-         
+        //use this to set the location for any results file reading/writing
+        hesca.setResultsFileLocationParameters("hescaTest/", datasetName, resampleID);
+        
+        //include this to turn on file reading, will read from location provided in setResultsFileLocationParameters(...)
+        hesca.setWriteIndividualsResultsFiles(true);
+        //include this to turn on file writing for individuals trainFold# files 
+        hesca.setBuildIndividualsFromResultsFiles(true);
+        //can only have one of these (or neither) set to true at any one time (internally, setting one to true 
+        //will automatically set the other to false)
+        //if building classifiers from scratch and wriitng to file, you obiovusly arnt reading results files
+        //likewise if reading from file, to write would only replace the existing files with identical copies
+        
         hesca.buildClassifier(train);
         
-        //test as normal, no file writing
+        //test however you would a normal classifier, no file writing here
         System.out.println(ClassifierTools.accuracy(test, hesca));
+        
+        //use this after testing is complete to write the testFold# files of the individuals (if setResultsFileLocationParameters(...) has been called)
+        //see the java doc on this func for reasoning behind the boolean
+        boolean throwExceptionOnFileParamsNotSetProperly = false;
+        hesca.writeIndividualTestFiles(test.attributeToDoubleArray(test.classIndex()), throwExceptionOnFileParamsNotSetProperly);
     }
     
     public static void main(String[] args) throws Exception {
-//        exampleUseCase(); //look here for how to use, below is my ad hoc testing
-        
+        exampleUseCase(); //look here for how to use, below is my random testing
+        System.exit(0);
         
         String dataset = "ItalyPowerDemand";
         
@@ -978,7 +1063,7 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveCVAcc
             Instances test = ClassifierTools.loadData("c:/tsc problems/"+dset+"/"+dset+"_TEST");
             
             for (int r = 0; r < numResamples; ++r) 
-                HESCA.buildAndWriteFullIndividualTrainTestResults(train, test, outpath, dset, "", r, null, true); 
+                HESCA.buildAndWriteFullIndividualTrainTestResults(train, test, outpath, dset, "", r, null, null, null, true); 
             
             System.out.println(((++done)/smallishUCRdatasets.length));
         }
@@ -1071,7 +1156,7 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveCVAcc
                 out.writeString(smallishUCRdatasets[i]);
 
                 for (int j = 0; j < weightSchemes.length; j++)
-                    out.writeString("," + accs[j][i]);
+                    out.writeString("," + accs[v][j][i]);
                 out.writeLine("");
             }
             

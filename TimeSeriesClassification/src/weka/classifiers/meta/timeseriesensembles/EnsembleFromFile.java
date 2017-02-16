@@ -26,13 +26,15 @@ import weka.core.Instances;
 public abstract class EnsembleFromFile extends AbstractClassifier implements DebugPrinting {
     
     //results file reading/writing
+    protected boolean readIndividualsResults = false;
+    protected boolean writeIndividualsResults = false;
+    
     protected boolean resultsFilesParametersInitialised;
     protected String individualResultsFilesDirectory;
     protected String ensembleIdentifier = "EnsembleFromFile";
     protected int resampleIdentifier;
 
     protected String datasetName;
-    protected String[] classifierNames;
 
     /**
      * must be called in order to build ensemble from results files or to write individual's 
@@ -49,6 +51,17 @@ public abstract class EnsembleFromFile extends AbstractClassifier implements Deb
         this.resampleIdentifier = resampleIdentifier;
     }
     
+    public void setBuildIndividualsFromResultsFiles(boolean b) {
+        readIndividualsResults = b;
+        if (b)
+            writeIndividualsResults = false;
+    }
+    
+    public void setWriteIndividualsResultsFiles(boolean b) {
+        writeIndividualsResults = b;
+        if (b)
+            readIndividualsResults = false;
+    }
     
     protected File findResultsFile(String classifierName, String trainOrTest) {
         File file = new File(individualResultsFilesDirectory+classifierName+"/Predictions/"+datasetName+"/"+trainOrTest+"Fold"+resampleIdentifier+".csv");
@@ -112,6 +125,11 @@ public abstract class EnsembleFromFile extends AbstractClassifier implements Deb
         return new ModuleResults(acc, classVals, preds, distsForInsts, numClasses);
     }
     
+    /**
+     * todo current validations are pretty off the hoof/incomplete
+     * 
+     * expand/make more thorough, and add some flag to only perform validation if e.g debug = true
+     */
     private static void validateResultsFile(File file, double acc, ArrayList<Double> alclassvals, ArrayList<Double> alpreds, ArrayList<ArrayList<Double>> aldists, int numClasses) throws Exception {
         if (!aldists.isEmpty()) {
             if (alpreds.size() != aldists.size())
@@ -135,9 +153,7 @@ public abstract class EnsembleFromFile extends AbstractClassifier implements Deb
                     + "incorrect accuracy (" + acc + "reported vs" +a +"actual) reported in: " + file.getAbsolutePath());
     }
     
-    protected void writeResultsFile(String classifierName, String parameters, ModuleResults results, String trainOrTest) throws IOException {
-        printlnDebug(classifierName + " " + trainOrTest + " writing...");
-                
+    protected void writeResultsFile(String classifierName, String parameters, ModuleResults results, String trainOrTest) throws IOException {                
         StringBuilder st = new StringBuilder();
         st.append(this.datasetName).append(",").append(this.ensembleIdentifier).append(classifierName).append(","+trainOrTest+"\n");
         st.append(parameters + "\n"); //st.append("internalHesca\n");

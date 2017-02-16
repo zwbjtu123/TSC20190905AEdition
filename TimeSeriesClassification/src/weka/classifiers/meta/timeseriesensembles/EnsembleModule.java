@@ -20,8 +20,10 @@ import weka.core.Instances;
 public class EnsembleModule implements DebugPrinting {
     
     
-    public Classifier classifier;
+    private Classifier classifier;
+
     private String moduleName;
+    private String parameters;
     
     public ModuleResults trainResults;
     public ModuleResults testResults;
@@ -46,9 +48,10 @@ public class EnsembleModule implements DebugPrinting {
         testResults = null;
     }
     
-    public EnsembleModule(String moduleName, Classifier classifier) {
+    public EnsembleModule(String moduleName, Classifier classifier, String parameters) {
         this.classifier =classifier;
         this.moduleName = moduleName;
+        this.parameters = parameters;
         
         trainResults = null;
         testResults = null;
@@ -62,6 +65,22 @@ public class EnsembleModule implements DebugPrinting {
         this.moduleName = moduleName;
     }
 
+    public String getParameters() {
+        return parameters;
+    }
+
+    public void setParameters(String parameters) {
+        this.parameters = parameters;
+    }
+    
+    public Classifier getClassifier() {
+        return classifier;
+    }
+
+    public void setClassifier(Classifier classifier) {
+        this.classifier = classifier;
+    }
+    
     @Override
     public String toString() {
         return moduleName;
