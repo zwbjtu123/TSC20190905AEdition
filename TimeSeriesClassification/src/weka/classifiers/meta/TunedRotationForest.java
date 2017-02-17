@@ -174,7 +174,7 @@ public class TunedRotationForest extends RotationForest implements SaveCVAccurac
             trainAcc=1-bestErr;
             if(debug)
                 System.out.println("Best num atts ="+bestNumAtts+" best num trees="+bestNumTrees+" "+bestNumTrees+" best Acc ="+trainAcc);
-            if(trainPath!=""){  //Save train results
+            if(trainPath!=""){  //Save train results NOT IMPLEMENTED
                 
             }
         }

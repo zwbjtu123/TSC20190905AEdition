@@ -23,7 +23,7 @@ import weka.classifiers.meta.TunedRotationForest;
  * @author ajb
  */
 public class EnhancedRotationForest extends TunedRotationForest{
-    private int maxNumAttributes=40;
+    private int maxNumAttributes=100;
     
     public void setMaxNumAttributes(int m){
         maxNumAttributes=m;

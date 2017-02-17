@@ -2,7 +2,10 @@ package development;
 
 import fileIO.InFile;
 import fileIO.OutFile;
+import java.io.File;
+import java.io.PrintStream;
 import java.text.DecimalFormat;
+import java.util.Scanner;
 import statistics.tests.OneSampleTests;
 import statistics.tests.TwoSampleTests;
 
@@ -75,7 +78,26 @@ public class MultipleClassifiersPairwiseTest {
             }
         }
     }
-    
+    public static void findMeanDifferences(String file){
+        double[][] meanDiff=new double[nosClassifiers][nosClassifiers];
+        OutFile outf=new OutFile(file);
+        for(int i=0;i<nosClassifiers;i++)
+        {
+            for(int j=i+1;j<nosClassifiers;j++){
+                for(int k=0;k<accs[i].length;k++)
+                    meanDiff[i][j]+=accs[i][k]-accs[j][k];
+                meanDiff[i][j]/=accs[i].length;
+                meanDiff[j][i]=-meanDiff[i][j];
+//                meanDiff[i][j]*=-1;
+            }
+        }
+        for(int i=0;i<nosClassifiers;i++)
+        {
+            for(int j=0;j<nosClassifiers;j++)
+                outf.writeString(meanDiff[i][j]+",");
+            outf.writeString("\n");
+        }
+    }
     public static void findDifferences(double alpha,boolean printPVals){
         noDifference=new boolean[nosClassifiers][nosClassifiers];
         for(int i=0;i<nosClassifiers;i++)
@@ -96,7 +118,7 @@ public class MultipleClassifiersPairwiseTest {
         System.out.print("\t");
         for(int i=0;i<nosClassifiers;i++)
             System.out.print(names[i]+"\t");
-            System.out.print("\n");
+        System.out.print("\n");
         for(int i=0;i<nosClassifiers;i++){
             System.out.print(names[i]+"\t");
             for(int j=0;j<nosClassifiers;j++){
@@ -108,7 +130,7 @@ public class MultipleClassifiersPairwiseTest {
                 else
                     System.out.print(noDifference[i][j]+"\t");
             }
-            System.out.println("\n");
+            System.out.print("\n");
         }
         
     } 
@@ -122,7 +144,7 @@ public class MultipleClassifiersPairwiseTest {
          loadData(input);
 //        loadData("C:\\Research\\Papers\\2016\\JMLR HIVE-COTE Jason\\RiseTestWithNames.csv");
         findPVals();
-        double alpha=0.05;
+        double alpha=0.1;
 //printPVals=false;
 //Bonferonni adjusted        
 //        alpha/=nosClassifiers*(nosClassifiers-1)/2;
@@ -146,10 +168,41 @@ public class MultipleClassifiersPairwiseTest {
 //        for(String s:allSimulators)
         String input="C:\\Research\\Results\\RepoResults\\HIVE Results";
 
-        input="C:\\Users\\ajb\\Dropbox\\Results\\UCIResults\\muppets1";
+        input="C:\\Research\\Papers\\2017\\PKDD BOP to BOSS\\Results\\vsCNN";
 //        String s= "All";
 //            runTests(input+s+"CombinedResults.csv",input+s+"Tests.csv");
             runTests(input+".csv",input+"Tests.csv");
+findMeanDifferences(input+" MeanDiffs.csv");            
     }
     
-}
+    
+    
+/* private static void createTable(File file, PrintStream out) throws FileNotFoundException{
+    Scanner sc = new Scanner(file);
+    
+    while(sc.hasNextLine()){
+        String[] data = sc.nextLine().split((","));
+        
+        String dataSet = data[0];
+        float[] results = new float[data.length-1];
+        int index=0;
+        out.print(dataSet);
+        for(int i=1; i<data.length; i++){
+            results[i-1] =  Float.parseFloat(data[i]);                
+            if(results[i-1] > results[index] ){
+                index = i-1;
+            }
+        }
+        
+        for(int i=0; i<results.length; i++){
+            String format = " & %s";
+            if(index == i)
+                format = " & {\\bf %f}";
+            out.printf(format, results[i]);
+        }
+        
+        out.printf("\\\\\n");
+    }
+    
+}   
+*/}

@@ -219,9 +219,8 @@ public class TunedRandomForest extends RandomForest implements SaveCVAccuracy{
             if(trainPath!=""){  //Save train results not implemented
             }
         }
-        else
-            setNumTrees(Math.max(1,(int)Math.sqrt(data.numAttributes()-1)));
-        
+        else //Override WEKA's default which is worse than sqrt(m)
+            setNumFeatures(Math.max(1,(int)Math.sqrt(data.numAttributes()-1)));
         super.buildClassifier(data);
         if(findTrainAcc){   //Need find train acc, either through CV or OOB
             if(crossValidate){  
