@@ -23,6 +23,8 @@ import weka.classifiers.lazy.IBk;
 import weka.classifiers.meta.RotationForest;
 import weka.classifiers.meta.TunedRotationForest;
 import weka.classifiers.meta.timeseriesensembles.HESCA;
+import weka.classifiers.meta.timeseriesensembles.SaveableEnsemble;
+import weka.classifiers.trees.RandomForest;
 import weka.classifiers.trees.TunedRandomForest;
 import weka.core.Instances;
 
@@ -31,20 +33,20 @@ public class Feb2017Experiments{
     public static String[] classifiers={"EnhancedRotF","RotFCV"};
     public static double propInTrain=0.5;
     public static int folds=30; 
-    static String[] fileNames={"abalone","acute-inflammation","acute-nephritis","adult","annealing","arrhythmia","audiology-std","balance-scale","balloons","bank","blood","breast-cancer","breast-cancer-wisc","breast-cancer-wisc-diag","breast-cancer-wisc-prog","breast-tissue","car","cardiotocography-10clases","cardiotocography-3clases",
+    static String[] UCIContinuousFileNames={"abalone","acute-inflammation","acute-nephritis","adult","annealing","arrhythmia","audiology-std","balance-scale","balloons","bank","blood","breast-cancer","breast-cancer-wisc","breast-cancer-wisc-diag","breast-cancer-wisc-prog","breast-tissue","car","cardiotocography-10clases","cardiotocography-3clases",
         "chess-krvk","chess-krvkp","congressional-voting","conn-bench-sonar-mines-rocks","conn-bench-vowel-deterding",
         "connect-4","contrac","credit-approval","cylinder-bands","dermatology","echocardiogram","ecoli","energy-y1","energy-y2","fertility","flags","glass","haberman-survival","hayes-roth","heart-cleveland","heart-hungarian","heart-switzerland","heart-va","hepatitis","hill-valley","horse-colic","ilpd-indian-liver","image-segmentation","ionosphere","iris","led-display","lenses","letter","libras","low-res-spect","lung-cancer","lymphography","magic","mammographic",
         "miniboone","molec-biol-promoter","molec-biol-splice","monks-1","monks-2","monks-3","mushroom","musk-1","musk-2","nursery","oocytes_merluccius_nucleus_4d","oocytes_merluccius_states_2f","oocytes_trisopterus_nucleus_2f","oocytes_trisopterus_states_5b","optical","ozone","page-blocks","parkinsons","pendigits","pima","pittsburg-bridges-MATERIAL","pittsburg-bridges-REL-L","pittsburg-bridges-SPAN","pittsburg-bridges-T-OR-D","pittsburg-bridges-TYPE","planning","plant-margin","plant-shape","plant-texture","post-operative","primary-tumor","ringnorm","seeds","semeion","soybean","spambase","spect","spectf","statlog-australian-credit","statlog-german-credit","statlog-heart","statlog-image","statlog-landsat","statlog-shuttle","statlog-vehicle","steel-plates","synthetic-control","teaching","thyroid","tic-tac-toe","titanic","trains","twonorm","vertebral-column-2clases","vertebral-column-3clases","wall-following","waveform","waveform-noise","wine","wine-quality-red","wine-quality-white","yeast","zoo"};
-    static boolean debug=false;
+    static boolean debug=true;
 //Parameter ranges for search, use same for C and gamma   
     static double[] svmParas={0.00390625, 0.015625, 0.0625, 0.25, 0.5, 1, 2, 4, 16, 256};
 //Parameter ranges for trees for randF and rotF
     static int[] numTrees={10,50,100,200,300,400,500,600,700,800,900,1000,1250,1500,1750,2000};
 
-    public static void generateScripts(boolean grace,int mem, String jar){
+    public static void generateScripts(boolean grace,int mem, String jar,String[] fileNames, String dir){
 //Generates cluster scripts for allTest combos of classifier and data set
 //Generates txt files to run jobs for a single classifier        
-        String path=DataSets.dropboxPath+"Code\\Cluster Scripts\\UCIScripts\\";
+        String path=DataSets.dropboxPath+"Code\\Cluster Scripts\\"+dir+"\\";
         File f=new File(path);
         f.delete();
         f.mkdirs();
@@ -81,9 +83,9 @@ public class Feb2017Experiments{
                 }
                 of.writeLine("java -jar "+jar+".jar "+s+" "+a+" $LSB_JOBINDEX");                
                 if(grace)
-                    of2.writeLine("bsub < Scripts/UCIScripts/"+s+a+"Grace.bsub");
+                    of2.writeLine("bsub < Scripts/"+dir+"/"+s+a+"Grace.bsub");
                 else
-                    list.add("bsub < Scripts/UCIScripts/"+s+a+".bsub");
+                    list.add("bsub < Scripts/"+dir+"/"+s+a+".bsub");
             }
             if(!grace){
                 Collections.reverse(list);
@@ -124,7 +126,7 @@ public class Feb2017Experiments{
         InFile randFTest=new InFile(base+"TunedRandFTest.csv");
         InFile rotFTrain=new InFile(base+"TunedRotFTrainCV.csv");
         InFile rotFTest=new InFile(base+"TunedRotFTest.csv");
-        for(String str:fileNames){
+        for(String str:UCIContinuousFileNames){
             String[] svmTr=svmTrain.readLine().split(",");
             String[] svmTe=svmTest.readLine().split(",");
             String[] randFTr=randFTrain.readLine().split(",");
@@ -162,13 +164,13 @@ public class Feb2017Experiments{
                 OutFile gammaPara=new OutFile(basePath+cls+"//"+cls+"ParameterGamma.csv");
                 OutFile missing=null;
                 int missingCount=0;
-                for(int i=0;i<fileNames.length;i++){
-                    String name=fileNames[i];
-                    clsResults.writeString(fileNames[i]+",");
-                    trainResults.writeString(fileNames[i]+",");
-                    cPara.writeString(fileNames[i]+",");
-                    gammaPara.writeString(fileNames[i]+",");
-                    String path=basePath+cls+"//Predictions//"+fileNames[i];
+                for(int i=0;i<UCIContinuousFileNames.length;i++){
+                    String name=UCIContinuousFileNames[i];
+                    clsResults.writeString(UCIContinuousFileNames[i]+",");
+                    trainResults.writeString(UCIContinuousFileNames[i]+",");
+                    cPara.writeString(UCIContinuousFileNames[i]+",");
+                    gammaPara.writeString(UCIContinuousFileNames[i]+",");
+                    String path=basePath+cls+"//Predictions//"+UCIContinuousFileNames[i];
                     if(missing!=null && missingCount>0)
                         missing.writeString("\n");
                     missingCount=0;
@@ -261,9 +263,9 @@ public class Feb2017Experiments{
                 allTest[i]=null;//superfluous
 //             p=basePath+classifiers[i]+"//"+classifiers[i]+"Train.csv";
         }
-        for(int i=0;i<fileNames.length;i++){
-            acc.writeString(fileNames[i]+",");
-            count.writeString(fileNames[i]+",");
+        for(int i=0;i<UCIContinuousFileNames.length;i++){
+            acc.writeString(UCIContinuousFileNames[i]+",");
+            count.writeString(UCIContinuousFileNames[i]+",");
             String prev="First";
             for(int j=0;j<allTest.length;j++){
                 if(allTest[j]==null){
@@ -313,10 +315,10 @@ public class Feb2017Experiments{
                 OutFile clsResults=new OutFile(basePath+cls+"//"+cls+"TrainTestDiffs.csv");
                 OutFile missing=null;
                 int missingCount=0;
-                for(int i=0;i<fileNames.length;i++){
-                    String name=fileNames[i];
-                    clsResults.writeString(fileNames[i]+",");
-                    String path=basePath+cls+"//Predictions//"+fileNames[i];
+                for(int i=0;i<UCIContinuousFileNames.length;i++){
+                    String name=UCIContinuousFileNames[i];
+                    clsResults.writeString(UCIContinuousFileNames[i]+",");
+                    String path=basePath+cls+"//Predictions//"+UCIContinuousFileNames[i];
                     if(missing!=null && missingCount>0)
                         missing.writeString("\n");
                     missingCount=0;
@@ -372,8 +374,8 @@ public class Feb2017Experiments{
             else
                 allDiffs[i]=null;//superfluous
         }
-        for(int i=0;i<fileNames.length;i++){
-            diff.writeString(fileNames[i]+",");
+        for(int i=0;i<UCIContinuousFileNames.length;i++){
+            diff.writeString(UCIContinuousFileNames[i]+",");
             for(int j=0;j<allDiffs.length;j++){
                 if(allDiffs[j]==null){
                     diff.writeString(",");
@@ -410,7 +412,7 @@ public class Feb2017Experiments{
         switch(classifier){
             case "EnhancedRotF":
                 r=new EnhancedRotationForest();
-                r.setNumIterations(100);
+                r.setNumIterations(200);
                 r.tuneFeatures(false);
                 r.tuneTree(false);
                 r.estimateAccFromTrain(false);
@@ -426,10 +428,10 @@ public class Feb2017Experiments{
                 return h;    
             case "RotFCV":
                 r = new TunedRotationForest();
-                r.setNumIterations(100);
+                r.setNumIterations(200);
                 r.tuneFeatures(false);
                 r.tuneTree(false);
-                r.estimateAccFromTrain(false);
+                r.estimateAccFromTrain(true);
                 return r;
             case "RandFCV":
                 randF = new TunedRandomForest();
@@ -456,7 +458,7 @@ public class Feb2017Experiments{
             throw new RuntimeException("Unknown classifier = "+classifier+" in Feb 2017 class");
         }
     }
-    public static void singleClassifierAndFold(String[] args){
+    public static void singleClassifierAndFoldSingleDataSet(String[] args){
 //first gives the problem file      
         String classifier=args[0];
         String problem=args[1];
@@ -482,17 +484,17 @@ public class Feb2017Experiments{
                 ((SaveCVAccuracy)c).setCVPath(predictions+"/trainFold"+fold+".csv");
             if(c instanceof HESCA){
                 System.out.println("Turning on file read ");
-                  ((HESCA)c).turnOnResultsFileReadingWriting(DataSets.resultsPath,"", problem, fold);
+                  ((HESCA)c).setResultsFileLocationParameters(DataSets.resultsPath, problem, fold);
+                  ((HESCA)c).setBuildIndividualsFromResultsFiles(true);
             }
-            
-            double acc =singleClassifierAndFold(split[0],split[1],c,fold,predictions);
+            double acc =singleClassifierAndFoldSingleDataSet(split[0],split[1],c,fold,predictions);
             System.out.println(classifier+","+problem+","+fold+","+acc);
             
  //       of.writeString("\n");
         }
     }
     
-    public static double singleClassifierAndFold(Instances train, Instances test, Classifier c, int fold,String resultsPath){
+    public static double singleClassifierAndFoldSingleDataSet(Instances train, Instances test, Classifier c, int fold,String resultsPath){
         double acc=0;
         int act;
         int pred;
@@ -556,6 +558,136 @@ public class Feb2017Experiments{
          return acc;
     }    
     
+/** Run a given classifier/problem/fold combination with associated file set up
+ @param args: 
+ * args[0]: Classifier name. Create classifier with setClassifier
+ * args[1]: Problem name
+ * args[2]: Fold number. This is assumed to range from 1, hence we subtract 1
+ * (this is because of the scripting we use to run the code on the cluster)
+ *          the standard archive folds are always fold 0
+ * 
+ * NOTES: 
+ * 1. this assumes you have set DataSets.problemPath to be where ever the 
+ * data is, and assumes the data is in its own directory with two files, 
+ * args[1]_TRAIN.arff and args[1]_TEST.arff 
+ * 2. assumes you have set DataSets.resultsPath to where you want the results to
+ * go It will NOT overwrite any existing results (i.e. if a file of non zero 
+ * size exists)
+ * 3. This method just does the file set up then calls the next method. If you 
+ * just want to run the problem, go to the next method
+* */
+    public static void singleClassifierAndFoldTrainTestSplit(String[] args){
+//first gives the problem file      
+        String classifier=args[0];
+        String problem=args[1];
+        int fold=Integer.parseInt(args[2])-1;
+   
+        Classifier c=setClassifier(classifier,fold);
+        Instances train=ClassifierTools.loadData(DataSets.problemPath+problem+"/"+problem+"_TRAIN");
+        Instances test=ClassifierTools.loadData(DataSets.problemPath+problem+"/"+problem+"_TEST");
+        File f=new File(DataSets.resultsPath+classifier);
+        if(!f.exists())
+            f.mkdir();
+        String predictions=DataSets.resultsPath+classifier+"/Predictions";
+        f=new File(predictions);
+        if(!f.exists())
+            f.mkdir();
+        predictions=predictions+"/"+problem;
+        f=new File(predictions);
+        if(!f.exists())
+            f.mkdir();
+//Check whether fold already exists, if so, dont do it, just quit
+        f=new File(predictions+"/testFold"+fold+".csv");
+        if(!f.exists() || f.length()==0){
+      //      of.writeString(problem+","); );
+            if(c instanceof SaveCVAccuracy)
+                ((SaveCVAccuracy)c).setCVPath(predictions+"/trainFold"+fold+".csv");
+            double acc =singleClassifierAndFoldTrainTestSplit(train,test,c,fold,predictions);
+            System.out.println(classifier+","+problem+","+fold+","+acc);
+            
+ //       of.writeString("\n");
+        }
+    }
+/**
+ * 
+ * @param train: the standard train fold Instances from the archive 
+ * @param test: the standard test fold Instances from the archive
+ * @param c: Classifier to evaluate
+ * @param fold: integer to indicate which fold. Set to 0 to just use train/test
+ * @param resultsPath: a string indicating where to store the results
+ * @return the accuracy of c on fold for problem given in train/test
+ * 
+ * NOTES:
+ * 1.  If the classifier is a SaveableEnsemble, then we save the internal cross 
+ * validation accuracy and the internal test predictions
+ * 2. The output of the file testFold+fold+.csv is
+ * Line 1: ProblemName,ClassifierName, train/test
+ * Line 2: parameter information for final classifier, if it is available
+ * Line 3: test accuracy
+ * then each line is
+ * Actual Class, Predicted Class, Class probabilities 
+ * 
+ * 
+ */    
+    public static double singleClassifierAndFoldTrainTestSplit(Instances train, Instances test, Classifier c, int fold,String resultsPath){
+        Instances[] data=InstanceTools.resampleTrainAndTestInstances(train, test, fold);
+        double acc=0;
+        int act;
+        int pred;
+// Save internal info for ensembles
+        if(c instanceof SaveableEnsemble)
+           ((SaveableEnsemble)c).saveResults(resultsPath+"/internalCV_"+fold+".csv",resultsPath+"/internalTestPreds_"+fold+".csv");
+        try{              
+            c.buildClassifier(data[0]);
+            if(debug){
+                if(c instanceof RandomForest)
+                    System.out.println(" Number of features in MAIN="+((RandomForest)c).getNumFeatures());
+            }
+            StringBuilder str = new StringBuilder();
+            DecimalFormat df=new DecimalFormat("##.######");
+            for(int j=0;j<data[1].numInstances();j++)
+            {
+                act=(int)data[1].instance(j).classValue();
+                data[1].instance(j).setClassMissing();//Just in case ....
+                double[] probs=c.distributionForInstance(data[1].instance(j));
+                pred=0;
+                for(int i=1;i<probs.length;i++){
+                    if(probs[i]>probs[pred])
+                        pred=i;
+                }
+                if(act==pred)
+                    acc++;
+                str.append(act);
+                str.append(",");
+                str.append(pred);
+                str.append(",,");
+                for(double d:probs){
+                    str.append(df.format(d));
+                    str.append(",");
+                }
+                str.append("\n");
+            }
+            acc/=data[1].numInstances();
+            OutFile p=new OutFile(resultsPath+"/testFold"+fold+".csv");
+            p.writeLine(train.relationName()+","+c.getClass().getName()+",test");
+            if(c instanceof SaveCVAccuracy){
+              p.writeLine(((SaveCVAccuracy)c).getParameters());
+            }else
+                p.writeLine("No parameter info");
+            p.writeLine(acc+"");
+            p.writeLine(str.toString());
+        }catch(Exception e)
+        {
+                System.out.println(" Error ="+e+" in method simpleExperiment"+e);
+                e.printStackTrace();
+                System.out.println(" TRAIN "+train.relationName()+" has "+train.numAttributes()+" attributes and "+train.numInstances()+" instances");
+                System.out.println(" TEST "+test.relationName()+" has "+test.numAttributes()+" attributes"+test.numInstances()+" instances");
+
+                System.exit(0);
+        }
+         return acc;
+    }    
+
 
     
     
@@ -579,8 +711,8 @@ public class Feb2017Experiments{
                 allTest[i]=null;//superfluous
 //             p=basePath+classifiers[i]+"//"+classifiers[i]+"Train.csv";
         }
-        for(int i=0;i<fileNames.length;i++){
-            acc.writeString(fileNames[i]+",");
+        for(int i=0;i<UCIContinuousFileNames.length;i++){
+            acc.writeString(UCIContinuousFileNames[i]+",");
             String prev="First";
             for(int j=0;j<allTest.length;j++){
                 if(allTest[j]==null){
@@ -615,6 +747,7 @@ public class Feb2017Experiments{
         
     }
 /**
+ * nos cases, nos features, nos classes, nos cases/**
  * nos cases, nos features, nos classes, nos cases
  */   
 
@@ -622,7 +755,7 @@ public class Feb2017Experiments{
         
         OutFile out=new OutFile(DataSets.problemPath+"SummaryInfo.csv");
         out.writeLine("problem,numCases,numAtts,numClasses");
-        for(String str:fileNames){
+        for(String str:UCIContinuousFileNames){
             File f=new File(DataSets.problemPath+str+"/"+str+".arff");
             if(f.exists()){
                 Instances ins=ClassifierTools.loadData(DataSets.problemPath+str+"/"+str);
@@ -637,7 +770,7 @@ public class Feb2017Experiments{
         InFile g=new InFile("C:\\Research\\Papers\\2017\\ECML Standard Parameters\\Section 6 choosing parameters\\TunedSVMParameterGamma.csv");
         int[][] counts=new int[25][25];
         double[] vals={0.000015,0.000031,0.000061,0.000122,0.000244,0.000488,0.000977,0.001953,0.003906,0.007813,0.015625,0.031250,0.062500,0.125000,0.250000,0.500000,1.000000,2.000000,4.000000,8.000000,16.000000,32.000000,64.000000,128.000000,256.000000};
-        for(int i=0;i<fileNames.length;i++){
+        for(int i=0;i<UCIContinuousFileNames.length;i++){
             String line=c.readLine();
             String gLine=g.readLine();
             String[] splitC=line.split(",");
@@ -677,30 +810,84 @@ public class Feb2017Experiments{
     }
         
     public static void main(String[] args) throws IOException{
-      
+      boolean ucrData=true;
 //        DataSets.problemPath=DataSets.clusterPath+"UCIContinuous/";
-  //      DataSets.dataDescriptionDataNotSplit(fileNames);
+  //      DataSets.dataDescriptionDataNotSplit(UCIContinuousFileNames);
 //        collateResults(30,true,args);
 //        System.exit(0);
  //       collateTrain();
- //   generateScripts(true,4000,"RotFDev");
-   // generateScripts(false,4000,"RotFDev");
- //   System.exit(0);
- 
+
+/*      
+      classifiers=new String[]{"RandFOOB","RandFCV","EnhancedRotF","RotFCV"};
+        String dir="RepoScripts";
+     generateScripts(true,4000,"RepoStandardClassifiers",DataSets.fileNames,dir);
+    generateScripts(false,4000,"RepoStandardClassifiers",DataSets.fileNames,dir);
+    System.exit(0);
+
 //        collateTrainTestResults(30);
  /*       Runtime rt=Runtime.getRuntime();
         Process proc=rt.exec("echo $USER");
         OutputStream os=proc.getOutputStream();
         String str=os.toString();
         System.out.println(" OUTPUT STREAM = "+str+" IT SHOULD BE ajb");
- */       if(args.length>0){//Cluster run
+ */
+        if(ucrData)
+            runTSCDataSet(args);
+        else
+            runUCIDataSet(args);
+    }
+
+    
+    public static void runTSCDataSet(String[] args) {
+        if(args.length>0){//Cluster run
+            DataSets.problemPath=DataSets.clusterPath+"TSC Problems/";
+            DataSets.resultsPath=DataSets.clusterPath+"Results/RepoResults/";
+            File f=new File(DataSets.resultsPath);
+            if(!f.isDirectory()){
+                f.mkdirs();
+            }
+            Feb2017Experiments.singleClassifierAndFoldTrainTestSplit(args);
+        }
+        else{
+            DataSets.problemPath=DataSets.dropboxPath+"TSC Problems/";
+            DataSets.resultsPath=DataSets.dropboxPath+"Results/RepoResults/";
+            File f=new File(DataSets.resultsPath);
+            if(!f.isDirectory()){
+                f.mkdirs();
+            }
+
+            String[] paras={"RandFCV","ItalyPowerDemand","1"};
+//            paras[0]="RotFCV";
+//            paras[2]="1";
+            Feb2017Experiments.singleClassifierAndFoldTrainTestSplit(paras);            
+            long t1=System.currentTimeMillis();
+            for(int i=2;i<=11;i++){
+                paras[2]=i+"";
+                Feb2017Experiments.singleClassifierAndFoldSingleDataSet(paras);            
+            }
+            long t2=System.currentTimeMillis();
+            paras[0]="RandFOOB";
+            Feb2017Experiments.singleClassifierAndFoldSingleDataSet(paras);            
+            long t3=System.currentTimeMillis();
+            for(int i=2;i<=11;i++){
+                paras[2]=i+"";
+                Feb2017Experiments.singleClassifierAndFoldSingleDataSet(paras);            
+            }
+            long t4=System.currentTimeMillis();
+            System.out.println("Standard = "+(t2-t1)+", Enhanced = "+(t4-t3));
+            
+       }        
+    }
+    
+    public static void runUCIDataSet(String[] args) {
+        if(args.length>0){//Cluster run
             DataSets.problemPath=DataSets.clusterPath+"UCIContinuous/";
             DataSets.resultsPath=DataSets.clusterPath+"Results/UCIResults/";
             File f=new File(DataSets.resultsPath);
             if(!f.isDirectory()){
                 f.mkdirs();
             }
-            singleClassifierAndFold(args);
+            Feb2017Experiments.singleClassifierAndFoldSingleDataSet(args);
         }
         else{
             DataSets.problemPath=DataSets.dropboxPath+"UCI Problems/";
@@ -716,24 +903,24 @@ public class Feb2017Experiments{
             File file =new File("C:\\Users\\ajb\\Dropbox\\Results\\UCIResults");
             paras[0]="RotFCV";
             paras[2]="1";
-            singleClassifierAndFold(paras);            
+            Feb2017Experiments.singleClassifierAndFoldSingleDataSet(paras);            
             long t1=System.currentTimeMillis();
             for(int i=2;i<=11;i++){
                 paras[2]=i+"";
-                singleClassifierAndFold(paras);            
+                Feb2017Experiments.singleClassifierAndFoldSingleDataSet(paras);            
             }
             long t2=System.currentTimeMillis();
             paras[0]="EnhancedRotF";
-            singleClassifierAndFold(paras);            
+            Feb2017Experiments.singleClassifierAndFoldSingleDataSet(paras);            
             long t3=System.currentTimeMillis();
             for(int i=2;i<=11;i++){
                 paras[2]=i+"";
-                singleClassifierAndFold(paras);            
+                Feb2017Experiments.singleClassifierAndFoldSingleDataSet(paras);            
             }
             long t4=System.currentTimeMillis();
             System.out.println("Standard = "+(t2-t1)+", Enhanced = "+(t4-t3));
             
-       }
+       }        
     }
 }
 

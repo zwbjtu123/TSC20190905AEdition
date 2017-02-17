@@ -812,6 +812,35 @@ public static void dataDescription(String[] fileNames){
 
 }
 
+
+
+public static void dataDescriptionDataNotSplit(String[] fileNames){
+    //Produce summary descriptions
+    //dropboxPath=uciPath;
+        OutFile f=new OutFile(problemPath+"DataDimensions.csv");
+        f.writeLine("problem,numinstances,numAttributes,numClasses,classDistribution");
+        try{
+            for(int i=0;i<fileNames.length;i++){
+                Instances allData=ClassifierTools.loadData(problemPath+fileNames[i]+"/"+fileNames[i]);
+//                allData.randomize(new Random());
+//                OutFile combo=new OutFile(problemPath+fileNames[i]+"/"+fileNames[i]+".arff");    
+//                combo.writeString(allData.toString());
+                int[] classCounts=new int[allData.numClasses()];
+                for(Instance ins: allData)
+                    classCounts[(int)(ins.classValue())]++;
+                f.writeString(fileNames[i]+","+allData.numInstances()+","+(allData.numAttributes()-1)+","+allData.numClasses());
+                for(int c:classCounts)
+                     f.writeString(","+(c/(double)allData.numInstances()));
+                f.writeString("\n");
+            }
+        }catch(Exception e){
+            System.out.println(" ERRROR"+e);
+        }
+
+}
+
+
+
 public static void makeTable(String means, String stdDev,String outfile){
     InFile m=new InFile(means);
     InFile sd=new InFile(stdDev);
