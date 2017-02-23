@@ -1,6 +1,7 @@
 
 package weka.classifiers.meta.timeseriesensembles.voting;
 
+import utilities.DebugPrinting;
 import weka.classifiers.meta.timeseriesensembles.EnsembleModule;
 import weka.classifiers.meta.timeseriesensembles.ModuleResults;
 import weka.core.Instance;
@@ -10,14 +11,16 @@ import weka.core.Instance;
  * 
  * @author James Large
  */
-public abstract class ModuleVotingScheme {
+public abstract class ModuleVotingScheme implements DebugPrinting {
     
     protected int numClasses;  
     protected boolean requiresDistsForInstances;
     
     public boolean getRequiresDistsForInstances() { return requiresDistsForInstances; }
     
-    public abstract void trainVotingScheme(EnsembleModule[] modules, int numClasses);
+    public void trainVotingScheme(EnsembleModule[] modules, int numClasses) throws Exception {
+        this.numClasses = numClasses;
+    }
     
     public abstract double[] distributionForTrainInstance(EnsembleModule[] modules, int trainInstanceIndex);
     
@@ -59,10 +62,16 @@ public abstract class ModuleVotingScheme {
     protected double[] normalise(double[] dist) {
         //normalise so all sum to one 
         double sum=dist[0];
-        for(int i=1;i<dist.length;i++)
-            sum+=dist[i];
-        for(int i=0;i<dist.length;i++)
-            dist[i]/=sum;
+        for(int i = 1; i < dist.length; i++)
+            sum += dist[i];
+        
+        if (sum == 0.0)
+            for(int i = 0; i < dist.length; i++)
+                dist[i] = 1.0/dist.length;
+        else
+            for(int i = 0; i < dist.length; i++)
+                dist[i] /= sum;
+        
         return dist;
     }
     

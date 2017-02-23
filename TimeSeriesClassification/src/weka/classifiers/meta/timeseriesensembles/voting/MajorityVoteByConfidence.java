@@ -1,5 +1,6 @@
 package weka.classifiers.meta.timeseriesensembles.voting;
 
+import java.util.Arrays;
 import weka.classifiers.meta.timeseriesensembles.EnsembleModule;
 import weka.core.Instance;
 
@@ -30,13 +31,37 @@ public class MajorityVoteByConfidence extends ModuleVotingScheme {
         double[] preds = new double[numClasses];
         
         int pred;
-        for(int c = 0; c < modules.length; c++){
-            pred = (int) modules[c].trainResults.predClassVals[trainInstanceIndex]; 
+        for(int m = 0; m < modules.length; m++){
+            pred = (int) modules[m].trainResults.predClassVals[trainInstanceIndex]; 
             
-            preds[pred] += modules[c].priorWeight * 
-                            modules[c].posteriorWeights[pred] * 
-                            modules[c].trainResults.distsForInsts[trainInstanceIndex][pred];
+            preds[pred] += modules[m].priorWeight * 
+                            modules[m].posteriorWeights[pred] * 
+                            modules[m].trainResults.distsForInsts[trainInstanceIndex][pred];
         }
+        
+        
+//debug start        
+        double[] unweightedPreds = new double[numClasses];
+        
+        for(int m = 0; m < modules.length; m++){
+            pred = (int) modules[m].trainResults.predClassVals[trainInstanceIndex]; 
+            unweightedPreds[pred]++;
+        }
+        
+        for(int m = 0; m < modules.length; m++) {
+            printlnDebug(modules[m].getModuleName() + " distForInst:  " + Arrays.toString(modules[m].trainResults.distsForInsts[trainInstanceIndex]));
+            printlnDebug(modules[m].getModuleName() + " priorweights: " + modules[m].priorWeight);
+            printlnDebug(modules[m].getModuleName() + " postweights:  " + Arrays.toString(modules[m].posteriorWeights));
+            printlnDebug(modules[m].getModuleName() + " voteweight:   " + (modules[m].priorWeight * 
+                            modules[m].posteriorWeights[(int) modules[m].trainResults.predClassVals[trainInstanceIndex]] * 
+                            modules[m].trainResults.distsForInsts[trainInstanceIndex][(int) modules[m].trainResults.predClassVals[trainInstanceIndex]]));
+        }
+        
+        printlnDebug("Ensemble Votes: " + Arrays.toString(unweightedPreds));
+        printlnDebug("Ensemble Dist:  " + Arrays.toString(preds));
+        printlnDebug("Normed:         " + Arrays.toString(normalise(preds)));
+        printlnDebug("");
+//debug end
         
         return normalise(preds);
     }
@@ -46,12 +71,12 @@ public class MajorityVoteByConfidence extends ModuleVotingScheme {
         double[] preds = new double[numClasses];
         
         int pred;
-        for(int c = 0; c < modules.length; c++){
-            pred = (int) modules[c].testResults.predClassVals[testInstanceIndex]; 
+        for(int m = 0; m < modules.length; m++){
+            pred = (int) modules[m].testResults.predClassVals[testInstanceIndex]; 
             
-            preds[pred] += modules[c].priorWeight * 
-                            modules[c].posteriorWeights[pred] * 
-                            modules[c].testResults.distsForInsts[testInstanceIndex][pred];
+            preds[pred] += modules[m].priorWeight * 
+                            modules[m].posteriorWeights[pred] * 
+                            modules[m].testResults.distsForInsts[testInstanceIndex][pred];
         }
         
         return normalise(preds);

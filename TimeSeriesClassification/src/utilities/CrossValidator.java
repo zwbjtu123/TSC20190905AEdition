@@ -84,6 +84,8 @@ public class CrossValidator {
 
         double[][] predictions = new double[classifiers.length][train.numInstances()];
         double[][][] distsForInsts = new double[classifiers.length][train.numInstances()][];
+        double[][] foldaccs = new double[classifiers.length][numFolds];
+        double[] classifierAccs = new double[classifiers.length];
         
         double pred;
         double[] dist;
@@ -106,23 +108,30 @@ public class CrossValidator {
                     
                     distsForInsts[c][instIndex] = dist;
                     predictions[c][instIndex] = pred;
+                    
+                    if (pred == trainTest[1].instance(i).classValue()) {
+                        ++foldaccs[c][testFold];
+                        ++classifierAccs[c];
+                    }
                 }    
+                
+                foldaccs[c][testFold] /= trainTest[1].numInstances();
             }
         }
-        
         
         //shove data into moduleresults objects 
         ModuleResults[] results = new ModuleResults[classifiers.length];
         double[] classVals = train.attributeToDoubleArray(train.classIndex());
         
-        for (int i = 0; i < classifiers.length; i++) {
-            double acc = 0.0;
-            for (int j = 0; j < predictions[i].length; j++)
-                if (predictions[i][j] == classVals[j])
-                    ++acc;
-            acc/=predictions[i].length;
+        for (int i = 0; i < classifiers.length; i++) {  
+            classifierAccs[i] /= predictions[i].length;
             
-            results[i] = new ModuleResults(acc, classVals, predictions[i], distsForInsts[i],/* variance,*/ train.numClasses());
+            double variance = 0.0;
+            for (int j = 0; j < foldaccs[i].length; ++j)
+                variance += (foldaccs[i][j] - classifierAccs[i]) * (foldaccs[i][j] - classifierAccs[i]);
+            variance /= foldaccs[i].length;
+            
+            results[i] = new ModuleResults(classifierAccs[i], classVals, predictions[i], distsForInsts[i], variance, train.numClasses());
         }
         
         return results;
