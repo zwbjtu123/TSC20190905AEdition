@@ -171,7 +171,10 @@ public class DTW1NN extends Efficient1NN{
     
     @Override
     public double[] distributionForInstance(Instance instance) throws Exception {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+       double[] res=new double[instance.numClasses()];
+       int r=(int)classifyInstance(instance);
+       res[r]=1;
+       return res;
     }
 
     @Override

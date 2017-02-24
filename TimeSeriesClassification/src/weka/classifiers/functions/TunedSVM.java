@@ -36,7 +36,7 @@ import weka.core.*;
  If the kernel type is RBF, also set sigma through CV, same values as c
  
  NOTE: 
- 1. CV could be done faster with Gavin's trick
+ 1. CV could be done faster?
  2. Could use libSVM instead
  * 
  */
@@ -71,7 +71,7 @@ public class TunedSVM extends SMO implements SaveCVAccuracy {
         this.debug=b;
     }
 
-    public void setKernalType(KernelType type) {
+    public void setKernelType(KernelType type) {
         switch (type) {
             case LINEAR:                     
                 PolyKernel p=new PolyKernel();

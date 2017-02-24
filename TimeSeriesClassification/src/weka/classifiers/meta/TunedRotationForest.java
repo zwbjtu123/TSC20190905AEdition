@@ -31,7 +31,7 @@ public class TunedRotationForest extends RotationForest implements SaveCVAccurac
     
     public TunedRotationForest(){
         super();
-        this.setNumIterations(50);
+        this.setNumIterations(200);
         rng=new Random();
         accuracy=new ArrayList<>();
         
