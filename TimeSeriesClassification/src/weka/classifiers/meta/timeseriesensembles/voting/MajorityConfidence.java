@@ -15,12 +15,10 @@ import weka.core.Instance;
 public class MajorityConfidence extends ModuleVotingScheme {
     
     public MajorityConfidence() {
-        this.requiresDistsForInstances = true;
     }
     
     public MajorityConfidence(int numClasses) {
         this.numClasses = numClasses;
-        this.requiresDistsForInstances = true;
     }
     
     @Override

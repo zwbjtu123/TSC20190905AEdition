@@ -83,12 +83,16 @@ public abstract class EnsembleFromFile extends AbstractClassifier implements Deb
         scan.next();
         double acc = Double.parseDouble(scan.next().trim());
         
+        boolean fileHasPreds = false;
+        
         String [] lineParts = null;
         while(scan.hasNext()){
             lineParts = scan.next().split(",");
 
-            if (lineParts == null || lineParts.length < 2)
+            if (lineParts == null || lineParts.length < 2) //empty lines
                 continue;
+            
+            fileHasPreds = true;
             
             alclassvals.add(Double.parseDouble(lineParts[0].trim()));
             alpreds.add(Double.parseDouble(lineParts[1].trim()));
@@ -104,15 +108,21 @@ public abstract class EnsembleFromFile extends AbstractClassifier implements Deb
         
         scan.close();
         
-        validateResultsFile(file, acc, alclassvals, alpreds, aldists, numClasses);
+//        validateResultsFile(file, acc, alclassvals, alpreds, aldists, numClasses); //todo maybe expand/include
         
-        double [] classVals = new double[alclassvals.size()];
-        for (int i = 0; i < alclassvals.size(); ++i)
-            classVals[i]= alclassvals.get(i);
-        
-        double [] preds = new double[alpreds.size()];
-        for (int i = 0; i < alpreds.size(); ++i)
-            preds[i]= alpreds.get(i);
+        double [] classVals = null;
+        if (!alclassvals.isEmpty()) {
+            classVals = new double[alclassvals.size()];
+            for (int i = 0; i < alclassvals.size(); ++i)
+                classVals[i]= alclassvals.get(i);
+        }
+    
+        double [] preds = null;
+        if (!alpreds.isEmpty()) {
+            preds = new double[alpreds.size()];
+            for (int i = 0; i < alpreds.size(); ++i)
+                preds[i]= alpreds.get(i);
+        }
         
         double[][] distsForInsts = null;
         if (!aldists.isEmpty()) {
@@ -122,7 +132,13 @@ public abstract class EnsembleFromFile extends AbstractClassifier implements Deb
                     distsForInsts[i][j] = aldists.get(i).get(j);
         }
         
-        return new ModuleResults(acc, classVals, preds, distsForInsts, numClasses);
+        if (fileHasPreds)
+            return new ModuleResults(acc, classVals, preds, distsForInsts, numClasses);
+        else 
+            return new ModuleResults(acc, numClasses);
+        //now need to account for fact that some files might only have the frist 3 lines and 
+        //not the full train cv preds
+        //blame tony.
     }
     
     /**
@@ -159,14 +175,16 @@ public abstract class EnsembleFromFile extends AbstractClassifier implements Deb
         st.append(parameters + "\n"); //st.append("internalHesca\n");
         st.append(results.acc).append("\n");
         
-        for(int i = 0; i < results.predClassVals.length;i++) {
-            st.append(results.trueClassVals[i]).append(",").append(results.predClassVals[i]).append(","); //pred
-            
-            if (results.distsForInsts != null && results.distsForInsts[i] != null)
-                for (int j = 0; j < results.distsForInsts[i].length; j++)
-                    st.append("," + results.distsForInsts[i][j]);
-            
-            st.append("\n");
+        if (results.predClassVals != null) {
+            for(int i = 0; i < results.predClassVals.length;i++) {
+                st.append(results.trueClassVals[i]).append(",").append(results.predClassVals[i]).append(","); //pred
+
+                if (results.distsForInsts != null && results.distsForInsts[i] != null)
+                    for (int j = 0; j < results.distsForInsts[i].length; j++)
+                        st.append("," + results.distsForInsts[i][j]);
+
+                st.append("\n");
+            }
         }
         
         String fullPath = this.individualResultsFilesDirectory+classifierName+"/Predictions/"+datasetName;

@@ -33,6 +33,12 @@ public class ModuleResults {
         testDistsSoFar = new ArrayList<>();
     }
     
+    //for if we are only storing the cv accuracy in the context of SaveCVAccuracy
+    public ModuleResults(double cvacc, int numClasses) {
+        this.acc = cvacc;
+        this.numClasses = numClasses;
+    }
+    
     public ModuleResults(double acc, double[] classVals, double[] preds, double[][] distsForInsts, int numClasses) {        
         this.predClassVals = preds;
         this.acc = acc;

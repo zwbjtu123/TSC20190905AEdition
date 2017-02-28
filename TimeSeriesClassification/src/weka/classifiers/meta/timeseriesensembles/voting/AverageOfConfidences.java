@@ -14,12 +14,11 @@ import weka.core.Instance;
  */
 public class AverageOfConfidences extends ModuleVotingScheme {
     public AverageOfConfidences() {
-        this.requiresDistsForInstances = true;
+        
     }
     
     public AverageOfConfidences(int numClasses) {
         this.numClasses = numClasses;
-        this.requiresDistsForInstances = true;
     }
     
     @Override

@@ -5,17 +5,26 @@ import weka.classifiers.meta.timeseriesensembles.EnsembleModule;
 import weka.core.Instance;
 
 /**
- * Majority vote, however classifiers' vote is weighted by the confidence in their prediction,
- * i.e distForInst[pred]
+ * Individuals vote based on their weight * (confidence in prediction - 1/C), where
+ * C is the number of classes. Subtracting 1/C effectively removes the aspect of random
+ * guessing. In a 2 class case, if a classifier's distforinst is .9,.1, it is very confident
+ * that the class is 0. However if its dist is .55,.45, it may as well just be guessing, however
+ * the value .55 by itself does not reflect that, because the range of values is 0-1
  * 
- * @author James Large
+ * The 'corrected' confidences would instead be in the range 0-0.5, and in the two cases above 
+ * would then be .4 and .05. Thus this voting system disfavours more heavily those classifiers
+ * that are unsure of their decision
+ * 
+ * 
+ * @author James Large james.large@uea.ac.uk
  */
-public class MajorityVoteByConfidence extends ModuleVotingScheme {
+public class MajorityVoteByCorrectedConfidence extends ModuleVotingScheme {
     
-    public MajorityVoteByConfidence() {
+    public MajorityVoteByCorrectedConfidence() {
+        
     }
     
-    public MajorityVoteByConfidence(int numClasses) {
+    public MajorityVoteByCorrectedConfidence(int numClasses) {
         this.numClasses = numClasses;
     }
     
@@ -28,13 +37,15 @@ public class MajorityVoteByConfidence extends ModuleVotingScheme {
     public double[] distributionForTrainInstance(EnsembleModule[] modules, int trainInstanceIndex) {
         double[] preds = new double[numClasses];
         
+        double normValue = 1.0/numClasses; 
+        
         int pred;
         for(int m = 0; m < modules.length; m++){
             pred = (int) modules[m].trainResults.predClassVals[trainInstanceIndex]; 
             
             preds[pred] += modules[m].priorWeight * 
                             modules[m].posteriorWeights[pred] * 
-                            modules[m].trainResults.distsForInsts[trainInstanceIndex][pred];
+                            (modules[m].trainResults.distsForInsts[trainInstanceIndex][pred] - normValue);
         }
         
         
@@ -52,7 +63,7 @@ public class MajorityVoteByConfidence extends ModuleVotingScheme {
             printlnDebug(modules[m].getModuleName() + " postweights:  " + Arrays.toString(modules[m].posteriorWeights));
             printlnDebug(modules[m].getModuleName() + " voteweight:   " + (modules[m].priorWeight * 
                             modules[m].posteriorWeights[(int) modules[m].trainResults.predClassVals[trainInstanceIndex]] * 
-                            modules[m].trainResults.distsForInsts[trainInstanceIndex][(int) modules[m].trainResults.predClassVals[trainInstanceIndex]]));
+                            (modules[m].trainResults.distsForInsts[trainInstanceIndex][(int) modules[m].trainResults.predClassVals[trainInstanceIndex]] - normValue)));
         }
         
         printlnDebug("Ensemble Votes: " + Arrays.toString(unweightedPreds));
@@ -68,13 +79,15 @@ public class MajorityVoteByConfidence extends ModuleVotingScheme {
     public double[] distributionForTestInstance(EnsembleModule[] modules, int testInstanceIndex) {
         double[] preds = new double[numClasses];
         
+        double normValue = 1.0/numClasses; 
+        
         int pred;
         for(int m = 0; m < modules.length; m++){
             pred = (int) modules[m].testResults.predClassVals[testInstanceIndex]; 
             
             preds[pred] += modules[m].priorWeight * 
                             modules[m].posteriorWeights[pred] * 
-                            modules[m].testResults.distsForInsts[testInstanceIndex][pred];
+                            (modules[m].testResults.distsForInsts[testInstanceIndex][pred] - normValue);
         }
         
         return normalise(preds);
@@ -83,6 +96,8 @@ public class MajorityVoteByConfidence extends ModuleVotingScheme {
     @Override
     public double[] distributionForInstance(EnsembleModule[] modules, Instance testInstance) throws Exception {
         double[] preds = new double[numClasses];
+        
+        double normValue = 1.0/numClasses; 
         
         int pred;
         double[] dist;
@@ -93,7 +108,7 @@ public class MajorityVoteByConfidence extends ModuleVotingScheme {
             pred = (int)indexOfMax(dist);
             preds[pred] += modules[m].priorWeight * 
                             modules[m].posteriorWeights[pred] * 
-                            dist[pred];
+                            (dist[pred] - normValue);
         }
         
         return normalise(preds);

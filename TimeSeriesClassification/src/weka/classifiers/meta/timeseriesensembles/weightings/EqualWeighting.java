@@ -13,6 +13,7 @@ public class EqualWeighting extends ModuleWeightingScheme {
 
     public EqualWeighting() {
         uniformWeighting = true;
+        needTrainPreds = false;
     }
     
     @Override

@@ -13,7 +13,6 @@ import utilities.ClassifierTools;
 import utilities.CrossValidator;
 import utilities.DebugPrinting;
 import utilities.InstanceTools;
-import weka.classifiers.AbstractClassifier;
 import weka.classifiers.Classifier;
 import weka.classifiers.bayes.BayesNet;
 import weka.classifiers.bayes.NaiveBayes;
@@ -28,10 +27,11 @@ import weka.core.Instance;
 import weka.core.Instances;
 import weka.filters.SimpleBatchFilter;
 import utilities.SaveCVAccuracy;
-import weka.classifiers.functions.Logistic;
-import weka.classifiers.meta.AdaBoostM1;
+import weka.classifiers.functions.TunedSVM;
+import weka.classifiers.meta.TunedRotationForest;
 import weka.classifiers.meta.timeseriesensembles.weightings.*;
 import weka.classifiers.meta.timeseriesensembles.voting.*;
+import weka.classifiers.trees.TunedRandomForest;
 import weka.filters.timeseries.SAX;
 
 /**
@@ -70,10 +70,17 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveCVAcc
     protected boolean writeEnsembleTrainingFile = false;
     protected String outputEnsembleTrainingPathAndFile;
     
-    //data generated during buildclassifier
+    protected boolean performEnsembleCV = false;
+    //data generated during buildclassifier if above = true 
     protected double[][] ensembleCvDists;
     protected double[] ensembleCvPreds;
     protected double ensembleCvAcc;
+    
+    //data generated during testing
+    protected double[][] ensembleTestDists;
+    protected double[] ensembleTestPreds;
+    protected double[] ensembleTestClassVals; //can ofc only be known/used if building/classifying from file
+    protected double ensembleTestAcc; //can ofc only be known/used if building/classifying from file
     
     //train/test data info
     protected int numTrainInsts;
@@ -238,16 +245,17 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveCVAcc
 
   
     public static int findNumFolds(Instances train){
-        int numFolds = train.numInstances();
-        if(train.numInstances()>=NUM_CASES_THRESHOLD1)
-            numFolds=FOLDS2;
-        else if(train.numInstances()>=NUM_CASES_THRESHOLD2 && train.numAttributes()>=NUM_ATTS_THRESHOLD1)
-            numFolds=FOLDS2;
-        else if(train.numAttributes()>=NUM_ATTS_THRESHOLD2)
-            numFolds=FOLDS2;
-        else if (train.numInstances()>=NUM_CASES_THRESHOLD3) 
-            numFolds=FOLDS1;
-        return numFolds;
+//        int numFolds = train.numInstances();
+//        if(train.numInstances()>=NUM_CASES_THRESHOLD1)
+//            numFolds=FOLDS2;
+//        else if(train.numInstances()>=NUM_CASES_THRESHOLD2 && train.numAttributes()>=NUM_ATTS_THRESHOLD1)
+//            numFolds=FOLDS2;
+//        else if(train.numAttributes()>=NUM_ATTS_THRESHOLD2)
+//            numFolds=FOLDS2;
+//        else if (train.numInstances()>=NUM_CASES_THRESHOLD3) 
+//            numFolds=FOLDS1;
+//        return numFolds;
+        return 10;
     }
     
     @Override
@@ -270,16 +278,23 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveCVAcc
         initialiseModules();
         weightingScheme.defineWeightings(modules, numClasses);
         votingScheme.trainVotingScheme(modules, numClasses);
-        
-        //combine modules to find overall ensemble trainpreds 
-        performEnsembleCV(data);
-        
+                
         //[SaveCVAccuracy] if writing results of this ensemble (to be read later as an individual module of a meta ensemble, 
         //i.e cote or maybe a meta-hesca), write the full ensemble trainFold# file
-        if(this.writeEnsembleTrainingFile)
-            writeEnsembleCVResults(data);
+        if(this.performEnsembleCV) {
+            findEnsembleCV(data); //combine modules to find overall ensemble trainpreds 
+            if(this.writeEnsembleTrainingFile) 
+                writeEnsembleCVResults(data);
+        }
         
         this.testInstCounter = 0; //prep for start of testing
+        if (numTestInsts != -1) {
+            this.ensembleTestClassVals = new double[numTestInsts];
+            this.ensembleTestDists = new double[numTestInsts][];
+            this.ensembleTestPreds = new double[numTestInsts];
+            this.ensembleTestAcc = 0.0;
+        }
+        
     }
     
     protected void writeEnsembleCVResults(Instances data) throws IOException {
@@ -315,15 +330,12 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveCVAcc
             if (!resultsFilesParametersInitialised)
                 throw new Exception("Trying to load HESCA modules from file, but parameters for results file reading have not been initialised");
             loadModules(); //will throw exception if a module cannot be loaded (rather than e.g training that individual instead)
-        }
-            
+        } 
         else 
             trainModules();
     }
     
     protected void trainModules() throws Exception {
-        //still contains some code from when we could some some modules/train the rest
-        //left in case we go back to it. remaining code has essentially 0 overhead
         
         //prep cv 
         int numFolds = findNumFolds(train);
@@ -334,20 +346,40 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveCVAcc
         cv.buildFolds(train);
 
         for (EnsembleModule module : modules) {
-            if (module.trainResults == null) {
-                //train file for this classifier not found
+            if (module.getClassifier() instanceof SaveCVAccuracy) {
+                module.getClassifier().buildClassifier(train);
+                
+                if (needIndividualTrainPreds()) { //need the preds/dists of the train set (cv)
+                    throw new Exception("This setup requires individual train preds/dists, but SaveCVAccuracy not updated yet to extract existing trainpreds from individuals");
+                     
+//                  ModuleResults res = ((SaveCVAccuracy)module.getClassifier()).getModuleResults(); //implement
+                    //if that's not null, hooray
+                    //else either throw exeption or perform cv manually again, to decide
+//                    
+//                    if (writeIndividualsResults) { //if we're doing trainFold# file writing
+//                        writeResultsFile(module.getModuleName(), module.getParameters(), module.trainResults, "train"); //write results out
+//                        printlnDebug(module.getModuleName() + " writing train file with full preds from SaveCVAccuracy...");
+//                    }
+                } else {//only need the accuracy
+                    String params = ((SaveCVAccuracy)module.getClassifier()).getParameters();
+                    double cvacc = Double.parseDouble(params.split(",")[1]);
+                    module.trainResults = new ModuleResults(cvacc, numClasses);
+                    
+                    if (writeIndividualsResults) { //if we're doing trainFold# file writing
+                        writeResultsFile(module.getModuleName(), params, module.trainResults, "train"); //write results out
+                        printlnDebug(module.getModuleName() + " writing train file without preds from SaveCVAccuracy...");
+                    }
+                }
+            }
+            else {
                 printlnDebug(module.getModuleName() + " performing cv...");
                 module.trainResults = cv.crossValidateWithStats(module.getClassifier(), train);
 
-                if (writeIndividualsResults) { //if we're doing tainFold# file writing
+                if (writeIndividualsResults) { //if we're doing trainFold# file writing
                     writeResultsFile(module.getModuleName(), module.getParameters(), module.trainResults, "train"); //write results out
-                    printlnDebug(module.getModuleName() + " writing train file...");
+                    printlnDebug(module.getModuleName() + " writing train file with full preds from scratch...");
                 }
-            }
-            if (module.testResults == null) {
-                //test file for this clasifier not found
-                //build it so we can classify test samples later
-                printlnDebug(module.getModuleName() + " building...");
+                
                 module.getClassifier().buildClassifier(train);
             }
         }
@@ -388,14 +420,17 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveCVAcc
             if (!trainResultsLoaded) {
                 errors.log("\nTRAIN results files for '" + classifierNames[m] + "' on '" + datasetName + "' fold '" + resampleIdentifier + "' not found. ");
             }
-            else if (votingScheme.getRequiresDistsForInstances() && modules[m].trainResults.distsForInsts == null) {
-                errors.log("\nNo distribution for instance data found in TRAIN results file for '" + classifierNames[m] + "' on '" + datasetName + "' fold '" + resampleIdentifier + "'. ");
+            else if (needIndividualTrainPreds() && modules[m].trainResults.distsForInsts == null) {
+                errors.log("\nNo pred/distribution for instance data found in TRAIN results file for '" + classifierNames[m] + "' on '" + datasetName + "' fold '" + resampleIdentifier + "'. ");
             }
         
             if (!testResultsLoaded) {
                 errors.log("\nTEST results files for '" + classifierNames[m] + "' on '" + datasetName + "' fold '" + resampleIdentifier + "' not found. ");
             }
-            else if (votingScheme.getRequiresDistsForInstances() && modules[m].trainResults.distsForInsts == null) {
+            else if (modules[m].testResults.predClassVals == null) {
+                errors.log("\nNo prediction data found in TEST results file for '" + classifierNames[m] + "' on '" + datasetName + "' fold '" + resampleIdentifier + "'. ");
+            }
+            else if (modules[m].testResults.distsForInsts == null) {
                 errors.log("\nNo distribution for instance data found in TEST results file for '" + classifierNames[m] + "' on '" + datasetName + "' fold '" + resampleIdentifier + "'. ");
             }
         }
@@ -403,7 +438,24 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveCVAcc
         errors.throwIfErrors();
     }
     
-    protected void performEnsembleCV(Instances data) throws Exception {
+    protected boolean needIndividualTrainPreds() {
+        return performEnsembleCV || weightingScheme.needTrainPreds || votingScheme.needTrainPreds;
+    }
+    
+//    protected void ensembleCVFromFile(Instances data) throws Exception {
+//        //if results files loaded...
+//        asd
+//                
+//        //remove cv from initmodules and put here, just get the cv acc from SaveCvAccuracy interface first then build later
+//                
+//    }
+//    
+//    protected void ensembleCVFromScratch(Instances data) throws Exception {
+//        //if results files not loaded.. perform cv on already tuned classifiers 
+//        asd
+//    }
+    
+    protected void findEnsembleCV(Instances data) throws Exception {
         this.ensembleCvPreds = new double[numTrainInsts];
         this.ensembleCvDists = new double[numTrainInsts][];
         
@@ -573,12 +625,13 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveCVAcc
     public void setCVPath(String pathAndName){
         this.outputEnsembleTrainingPathAndFile = pathAndName;
         this.writeEnsembleTrainingFile = true;
+        this.performEnsembleCV = true;
     }     
     
     @Override
     public String getParameters(){
         StringBuilder out = new StringBuilder();
-        out.append("NA,");
+        out.append("Trainacc,").append(ensembleCvAcc).append(",");
         for(int m = 0; m < modules.length; m++){
             out.append(modules[m].getModuleName()).append("(").append(modules[m].priorWeight);
             for (int j = 0; j < modules[m].posteriorWeights.length; ++j)
@@ -619,18 +672,28 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveCVAcc
         if (testInstCounter == 0 && prevTestInstance == null) //definitely the first call, not e.g the first inst being classified for the second time
             printlnDebug("\n**TEST**");
         
-        if (testInstCounter >= numTestInsts) //if no test files loaded, numTestInsts == -1
+        if (readIndividualsResults && testInstCounter >= numTestInsts) //if no test files loaded, numTestInsts == -1
             throw new Exception("Received more test instances than expected, when loading test results files, found " + numTestInsts + " test cases");
                 
         double[] preds;
-        if (readIndividualsResults)//have results loaded from file
+        if (readIndividualsResults) {//have results loaded from file
             preds = votingScheme.distributionForTestInstance(modules, testInstCounter);
+            ensembleTestDists[testInstCounter] = preds;
+            ensembleTestPreds[testInstCounter] = indexOfMax(preds);
+            if (ensembleTestPreds[testInstCounter] == instance.classValue()) 
+                ++ensembleTestAcc;
+            
+            ensembleTestClassVals[testInstCounter] = instance.classValue();
+        }
         else //need to classify them normally
             preds = votingScheme.distributionForInstance(modules, ins);
         
         if (prevTestInstance != instance)
             ++testInstCounter;
         prevTestInstance = instance;
+        
+        if (readIndividualsResults && testInstCounter == numTestInsts) //is last test isnt
+            ensembleTestAcc /= numTestInsts;
         
         return preds;
     }
@@ -721,7 +784,7 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveCVAcc
     public static void buildAndWriteFullIndividualTrainTestResults(Instances defaultTrainPartition, Instances defaultTestPartition, 
             String resultOutputDir, String datasetIdentifier, String ensembleIdentifier, int resampleIdentifier, 
             Classifier[] classifiers, String[] cNames,
-            SimpleBatchFilter transform, boolean setSeed, boolean resample) throws Exception{
+            SimpleBatchFilter transform, boolean setSeed, boolean resample, boolean writeEnsembleTrainResults) throws Exception{
         HESCA h;
         if(classifiers != null) 
             h = new HESCA(transform, classifiers, cNames);
@@ -739,7 +802,9 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveCVAcc
         if (setSeed)
             h.setRandSeed(resampleIdentifier);
                 
-        h.setCVPath(resultOutputDir+h.ensembleIdentifier+"/Predictions/"+datasetIdentifier+"/trainFold"+resampleIdentifier+".csv");
+        if (writeEnsembleTrainResults)
+            h.setCVPath(resultOutputDir+h.ensembleIdentifier+"/Predictions/"+datasetIdentifier+"/trainFold"+resampleIdentifier+".csv");
+        
         h.buildClassifier(train);
         
         StringBuilder[] byClassifier = new StringBuilder[h.classifiers.length+1];
@@ -870,7 +935,7 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveCVAcc
         hesca.setBuildIndividualsFromResultsFiles(true);
         //can only have one of these (or neither) set to true at any one time (internally, setting one to true 
         //will automatically set the other to false)
-        //if building classifiers from scratch and wriitng to file, you obiovusly arnt reading results files
+        //if building classifiers from scratch and writing to file, you obviously arnt reading results files
         //likewise if reading from file, to write would only replace the existing files with identical copies
         
         hesca.buildClassifier(train);
@@ -884,9 +949,55 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveCVAcc
         hesca.writeIndividualTestFiles(test.attributeToDoubleArray(test.classIndex()), throwExceptionOnFileParamsNotSetProperly);
     }
     
+    public static void test() throws Exception {
+        String dataset = "ItalyPowerDemand";
+        
+        Instances train = ClassifierTools.loadData("c:/tsc problems/"+dataset+"/"+dataset+"_TRAIN");
+        Instances test = ClassifierTools.loadData("c:/tsc problems/"+dataset+"/"+dataset+"_TEST");
+        
+        String[] classifierNames = new String[] {
+            "TunedSVM",
+//            "RandomRotationForest",
+//            "RandomForest"
+        };
+  
+        Classifier[] classifiers = new Classifier[] {
+            new TunedSVM()
+        };
+        
+//        HESCA hesca = new HESCA(classifiers, classifierNames);
+        HESCA hesca = new HESCA();
+//        hesca.setResultsFileLocationParameters("savecvacctest/", dataset, 0);
+//        hesca.setWriteIndividualsResultsFiles(true);
+//        hesca.setBuildIndividualsFromResultsFiles(true);
+        
+//        hesca.setWeightingScheme(new MCCWeighting());
+        hesca.buildClassifier(train);
+        
+        System.out.println(ClassifierTools.accuracy(test, hesca));
+        
+        hesca.writeIndividualTestFiles(test.attributeToDoubleArray(test.classIndex()), false);
+    }
+    
     public static void main(String[] args) throws Exception {
+        TunedRandomForest randF = new TunedRandomForest();
+        randF.tuneTree(false);
+        randF.tuneFeatures(false);
+        randF.setNumTrees(500);
+        randF.setSeed(0);
+        randF.setTrainAcc(true);
+        randF.setCrossValidate(false);
+        
+        TunedRotationForest rotF = new TunedRotationForest();
+        rotF.setNumIterations(200);
+        rotF.tuneFeatures(false);
+        rotF.tuneTree(false);
+        rotF.estimateAccFromTrain(true);
+        
+        buildBulkResultsFiles("bulkFilesTest/", new Classifier[] { randF, rotF }, new String[] { "RandFOOB", "RotFCV" });
+//        test();
 //        debugTest();
-        schemeTests("C:/JamesLPHD/SmallUCRHESCAResultsFiles/");
+//        schemeTests("C:/JamesLPHD/SmallUCRHESCAResultsFiles/", "corCon2");
 //        exampleUseCase(); //look here for how to use, below is my random testing
         System.exit(0);
         
@@ -905,45 +1016,19 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveCVAcc
             "SVML",
             "SVMQ"
         };
-        
-        String individualResultsDirectory = "testResultsWithDists/";
-        
-//        buildAndWriteFullIndividualTrainTestResults(train, test, individualResultsDirectory, dataset, "", 0, null, true);
-//        System.exit(0);
-        
+
+        Instances[] data = InstanceTools.resampleTrainAndTestInstances(train, test, 0);
+
         HESCA h = new HESCA();
-        h.setDebugPrinting(true);
+//        h.setDebugPrinting(true);
+
+        h.setResultsFileLocationParameters("C:/JamesLPHD/SmallUCRHESCAResultsFiles/", dataset, 0);
+        h.setBuildIndividualsFromResultsFiles(true);
+        h.buildClassifier(data[0]);
+
+        double a = ClassifierTools.accuracy(data[1], h);
         
-//        h.setWeightingScheme(new EqualWeighting());
-//        h.setWeightingScheme(new MCCWeighting());
-//        h.setWeightingScheme(new FScore(0.5));
-//        h.setWeightingScheme(new FScore(1));
-//        h.setWeightingScheme(new FScore(2));
-//        h.setWeightingScheme(new TrainAcc());
-//        h.setWeightingScheme(new TrainAccByClass());
-//        h.setWeightingScheme(new ConfusionEntropy()); 
-//        h.setWeightingScheme(new ConfusionEntropyByClass()); 
-        
-//        h.setVotingScheme(new MajorityVote());
-        h.setVotingScheme(new MajorityVoteByConfidence());
-//        h.setVotingScheme(new MajorityConfidence());
-        
-        h.setResultsFileLocationParameters(individualResultsDirectory, dataset, 0);
-        h.buildClassifier(train);
-        
-        System.out.println("weights:");
-        for (int i = 0; i < classifierNames.length; i++)
-            System.out.println(classifierNames[i] + ": " + Arrays.toString(h.getPosteriorIndividualWeights()[i]));
-        
-        double correct = 0;
-        for (int i = 0; i < test.numInstances(); ++i) {
-            double pred = h.classifyInstance(test.get(i));
-            if (pred == test.get(i).classValue())
-                correct++;
-        }
-        
-        System.out.println("\nacc for " + h.ensembleIdentifier +" =" + (correct/test.numInstances()));
-            
+        System.out.println(h.buildEnsembleReport(true, true));
         
 //        HESCA h1 = new HESCA();
 //        h1.setRandSeed(0);
@@ -1051,9 +1136,19 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveCVAcc
     
     
     
+//    public static void oracleEnsemble(Classifier[] classifiers, String[] cnames, ModuleVotingScheme[] votes, ModuleWeightingScheme[] weights, String[] datasets, int foldStart, int foldEnd) {
+//        for (String dset : datasets)
+//            for (int f = foldStart; f < foldEnd; f++) {
+//                HESCA oracleHESCA = oracleEnsemble(classifiers, cnames, votes, weights, dset, f);
+//                
+//                
+//            }
+//    }
     
-    
-    
+//    public static HESCA oracleEnsemble(Classifier[] classifiers, String[] cnames, ModuleVotingScheme[] votes, ModuleWeightingScheme[] weights, String dataset, int fold) {
+//        Instances train = ClassifierTools.loadData("c:/tsc problems/"+dataset+"/"+dataset+"_TRAIN");
+//        Instances test = ClassifierTools.loadData("c:/tsc problems/"+dataset+"/"+dataset+"_TEST");
+//    }
     
     private static int numResamples = 25;
     
@@ -1070,8 +1165,8 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveCVAcc
 //        "DistalPhalanxOutlineAgeGroup",
 //        "DistalPhalanxOutlineCorrect",
 //        "DistalPhalanxTW",
-        "ECG200",
-//        "ItalyPowerDemand",
+//        "ECG200",
+        "ItalyPowerDemand",
 //        "MiddlePhalanxOutlineAgeGroup",
 //        "MiddlePhalanxOutlineCorrect",
 //        "MiddlePhalanxTW",
@@ -1085,7 +1180,7 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveCVAcc
 //        "TwoLeadECG"
     };
     
-    private static void buildBulkResultsFiles(String outpath) throws Exception {
+    private static void buildBulkResultsFiles(String outpath, Classifier[] cs, String[] cn) throws Exception {
         System.out.println("buildBulkResultsFiles()");
         
         double done = 0;
@@ -1094,14 +1189,14 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveCVAcc
             Instances test = ClassifierTools.loadData("c:/tsc problems/"+dset+"/"+dset+"_TEST");
             
             for (int r = 0; r < numResamples; ++r) 
-                HESCA.buildAndWriteFullIndividualTrainTestResults(train, test, outpath, dset, "", r, null, null, null, true, true); 
+                HESCA.buildAndWriteFullIndividualTrainTestResults(train, test, outpath, dset, "", r, cs, cn, null, true, true, false); 
             
             System.out.println(((++done)/smallishUCRdatasets.length));
         }
     }
     
     
-    private static void schemeTests(String individualResultsDirectory) throws Exception {
+    private static void schemeTests(String individualResultsDirectory, String fileSuffix) throws Exception {
         System.out.println("schemeTests()");
         
         String[] classifierNames = new String[] {
@@ -1121,6 +1216,10 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveCVAcc
 //            new EqualWeighting(),
 //            new MCCWeighting(),
             new TrainAcc(),
+//            new TrainAccOrMCC(2.0),
+//            new TrainAccOrMCC(3.0),
+//            new TrainAccOrMCC(),
+//            new TrainAccOrMCC(10.0),
 //            new TrainAccByClass(),
 //            new FScore(),//1.0 default 
 //            new FScore(0.5),
@@ -1128,7 +1227,8 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveCVAcc
         };
         
         ModuleVotingScheme[] voteSchemes = new ModuleVotingScheme[] { 
-//            new MajorityVote(),
+            new MajorityVote(),
+            new MajorityVoteByCorrectedConfidence(),
             new MajorityVoteByConfidence(),
 //            new MajorityConfidence(),
 //            new NP_MAX(),
@@ -1159,10 +1259,10 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveCVAcc
                         Instances[] data = InstanceTools.resampleTrainAndTestInstances(train, test, r);
 
                         HESCA h = new HESCA();
-                        h.setDebugPrinting(true);
+//                        h.setDebugPrinting(true);
                         h.setWeightingScheme(wscheme);
                         h.setVotingScheme(vscheme);
-                        h.getVotingScheme().setDebugPrinting(true);
+//                        h.getVotingScheme().setDebugPrinting(true);
 
                         h.setResultsFileLocationParameters(individualResultsDirectory, dataset, r);
                         h.setBuildIndividualsFromResultsFiles(true);
@@ -1170,6 +1270,8 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveCVAcc
 
                         double a = ClassifierTools.accuracy(data[1], h);
                         acc += a;
+                        
+//                        System.out.println(h.buildEnsembleReport(true, true));
                     }
 
                     acc /= numResamples;
@@ -1182,7 +1284,7 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveCVAcc
             System.out.println(vscheme.getClass().getName() + " done");
         }
         
-        OutFile out = new OutFile("schemeTestsByVote2.csv");
+        OutFile out = new OutFile("schemeTestsByVote"+fileSuffix+".csv");
         for (int v = 0; v < voteSchemes.length; v++) {
             out.writeLine("" + voteSchemes[v]);
         
@@ -1202,7 +1304,7 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveCVAcc
         }
         out.closeFile();
         
-        OutFile out2 = new OutFile("schemeTestsByWeight2.csv");
+        OutFile out2 = new OutFile("schemeTestsByWeight"+fileSuffix+".csv");
          for (int w = 0; w < weightSchemes.length; w++) {
             out2.writeLine("" + weightSchemes[w]);
         
@@ -1222,7 +1324,7 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveCVAcc
         }
         out2.closeFile();
         
-        OutFile out3 = new OutFile("schemeTestsCombined2.csv");
+        OutFile out3 = new OutFile("schemeTestsCombined"+fileSuffix+".csv");
         for (int v = 0; v < voteSchemes.length; v++)
             for (int w = 0; w < weightSchemes.length; w++) 
                 out3.writeString("," + voteSchemes[v] + "+" + weightSchemes[w]);
@@ -1254,10 +1356,107 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveCVAcc
         Instances all=ClassifierTools.loadData("C:/UCI Problems/"+dset+"/"+dset); 
         Instances[] data=InstanceTools.resampleInstances(all, fold, 0.5);
         
-        buildAndWriteFullIndividualTrainTestResults(data[0], data[1], "lala/", dset, "asd", fold, cs, cn, null, true, true);
+        buildAndWriteFullIndividualTrainTestResults(data[0], data[1], "lala/", dset, "asd", fold, cs, cn, null, true, true, false);
         
 //        HESCA h = new HESCA(cs, cn);
 //        h.setRandSeed(fold);
 //        h.buildClassifier(data[0]);
     }
+    
+    public String buildEnsembleReport(boolean printPreds, boolean builtFromFile) {
+        StringBuilder sb = new StringBuilder();
+        
+        sb.append("HESCA REPORT");
+        sb.append("\nname: ").append(ensembleIdentifier);
+        sb.append("\nmodules: ").append(classifierNames[0]);
+        for (int i = 1; i < classifierNames.length; i++) 
+            sb.append(",").append(classifierNames[i]);
+        sb.append("\nweight scheme: ").append(weightingScheme);
+        sb.append("\nvote scheme: ").append(votingScheme);
+        sb.append("\ndataset: ").append(datasetName);
+        sb.append("\nfold: ").append(resampleIdentifier);
+        sb.append("\ntrain acc: ").append(ensembleCvAcc);
+        sb.append("\ntest acc: ").append(builtFromFile ? ensembleTestAcc : "NA");
+        
+        int precision = 4;
+        int numWidth = precision+2;
+        int trainAccColWidth = 8;
+        int priorWeightColWidth = 12;
+        int postWeightColWidth = 12;
+        
+        String moduleHeaderFormatString = "\n\n%20s | %"+(Math.max(trainAccColWidth, numWidth))+"s | %"+(Math.max(priorWeightColWidth, numWidth))+"s | %"+(Math.max(postWeightColWidth, this.numClasses*(numWidth+2)))+"s";
+        String moduleRowHeaderFormatString = "\n%20s | %"+trainAccColWidth+"."+precision+"f | %"+priorWeightColWidth+"."+precision+"f | %"+(Math.max(postWeightColWidth, this.numClasses*(precision+2)))+"s";
+        
+        sb.append(String.format(moduleHeaderFormatString, "modules", "trainacc", "priorweights", "postweights"));
+        for (EnsembleModule module : modules) {
+            String postweights = String.format("  %."+precision+"f", module.posteriorWeights[0]);
+            for (int c = 1; c < this.numClasses; c++) 
+                postweights += String.format(", %."+precision+"f", module.posteriorWeights[c]);
+            
+            sb.append(String.format(moduleRowHeaderFormatString, module.getModuleName(), module.trainResults.acc, module.priorWeight, postweights));
+        }
+        
+        
+        if (printPreds) {
+            sb.append("\n\nensemble train preds: ");
+            sb.append("\ntrain acc: ").append(ensembleCvAcc);
+            sb.append("\n");
+            for(int i = 0; i < ensembleCvPreds.length;i++)
+                sb.append(buildEnsemblePredsLine(true, i)).append("\n");
+
+            sb.append("\n\nensemble test preds: ");
+            sb.append("\ntest acc: ").append(builtFromFile ? ensembleTestAcc : "NA");
+            sb.append("\n");
+            for(int i = 0; i < ensembleTestPreds.length;i++)
+                sb.append(buildEnsemblePredsLine(false, i)).append("\n");
+        }
+        
+        return sb.toString();
+    }
+    
+    /**
+     * trueClassVal,predClassVal,[empty],dist1,...,distC,#indpreddist1,...,indpreddistC,#module1pred,...,moduleMpred
+     * split on "#"
+     * [0] = normal results file format (true class, pred class, distforinst)
+     * [1] = number of individual unweighted votes per class
+     * [2] = the unweighted prediction of each module
+     */
+    private String buildEnsemblePredsLine(boolean train, int index) {
+        StringBuilder sb = new StringBuilder();
+        
+        if (train) //pred
+                sb.append(modules[0].trainResults.trueClassVals[index]).append(",").append(ensembleCvPreds[index]).append(","); 
+            else
+                sb.append(modules[0].testResults.trueClassVals[index]).append(",").append(ensembleTestPreds[index]).append(","); 
+        
+        if (train) //dist
+            for (int j = 0; j < ensembleCvDists[index].length; j++) 
+                sb.append("," + ensembleCvDists[index][j]);
+        else
+            for (int j = 0; j < ensembleTestDists[index].length; j++) 
+                sb.append("," + ensembleTestDists[index][j]);
+        sb.append(",");
+        
+        
+        double[] predDist = new double[numClasses]; //indpreddist
+        for (int m = 0; m < modules.length; m++) {
+            if (train) 
+                ++predDist[(int)modules[m].trainResults.predClassVals[index]];
+            else 
+                ++predDist[(int)modules[m].testResults.predClassVals[index]];
+        }
+        for (int c = 0; c < numClasses; c++) 
+            sb.append(",").append(predDist[c]);
+        sb.append(",");
+                
+        for (int m = 0; m < modules.length; m++) {
+            if (train) 
+                sb.append(",").append(modules[m].trainResults.predClassVals[index]);
+            else 
+                sb.append(",").append(modules[m].testResults.predClassVals[index]);
+        }   
+        
+        return sb.toString();
+    }
+
 }

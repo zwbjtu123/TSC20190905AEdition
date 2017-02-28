@@ -20,12 +20,11 @@ public class BestIndividualOracle extends ModuleVotingScheme {
     int bestModule;
     
     public BestIndividualOracle() {
-        this.requiresDistsForInstances = true;
+        
     }
     
     public BestIndividualOracle(int numClasses) {
         this.numClasses = numClasses;
-        this.requiresDistsForInstances = true;
     }
     
     @Override

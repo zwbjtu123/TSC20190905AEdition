@@ -14,9 +14,7 @@ import weka.core.Instance;
 public abstract class ModuleVotingScheme implements DebugPrinting {
     
     protected int numClasses;  
-    protected boolean requiresDistsForInstances;
-    
-    public boolean getRequiresDistsForInstances() { return requiresDistsForInstances; }
+    public boolean needTrainPreds = false;
     
     public void trainVotingScheme(EnsembleModule[] modules, int numClasses) throws Exception {
         this.numClasses = numClasses;

@@ -9,8 +9,8 @@ import weka.classifiers.meta.timeseriesensembles.EnsembleModule;
  */
 public abstract class ModuleWeightingScheme {
     
-    boolean uniformWeighting;
-    
+    public boolean uniformWeighting = true;
+    public boolean needTrainPreds = true;
     
     public void defineWeightings(EnsembleModule[] modules, int numClasses) {
         for (EnsembleModule m : modules) //by default, sets weights independently for each module

@@ -20,12 +20,10 @@ public class BestIndividualTrain extends ModuleVotingScheme {
     int bestModule;
     
     public BestIndividualTrain() {
-        this.requiresDistsForInstances = true;
     }
     
     public BestIndividualTrain(int numClasses) {
         this.numClasses = numClasses;
-        this.requiresDistsForInstances = true;
     }
     
     @Override
