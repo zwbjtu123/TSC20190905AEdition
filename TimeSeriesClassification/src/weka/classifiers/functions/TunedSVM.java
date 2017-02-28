@@ -43,6 +43,7 @@ import weka.core.*;
 public class TunedSVM extends SMO implements SaveCVAccuracy {
     int min=-8;
     int max=16;
+    long buildTime;
     double[] paraSpace;
     private static int MAX_FOLDS=10;
     private double[] paras;
@@ -51,6 +52,8 @@ public class TunedSVM extends SMO implements SaveCVAccuracy {
     boolean debug=false;
     Random rng;
     ArrayList<Double> accuracy;
+    private boolean kernelOptimise=false;   //Choose between linear, quadratic and RBF kernel
+    private boolean paraOptimise=true;
 
     public enum KernelType {LINEAR,QUADRATIC,RBF};
     KernelType kernel;
@@ -98,8 +101,6 @@ public class TunedSVM extends SMO implements SaveCVAccuracy {
         for(int i=min;i<=max;i++)
             paraSpace[i-min]=Math.pow(2,i);
     }
-    private boolean kernelOptimise=false;   //Choose between linear, quadratic and RBF kernel
-    private boolean paraOptimise=true;
     public void optimiseKernel(boolean b){kernelOptimise=b;}
     public void optimiseParas(boolean b){paraOptimise=b;}
     public void buildRBF(Instances train) throws Exception {
@@ -262,6 +263,7 @@ public class TunedSVM extends SMO implements SaveCVAccuracy {
     
     @Override
     public void buildClassifier(Instances train) throws Exception {
+        buildTime=System.currentTimeMillis();
         if(paraSpace==null)
             setStandardParas();
         
@@ -275,6 +277,9 @@ public class TunedSVM extends SMO implements SaveCVAccuracy {
         }
         
         super.buildClassifier(train);
+        
+        buildTime=System.currentTimeMillis()-buildTime;
+        
     }
     public static void main(String[] args) {
         String sourcePath="C:\\Users\\ajb\\Dropbox\\UCI Problems\\";
@@ -328,7 +333,7 @@ public class TunedSVM extends SMO implements SaveCVAccuracy {
 
     @Override
     public String getParameters() {
-        String result="CVAcc,"+cvAcc+",C,"+paras[0];
+        String result="CVAcc,"+cvAcc+",BuildTime."+buildTime+",C,"+paras[0];
         if(paras.length>1)
             result+=",Gamma,"+paras[1];
        for(double d:accuracy)

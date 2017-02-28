@@ -31,7 +31,7 @@ import weka.core.Instances;
 
 
 public class Feb2017Experiments{
-    public static String[] classifiers={"HESCA","SVM","RandFOOB","RandFCV","EnhancedRotF","RotFCV"};
+    public static String[] classifiers={"RotF","RandRotF"};
     public static double propInTrain=0.5;
     public static int folds=30; 
     static String[] UCIContinuousFileNames={"abalone","acute-inflammation","acute-nephritis","adult","annealing","arrhythmia","audiology-std","balance-scale","balloons","bank","blood","breast-cancer","breast-cancer-wisc","breast-cancer-wisc-diag","breast-cancer-wisc-prog","breast-tissue","car","cardiotocography-10clases","cardiotocography-3clases",
@@ -46,11 +46,30 @@ public class Feb2017Experiments{
 //Parameter ranges for trees for randF and rotF
     static int[] numTrees={10,50,100,200,300,400,500,600,700,800,900,1000,1250,1500,1750,2000};
 
+    
+    
+    
+public static boolean deleteDirectory(File directory) {
+    if(directory.exists()){
+        File[] files = directory.listFiles();
+        if(null!=files){
+            for(int i=0; i<files.length; i++) {
+                if(files[i].isDirectory())
+                    deleteDirectory(files[i]);
+                else
+                    files[i].delete();
+            }
+        }
+    }
+    return(directory.delete());
+}    
+    
     public static void generateScripts(boolean grace,int mem, String jar,String[] fileNames, String dir){
 //Generates cluster scripts for allTest combos of classifier and data set
 //Generates txt files to run jobs for a single classifier        
         String path=DataSets.dropboxPath+"Code\\Cluster Scripts\\"+dir+"\\";
         File f=new File(path);
+        deleteDirectory(f);
         f.delete();
         f.mkdirs();
         ArrayList<String> list=new ArrayList<>();
@@ -419,14 +438,17 @@ public class Feb2017Experiments{
                 svm.optimiseParas(true);
                 svm.optimiseKernel(false);
                 return svm;
-
-            case "EnhancedRotF":
-                r=new RandomRotationForest1();
+           case "RotF":
+                r=new TunedRotationForest();
                 r.setNumIterations(200);
-                r.tuneFeatures(false);
-                r.tuneTree(false);
-                r.estimateAccFromTrain(false);
+                r.justBuildTheClassifier();
                 return r;
+            case "RandRotF1":
+                RandomRotationForest1 r3=new RandomRotationForest1();
+                r3.setNumIterations(200);
+                r3.setMaxNumAttributes(100);
+                r3.justBuildTheClassifier();
+                return r3;
             case "HESCA":
                 String[] names={"RotFCV","RandFOOB","SVM"};
                 Classifier[] c=new Classifier[3];
@@ -835,11 +857,11 @@ public class Feb2017Experiments{
  //       collateTrain();
 
       
-      classifiers=new String[]{"HESCA"};
+      classifiers=new String[]{"RotF","RandRotF1"};
         String dir="RepoScripts";
-        String jarFile="RepoStandardClassifiers";
-     generateScripts(true,2000,jarFile,DataSets.fileNames,dir);
-    generateScripts(false,2000,jarFile,DataSets.fileNames,dir);
+        String jarFile="Repo";
+     generateScripts(true,10000,jarFile,DataSets.fileNames,dir);
+    generateScripts(false,10000,jarFile,DataSets.fileNames,dir);
     System.exit(0);
 
 //        collateTrainTestResults(30);

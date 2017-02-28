@@ -356,7 +356,6 @@ public class ElasticEnsemble implements Classifier, HiveCoteModule, SaveCVAccura
                     output.append(train.instance(i).classValue()).append(",").append(ensembleCvPreds[i]).append("\n");
                 }
                 
-                new File(this.ensembleTrainFilePathAndName).mkdirs();
                 FileWriter fullTrain = new FileWriter(this.ensembleTrainFilePathAndName);
                 fullTrain.append(output);
                 fullTrain.close();

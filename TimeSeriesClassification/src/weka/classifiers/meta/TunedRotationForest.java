@@ -18,6 +18,7 @@ import weka.core.Utils;
  * @author ajb
  */
 public class TunedRotationForest extends RotationForest implements SaveCVAccuracy{
+    long buildTime=0;
     boolean tune=true;
     int[] numTreesRange;
     int[] numFeaturesRange;
@@ -48,6 +49,13 @@ public class TunedRotationForest extends RotationForest implements SaveCVAccurac
      public void debug(boolean b){
         this.debug=b;
     }
+     public void justBuildTheClassifier(){
+        estimateAccFromTrain(false);
+        tuneFeatures(false);
+        tuneTree(false);
+        debug=false;
+    }
+
      public void estimateAccFromTrain(boolean b){
         this.findTrainAcc=b;
     }
@@ -68,7 +76,7 @@ public class TunedRotationForest extends RotationForest implements SaveCVAccurac
 
     @Override
     public String getParameters() {
-        String result="TrainAcc,"+trainAcc+",numTrees,"+this.getNumIterations()+",NumFeatures,"+this.getMaxGroup();
+        String result="TrainAcc,"+trainAcc+",BuildTime,"+buildTime+",numTrees,"+this.getNumIterations()+",NumFeatures,"+this.getMaxGroup();
         for(double d:accuracy)
             result+=","+d;
         
@@ -110,6 +118,7 @@ public class TunedRotationForest extends RotationForest implements SaveCVAccurac
     
     @Override
     public void buildClassifier(Instances data) throws Exception{
+        buildTime=System.currentTimeMillis();
         int folds=10;
         if(folds>data.numInstances())
             folds=data.numInstances();
@@ -193,6 +202,7 @@ this gives the option of finding one. It is inefficient
             trainAcc=1-eval.errorRate();
         }
         super.buildClassifier(data);
+        buildTime=System.currentTimeMillis()-buildTime;
     }
   
   

@@ -33,6 +33,7 @@ import weka.core.Utils;
  * @author ajb
  */
 public class TunedRandomForest extends RandomForest implements SaveCVAccuracy{
+    long buildTime;
     boolean tune=true;
     boolean tuneFeatures=true;
     boolean debug=false;
@@ -90,7 +91,7 @@ public class TunedRandomForest extends RandomForest implements SaveCVAccuracy{
 
     @Override
     public String getParameters() {
-        String result="TrainAcc,"+trainAcc+",numTrees,"+this.getNumTrees()+",NumFeatures,"+this.getNumFeatures();
+        String result="TrainAcc,"+trainAcc+",BuildTime,"+buildTime+",numTrees,"+this.getNumTrees()+",NumFeatures,"+this.getNumFeatures();
         for(double d:accuracy)
             result+=","+d;
         return result;
@@ -136,6 +137,7 @@ public class TunedRandomForest extends RandomForest implements SaveCVAccuracy{
     */    
     @Override
     public void buildClassifier(Instances data) throws Exception{
+        buildTime=System.currentTimeMillis();
         int folds=10;
         if(crossValidate){
             if(folds>data.numInstances())
@@ -239,27 +241,8 @@ public class TunedRandomForest extends RandomForest implements SaveCVAccuracy{
             }
         }
         
-        
-/*
-// Cant do this         super.buildClassifier(data);
-//cos it recreates the bagger
-    m_bagger = new EnhancedBagging();
-    RandomTree rTree = new RandomTree();
-
-        // set up the random tree options
-        m_KValue = m_numFeatures;
-        if (m_KValue < 1) m_KValue = (int) Utils.log2(data.numAttributes())+1;
-        rTree.setKValue(m_KValue);
-        rTree.setMaxDepth(getMaxDepth());
-
-        // set up the bagger and build the forest
-        m_bagger.setClassifier(rTree);
-        m_bagger.setSeed(m_randomSeed);
-        m_bagger.setNumIterations(m_numTrees);
-        m_bagger.setCalcOutOfBag(true);
-        m_bagger.setNumExecutionSlots(m_numExecutionSlots);
-        m_bagger.buildClassifier(data);        
-*/        
+         buildTime=System.currentTimeMillis()-buildTime;
+     
     }
 
     public void addTrees(int n, Instances data) throws Exception{
