@@ -1,11 +1,13 @@
 package weka.classifiers.meta.timeseriesensembles;
 
+import development.MultipleClassifiersPairwiseTest;
 import fileIO.OutFile;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Random;
 import java.util.Scanner;
 import tsc_algorithms.cote.HiveCoteModule;
@@ -27,6 +29,7 @@ import weka.core.Instance;
 import weka.core.Instances;
 import weka.filters.SimpleBatchFilter;
 import utilities.SaveCVAccuracy;
+import utilities.StatisticalUtilities;
 import weka.classifiers.functions.TunedSVM;
 import weka.classifiers.meta.TunedRotationForest;
 import weka.classifiers.meta.timeseriesensembles.weightings.*;
@@ -980,25 +983,31 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveCVAcc
     }
     
     public static void main(String[] args) throws Exception {
-        TunedRandomForest randF = new TunedRandomForest();
-        randF.tuneTree(false);
-        randF.tuneFeatures(false);
-        randF.setNumTrees(500);
-        randF.setSeed(0);
-        randF.setTrainAcc(true);
-        randF.setCrossValidate(false);
-        
-        TunedRotationForest rotF = new TunedRotationForest();
-        rotF.setNumIterations(200);
-        rotF.tuneFeatures(false);
-        rotF.tuneTree(false);
-        rotF.estimateAccFromTrain(true);
-        
-        buildBulkResultsFiles("bulkFilesTest/", new Classifier[] { randF, rotF }, new String[] { "RandFOOB", "RotFCV" });
+//        TunedRandomForest randF = new TunedRandomForest();
+//        randF.tuneTree(false);
+//        randF.tuneFeatures(false);
+//        randF.setNumTrees(500);
+//        randF.setSeed(0);
+//        randF.setTrainAcc(true);
+//        randF.setCrossValidate(false);
+//        
+//        TunedRotationForest rotF = new TunedRotationForest();
+//        rotF.setNumIterations(200);
+//        rotF.tuneFeatures(false);
+//        rotF.tuneTree(false);
+//        rotF.estimateAccFromTrain(true);
+//        
+//        buildBulkResultsFiles("bulkFilesTest/", new Classifier[] { randF, rotF }, new String[] { "RandFOOB", "RotFCV" });
+
 //        test();
 //        debugTest();
-//        schemeTests("C:/JamesLPHD/SmallUCRHESCAResultsFiles/", "corCon2");
+//        schemeTests(true, completeUCIDatasets, "C:/JamesLPHD/HESCA/UCI/UCIResults/", "test");
+        ensembleVariationTests(true, completeUCIDatasets, "E:/20170301transfer/UCIResults/", "test");
+//        ensembleVariationTests(smallishUCRdatasets, "C:/JamesLPHD/SmallUCRHESCAResultsFiles/", "corCon2");
 //        exampleUseCase(); //look here for how to use, below is my random testing
+        
+        
+//        MultipleClassifiersPairwiseTest.runTests("schemeTestsByWeighttest.csv", "schemeTestsByWeighttestCliques.csv");
         System.exit(0);
         
         String dataset = "ItalyPowerDemand";
@@ -1180,6 +1189,21 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveCVAcc
 //        "TwoLeadECG"
     };
     
+    private static final String[] completeUCIDatasets = { 
+        "acute-inflammation","acute-nephritis","annealing","arrhythmia","balloons","blood","breast-cancer","breast-cancer-wisc",
+"breast-cancer-wisc-diag","breast-cancer-wisc-prog","breast-tissue","car","cardiotocography-10clases","cardiotocography-3clases","chess-krvkp","congressional-voting",
+"conn-bench-sonar-mines-rocks","conn-bench-vowel-deterding","credit-approval","cylinder-bands","dermatology","echocardiogram","ecoli","energy-y1",
+"energy-y2","fertility","flags","glass","haberman-survival","hayes-roth","heart-cleveland","heart-hungarian",
+"heart-switzerland","heart-va","hepatitis","hill-valley","horse-colic","ilpd-indian-liver","image-segmentation","ionosphere",
+"iris","led-display","lenses","libras","low-res-spect","lung-cancer","lymphography","molec-biol-promoter",
+"molec-biol-splice","monks-1","monks-2","monks-3","musk-1","ozone","parkinsons","pima",
+"pittsburg-bridges-MATERIAL","pittsburg-bridges-REL-L","pittsburg-bridges-SPAN","pittsburg-bridges-T-OR-D","pittsburg-bridges-TYPE","planning","post-operative","primary-tumor",
+"seeds","semeion","soybean","spect","spectf","statlog-australian-credit","statlog-german-credit","statlog-heart",
+"statlog-image","statlog-landsat","statlog-vehicle","steel-plates","synthetic-control","teaching","thyroid","tic-tac-toe",
+"titanic","trains","twonorm","vertebral-column-2clases","vertebral-column-3clases","waveform","waveform-noise","wine",
+"wine-quality-red","yeast","zoo",
+    };
+    
     private static void buildBulkResultsFiles(String outpath, Classifier[] cs, String[] cn) throws Exception {
         System.out.println("buildBulkResultsFiles()");
         
@@ -1196,18 +1220,13 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveCVAcc
     }
     
     
-    private static void schemeTests(String individualResultsDirectory, String fileSuffix) throws Exception {
+    private static void ensembleVariationTests(boolean uci, String[] dsets, String individualResultsDirectory, String fileSuffix) throws Exception {
         System.out.println("schemeTests()");
         
+        Classifier[] classifiers = new Classifier[] { null,null,null };
+        
         String[] classifierNames = new String[] {
-            "bayesNet",
-            "C4.5",
-            "NB",
-            "NN",
-            "RandF",
-            "RotF",
-            "SVML",
-            "SVMQ"
+           "RotFCV", "RandFCV" // "SVM", 
         };
         
         ModuleWeightingScheme[] weightSchemes = new ModuleWeightingScheme[] { 
@@ -1228,18 +1247,20 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveCVAcc
         
         ModuleVotingScheme[] voteSchemes = new ModuleVotingScheme[] { 
             new MajorityVote(),
-            new MajorityVoteByCorrectedConfidence(),
+//            new MajorityVoteByCorrectedConfidence(),
             new MajorityVoteByConfidence(),
-//            new MajorityConfidence(),
+            new MajorityConfidence(),
 //            new NP_MAX(),
 //            new AverageOfConfidences(),
 //            new AverageVoteByConfidence(),
 //            new ProductOfConfidences(),
 //            new ProductOfVotesByConfidence()
+            new BestIndividualOracle(),
+            new BestIndividualTrain()
         };
         
         
-        double[][][] accs = new double[voteSchemes.length][weightSchemes.length][smallishUCRdatasets.length];
+        double[][][] accs = new double[voteSchemes.length][weightSchemes.length][dsets.length];
         
         for (int v = 0; v < voteSchemes.length; ++v) {
             ModuleVotingScheme vscheme = voteSchemes[v];
@@ -1247,18 +1268,28 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveCVAcc
             for (int i = 0; i < weightSchemes.length; i++) {
                 ModuleWeightingScheme wscheme = weightSchemes[i];
 
-                for (int j = 0; j < smallishUCRdatasets.length; j++) {
-                    String dataset = smallishUCRdatasets[j];
+                for (int j = 0; j < dsets.length; j++) {
+                    String dataset = dsets[j];
 
-                    Instances train = ClassifierTools.loadData("c:/tsc problems/"+dataset+"/"+dataset+"_TRAIN");
-                    Instances test = ClassifierTools.loadData("c:/tsc problems/"+dataset+"/"+dataset+"_TEST");
-
+                    Instances train=null, test=null, all=null;
+                    if (uci) {
+                        all = ClassifierTools.loadData("C:/UCI Problems/"+dataset+"/"+dataset);
+                    }else {//ucr
+                        train = ClassifierTools.loadData("C:/TSC Problems/"+dataset+"/"+dataset+"_TRAIN");
+                        test = ClassifierTools.loadData("C:/TSC Problems/"+dataset+"/"+dataset+"_TEST");
+                    } 
+                        
+                    
                     double acc = .0;
                     for (int r = 0; r < numResamples; ++r)  {
 
-                        Instances[] data = InstanceTools.resampleTrainAndTestInstances(train, test, r);
+                        Instances[] data=null;
+                        if (uci)
+                            data = InstanceTools.resampleInstances(all, r, 0.5);
+                        else //ucr
+                            data = InstanceTools.resampleTrainAndTestInstances(train, test, r);
 
-                        HESCA h = new HESCA();
+                        HESCA h = new HESCA(classifiers,classifierNames);
 //                        h.setDebugPrinting(true);
                         h.setWeightingScheme(wscheme);
                         h.setVotingScheme(vscheme);
@@ -1284,7 +1315,7 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveCVAcc
             System.out.println(vscheme.getClass().getName() + " done");
         }
         
-        OutFile out = new OutFile("schemeTestsByVote"+fileSuffix+".csv");
+        OutFile out = new OutFile(arrayToStringNoSpace(classifierNames)+"_BYVOTE"+fileSuffix+".csv");
         for (int v = 0; v < voteSchemes.length; v++) {
             out.writeLine("" + voteSchemes[v]);
         
@@ -1292,8 +1323,8 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveCVAcc
                 out.writeString("," + weightSchemes[w]);
             out.writeLine("");
 
-            for (int d = 0; d < smallishUCRdatasets.length; ++d) {
-                out.writeString(smallishUCRdatasets[d]);
+            for (int d = 0; d < dsets.length; ++d) {
+                out.writeString(dsets[d]);
 
                 for (int w = 0; w < weightSchemes.length; w++)
                     out.writeString("," + accs[v][w][d]);
@@ -1304,7 +1335,7 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveCVAcc
         }
         out.closeFile();
         
-        OutFile out2 = new OutFile("schemeTestsByWeight"+fileSuffix+".csv");
+        OutFile out2 = new OutFile(arrayToStringNoSpace(classifierNames)+"_BYWEIGHT"+fileSuffix+".csv");
          for (int w = 0; w < weightSchemes.length; w++) {
             out2.writeLine("" + weightSchemes[w]);
         
@@ -1312,8 +1343,8 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveCVAcc
                 out2.writeString("," + voteSchemes[v]);
             out2.writeLine("");
 
-            for (int d = 0; d < smallishUCRdatasets.length; ++d) {
-                out2.writeString(smallishUCRdatasets[d]);
+            for (int d = 0; d < dsets.length; ++d) {
+                out2.writeString(dsets[d]);
 
                 for (int v = 0; v < voteSchemes.length; v++)
                     out2.writeString("," + accs[v][w][d]);
@@ -1324,14 +1355,14 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveCVAcc
         }
         out2.closeFile();
         
-        OutFile out3 = new OutFile("schemeTestsCombined"+fileSuffix+".csv");
+        OutFile out3 = new OutFile(arrayToStringNoSpace(classifierNames)+"_COMBINED"+fileSuffix+".csv");
         for (int v = 0; v < voteSchemes.length; v++)
             for (int w = 0; w < weightSchemes.length; w++) 
                 out3.writeString("," + voteSchemes[v] + "+" + weightSchemes[w]);
         out3.writeLine("");
 
-        for (int d = 0; d < smallishUCRdatasets.length; ++d) {
-            out3.writeString(smallishUCRdatasets[d]);
+        for (int d = 0; d < dsets.length; ++d) {
+            out3.writeString(dsets[d]);
 
             for (int v = 0; v < voteSchemes.length; v++)
                 for (int w = 0; w < weightSchemes.length; w++)
@@ -1339,6 +1370,100 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveCVAcc
             out3.writeLine("");
         }
         out3.closeFile();
+        
+//////////   SUMMARY FILE,     below is all hacks to get old code to work, look away
+        double[][] accscombined = new double[weightSchemes.length*voteSchemes.length][dsets.length];
+        String[] combinedNames = new String[weightSchemes.length*voteSchemes.length];
+        for (int v = 0; v < voteSchemes.length; v++)
+            for (int w = 0; w < weightSchemes.length; w++) {
+                accscombined[v*weightSchemes.length + w] = accs[v][w];
+                combinedNames[v*weightSchemes.length + w] =  voteSchemes[v] + "+" + weightSchemes[w];
+            }
+      
+        //avg ranks
+        double[][] ranks = findRanks(accscombined);
+        
+        double[] rankmeans = new double[ranks.length];
+        for (int c = 0; c < ranks.length; c++)
+            rankmeans[c] = StatisticalUtilities.mean(ranks[c], false);
+            
+        //summary
+        OutFile summ=new OutFile(arrayToStringNoSpace(classifierNames)+"_SUMMARY"+fileSuffix+".csv");
+        for (int c = 0; c < combinedNames.length; c++)
+            summ.writeString("," + combinedNames[c]);
+        summ.writeLine("");
+        
+        summ.writeString("ranks:");
+        for (int c = 0; c < rankmeans.length; c++)
+            summ.writeString("," + rankmeans[c]);
+        summ.writeString("\n");
+        
+        summ.writeString("accs:");
+        for (int c = 0; c < accscombined.length; c++)
+            summ.writeString("," + StatisticalUtilities.mean(accscombined[c], false));
+        summ.writeString("\n\n");
+        
+        for (int c1 = 0; c1 < accscombined.length; c1++) {
+            for (int c2 = c1+1; c2 < accscombined.length; c2++) {
+                summ.writeString(combinedNames[c1] + " VS " + combinedNames[c2] + ":,");
+                
+                int wins=0, draws=0, losses=0;
+                for (int d = 0; d < dsets.length; d++) {
+                    
+                    if (accscombined[c1][d] > accscombined[c2][d])
+                        wins++;
+                    else if ((accscombined[c1][d] == accscombined[c2][d]))
+                        draws++;
+                    else 
+                        losses++;
+                }
+                summ.writeString(wins+"/"+draws+"/"+losses+"\n");
+            }
+        }
+        
+        summ.closeFile();
+        
+        MultipleClassifiersPairwiseTest.runTests(arrayToStringNoSpace(classifierNames)+"_COMBINED"+fileSuffix+".csv", arrayToStringNoSpace(classifierNames)+"_PAIRWISE"+fileSuffix+".csv");
+    }
+    
+    private static String arrayToStringNoSpace(String[] arr) {
+        StringBuilder sb = new StringBuilder(arr[0]);
+        
+        for (int i = 1; i < arr.length; i++)
+            sb.append(",").append(arr[i]);
+        
+        return sb.toString();
+    }
+    
+    private static String[] stringToArray(String str, String delim) {
+        String[] arr = str.trim().split(delim);
+        return arr;
+    }
+    
+    /**
+     * @param accs [classifiers][acc on datasets]
+     * @return [classifiers][rank on dataset]
+     */
+    private static double[][] findRanks(double[][] accs) {
+        double[][] ranks = new double[accs.length][accs[0].length];
+        
+        for (int d = 0; d < accs[0].length; d++) {
+            Double[] a = new Double[accs.length];
+            for (int c = 0; c < accs.length; c++) 
+                a[c] = accs[c][d];
+            
+            Arrays.sort(a, Collections.reverseOrder());
+            
+            for (int c1 = 0; c1 < accs.length; c1++) {
+                for (int c2 = 0; c2 < accs.length; c2++) {
+                    if (a[c1] == accs[c2][d]) {
+                        ranks[c2][d] = c1+1; //count from one
+                    }
+                }
+            }
+        }
+        
+        return ranks;
     }
     
     public static void debugTest() throws Exception {
