@@ -6,6 +6,7 @@
 package utilities;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Random;
 import weka.classifiers.Classifier;
@@ -202,14 +203,99 @@ public class CrossValidator {
         return trainTest;
     }
 
-    public void buildFolds(Instances train) throws Exception {               
+//    public void buildFoldsAttmpt2(Instances train) throws Exception {
+//        train = new Instances(train); //make copy
+//        
+//        Random r = null;
+//        if(seed != null){
+//            r = new Random(seed);
+//        }else{
+//            r = new Random();
+//        }
+//        
+////        train.randomize(r); //only use of random is here
+//        
+//        folds = new ArrayList<Instances>();
+//        foldIndexing = new ArrayList<ArrayList<Integer>>();
+//
+//        for(int i = 0; i < numFolds; i++){
+//            folds.add(new Instances(train,0));
+//            foldIndexing.add(new ArrayList<>());
+//        }
+//        
+//        //calc class dists
+//        int[] classCounts = new int[train.numClasses()];
+//        double[] classDists = new double[train.numClasses()];
+//        for (int i = 0; i < train.numInstances(); i++) 
+//            classCounts[(int)train.get(i).classValue()]++;
+//        for (int c = 0; c < train.numClasses(); c++) 
+//            classDists[c] = (double)classCounts[c] / train.numInstances();
+//        
+//        //distribute insts into class groups, recording their original index
+//        ArrayList<Instances> byClass = new ArrayList<>();
+//        ArrayList<ArrayList<Integer>> byClassIndices = new ArrayList<>();
+//        for(int i = 0; i < train.numClasses(); i++){
+//            byClass.add(new Instances(train,0));
+//            byClassIndices.add(new ArrayList<>());
+//        }
+//        
+//        ArrayList<Integer> instanceIds = new ArrayList<>();
+//        for(int i = 0; i < train.numInstances(); i++){
+//            instanceIds.add(i);
+//        }
+//        Collections.shuffle(instanceIds, r);//only use of random is here
+//        
+//        for (int i = 0; i < instanceIds.size(); ++i) {
+//            int instIndex = instanceIds.get(i);
+//            int instClassVal = (int)train.instance(instIndex).classValue();
+//            byClass.get(instClassVal).add(train.instance(instIndex));
+//            byClassIndices.get(instClassVal).add(instIndex);
+//        }
+//        
+//        int numInstsPerFold = train.numInstances() / numFolds;
+//        int instsUsed = 0;
+//        for(int fold = 0; fold < numFolds; fold++) { 
+//            int numInstsToUse = numInstsPerFold;
+//            if (fold < train.numInstances() % numFolds)       
+//                numInstsToUse++;
+//            
+//            for (int c = 0; c < classDists.length; c++) {
+//                if (fold == numFolds-1) { //last fold, use whatever's left
+//                    while (!byClass.get(c).isEmpty()) {
+//                        folds.get(fold).add(byClass.get(c).remove(0));
+//                        foldIndexing.get(fold).add(byClassIndices.get(c).remove(0));
+//                        
+//                        instsUsed++;
+//                    }
+//                }
+//                else {
+//                    int numClassInstsToUse = (int)Math.round(classDists[c]*numInstsToUse); //returns as long ??....
+//                    for (int i = 0; i < numClassInstsToUse; i++) {
+//                        if (!byClass.get(c).isEmpty()) {
+//                            folds.get(fold).add(byClass.get(c).remove(0));
+//                            foldIndexing.get(fold).add(byClassIndices.get(c).remove(0));
+//                            
+//                            instsUsed++;
+//                        }
+//                    }
+//                }
+//            }
+//        }
+//        
+//        if (instsUsed != train.numInstances())
+//            throw new Exception("zipzopbippitybop");
+//    }
+    
+    public void buildFolds(Instances train) throws Exception {
+        train = new Instances(train); //make copy
+        
         Random r = null;
         if(seed != null){
             r = new Random(seed);
         }else{
             r = new Random();
         }
-
+        
         folds = new ArrayList<Instances>();
         foldIndexing = new ArrayList<ArrayList<Integer>>();
 
@@ -217,86 +303,139 @@ public class CrossValidator {
             folds.add(new Instances(train,0));
             foldIndexing.add(new ArrayList<>());
         }
-
+        
         ArrayList<Integer> instanceIds = new ArrayList<>();
-        for(int i = 0; i < train.numInstances(); i++){
+        for(int i = 0; i < train.numInstances(); i++)
             instanceIds.add(i);
-        }
-        Collections.shuffle(instanceIds, r);
-
+        Collections.shuffle(instanceIds, r);//only use of random is here
+        
+        //distribute insts into class groups, recording their original index
         ArrayList<Instances> byClass = new ArrayList<>();
         ArrayList<ArrayList<Integer>> byClassIndices = new ArrayList<>();
         for(int i = 0; i < train.numClasses(); i++){
             byClass.add(new Instances(train,0));
             byClassIndices.add(new ArrayList<>());
         }
-
-        int thisInstanceId;
-        double thisClassVal;
-        for(int i = 0; i < train.numInstances(); i++){
-            thisInstanceId = instanceIds.get(i);
-            thisClassVal = train.instance(thisInstanceId).classValue();
-
-            byClass.get((int)thisClassVal).add(train.instance(thisInstanceId));
-            byClassIndices.get((int)thisClassVal).add(thisInstanceId);
+        for (int i = 0; i < instanceIds.size(); ++i) {
+            int instIndex = instanceIds.get(i);
+            int instClassVal = (int)train.instance(instIndex).classValue();
+            byClass.get(instClassVal).add(train.instance(instIndex));
+            byClassIndices.get(instClassVal).add(instIndex);
         }
-
-         // now stratify        
-        Instances strat = new Instances(train,0);
-        ArrayList<Integer> stratIndices = new ArrayList<>();
-        int stratCount = 0;
-        int[] classCounters = new int[train.numClasses()];
-
-        while(stratCount < train.numInstances()){
-
-            for(int c = 0; c < train.numClasses(); c++){
-                if(classCounters[c] < byClass.get(c).size()){
-                    strat.add(byClass.get(c).instance(classCounters[c]));
-                    stratIndices.add(byClassIndices.get(c).get(classCounters[c]));
-                    classCounters[c]++;
-                    stratCount++;
-                }
+        
+        //and get them back out, so now in class order but randomized within each each
+        ArrayList<Integer> sortedByClassInstanceIds = new ArrayList<>();
+        for (int c = 0; c < train.numClasses(); c++) 
+            sortedByClassInstanceIds.addAll(byClassIndices.get(c));
+        
+        int start = 0;
+        for(int fold = 0; fold < numFolds; fold++) { 
+            int i = start;
+            while (i < train.numInstances()) {
+                folds.get(fold).add(train.instance(sortedByClassInstanceIds.get(i)));
+                foldIndexing.get(fold).add(sortedByClassInstanceIds.get(i));
+                i += numFolds;
             }
+            start++;    
         }
-
-
-        train = strat;
-        instanceIds = stratIndices;
-
-        double foldSize = (double)train.numInstances()/numFolds;
-
-        double thisSum = 0;
-        double lastSum = 0;
-        int floor;
-        int foldSum = 0;
-
-
-        int currentStart = 0;
-        for(int f = 0; f < numFolds; f++){
-
-
-            thisSum = lastSum+foldSize+0.000000000001;  
-// to try and avoid double imprecision errors (shouldn't ever be big enough to effect folds when double imprecision isn't an issue)
-            floor = (int)thisSum;
-
-            if(f==numFolds-1){
-                floor = train.numInstances(); // to make sure all instances are allocated in case of double imprecision causing one to go missing
-            }
-
-            for(int i = currentStart; i < floor; i++){
-                folds.get(f).add(train.instance(i));
-                foldIndexing.get(f).add(instanceIds.get(i));
-            }
-
-            foldSum+=(floor-currentStart);
-            currentStart = floor;
-            lastSum = thisSum;
-        }
-
-        if(foldSum!=train.numInstances()){
-            throw new Exception("Error! Some instances got lost while creating folds (maybe a double precision bug). Training instances contains "+train.numInstances()+", but the sum of the training folds is "+foldSum);
-        }
+        
     }
+    
+//    public void buildFoldsOldJay(Instances train) throws Exception {               
+//        Random r = null;
+//        if(seed != null){
+//            r = new Random(seed);
+//        }else{
+//            r = new Random();
+//        }
+//
+//        folds = new ArrayList<Instances>();
+//        foldIndexing = new ArrayList<ArrayList<Integer>>();
+//
+//        for(int i = 0; i < numFolds; i++){
+//            folds.add(new Instances(train,0));
+//            foldIndexing.add(new ArrayList<>());
+//        }
+//
+//        ArrayList<Integer> instanceIds = new ArrayList<>();
+//        for(int i = 0; i < train.numInstances(); i++){
+//            instanceIds.add(i);
+//        }
+//        Collections.shuffle(instanceIds, r);
+//
+//        ArrayList<Instances> byClass = new ArrayList<>();
+//        ArrayList<ArrayList<Integer>> byClassIndices = new ArrayList<>();
+//        for(int i = 0; i < train.numClasses(); i++){
+//            byClass.add(new Instances(train,0));
+//            byClassIndices.add(new ArrayList<>());
+//        }
+//
+//        int thisInstanceId;
+//        double thisClassVal;
+//        for(int i = 0; i < train.numInstances(); i++){
+//            thisInstanceId = instanceIds.get(i);
+//            thisClassVal = train.instance(thisInstanceId).classValue();
+//
+//            byClass.get((int)thisClassVal).add(train.instance(thisInstanceId));
+//            byClassIndices.get((int)thisClassVal).add(thisInstanceId);
+//        }
+//
+//         // now stratify        
+//        Instances strat = new Instances(train,0);
+//        ArrayList<Integer> stratIndices = new ArrayList<>();
+//        int stratCount = 0;
+//        int[] classCounters = new int[train.numClasses()];
+//
+//        while(stratCount < train.numInstances()){
+//
+//            for(int c = 0; c < train.numClasses(); c++){
+//                if(classCounters[c] < byClass.get(c).size()){
+//                    strat.add(byClass.get(c).instance(classCounters[c]));
+//                    stratIndices.add(byClassIndices.get(c).get(classCounters[c]));
+//                    classCounters[c]++;
+//                    stratCount++;
+//                }
+//            }
+//        }
+//
+//
+//        train = strat;
+//        instanceIds = stratIndices;
+//
+//        double foldSize = (double)train.numInstances()/numFolds;
+//
+//        double thisSum = 0;
+//        double lastSum = 0;
+//        int floor;
+//        int foldSum = 0;
+//
+//
+//        int currentStart = 0;
+//        for(int f = 0; f < numFolds; f++){
+//
+//
+//            thisSum = lastSum+foldSize+0.000000000001;  
+//// to try and avoid double imprecision errors (shouldn't ever be big enough to effect folds when double imprecision isn't an issue)
+//            floor = (int)thisSum;
+//
+//            if(f==numFolds-1){
+//                floor = train.numInstances(); // to make sure all instances are allocated in case of double imprecision causing one to go missing
+//            }
+//
+//            for(int i = currentStart; i < floor; i++){
+//                folds.get(f).add(train.instance(i));
+//                foldIndexing.get(f).add(instanceIds.get(i));
+//            }
+//
+//            foldSum+=(floor-currentStart);
+//            currentStart = floor;
+//            lastSum = thisSum;
+//        }
+//
+//        if(foldSum!=train.numInstances()){
+//            throw new Exception("Error! Some instances got lost while creating folds (maybe a double precision bug). Training instances contains "+train.numInstances()+", but the sum of the training folds is "+foldSum);
+//        }
+//    }
     
     private double indexOfMax(double[] dist) {
         double max = dist[0];
@@ -313,25 +452,75 @@ public class CrossValidator {
     
     
     public static void main(String[] args) throws Exception {
+        buildFoldsTest(); 
+//        CrossValidator cv = new CrossValidator();
+//        cv.setNumFolds(10);
+//        cv.setSeed(0);
+//        
+//        Classifier c = new kNN();
+//        Instances insts = ClassifierTools.loadData("C:/TSC Problems/ItalyPowerDemand/ItalyPowerDemand_TRAIN");
+//        
+//        double[] preds = cv.crossValidate(c, insts);
+//        
+//        double acc = 0.0;
+//        System.out.println("Pred | Actual");
+//        for (int i = 0; i < preds.length; i++) {
+//            System.out.printf("%4d | %d\n", (int)preds[i], (int)insts.get(i).classValue());
+//            if (preds[i] == insts.get(i).classValue())
+//                ++acc;
+//        }
+//        
+//        acc /= preds.length;
+//        System.out.println("\n Acc: " + acc);
+    }
+    
+    public static void buildFoldsTest() throws Exception {
         CrossValidator cv = new CrossValidator();
-        cv.setNumFolds(10);
+        cv.setNumFolds(3);
         cv.setSeed(0);
         
-        Classifier c = new kNN();
-        Instances insts = ClassifierTools.loadData("C:/TSC Problems/ItalyPowerDemand/ItalyPowerDemand_TRAIN");
+        String dset = "lenses";
+//        String dset = "balloons";
+//        String dset = "acute-inflammation";
+        Instances insts = ClassifierTools.loadData("C:/UCI Problems/"+dset+"/"+dset);
         
-        double[] preds = cv.crossValidate(c, insts);
+        System.out.println("Full data:");
+        System.out.println("numinsts="+insts.numInstances());
         
-        double acc = 0.0;
-        System.out.println("Pred | Actual");
-        for (int i = 0; i < preds.length; i++) {
-            System.out.printf("%4d | %d\n", (int)preds[i], (int)insts.get(i).classValue());
-            if (preds[i] == insts.get(i).classValue())
-                ++acc;
+        int[] classCounts = new int[insts.numClasses()];
+        double[] classDists = new double[insts.numClasses()];
+        for (int j = 0; j < insts.numInstances(); j++) 
+            classCounts[(int)insts.get(j).classValue()]++;
+        for (int j = 0; j < insts.numClasses(); j++) 
+            classDists[j] = (double)classCounts[j] / insts.numInstances();
+        System.out.println("classcounts= " +Arrays.toString(classCounts));
+        System.out.println("classdist=   " +Arrays.toString(classDists));
+        
+        
+        cv.buildFolds(insts);
+        for (int i = 0; i < cv.numFolds; i++) {
+            Instances fold = cv.folds.get(i);
+            
+            System.out.println("\nFold " + i);
+            System.out.println("numinsts="+fold.numInstances());
+            
+            int[] classCount = new int[insts.numClasses()];
+            double[] classDist = new double[fold.numClasses()];
+            for (int j = 0; j < fold.numInstances(); j++) 
+                classCount[(int)fold.get(j).classValue()]++;
+            for (int j = 0; j < fold.numClasses(); j++) 
+                classDist[j] = (double)classCount[j] / fold.numInstances();
+            System.out.println("classcounts= " +Arrays.toString(classCount));
+            System.out.println("classdist=   " +Arrays.toString(classDist));
+            
+            
+            Collections.sort(cv.foldIndexing.get(i));
+            System.out.println("(sorted) orginal indices: " + cv.foldIndexing.get(i));
+//            for (int j = 0; j < fold.numInstances(); j++) 
+//                System.out.print(cv.foldIndexing.get(i).get(j)+",");
+            System.out.println("");
         }
         
-        acc /= preds.length;
-        System.out.println("\n Acc: " + acc);
     }
     
     
