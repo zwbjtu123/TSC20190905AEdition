@@ -28,6 +28,7 @@ import tsc_algorithms.elastic_ensemble.MSM1NN;
 import tsc_algorithms.elastic_ensemble.TWE1NN;
 import tsc_algorithms.elastic_ensemble.WDTW1NN;
 import utilities.ClassifierTools;
+import utilities.TrainAccuracyEstimate;
 import weka.classifiers.Classifier;
 import weka.core.Capabilities;
 import weka.core.Instance;
@@ -35,13 +36,14 @@ import weka.core.Instances;
 import weka.filters.timeseries.DerivativeFilter;
 import utilities.SaveParameterInfo;
 import utilities.WritableTestResults;
+import weka.classifiers.meta.timeseriesensembles.ClassifierResults;
 import weka.core.TechnicalInformation;
 
 /**
  *
  * @author sjx07ngu
  */
-public class ElasticEnsemble implements Classifier, HiveCoteModule, SaveParameterInfo, WritableTestResults{
+public class ElasticEnsemble implements Classifier, HiveCoteModule, SaveParameterInfo, WritableTestResults,TrainAccuracyEstimate{
 
     
     public TechnicalInformation getTechnicalInformation() {
@@ -107,7 +109,8 @@ public class ElasticEnsemble implements Classifier, HiveCoteModule, SaveParamete
     
     double ensembleCvAcc =-1;
     double[] ensembleCvPreds = null;
-
+    private ClassifierResults res =new ClassifierResults();
+    
     @Override
     public Capabilities getCapabilities() {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
@@ -258,11 +261,20 @@ public class ElasticEnsemble implements Classifier, HiveCoteModule, SaveParamete
     }
     
     @Override
-    public void setCVPath(String outputPathAndName){
+    public void writeCVTrainToFile(String outputPathAndName){
         this.writeEnsembleTrainingFile = true;
         ensembleTrainFilePathAndName = outputPathAndName;
     }
+    @Override
+    public boolean findsTrainAccuracyEstimate(){ return writeEnsembleTrainingFile;}
     
+    @Override
+    public ClassifierResults getTrainResults(){
+//Temporary : copy stuff into res.acc here
+        res.acc=ensembleCvAcc;
+//TO DO: Write the other stats        
+        return res;
+    }        
     
     /**
      * Builds classifier. If building from file, cv weights and predictions will be loaded from file. If running from scratch, training cv will be performed for constituents to find best params, cv accs, and cv preds
@@ -271,6 +283,7 @@ public class ElasticEnsemble implements Classifier, HiveCoteModule, SaveParamete
      */
     @Override
     public void buildClassifier(Instances train) throws Exception{
+        res.buildTime=System.currentTimeMillis();
         this.train = train;
         this.derTrain = null;
         usesDer = false;
@@ -361,6 +374,8 @@ public class ElasticEnsemble implements Classifier, HiveCoteModule, SaveParamete
                 fullTrain.close();
             }
         }
+        res.buildTime=System.currentTimeMillis()-res.buildTime;
+        
     }
     
     /**
@@ -541,8 +556,9 @@ public class ElasticEnsemble implements Classifier, HiveCoteModule, SaveParamete
     
     public String getParameters(){
         StringBuilder params = new StringBuilder();
+        params.append("BuildTime,"+res.buildTime+",");
         for(int c = 0; c < classifiers.length; c++){
-            params.append(classifiers[c].getClassifierIdentifier()).append(",").append(classifiers[c].getParamInformationString()).append(";");
+            params.append(classifiers[c].getClassifierIdentifier()).append(",").append(classifiers[c].getParamInformationString()).append(",");
         }
         return params.toString();
     }

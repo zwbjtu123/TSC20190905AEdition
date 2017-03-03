@@ -18,6 +18,7 @@ import java.util.Random;
 import utilities.ClassifierTools;
 import utilities.InstanceTools;
 import utilities.SaveParameterInfo;
+import utilities.TrainAccuracyEstimate;
 import weka.classifiers.Classifier;
 import weka.classifiers.functions.TunedSVM;
 import weka.classifiers.lazy.IBk;
@@ -529,8 +530,8 @@ public static boolean deleteDirectory(File directory) {
         f=new File(predictions+"/testFold"+fold+".csv");
         if(!f.exists() || f.length()==0){
       //      of.writeString(problem+","); );
-            if(c instanceof SaveParameterInfo)
-                ((SaveParameterInfo)c).setCVPath(predictions+"/trainFold"+fold+".csv");
+            if(c instanceof TrainAccuracyEstimate)
+                ((TrainAccuracyEstimate)c).writeCVTrainToFile(predictions+"/trainFold"+fold+".csv");
             if(c instanceof HESCA){
                 System.out.println("Turning on file read ");
                   ((HESCA)c).setResultsFileLocationParameters(DataSets.resultsPath, problem, fold);
@@ -649,8 +650,8 @@ public static boolean deleteDirectory(File directory) {
         f=new File(predictions+"/testFold"+fold+".csv");
         if(!f.exists() || f.length()==0){
       //      of.writeString(problem+","); );
-            if(c instanceof SaveParameterInfo)
-                ((SaveParameterInfo)c).setCVPath(predictions+"/trainFold"+fold+".csv");
+            if(c instanceof TrainAccuracyEstimate)
+                ((TrainAccuracyEstimate)c).writeCVTrainToFile(predictions+"/trainFold"+fold+".csv");
             double acc =singleClassifierAndFoldTrainTestSplit(train,test,c,fold,predictions);
             System.out.println(classifier+","+problem+","+fold+","+acc);
             

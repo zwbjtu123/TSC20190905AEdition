@@ -2,13 +2,17 @@
  */
 package weka.classifiers.meta;
 
+import fileIO.OutFile;
+import java.io.File;
 import weka.classifiers.trees.*;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Random;
 import utilities.ClassifierTools;
 import utilities.SaveParameterInfo;
+import utilities.TrainAccuracyEstimate;
 import weka.classifiers.Evaluation;
+import weka.classifiers.meta.timeseriesensembles.ClassifierResults;
 import weka.core.Instance;
 import weka.core.Instances;
 import weka.core.Utils;
@@ -17,18 +21,18 @@ import weka.core.Utils;
  *
  * @author ajb
  */
-public class TunedRotationForest extends RotationForest implements SaveParameterInfo{
-    long buildTime=0;
+public class TunedRotationForest extends RotationForest implements SaveParameterInfo,TrainAccuracyEstimate{
     boolean tune=true;
     int[] numTreesRange;
     int[] numFeaturesRange;
-    double trainAcc;
     String trainPath="";
     boolean tuneFeatures=false;
     boolean debug=false;
     boolean findTrainAcc=true;
     Random rng;
     ArrayList<Double> accuracy;
+    private ClassifierResults res =new ClassifierResults();
+    
     
     public TunedRotationForest(){
         super();
@@ -69,14 +73,25 @@ public class TunedRotationForest extends RotationForest implements SaveParameter
     public void setNumFeaturesRange(int[] d){
         numFeaturesRange=d;
     }
-    @Override
-    public void setCVPath(String train) {
+ @Override
+    public void writeCVTrainToFile(String train) {
         trainPath=train;
-    }
+        findTrainAcc=true;
+    }    
+    @Override
+    public boolean findsTrainAccuracyEstimate(){ return findTrainAcc;}
+    
+    @Override
+    public ClassifierResults getTrainResults(){
+//Temporary : copy stuff into res.acc here
+//        res.acc=ensembleCvAcc;
+//TO DO: Write the other stats        
+        return res;
+    }        
 
     @Override
     public String getParameters() {
-        String result="TrainAcc,"+trainAcc+",BuildTime,"+buildTime+",numTrees,"+this.getNumIterations()+",NumFeatures,"+this.getMaxGroup();
+        String result="BuildTime,"+res.buildTime+",TrainAcc,"+res.acc+",numTrees,"+this.getNumIterations()+",NumFeatures,"+this.getMaxGroup();
         for(double d:accuracy)
             result+=","+d;
         
@@ -118,7 +133,7 @@ public class TunedRotationForest extends RotationForest implements SaveParameter
     
     @Override
     public void buildClassifier(Instances data) throws Exception{
-        buildTime=System.currentTimeMillis();
+        res.buildTime=System.currentTimeMillis();
         int folds=10;
         if(folds>data.numInstances())
             folds=data.numInstances();
@@ -180,12 +195,9 @@ public class TunedRotationForest extends RotationForest implements SaveParameter
             this.setNumIterations(bestNumTrees);
             this.setMaxGroup(bestNumAtts);
             this.setMinGroup(bestNumAtts);
-            trainAcc=1-bestErr;
+            res.acc=1-bestErr;
             if(debug)
-                System.out.println("Best num atts ="+bestNumAtts+" best num trees="+bestNumTrees+" "+bestNumTrees+" best Acc ="+trainAcc);
-            if(trainPath!=""){  //Save train results NOT IMPLEMENTED
-                
-            }
+                System.out.println("Best num atts ="+bestNumAtts+" best num trees="+bestNumTrees+" "+bestNumTrees+" best Acc ="+res.acc);
         }
 /*If there is no parameter search, then there is no train CV available.        
 this gives the option of finding one. It is inefficient
@@ -199,10 +211,16 @@ this gives the option of finding one. It is inefficient
             Evaluation eval=new Evaluation(temp);
             t.setSeed(rng.nextInt());
             eval.crossValidateModel(t, temp, folds, rng);
-            trainAcc=1-eval.errorRate();
+            res.acc=1-eval.errorRate();
         }
         super.buildClassifier(data);
-        buildTime=System.currentTimeMillis()-buildTime;
+        res.buildTime=System.currentTimeMillis()-res.buildTime;
+        if(trainPath!=""){  //Save basic train results
+            OutFile f= new OutFile(trainPath);
+            f.writeLine(data.relationName()+",TunedRotF,Train");
+            f.writeLine(getParameters());
+            f.writeLine(res.acc+"");
+        }
     }
   
   

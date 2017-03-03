@@ -10,16 +10,10 @@ package tsc_algorithms;
  **/ 
 
 import fileIO.OutFile;
-import java.util.ArrayList;
 import java.util.Random;
-import tsc_algorithms.SubSampleTrain;
 import utilities.ClassifierTools;
 import weka.classifiers.AbstractClassifier;
 import weka.classifiers.Classifier;
-import weka.classifiers.Evaluation;
-import weka.classifiers.meta.timeseriesensembles.depreciated.HESCA_05_10_16;
-import weka.classifiers.trees.J48;
-import weka.classifiers.trees.RandomForest;
 import weka.classifiers.trees.RandomTree;
 import weka.core.Attribute;
 import weka.core.DenseInstance;
@@ -27,11 +21,11 @@ import weka.core.FastVector;
 import weka.core.Instance;
 import weka.core.Instances;
 import weka.core.TechnicalInformation;
-import weka.filters.SimpleBatchFilter;
 import weka.filters.timeseries.ACF;
-import weka.filters.timeseries.FFT;
 import weka.filters.timeseries.PowerSpectrum;
 import utilities.SaveParameterInfo;
+import utilities.TrainAccuracyEstimate;
+import weka.classifiers.meta.timeseriesensembles.ClassifierResults;
 
 /*
 
@@ -44,7 +38,7 @@ VERSION 1:
 
 
  */
-public class RISE extends AbstractClassifier implements SaveParameterInfo, SubSampleTrain{
+public class RISE extends AbstractClassifier implements SaveParameterInfo, SubSampleTrain,TrainAccuracyEstimate{
     Classifier[] baseClassifiers;
     Classifier baseClassifierTemplate=new RandomTree();
     int numBaseClassifiers=500;
@@ -63,12 +57,24 @@ public class RISE extends AbstractClassifier implements SaveParameterInfo, SubSa
     private boolean subSample=false;
     private double sampleProp=1;
     private int sampleSeed=0;
+    private ClassifierResults res =new ClassifierResults();
+    
     
  @Override
-    public void setCVPath(String train) {
+    public void writeCVTrainToFile(String train) {
         trainCVPath=train;
         trainCV=true;
     }    
+    @Override
+    public boolean findsTrainAccuracyEstimate(){ return trainCV;}
+    
+    @Override
+    public ClassifierResults getTrainResults(){
+//Temporary : copy stuff into res.acc here
+//        res.acc=ensembleCvAcc;
+//TO DO: Write the other stats        
+        return res;
+    }        
     
     public void subSampleTrain(double prop, int s){
         subSample=true;
@@ -132,11 +138,13 @@ public class RISE extends AbstractClassifier implements SaveParameterInfo, SubSa
   }
 
     public String getParameters(){
-        return "numTrees,"+numBaseClassifiers+","+"MinInterval"+MIN_INTERVAL;
+        return "buildTime,"+res.buildTime+",numTrees,"+numBaseClassifiers+","+"MinInterval"+MIN_INTERVAL;
     }
          
     @Override
     public void buildClassifier(Instances data) throws Exception {
+        res.buildTime=System.currentTimeMillis();
+
 //Estimate Train CV, store CV     
          if(subSample){
             data=subSample(data,sampleProp,sampleSeed);
@@ -144,12 +152,12 @@ public class RISE extends AbstractClassifier implements SaveParameterInfo, SubSa
         }
        
         if(trainCV){
-//            int folds=setNumberOfFolds(data);
-            int folds=10;
+            int folds=setNumberOfFolds(data);
     //Estimate train accuracy HERE. Use another classifier to make sure. 
             RISE tsf=new RISE();
             tsf.setTransformType(f);
             tsf.trainCV=false;
+//HERE STORE IN RES REDO ALL THIS           
             double[][] results=ClassifierTools.crossValidationWithStats(tsf, data, folds);
             OutFile of=new OutFile(trainCVPath);
            of.writeLine(data.relationName()+",RISE,train");
@@ -243,6 +251,7 @@ public class RISE extends AbstractClassifier implements SaveParameterInfo, SubSa
                baseClassifiers[i]=AbstractClassifier.makeCopy(baseClassifierTemplate);
             baseClassifiers[i].buildClassifier(newTrain);
         }
+        res.buildTime=System.currentTimeMillis()-res.buildTime;
     }
 
     @Override
@@ -381,7 +390,7 @@ public class RISE extends AbstractClassifier implements SaveParameterInfo, SubSa
         Instances train=ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\TSC Problems\\ItalyPowerDemand\\ItalyPowerDemand_TRAIN");
         Instances test=ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\TSC Problems\\ItalyPowerDemand\\ItalyPowerDemand_TEST");
         RISE rif = new RISE();
-        rif.setCVPath("C:\\Users\\ajb\\Dropbox\\Spectral Interval Experiments\\RIF\\Predictions\\InternalCV0.csv");
+        rif.writeCVTrainToFile("C:\\Users\\ajb\\Dropbox\\Spectral Interval Experiments\\RIF\\Predictions\\InternalCV0.csv");
 
         
         rif.buildClassifier(train);

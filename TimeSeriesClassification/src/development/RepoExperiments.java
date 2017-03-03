@@ -1,21 +1,40 @@
-/*
-Code to reproduce all the results in the paper
-@article{bagnall16bakeoff,
-  title={The Great Time Series Classification Bake Off: a Review and Experimental Evaluation of Recent Algorithmic Advance},
-  author={A. Bagnall and J. Lines and  A. Bostrom and J. Large and E. Keogh},
-  journal={Data Mining and Knowledge Discovery},
-  volume={Online First},
-  year={2016}
-}
- */
-package papers;
+/**
+ *
+ * @author ajb
+ *local class to run experiments with the UCI data
 
-import development.DataSets;
+
+*/
+package development;
+
+import fileIO.InFile;
 import fileIO.OutFile;
 import java.io.File;
+import java.io.IOException;
 import java.text.DecimalFormat;
-import tsc_algorithms.*;
-import tsc_algorithms.elastic_ensemble.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Random;
+import tsc_algorithms.BOSS;
+import tsc_algorithms.BagOfPatterns;
+import tsc_algorithms.DD_DTW;
+import tsc_algorithms.DTD_C;
+import tsc_algorithms.ElasticEnsemble;
+import tsc_algorithms.FastShapelets;
+import tsc_algorithms.FlatCote;
+import tsc_algorithms.HiveCote;
+import tsc_algorithms.LPS;
+import tsc_algorithms.LearnShapelets;
+import tsc_algorithms.NN_CID;
+import tsc_algorithms.RISE;
+import tsc_algorithms.SAXVSM;
+import tsc_algorithms.ST_HESCA;
+import tsc_algorithms.TSBF;
+import tsc_algorithms.TSF;
+import tsc_algorithms.elastic_ensemble.DTW1NN;
+import tsc_algorithms.elastic_ensemble.ED1NN;
+import tsc_algorithms.elastic_ensemble.MSM1NN;
+import tsc_algorithms.elastic_ensemble.WDTW1NN;
 import utilities.ClassifierTools;
 import utilities.InstanceTools;
 import utilities.SaveParameterInfo;
@@ -26,34 +45,23 @@ import weka.classifiers.bayes.NaiveBayes;
 import weka.classifiers.functions.Logistic;
 import weka.classifiers.functions.MultilayerPerceptron;
 import weka.classifiers.functions.SMO;
+import weka.classifiers.functions.TunedSVM;
 import weka.classifiers.functions.supportVector.PolyKernel;
-import weka.classifiers.lazy.DTW_1NN;
-import weka.classifiers.lazy.kNN;
+import weka.classifiers.lazy.IBk;
 import weka.classifiers.meta.RotationForest;
+import weka.classifiers.meta.TunedRotationForest;
 import weka.classifiers.meta.timeseriesensembles.HESCA;
 import weka.classifiers.meta.timeseriesensembles.SaveableEnsemble;
 import weka.classifiers.trees.J48;
 import weka.classifiers.trees.RandomForest;
+import weka.classifiers.trees.TunedRandomForest;
 import weka.core.Instances;
 
-/**
- *
- * @author ajb
- */
-public class Bagnall16bakeoff {
-//All classifier names  
-    //<editor-fold defaultstate="collapsed" desc="Directory names for all classifiers">   
-    static String[] standard={"NB","C45","SVML","SVMQ","Logistic","BN","RandF","RotF","MLP"};
-    static String[] elastic = {"Euclidean_1NN","DTW_R1_1NN","DTW_Rn_1NN","DDTW_R1_1NN","DDTW_Rn_1NN","ERP_1NN","LCSS_1NN","MSM_1NN","TWE_1NN","WDDTW_1NN","WDTW_1NN","DD_DTW","DTD_C","DTW_F"};
-    static String[] shapelet={"ST","LS","FS"};
-    static String[] dictionary={"BoP","SAXVSM","BOSS"};
-    static String[] interval={"TSF","TSBF","LPS"};
-    static String[] ensemble={"ACF","PS","EE","COTE"};
-    static String[] complexity={"CID_ED","CID_DTW"};
-    static String[][] classifiers={standard,elastic,shapelet,dictionary,interval,ensemble,complexity};
-    static final String[] directoryNames={"standard","elastic","shapelet","dictionary","interval","ensemble","complexity"};
 
-//Create classifier method
+public class RepoExperiments{
+    public static int folds=30; 
+    static boolean debug=true;
+    
     public static Classifier setClassifier(String classifier){
         Classifier c=null;
         switch(classifier){
@@ -91,7 +99,23 @@ public class Bagnall16bakeoff {
                 break;
             case "RotF":
                 c= new RotationForest();
-                ((RotationForest)c).setNumIterations(50);
+                ((RotationForest)c).setNumIterations(200);
+                break;
+            case "TunedRandF":
+                c= new TunedRandomForest();
+                ((RandomForest)c).setNumTrees(500);
+                break;
+            case "TunedRotF":
+                c= new TunedRotationForest();
+                ((RotationForest)c).setNumIterations(200);
+                break;
+            case "TunedSVM":
+                c= new TunedSVM();
+                break;
+            case "RandomRotationForest1":
+                c= new RandomRotationForest1();
+                ((RandomRotationForest1)c).setNumIterations(200);
+                ((RandomRotationForest1)c).setMaxNumAttributes(100);
                 break;
             case "Logistic":
                 c= new Logistic();
@@ -99,7 +123,10 @@ public class Bagnall16bakeoff {
             case "HESCA":
                 c=new HESCA();
                 break;
-//ELASTIC CLASSIFIERS                
+//ELASTIC CLASSIFIERS     
+            case "EE": case "ElasticEnsemble":
+                c=new ElasticEnsemble();
+                break;
             case "DTW":
                 c=new DTW1NN();
                 ((DTW1NN )c).setWindow(1);
@@ -135,6 +162,9 @@ public class Bagnall16bakeoff {
                 break;
             case "ShapeletTransform": case "ST": case "ST_Ensemble":
                 c=new ST_HESCA();
+//Default to 1 day max run: could do this better
+                ((ST_HESCA)c).setOneDayLimit();
+                
                 break;
             case "TSF":
                 c=new TSF();
@@ -157,6 +187,12 @@ public class Bagnall16bakeoff {
              case "LPS":
                 c=new LPS();
                 break; 
+             case "FlatCOTE":
+                c=new FlatCote();
+                break; 
+             case "HiveCOTE":
+                c=new HiveCote();
+                break; 
            default:
                 System.out.println("UNKNOWN CLASSIFIER "+classifier);
                 System.exit(0);
@@ -166,6 +202,7 @@ public class Bagnall16bakeoff {
     }
         
     
+
 /** Run a given classifier/problem/fold combination with associated file set up
  @param args: 
  * args[0]: Classifier name. Create classifier with setClassifier
@@ -184,7 +221,7 @@ public class Bagnall16bakeoff {
  * 3. This method just does the file set up then calls the next method. If you 
  * just want to run the problem, go to the next method
 * */
-    public static void singleClassifierAndFold(String[] args){
+    public static void singleClassifierAndFoldTrainTestSplit(String[] args){
 //first gives the problem file      
         String classifier=args[0];
         String problem=args[1];
@@ -210,7 +247,7 @@ public class Bagnall16bakeoff {
       //      of.writeString(problem+","); );
             if(c instanceof TrainAccuracyEstimate)
                 ((TrainAccuracyEstimate)c).writeCVTrainToFile(predictions+"/trainFold"+fold+".csv");
-            double acc =singleClassifierAndFold(train,test,c,fold,predictions);
+            double acc =singleClassifierAndFoldTrainTestSplit(train,test,c,fold,predictions);
             System.out.println(classifier+","+problem+","+fold+","+acc);
             
  //       of.writeString("\n");
@@ -237,7 +274,7 @@ public class Bagnall16bakeoff {
  * 
  * 
  */    
-    public static double singleClassifierAndFold(Instances train, Instances test, Classifier c, int fold,String resultsPath){
+    public static double singleClassifierAndFoldTrainTestSplit(Instances train, Instances test, Classifier c, int fold,String resultsPath){
         Instances[] data=InstanceTools.resampleTrainAndTestInstances(train, test, fold);
         double acc=0;
         int act;
@@ -247,6 +284,10 @@ public class Bagnall16bakeoff {
            ((SaveableEnsemble)c).saveResults(resultsPath+"/internalCV_"+fold+".csv",resultsPath+"/internalTestPreds_"+fold+".csv");
         try{              
             c.buildClassifier(data[0]);
+            if(debug){
+                if(c instanceof RandomForest)
+                    System.out.println(" Number of features in MAIN="+((RandomForest)c).getNumFeatures());
+            }
             StringBuilder str = new StringBuilder();
             DecimalFormat df=new DecimalFormat("##.######");
             for(int j=0;j<data[1].numInstances();j++)
@@ -292,16 +333,37 @@ public class Bagnall16bakeoff {
          return acc;
     }    
 
-    public static void main(String[] args){
-//Example usage: 
-        
-//1. Set up the paths
-        DataSets.problemPath=DataSets.dropboxPath+"UCI Problems/";
-        DataSets.resultsPath="C:/Temp/";
-//2. Set up the arguments: Classifier, Problem, Fold
-        String[] paras={"BOSS","ItalyPowerDemand","1"};
-//3. Run a full experiment, saving the results
-        singleClassifierAndFold(paras);
-    }
+
     
+/* MUST BE FIVE ARGUMENTSArguments:
+    1: Problem path args[0]
+    2. Results path args[1]
+    3. Classifier =args[2];
+    4.    String problem=args[3];
+    5.    int fold=Integer.parseInt(args[4])-1;
+    */  
+       
+    public static void main(String[] args) throws IOException{
+        if(args.length!=5){
+            System.out.println("ERROR two few args. Only "+args.length+" Not 5");
+            System.err.println("ERROR two few args. Only "+args.length+" Not 5");
+            System.exit(1);
+        }
+            
+        DataSets.problemPath=args[0];
+        DataSets.resultsPath=args[1];
+        File f=new File(DataSets.resultsPath);
+        if(!f.isDirectory()){
+            f.mkdirs();
+        }
+        String[] newArgs=new String[args.length-2];
+        for(int i=2;i<args.length;i++)
+            newArgs[i-2]=args[i];
+        RepoExperiments.singleClassifierAndFoldTrainTestSplit(newArgs);
+        
+    
+    }
+
+
 }
+

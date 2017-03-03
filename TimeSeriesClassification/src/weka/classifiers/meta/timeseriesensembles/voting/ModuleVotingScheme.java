@@ -3,7 +3,7 @@ package weka.classifiers.meta.timeseriesensembles.voting;
 
 import utilities.DebugPrinting;
 import weka.classifiers.meta.timeseriesensembles.EnsembleModule;
-import weka.classifiers.meta.timeseriesensembles.ModuleResults;
+import weka.classifiers.meta.timeseriesensembles.ClassifierResults;
 import weka.core.Instance;
 
 /**
@@ -75,7 +75,7 @@ public abstract class ModuleVotingScheme implements DebugPrinting {
     
     protected void storeModuleTestResult(EnsembleModule module, double[] dist) {
         if (module.testResults == null)
-            module.testResults = new ModuleResults();
+            module.testResults = new ClassifierResults();
         
         module.testResults.storeSingleTestResult(dist);
     }

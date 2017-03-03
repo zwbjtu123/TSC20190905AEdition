@@ -30,6 +30,7 @@ import weka.core.Instances;
 import weka.filters.SimpleBatchFilter;
 import utilities.SaveParameterInfo;
 import utilities.StatisticalUtilities;
+import utilities.TrainAccuracyEstimate;
 import weka.classifiers.functions.TunedSVM;
 import weka.classifiers.meta.TunedRotationForest;
 import weka.classifiers.meta.timeseriesensembles.weightings.*;
@@ -50,7 +51,7 @@ import weka.filters.timeseries.SAX;
  *      
  */
 
-public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveParameterInfo, DebugPrinting {
+public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveParameterInfo, DebugPrinting, TrainAccuracyEstimate {
     
     protected ModuleWeightingScheme weightingScheme = new TrainAcc();
     protected ModuleVotingScheme votingScheme = new MajorityVote();
@@ -77,7 +78,7 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveParam
     //data generated during buildclassifier if above = true 
     protected double[][] ensembleCvDists;
     protected double[] ensembleCvPreds;
-    protected double ensembleCvAcc;
+//    protected double ensembleCvAcc;
     
     //data generated during testing
     protected double[][] ensembleTestDists;
@@ -92,6 +93,7 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveParam
     protected int testInstCounter = 0;
     protected int numTestInsts = -1;
     protected Instance prevTestInstance = null;
+    private ClassifierResults res =new ClassifierResults();
         
     protected static class ErrorReport {
         private boolean anyErrors; 
@@ -305,7 +307,7 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveParam
 
         output.append(data.relationName()).append(",").append(ensembleIdentifier).append(",train\n");
         output.append(this.getParameters()).append("\n");
-        output.append(ensembleCvAcc).append("\n");
+        output.append(res.acc).append("\n");
 
         for(int i = 0; i < numTrainInsts; i++){
             //realclassval,predclassval,[empty],probclass1,probclass2,...
@@ -355,7 +357,7 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveParam
                 if (needIndividualTrainPreds()) { //need the preds/dists of the train set (cv)
                     throw new Exception("This setup requires individual train preds/dists, but SaveCVAccuracy not updated yet to extract existing trainpreds from individuals");
                      
-//                  ModuleResults res = ((SaveParameterInfo)module.getClassifier()).getModuleResults(); //implement
+//                  ClassifierResults res = ((SaveParameterInfo)module.getClassifier()).getModuleResults(); //implement
                     //if that's not null, hooray
                     //else either throw exeption or perform cv manually again, to decide
 //                    
@@ -366,7 +368,7 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveParam
                 } else {//only need the accuracy
                     String params = ((SaveParameterInfo)module.getClassifier()).getParameters();
                     double cvacc = Double.parseDouble(params.split(",")[1]);
-                    module.trainResults = new ModuleResults(cvacc, numClasses);
+                    module.trainResults = new ClassifierResults(cvacc, numClasses);
                     
                     if (writeIndividualsResults) { //if we're doing trainFold# file writing
                         writeResultsFile(module.getModuleName(), params, module.trainResults, "train"); //write results out
@@ -509,7 +511,7 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveParam
             this.ensembleCvPreds[i] = pred;
             this.ensembleCvDists[i] = weightByClass;
         }
-        this.ensembleCvAcc = (double)correct/numTrainInsts;
+        res.acc = (double)correct/numTrainInsts;
     }
     
     /**
@@ -554,7 +556,7 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveParam
     }
 
     public double getEnsembleCvAcc() {
-        return ensembleCvAcc;
+        return res.acc;
     }
 
     public String getEnsembleIdentifier() {
@@ -624,17 +626,27 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveParam
         return this.transform;
     }
     
+ @Override
+    public void writeCVTrainToFile(String train) {
+        outputEnsembleTrainingPathAndFile=train;
+        performEnsembleCV=true;
+    }    
     @Override
-    public void setCVPath(String pathAndName){
-        this.outputEnsembleTrainingPathAndFile = pathAndName;
-        this.writeEnsembleTrainingFile = true;
-        this.performEnsembleCV = true;
-    }     
+    public boolean findsTrainAccuracyEstimate(){ return performEnsembleCV;}
+    
+    @Override
+    public ClassifierResults getTrainResults(){
+//Temporary : copy stuff into res.acc here
+//        res.acc=ensembleCvAcc;
+//TO DO: Write the other stats        
+        return res;
+    }        
+     
     
     @Override
     public String getParameters(){
         StringBuilder out = new StringBuilder();
-        out.append("Trainacc,").append(ensembleCvAcc).append(",");
+        out.append("Trainacc,").append(res.acc).append(",");
         for(int m = 0; m < modules.length; m++){
             out.append(modules[m].getModuleName()).append("(").append(modules[m].priorWeight);
             for (int j = 0; j < modules[m].posteriorWeights.length; ++j)
@@ -806,7 +818,7 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveParam
             h.setRandSeed(resampleIdentifier);
                 
         if (writeEnsembleTrainResults)
-            h.setCVPath(resultOutputDir+h.ensembleIdentifier+"/Predictions/"+datasetIdentifier+"/trainFold"+resampleIdentifier+".csv");
+            h.writeCVTrainToFile(resultOutputDir+h.ensembleIdentifier+"/Predictions/"+datasetIdentifier+"/trainFold"+resampleIdentifier+".csv");
         
         h.buildClassifier(train);
         
@@ -1500,7 +1512,7 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveParam
         sb.append("\nvote scheme: ").append(votingScheme);
         sb.append("\ndataset: ").append(datasetName);
         sb.append("\nfold: ").append(resampleIdentifier);
-        sb.append("\ntrain acc: ").append(ensembleCvAcc);
+        sb.append("\ntrain acc: ").append(res.acc);
         sb.append("\ntest acc: ").append(builtFromFile ? ensembleTestAcc : "NA");
         
         int precision = 4;
@@ -1524,7 +1536,7 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveParam
         
         if (printPreds) {
             sb.append("\n\nensemble train preds: ");
-            sb.append("\ntrain acc: ").append(ensembleCvAcc);
+            sb.append("\ntrain acc: ").append(res.acc);
             sb.append("\n");
             for(int i = 0; i < ensembleCvPreds.length;i++)
                 sb.append(buildEnsemblePredsLine(true, i)).append("\n");

@@ -4,7 +4,6 @@ Code to run EthanolLevel data using a leave one bottle out sampling
 package applications;
 
 import development.DataSets;
-import development.RepoExperiments;
 import development.SimulationExperiments;
 import fileIO.InFile;
 import fileIO.OutFile;
@@ -13,7 +12,8 @@ import java.text.DecimalFormat;
 import static papers.Bagnall16bakeoff.setClassifier;
 import utilities.ClassifierTools;
 import utilities.InstanceTools;
-import utilities.SaveCVAccuracy;
+import utilities.SaveParameterInfo;
+import utilities.TrainAccuracyEstimate;
 import weka.classifiers.Classifier;
 import weka.classifiers.meta.timeseriesensembles.SaveableEnsemble;
 import weka.core.Instance;
@@ -130,8 +130,8 @@ public class EthanolLevel {
         f=new File(predictions+"/testFold"+fold+".csv");
         if(!f.exists() || f.length()==0){
       //      of.writeString(problem+","); );
-            if(c instanceof SaveCVAccuracy)
-                ((SaveCVAccuracy)c).setCVPath(predictions+"/trainFold"+fold+".csv");
+            if(c instanceof TrainAccuracyEstimate)
+                ((TrainAccuracyEstimate)c).writeCVTrainToFile(predictions+"/trainFold"+fold+".csv");
             double acc =EthanolLevel.singleClassifierAndBottle(split[0],split[1],c,fold,predictions);
             System.out.println(classifier+","+problemName+","+fold+","+acc);
             
@@ -175,8 +175,8 @@ public class EthanolLevel {
             acc/=test.numInstances();
             OutFile p=new OutFile(resultsPath+"/testFold"+fold+".csv");
             p.writeLine(train.relationName()+","+c.getClass().getName()+",test");
-            if(c instanceof SaveCVAccuracy){
-              p.writeLine(((SaveCVAccuracy)c).getParameters());
+            if(c instanceof SaveParameterInfo){
+              p.writeLine(((SaveParameterInfo)c).getParameters());
             }else
                 p.writeLine("No parameter info");
             p.writeLine(acc+"");

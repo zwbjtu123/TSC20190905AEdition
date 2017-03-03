@@ -71,7 +71,7 @@ public abstract class EnsembleFromFile extends AbstractClassifier implements Deb
             return file;
     }
     
-    protected static ModuleResults loadResultsFile(File file, int numClasses) throws Exception {    
+    protected static ClassifierResults loadResultsFile(File file, int numClasses) throws Exception {    
                 
         ArrayList<Double> alpreds = new ArrayList<>();
         ArrayList<Double> alclassvals = new ArrayList<>();
@@ -133,9 +133,9 @@ public abstract class EnsembleFromFile extends AbstractClassifier implements Deb
         }
         
         if (fileHasPreds)
-            return new ModuleResults(acc, classVals, preds, distsForInsts, numClasses);
+            return new ClassifierResults(acc, classVals, preds, distsForInsts, numClasses);
         else 
-            return new ModuleResults(acc, numClasses);
+            return new ClassifierResults(acc, numClasses);
         //now need to account for fact that some files might only have the frist 3 lines and 
         //not the full train cv preds
         //blame tony.
@@ -169,7 +169,7 @@ public abstract class EnsembleFromFile extends AbstractClassifier implements Deb
                     + "incorrect accuracy (" + acc + "reported vs" +a +"actual) reported in: " + file.getAbsolutePath());
     }
     
-    protected void writeResultsFile(String classifierName, String parameters, ModuleResults results, String trainOrTest) throws IOException {                
+    protected void writeResultsFile(String classifierName, String parameters, ClassifierResults results, String trainOrTest) throws IOException {                
         StringBuilder st = new StringBuilder();
         st.append(this.datasetName).append(",").append(this.ensembleIdentifier).append(classifierName).append(","+trainOrTest+"\n");
         st.append(parameters + "\n"); //st.append("internalHesca\n");

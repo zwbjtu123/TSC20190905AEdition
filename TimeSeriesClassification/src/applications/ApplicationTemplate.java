@@ -53,6 +53,7 @@ import static papers.Bagnall16bakeoff.setClassifier;
 import utilities.ClassifierTools;
 import utilities.InstanceTools;
 import utilities.SaveParameterInfo;
+import utilities.TrainAccuracyEstimate;
 import weka.classifiers.Classifier;
 import weka.classifiers.meta.timeseriesensembles.SaveableEnsemble;
 import weka.core.Instance;
@@ -198,8 +199,8 @@ Only used if sampleByAttribute set to true
         f=new File(predictions+"/testFold"+fold+".csv");
         if(!f.exists() || f.length()==0){
       //      of.writeString(problem+","); );
-            if(c instanceof SaveParameterInfo)
-                ((SaveParameterInfo)c).setCVPath(predictions+"/trainFold"+fold+".csv");
+            if(c instanceof TrainAccuracyEstimate)
+                ((TrainAccuracyEstimate)c).writeCVTrainToFile(predictions+"/trainFold"+fold+".csv");
             double acc =ApplicationTemplate.singleClassifierAndFold(split[0],split[1],c,fold,predictions);
             System.out.println(classifier+","+problemName+","+fold+","+acc);
             

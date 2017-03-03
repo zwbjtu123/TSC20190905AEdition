@@ -270,7 +270,7 @@ tation Forest [30] (with 50 trees), and a Bayesian network.
                 else{
                     eval=new Evaluation(train);
     //set the max number of folds to MAX_FOLDS or use LOOCV
-                    int folds=setNumberOfFolds(train);
+                    int folds=10;
 //Hugely memory intensive, so clean up if required
 //The CV could be done much more efficiently in memory
 /*There is an unusual problem with NB  and BN. If a subsample has a flat feature

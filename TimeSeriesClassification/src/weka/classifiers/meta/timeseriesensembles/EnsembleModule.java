@@ -25,8 +25,8 @@ public class EnsembleModule implements DebugPrinting {
     private String moduleName;
     private String parameters;
     
-    public ModuleResults trainResults;
-    public ModuleResults testResults;
+    public ClassifierResults trainResults;
+    public ClassifierResults testResults;
     
     private int numClasses;
     

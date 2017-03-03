@@ -10,7 +10,7 @@ import java.util.Collections;
 import java.util.Random;
 import weka.classifiers.Classifier;
 import weka.classifiers.lazy.kNN;
-import weka.classifiers.meta.timeseriesensembles.ModuleResults;
+import weka.classifiers.meta.timeseriesensembles.ClassifierResults;
 import weka.core.Instances;
 
 /**
@@ -59,7 +59,7 @@ public class CrossValidator {
     }
 
 
-    public ModuleResults crossValidateWithStats(Classifier classifier, Instances train) throws Exception {
+    public ClassifierResults crossValidateWithStats(Classifier classifier, Instances train) throws Exception {
         return crossValidateWithStats(new Classifier[] { classifier }, train)[0];
     }
     
@@ -78,7 +78,7 @@ public class CrossValidator {
      * 
      * @return double[classifier][prediction]
      */
-    public ModuleResults[] crossValidateWithStats(Classifier[] classifiers, Instances train) throws Exception {
+    public ClassifierResults[] crossValidateWithStats(Classifier[] classifiers, Instances train) throws Exception {
         if (folds == null)
             buildFolds(train);
 
@@ -120,7 +120,7 @@ public class CrossValidator {
         }
         
         //shove data into moduleresults objects 
-        ModuleResults[] results = new ModuleResults[classifiers.length];
+        ClassifierResults[] results = new ClassifierResults[classifiers.length];
         double[] classVals = train.attributeToDoubleArray(train.classIndex());
         
         for (int i = 0; i < classifiers.length; i++) {  
@@ -131,7 +131,7 @@ public class CrossValidator {
                 variance += (foldaccs[i][j] - classifierAccs[i]) * (foldaccs[i][j] - classifierAccs[i]);
             variance /= foldaccs[i].length;
             
-            results[i] = new ModuleResults(classifierAccs[i], classVals, predictions[i], distsForInsts[i], variance, train.numClasses());
+            results[i] = new ClassifierResults(classifierAccs[i], classVals, predictions[i], distsForInsts[i], variance, train.numClasses());
         }
         
         return results;

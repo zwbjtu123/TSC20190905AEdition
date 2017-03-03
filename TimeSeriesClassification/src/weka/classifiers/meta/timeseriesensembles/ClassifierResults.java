@@ -1,8 +1,4 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+
 package weka.classifiers.meta.timeseriesensembles;
 
 import java.util.ArrayList;
@@ -12,9 +8,10 @@ import java.util.ArrayList;
  * 
  * @author James Large
  */
-public class ModuleResults {
+public class ClassifierResults {
     public double[] predClassVals;
     public double acc; 
+    public long buildTime;
     public double[][] distsForInsts; //may be null
     public double[][] confusionMatrix; //[actual class][predicted class]
     public double[] trueClassVals;
@@ -28,18 +25,18 @@ public class ModuleResults {
     private ArrayList<Double> testPredsSoFar;
     private ArrayList<ArrayList<Double>> testDistsSoFar;
     
-    public ModuleResults() {
+    public ClassifierResults() {
         testPredsSoFar = new ArrayList<>();
         testDistsSoFar = new ArrayList<>();
     }
     
     //for if we are only storing the cv accuracy in the context of SaveCVAccuracy
-    public ModuleResults(double cvacc, int numClasses) {
+    public ClassifierResults(double cvacc, int numClasses) {
         this.acc = cvacc;
         this.numClasses = numClasses;
     }
     
-    public ModuleResults(double acc, double[] classVals, double[] preds, double[][] distsForInsts, int numClasses) {        
+    public ClassifierResults(double acc, double[] classVals, double[] preds, double[][] distsForInsts, int numClasses) {        
         this.predClassVals = preds;
         this.acc = acc;
         this.distsForInsts = distsForInsts;
@@ -52,7 +49,7 @@ public class ModuleResults {
         this.variance = -1; //not defined 
     }
     
-    public ModuleResults(double acc, double[] classVals, double[] preds, double[][] distsForInsts, double variance, int numClasses) {        
+    public ClassifierResults(double acc, double[] classVals, double[] preds, double[][] distsForInsts, double variance, int numClasses) {        
         this.predClassVals = preds;
         this.acc = acc;
         this.distsForInsts = distsForInsts;

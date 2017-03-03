@@ -16,8 +16,10 @@ import utilities.ClassifierTools;
 import utilities.InstanceTools;
 import utilities.SaveParameterInfo;
 import utilities.Timer;
+import utilities.TrainAccuracyEstimate;
 import weka.classifiers.Classifier;
 import weka.classifiers.functions.LibSVM;
+import weka.classifiers.meta.timeseriesensembles.ClassifierResults;
 import weka.clusterers.SimpleKMeans;
 import weka.core.Attribute;
 import weka.core.Capabilities;
@@ -52,7 +54,7 @@ import weka.core.TechnicalInformation;
  * 
  * Implementation based on the algorithm described in getTechnicalInformation()
  */
-public class BoTSWEnsemble implements Classifier, SaveParameterInfo /*, HiveCoteModule*/ {
+public class BoTSWEnsemble implements Classifier, SaveParameterInfo,TrainAccuracyEstimate {
     
     public TechnicalInformation getTechnicalInformation() {
         TechnicalInformation 	result;
@@ -79,6 +81,7 @@ public class BoTSWEnsemble implements Classifier, SaveParameterInfo /*, HiveCote
     
     private String trainCVPath;
     private boolean trainCV=false;
+    private ClassifierResults res =new ClassifierResults();
 
     private Instances train;
     private double ensembleCvAcc = -1;
@@ -126,10 +129,20 @@ public class BoTSWEnsemble implements Classifier, SaveParameterInfo /*, HiveCote
     }
     
     @Override
-    public void setCVPath(String train) {
+    public void writeCVTrainToFile(String train) {
         trainCVPath=train;
         trainCV=true;
     }
+    @Override
+    public boolean findsTrainAccuracyEstimate(){ return trainCV;}
+    
+    @Override
+    public ClassifierResults getTrainResults(){
+//Temporary : copy stuff into res.acc here
+//Not implemented?        res.acc=ensembleCvAcc;
+//TO DO: Write the other stats        
+        return res;
+    }        
 
     @Override
     public String getParameters() {
@@ -557,11 +570,6 @@ public class BoTSWEnsemble implements Classifier, SaveParameterInfo /*, HiveCote
             params = new Params(n_b, a, k, c_svm);
         }
 
-        @Override
-        public void setCVPath(String train) {
-            trainCVPath=train;
-            trainCV=true;
-        }
 
         @Override
         public String getParameters() {

@@ -50,12 +50,14 @@ import weka.core.Instance;
 import weka.core.Instances;
 import weka.core.TechnicalInformation;
 import utilities.SaveParameterInfo;
+import utilities.TrainAccuracyEstimate;
+import weka.classifiers.meta.timeseriesensembles.ClassifierResults;
 
 /*
 
 
  */
-public class TSF extends AbstractClassifier implements SaveParameterInfo{
+public class TSF extends AbstractClassifier implements SaveParameterInfo, TrainAccuracyEstimate{
     RandomTree[] trees;
     int numTrees=500;
     int numFeatures;
@@ -66,6 +68,7 @@ public class TSF extends AbstractClassifier implements SaveParameterInfo{
 /* Train results are overwritten with each call to buildClassifier
     File opened on this path.   */    
     String trainCVPath;
+    private ClassifierResults res =new ClassifierResults();
    
     
     
@@ -78,14 +81,24 @@ public class TSF extends AbstractClassifier implements SaveParameterInfo{
     }
     
     @Override
-    public void setCVPath(String train) {
+    public void writeCVTrainToFile(String train) {
         trainCVPath=train;
         trainCV=true;
     }
+    @Override
+    public boolean findsTrainAccuracyEstimate(){ return trainCV;}
+    
+    @Override
+     public ClassifierResults getTrainResults(){
+ //Temporary : copy stuff into res.acc here
+ //        res.acc=ensembleCvAcc;
+ //TO DO: Write the other stats        
+         return res;
+     }        
 
     @Override
     public String getParameters() {
-        return "numTrees,"+numTrees+",numFeatures,"+numFeatures;
+        return "BuildTime,"+res.buildTime+",numTrees,"+numTrees+",numFeatures,"+numFeatures;
     }
     public void setNumTrees(int t){
         numTrees=t;
@@ -210,6 +223,7 @@ public class TSF extends AbstractClassifier implements SaveParameterInfo{
       
     @Override
     public void buildClassifier(Instances data) throws Exception {
+        res.buildTime=System.currentTimeMillis();
         
          if(trainCV){
             int folds=setNumberOfFolds(data);
@@ -218,6 +232,8 @@ public class TSF extends AbstractClassifier implements SaveParameterInfo{
     //Estimate train accuracy HERE
             TSF tsf=new TSF();
             double[][] results=ClassifierTools.crossValidationWithStats(tsf, data, folds);
+            res.acc=results[0][0];
+//HERE REWRITE THIS BIT AND STORE IN RES
             of.writeLine(getParameters());
             of.writeLine(results[0][0]+"");
             for(int i=1;i<results[0].length;i++)
@@ -290,6 +306,7 @@ public class TSF extends AbstractClassifier implements SaveParameterInfo{
             trees[i].setKValue(numFeatures);
             trees[i].buildClassifier(result);
         }
+        res.buildTime=System.currentTimeMillis()-res.buildTime;
     }
     @Override
     public double[] distributionForInstance(Instance ins) throws Exception {
@@ -392,7 +409,7 @@ public class TSF extends AbstractClassifier implements SaveParameterInfo{
         Instances train=ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\TSC Problems\\ItalyPowerDemand\\ItalyPowerDemand_TRAIN");
         Instances test=ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\TSC Problems\\ItalyPowerDemand\\ItalyPowerDemand_TEST");
         TSF tsf = new TSF();
-        tsf.setCVPath("C:\\Users\\ajb\\Dropbox\\Spectral Interval Experiments\\RIF\\Predictions\\InternalCV0.csv");
+        tsf.writeCVTrainToFile("C:\\Users\\ajb\\Dropbox\\Spectral Interval Experiments\\RIF\\Predictions\\InternalCV0.csv");
         
         
         tsf.buildClassifier(train);

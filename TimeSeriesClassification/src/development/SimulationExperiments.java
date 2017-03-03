@@ -30,6 +30,7 @@ import weka.classifiers.trees.TunedRandomForest;
 import weka.core.Instances;
 import tsc_algorithms.*;
 import utilities.ClassifierTools;
+import utilities.TrainAccuracyEstimate;
 import weka.classifiers.lazy.kNN;
 /**
  *
@@ -306,8 +307,8 @@ public class SimulationExperiments {
         OutFile p=new OutFile(preds+"/testFold"+sample+".csv");
 
 // hack here to save internal CV for further ensembling   
-        if(c instanceof SaveParameterInfo)
-           ((SaveParameterInfo)c).setCVPath(preds+"/trainFold"+sample+".csv");        
+        if(c instanceof TrainAccuracyEstimate)
+            ((TrainAccuracyEstimate)c).writeCVTrainToFile(preds+"/trainFold"+sample+".csv");
         if(c instanceof SaveableEnsemble)
            ((SaveableEnsemble)c).saveResults(preds+"/internalCV_"+sample+".csv",preds+"/internalTestPreds_"+sample+".csv");
         try{              

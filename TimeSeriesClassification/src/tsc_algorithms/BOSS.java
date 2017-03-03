@@ -27,10 +27,12 @@ import java.util.Map.Entry;
 
 import utilities.ClassifierTools;
 import utilities.BitWord;
+import utilities.TrainAccuracyEstimate;
 import weka.core.Capabilities;
 import weka.core.Instance;
 import weka.core.Instances;
 import weka.classifiers.Classifier;
+import weka.classifiers.meta.timeseriesensembles.ClassifierResults;
 import weka.core.TechnicalInformation;
 
 /**
@@ -46,7 +48,7 @@ import weka.core.TechnicalInformation;
  * 
  * Implementation based on the algorithm described in getTechnicalInformation()
  */
-public class BOSS implements Classifier, SaveParameterInfo, HiveCoteModule {
+public class BOSS implements Classifier, SaveParameterInfo, HiveCoteModule, TrainAccuracyEstimate {
   
     public TechnicalInformation getTechnicalInformation() {
         TechnicalInformation 	result;
@@ -72,7 +74,7 @@ public class BOSS implements Classifier, SaveParameterInfo, HiveCoteModule {
     
     private boolean loadFeatureSets = false;
     private int fold = 0;
-    
+  
     public enum SerialiseOptions { 
         //dont do any seriealising, run as normal
         NONE, 
@@ -100,6 +102,24 @@ public class BOSS implements Classifier, SaveParameterInfo, HiveCoteModule {
     private Instances train;
     private double ensembleCvAcc = -1;
     private double[] ensembleCvPreds = null;
+    private ClassifierResults res =new ClassifierResults();
+
+    @Override
+    public void writeCVTrainToFile(String outputPathAndName){
+        trainCVPath=outputPathAndName;
+        trainCV=true;
+    }
+    @Override
+    public boolean findsTrainAccuracyEstimate(){ return trainCV;}
+    
+    @Override
+    public ClassifierResults getTrainResults(){
+//Temporary : copy stuff into res.acc here
+        res.acc=ensembleCvAcc;
+//TO DO: Write the other stats        
+        return res;
+    }        
+    
     
     /**
      * Providing a particular value for normalisation will force that option, if 
@@ -230,33 +250,24 @@ public class BOSS implements Classifier, SaveParameterInfo, HiveCoteModule {
         }
     }
     
-    @Override
-    public void setCVPath(String train) {
-        trainCVPath=train;
-        trainCV=true;
-    }
-
+ 
     @Override
     public String getParameters() {
         StringBuilder sb = new StringBuilder();
-        
+        sb.append("BuildTime,"+res.buildTime);
         BOSSWindow first = classifiers.get(0);
-        sb.append("windowSize=").append(first.getWindowSize()).append("/wordLength=").append(first.getWordLength());
-        sb.append("/alphabetSize=").append(first.getAlphabetSize()).append("/norm=").append(first.isNorm());
+        sb.append(",windowSize,").append(first.getWindowSize()).append(",wordLength,").append(first.getWordLength());
+        sb.append(",alphabetSize,").append(first.getAlphabetSize()).append(",norm,").append(first.isNorm());
             
         for (int i = 1; i < classifiers.size(); ++i) {
             BOSSWindow boss = classifiers.get(i);
-            sb.append(",windowSize=").append(boss.getWindowSize()).append("/wordLength=").append(boss.getWordLength());
-            sb.append("/alphabetSize=").append(boss.getAlphabetSize()).append("/norm=").append(boss.isNorm());
+            sb.append(",windowSize,").append(boss.getWindowSize()).append(",wordLength,").append(boss.getWordLength());
+            sb.append(",alphabetSize,").append(boss.getAlphabetSize()).append(",norm,").append(boss.isNorm());
         }
         
         return sb.toString();
     }
     
-    @Override
-    public int setNumberOfFolds(Instances data){
-        return data.numInstances();
-    }
     
      /**
      * @return { numIntervals(word length), alphabetSize, slidingWindowSize } for each BOSSWindow in this *built* classifier
@@ -293,7 +304,7 @@ public class BOSS implements Classifier, SaveParameterInfo, HiveCoteModule {
     
     @Override
     public void buildClassifier(final Instances data) throws Exception {
-        
+        res.buildTime=System.currentTimeMillis();
         this.train=data;
         
         if (data.classIndex() != data.numAttributes()-1)
@@ -427,6 +438,8 @@ public class BOSS implements Classifier, SaveParameterInfo, HiveCoteModule {
                 of.writeLine(results[0][i]+","+results[1][i]);
             System.out.println("CV acc ="+results[0][0]);
         }
+        res.buildTime=System.currentTimeMillis()-res.buildTime;
+        
     }
 
     //[0] = index, [1] = acc

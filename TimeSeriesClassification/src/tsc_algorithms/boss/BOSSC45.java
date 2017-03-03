@@ -26,6 +26,8 @@ import java.util.Set;
 import tsc_algorithms.BOSS;
 import utilities.BitWord;
 import utilities.ClassifierTools;
+import utilities.TrainAccuracyEstimate;
+import weka.classifiers.meta.timeseriesensembles.ClassifierResults;
 import weka.classifiers.trees.J48;
 import weka.core.Attribute;
 import weka.core.DenseInstance;
@@ -55,7 +57,7 @@ import weka.core.Instances;
  * BOSS implementation based on the algorithm described in getTechnicalInformation()
  * C45 done using the WEKA implementation 'weka.classifiers.trees.J48'
  */
-public class BOSSC45 implements Classifier, SaveParameterInfo {
+public class BOSSC45 implements Classifier, SaveParameterInfo,TrainAccuracyEstimate {
     
     public TechnicalInformation getTechnicalInformation() {
         TechnicalInformation 	result;
@@ -104,6 +106,7 @@ public class BOSSC45 implements Classifier, SaveParameterInfo {
     
     private String trainCVPath;
     private boolean trainCV=false;
+    private ClassifierResults res =new ClassifierResults();
     
     /**
      * Providing a particular value for normalisation will force that option, if 
@@ -234,10 +237,20 @@ public class BOSSC45 implements Classifier, SaveParameterInfo {
     }
     
     @Override
-    public void setCVPath(String train) {
+    public void writeCVTrainToFile(String train) {
         trainCVPath=train;
         trainCV=true;
     }
+    @Override
+    public boolean findsTrainAccuracyEstimate(){ return trainCV;}
+    
+    @Override
+    public ClassifierResults getTrainResults(){
+//Temporary : copy stuff into res.acc here
+//Not implemented?        res.acc=ensembleCvAcc;
+//TO DO: Write the other stats        
+        return res;
+    }        
 
     @Override
     public String getParameters() {
@@ -387,7 +400,6 @@ public class BOSSC45 implements Classifier, SaveParameterInfo {
             window.classifier.buildFullForest();
         
         if (trainCV) {
-            int folds=setNumberOfFolds(data);
             OutFile of=new OutFile(trainCVPath);
             of.writeLine(data.relationName()+",BOSSEnsemble,train");
            

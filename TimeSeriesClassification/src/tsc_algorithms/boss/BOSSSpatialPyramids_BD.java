@@ -25,10 +25,12 @@ import java.util.HashMap;
 import java.util.Map.Entry;
 import utilities.ClassifierTools;
 import utilities.BitWord;
+import utilities.TrainAccuracyEstimate;
 import weka.core.Capabilities;
 import weka.core.Instance;
 import weka.core.Instances;
 import weka.classifiers.Classifier;
+import weka.classifiers.meta.timeseriesensembles.ClassifierResults;
 
 
 /**
@@ -50,7 +52,7 @@ import weka.classifiers.Classifier;
  * Base algorithm information found in BOSS.java
  * Spatial Pyramids based on the algorithm described in getTechnicalInformation()
  */
-public class BOSSSpatialPyramids_BD implements Classifier, SaveParameterInfo {
+public class BOSSSpatialPyramids_BD implements Classifier, SaveParameterInfo,TrainAccuracyEstimate {
     
     public TechnicalInformation getTechnicalInformation() {
         TechnicalInformation 	result;
@@ -98,6 +100,7 @@ public class BOSSSpatialPyramids_BD implements Classifier, SaveParameterInfo {
     
     private String trainCVPath;
     private boolean trainCV=false;
+    private ClassifierResults res =new ClassifierResults();
     
     /**
      * Providing a particular value for normalisation will force that option, if 
@@ -230,10 +233,21 @@ public class BOSSSpatialPyramids_BD implements Classifier, SaveParameterInfo {
     }
     
     @Override
-    public void setCVPath(String train) {
+    public void writeCVTrainToFile(String train) {
         trainCVPath=train;
         trainCV=true;
     }
+    @Override
+    public boolean findsTrainAccuracyEstimate(){ return trainCV;}
+    
+    @Override
+    public ClassifierResults getTrainResults(){
+//Temporary : copy stuff into res.acc here
+//Not implemented?        res.acc=ensembleCvAcc;
+//TO DO: Write the other stats        
+        return res;
+    }        
+
 
     @Override
     public String getParameters() {

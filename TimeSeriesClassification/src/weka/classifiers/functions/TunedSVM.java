@@ -20,11 +20,13 @@ import java.util.logging.Logger;
 import utilities.ClassifierTools;
 import utilities.InstanceTools;
 import utilities.SaveParameterInfo;
+import utilities.TrainAccuracyEstimate;
 import weka.classifiers.Evaluation;
 import weka.classifiers.evaluation.EvaluationUtils;
 import weka.classifiers.functions.supportVector.Kernel;
 import weka.classifiers.functions.supportVector.PolyKernel;
 import weka.classifiers.functions.supportVector.RBFKernel;
+import weka.classifiers.meta.timeseriesensembles.ClassifierResults;
 import weka.core.*;
 
 /**
@@ -40,21 +42,45 @@ import weka.core.*;
  2. Could use libSVM instead
  * 
  */
-public class TunedSVM extends SMO implements SaveParameterInfo {
+public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEstimate {
     int min=-8;
     int max=16;
-    long buildTime;
     double[] paraSpace;
     private static int MAX_FOLDS=10;
     private double[] paras;
-    private double cvAcc=0;
     String trainPath;
     boolean debug=false;
     Random rng;
     ArrayList<Double> accuracy;
     private boolean kernelOptimise=false;   //Choose between linear, quadratic and RBF kernel
     private boolean paraOptimise=true;
+    private ClassifierResults res =new ClassifierResults();
 
+ @Override
+    public void writeCVTrainToFile(String train) {
+        trainPath=train;
+    }    
+//Think this always does para search?
+//    @Override
+//    public boolean findsTrainAccuracyEstimate(){ return findTrainAcc;}
+    
+    @Override
+    public ClassifierResults getTrainResults(){
+//Temporary : copy stuff into res.acc here
+        return res;
+    }     
+    @Override
+    public String getParameters() {
+        String result="BuildTime,"+res.buildTime+",CVAcc,"+res.acc+",C,"+paras[0];
+        if(paras.length>1)
+            result+=",Gamma,"+paras[1];
+       for(double d:accuracy)
+            result+=","+d;
+        
+        return result;
+    }
+    
+    
     public enum KernelType {LINEAR,QUADRATIC,RBF};
     KernelType kernel;
     public TunedSVM(){
@@ -155,9 +181,9 @@ public class TunedSVM extends SMO implements SaveParameterInfo {
         setC(bestC);
         ((RBFKernel)m_kernel).setGamma(bestSigma);
         paras[1]=bestSigma;
-        cvAcc=1-minErr;  
+        res.acc=1-minErr;  
         if(debug)
-            System.out.println("Best C ="+bestC+" best Gamma = "+bestSigma+" best train acc = "+cvAcc);
+            System.out.println("Best C ="+bestC+" best Gamma = "+bestSigma+" best train acc = "+res.acc);
     }
     
    public void buildQuadratic(Instances train) throws Exception {
@@ -190,7 +216,7 @@ public class TunedSVM extends SMO implements SaveParameterInfo {
         }
         double bestC=ties.get(rng.nextInt(ties.size()));
         setC(bestC);
-        cvAcc=1-minErr;
+        res.acc=1-minErr;
         paras[0]=bestC;  
     }
      
@@ -212,7 +238,7 @@ public class TunedSVM extends SMO implements SaveParameterInfo {
 
                     temp.setKernel(p);
                     temp.buildQuadratic(train);
-                    linearCVAcc=temp.cvAcc;
+                    linearCVAcc=temp.res.acc;
                     linearBestC=temp.getC();
                 break;
                 case QUADRATIC:
@@ -220,14 +246,14 @@ public class TunedSVM extends SMO implements SaveParameterInfo {
                     p2.setExponent(2);
                     temp.setKernel(p2);
                     temp.buildQuadratic(train);
-                    quadraticCVAcc=temp.cvAcc;
+                    quadraticCVAcc=temp.res.acc;
                     quadraticBestC=temp.getC();
                 break;
                 case RBF:
                     RBFKernel kernel2 = new RBFKernel();
                     temp.setKernel(kernel2);
                     temp.buildRBF(train);
-                    rbfCVAcc=temp.cvAcc;
+                    rbfCVAcc=temp.res.acc;
                     rbfParas[0]=temp.getC();
                     rbfParas[1]=((RBFKernel)temp.m_kernel).getGamma();
                     break;
@@ -241,7 +267,7 @@ public class TunedSVM extends SMO implements SaveParameterInfo {
             setC(linearBestC);
             paras=new double[1];
             paras[0]=linearBestC;
-            cvAcc=linearCVAcc;
+            res.acc=linearCVAcc;
         }else if(quadraticCVAcc> linearCVAcc && quadraticCVAcc> rbfCVAcc){ //Quad best
             PolyKernel p=new PolyKernel();
             p.setExponent(2);
@@ -249,21 +275,21 @@ public class TunedSVM extends SMO implements SaveParameterInfo {
             setC(quadraticBestC);
             paras=new double[1];
             paras[0]=quadraticBestC;
-            cvAcc=quadraticCVAcc;
+            res.acc=quadraticCVAcc;
         }else{   //RBF
             RBFKernel kernel = new RBFKernel();
             kernel.setGamma(rbfParas[1]);
             setKernel(kernel);
             setC(rbfParas[0]);
             paras=rbfParas;
-            cvAcc=rbfCVAcc;
+            res.acc=rbfCVAcc;
         }
     }
     
     
     @Override
     public void buildClassifier(Instances train) throws Exception {
-        buildTime=System.currentTimeMillis();
+        res.buildTime=System.currentTimeMillis();
         if(paraSpace==null)
             setStandardParas();
         
@@ -278,8 +304,13 @@ public class TunedSVM extends SMO implements SaveParameterInfo {
         
         super.buildClassifier(train);
         
-        buildTime=System.currentTimeMillis()-buildTime;
-        
+        res.buildTime=System.currentTimeMillis()-res.buildTime;
+        if(trainPath!=""){  //Save basic train results
+            OutFile f= new OutFile(trainPath);
+            f.writeLine(train.relationName()+",TunedSVMF,Train");
+            f.writeLine(getParameters());
+            f.writeLine(res.acc+"");
+        }        
     }
     public static void main(String[] args) {
         String sourcePath="C:\\Users\\ajb\\Dropbox\\UCI Problems\\";
@@ -325,22 +356,6 @@ public class TunedSVM extends SMO implements SaveParameterInfo {
         }
     }
 
-    @Override
-    public void setCVPath(String train) {
-        trainPath=train;
-    
-    }
-
-    @Override
-    public String getParameters() {
-        String result="CVAcc,"+cvAcc+",BuildTime."+buildTime+",C,"+paras[0];
-        if(paras.length>1)
-            result+=",Gamma,"+paras[1];
-       for(double d:accuracy)
-            result+=","+d;
-        
-        return result;
-    }
     
     protected class PolynomialKernel extends PolyKernel{
         double a=0; //Parameter

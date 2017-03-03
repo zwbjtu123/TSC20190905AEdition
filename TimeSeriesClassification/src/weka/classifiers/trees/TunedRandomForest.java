@@ -17,13 +17,16 @@ grid search is then just 55 values and because it uses OOB no CV is required
  */
 package weka.classifiers.trees;
 
+import fileIO.OutFile;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Random;
 import utilities.ClassifierTools;
 import utilities.SaveParameterInfo;
+import utilities.TrainAccuracyEstimate;
 import weka.classifiers.Evaluation;
 import weka.classifiers.meta.Bagging;
+import weka.classifiers.meta.timeseriesensembles.ClassifierResults;
 import weka.core.Instance;
 import weka.core.Instances;
 import weka.core.Utils;
@@ -32,20 +35,19 @@ import weka.core.Utils;
  *
  * @author ajb
  */
-public class TunedRandomForest extends RandomForest implements SaveParameterInfo{
-    long buildTime;
+public class TunedRandomForest extends RandomForest implements SaveParameterInfo, TrainAccuracyEstimate{
     boolean tune=true;
     boolean tuneFeatures=true;
     boolean debug=false;
     int[] numTreesRange;
     int[] numFeaturesRange;
-    double trainAcc;
     String trainPath="";
     Random rng;
     ArrayList<Double> accuracy;
     boolean crossValidate=true;
     boolean findTrainAcc=true;  //If there is no tuning, this will find the estimate with the fixed values
-    
+     private ClassifierResults res =new ClassifierResults();
+   
     public void setCrossValidate(boolean b){
         crossValidate=b;
     }
@@ -84,14 +86,25 @@ public class TunedRandomForest extends RandomForest implements SaveParameterInfo
     public void setNumFeaturesRange(int[] d){
         numFeaturesRange=d;
     }
-    @Override
-    public void setCVPath(String train) {
+ @Override
+    public void writeCVTrainToFile(String train) {
         trainPath=train;
-    }
+        findTrainAcc=true;
+    }    
+    @Override
+    public boolean findsTrainAccuracyEstimate(){ return findTrainAcc;}
+    
+    @Override
+    public ClassifierResults getTrainResults(){
+//Temporary : copy stuff into res.acc here
+//        res.acc=ensembleCvAcc;
+//TO DO: Write the other stats        
+        return res;
+    }        
 
     @Override
     public String getParameters() {
-        String result="TrainAcc,"+trainAcc+",BuildTime,"+buildTime+",numTrees,"+this.getNumTrees()+",NumFeatures,"+this.getNumFeatures();
+        String result="BuildTime,"+res.buildTime+",TrainAcc,"+res.acc+",numTrees,"+this.getNumTrees()+",NumFeatures,"+this.getNumFeatures();
         for(double d:accuracy)
             result+=","+d;
         return result;
@@ -137,7 +150,7 @@ public class TunedRandomForest extends RandomForest implements SaveParameterInfo
     */    
     @Override
     public void buildClassifier(Instances data) throws Exception{
-        buildTime=System.currentTimeMillis();
+        res.buildTime=System.currentTimeMillis();
         int folds=10;
         if(crossValidate){
             if(folds>data.numInstances())
@@ -215,9 +228,9 @@ public class TunedRandomForest extends RandomForest implements SaveParameterInfo
             
             this.setNumTrees(bestNumTrees);
             this.setNumFeatures(bestNumAtts);
-            trainAcc=1-bestErr;
+            res.acc=1-bestErr;
             if(debug)
-                System.out.println("Best num atts ="+bestNumAtts+" best num trees = "+bestNumTrees+" best train acc = "+trainAcc);
+                System.out.println("Best num atts ="+bestNumAtts+" best num trees = "+bestNumTrees+" best train acc = "+res.acc);
             if(trainPath!=""){  //Save train results not implemented
             }
         }
@@ -234,15 +247,19 @@ public class TunedRandomForest extends RandomForest implements SaveParameterInfo
                     Evaluation eval=new Evaluation(temp);
                     double e;
                 eval.crossValidateModel(t, data, folds, rng);
-                trainAcc=1-eval.errorRate();
+                res.acc=1-eval.errorRate();
             }
             else{
-                trainAcc=1-this.measureOutOfBagError();
+                res.acc=1-this.measureOutOfBagError();
             }
         }
-        
-         buildTime=System.currentTimeMillis()-buildTime;
-     
+        res.buildTime=System.currentTimeMillis()-res.buildTime;
+        if(trainPath!=""){  //Save basic train results
+            OutFile f= new OutFile(trainPath);
+            f.writeLine(data.relationName()+",TunedRandF,Train");
+            f.writeLine(getParameters());
+            f.writeLine(res.acc+"");
+        }    
     }
 
     public void addTrees(int n, Instances data) throws Exception{
