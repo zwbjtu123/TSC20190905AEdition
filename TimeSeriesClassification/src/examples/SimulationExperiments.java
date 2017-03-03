@@ -24,7 +24,7 @@ import statistics.simulators.SimulateShapeletData;
 import statistics.simulators.SimulateWholeSeriesData;
 import tsc_algorithms.*;
 import utilities.InstanceTools;
-import utilities.SaveCVAccuracy;
+import utilities.SaveParameterInfo;
 import weka.classifiers.Classifier;
 import weka.classifiers.lazy.DTW_1NN;
 import weka.classifiers.meta.RotationForest;
@@ -241,8 +241,8 @@ public class SimulationExperiments {
         OutFile p=new OutFile(preds+"/testFold"+sample+".csv");
 
 // hack here to save internal CV for further ensembling   
-        if(c instanceof SaveCVAccuracy)
-           ((SaveCVAccuracy)c).setCVPath(preds+"/trainFold"+sample+".csv");        
+        if(c instanceof SaveParameterInfo)
+           ((SaveParameterInfo)c).setCVPath(preds+"/trainFold"+sample+".csv");        
         if(c instanceof SaveableEnsemble)
            ((SaveableEnsemble)c).saveResults(preds+"/internalCV_"+sample+".csv",preds+"/internalTestPreds_"+sample+".csv");
         try{              
@@ -261,8 +261,8 @@ public class SimulationExperiments {
             acc/=test.numInstances();
             String[] names=preds.split("/");
             p.writeLine(names[names.length-1]+","+c.getClass().getName()+",test");
-            if(c instanceof SaveCVAccuracy)
-                p.writeLine(((SaveCVAccuracy)c).getParameters());
+            if(c instanceof SaveParameterInfo)
+                p.writeLine(((SaveParameterInfo)c).getParameters());
             else if(c instanceof SaveableEnsemble)
                 p.writeLine(((SaveableEnsemble)c).getParameters());
             else

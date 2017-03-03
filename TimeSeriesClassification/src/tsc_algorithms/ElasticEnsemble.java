@@ -33,7 +33,7 @@ import weka.core.Capabilities;
 import weka.core.Instance;
 import weka.core.Instances;
 import weka.filters.timeseries.DerivativeFilter;
-import utilities.SaveCVAccuracy;
+import utilities.SaveParameterInfo;
 import utilities.WritableTestResults;
 import weka.core.TechnicalInformation;
 
@@ -41,7 +41,7 @@ import weka.core.TechnicalInformation;
  *
  * @author sjx07ngu
  */
-public class ElasticEnsemble implements Classifier, HiveCoteModule, SaveCVAccuracy, WritableTestResults{
+public class ElasticEnsemble implements Classifier, HiveCoteModule, SaveParameterInfo, WritableTestResults{
 
     
     public TechnicalInformation getTechnicalInformation() {

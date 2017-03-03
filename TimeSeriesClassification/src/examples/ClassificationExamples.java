@@ -18,7 +18,7 @@ import tsc_algorithms.*;
 import tsc_algorithms.elastic_ensemble.*;
 import utilities.ClassifierTools;
 import utilities.InstanceTools;
-import utilities.SaveCVAccuracy;
+import utilities.SaveParameterInfo;
 import weka.classifiers.Classifier;
 import weka.classifiers.bayes.BayesNet;
 import weka.classifiers.bayes.NaiveBayes;
@@ -271,8 +271,8 @@ public class ClassificationExamples {
             acc/=data[1].numInstances();
             OutFile p=new OutFile(resultsPath+"/testFold"+fold+".csv");
             p.writeLine(train.relationName()+","+c.getClass().getName()+",test");
-            if(c instanceof SaveCVAccuracy){
-              p.writeLine(((SaveCVAccuracy)c).getParameters());
+            if(c instanceof SaveParameterInfo){
+              p.writeLine(((SaveParameterInfo)c).getParameters());
             }else
                 p.writeLine("No parameter info");
             p.writeLine(acc+"");

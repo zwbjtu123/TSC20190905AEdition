@@ -39,7 +39,7 @@ public class RandomRotationForest1 extends TunedRotationForest{
 
     int [] permutation = new int[numAttributes-1];
     int i = 0;
-//This is a bit weird, not sure what it is doing here.ClassAttribute    
+//This just ignores the class attribute
     for(; i < classAttribute; i++){
       permutation[i] = i;
     }
@@ -49,8 +49,9 @@ public class RandomRotationForest1 extends TunedRotationForest{
 
     permute( permutation, random );
     if(numAttributes>maxNumAttributes){
-//TRUNCTATE THE PERMATION TO CONSIDER maxNumAttributes. This is not done in official version
-       int[] temp = new int[maxNumAttributes];
+//TRUNCTATE THE PERMATION TO CONSIDER maxNumAttributes. 
+// we could do this more efficiently, but this is the simplest way. 
+        int[] temp = new int[maxNumAttributes];
        System.arraycopy(permutation, 0, temp, 0, maxNumAttributes);
        permutation=temp;
     }

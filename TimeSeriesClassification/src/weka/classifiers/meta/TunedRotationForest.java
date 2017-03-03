@@ -7,7 +7,7 @@ import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Random;
 import utilities.ClassifierTools;
-import utilities.SaveCVAccuracy;
+import utilities.SaveParameterInfo;
 import weka.classifiers.Evaluation;
 import weka.core.Instance;
 import weka.core.Instances;
@@ -17,7 +17,7 @@ import weka.core.Utils;
  *
  * @author ajb
  */
-public class TunedRotationForest extends RotationForest implements SaveCVAccuracy{
+public class TunedRotationForest extends RotationForest implements SaveParameterInfo{
     long buildTime=0;
     boolean tune=true;
     int[] numTreesRange;

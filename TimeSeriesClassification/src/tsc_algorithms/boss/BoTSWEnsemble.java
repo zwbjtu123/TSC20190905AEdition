@@ -14,7 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 import utilities.ClassifierTools;
 import utilities.InstanceTools;
-import utilities.SaveCVAccuracy;
+import utilities.SaveParameterInfo;
 import utilities.Timer;
 import weka.classifiers.Classifier;
 import weka.classifiers.functions.LibSVM;
@@ -52,7 +52,7 @@ import weka.core.TechnicalInformation;
  * 
  * Implementation based on the algorithm described in getTechnicalInformation()
  */
-public class BoTSWEnsemble implements Classifier, SaveCVAccuracy /*, HiveCoteModule*/ {
+public class BoTSWEnsemble implements Classifier, SaveParameterInfo /*, HiveCoteModule*/ {
     
     public TechnicalInformation getTechnicalInformation() {
         TechnicalInformation 	result;
@@ -517,7 +517,7 @@ public class BoTSWEnsemble implements Classifier, SaveCVAccuracy /*, HiveCoteMod
      * 
      * Implementation based on the algorithm described in getTechnicalInformation() and original code
      */
-    public static class BoTSW implements Classifier, Serializable, SaveCVAccuracy{
+    public static class BoTSW implements Classifier, Serializable, SaveParameterInfo{
 
  
         

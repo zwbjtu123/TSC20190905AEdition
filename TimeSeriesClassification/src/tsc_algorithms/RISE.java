@@ -31,7 +31,7 @@ import weka.filters.SimpleBatchFilter;
 import weka.filters.timeseries.ACF;
 import weka.filters.timeseries.FFT;
 import weka.filters.timeseries.PowerSpectrum;
-import utilities.SaveCVAccuracy;
+import utilities.SaveParameterInfo;
 
 /*
 
@@ -44,7 +44,7 @@ VERSION 1:
 
 
  */
-public class RISE extends AbstractClassifier implements SaveCVAccuracy, SubSampleTrain{
+public class RISE extends AbstractClassifier implements SaveParameterInfo, SubSampleTrain{
     Classifier[] baseClassifiers;
     Classifier baseClassifierTemplate=new RandomTree();
     int numBaseClassifiers=500;

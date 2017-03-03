@@ -7,7 +7,7 @@ import weka.core.Instances;
  *
  * @author ajb
  */
-public interface SaveCVAccuracy {
+public interface SaveParameterInfo {
     public static int LENGTH_TRESH=300;
     public static int INSTANCES_TRESH=500;
     void setCVPath(String train);

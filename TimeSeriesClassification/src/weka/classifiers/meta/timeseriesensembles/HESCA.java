@@ -28,7 +28,7 @@ import weka.core.EuclideanDistance;
 import weka.core.Instance;
 import weka.core.Instances;
 import weka.filters.SimpleBatchFilter;
-import utilities.SaveCVAccuracy;
+import utilities.SaveParameterInfo;
 import utilities.StatisticalUtilities;
 import weka.classifiers.functions.TunedSVM;
 import weka.classifiers.meta.TunedRotationForest;
@@ -42,15 +42,15 @@ import weka.filters.timeseries.SAX;
  * In it's current form, can either build ensemble and classify from results files 
  * of its members, (call setResultsFileLocationParameters(...)) else by default
  * will build/train the ensemble members normally. It will not do any file writing
- * (e.g trainFold# files of its members) aside from the overall ensemble train file as 
- * defined by/related to SaveCVAccuracy, if that has been set up (setCVPath(...))
+ (e.g trainFold# files of its members) aside from the overall ensemble train file as 
+ defined by/related to SaveParameterInfo, if that has been set up (setCVPath(...))
  * 
  * 
  * @author James Large (james.large@uea.ac.uk) , Jason Lines (j.lines@uea.ac.uk)
  *      
  */
 
-public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveCVAccuracy, DebugPrinting {
+public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveParameterInfo, DebugPrinting {
     
     protected ModuleWeightingScheme weightingScheme = new TrainAcc();
     protected ModuleVotingScheme votingScheme = new MajorityVote();
@@ -282,7 +282,7 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveCVAcc
         weightingScheme.defineWeightings(modules, numClasses);
         votingScheme.trainVotingScheme(modules, numClasses);
                 
-        //[SaveCVAccuracy] if writing results of this ensemble (to be read later as an individual module of a meta ensemble, 
+        //[SaveParameterInfo] if writing results of this ensemble (to be read later as an individual module of a meta ensemble, 
         //i.e cote or maybe a meta-hesca), write the full ensemble trainFold# file
         if(this.performEnsembleCV) {
             findEnsembleCV(data); //combine modules to find overall ensemble trainpreds 
@@ -349,22 +349,22 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveCVAcc
         cv.buildFolds(train);
 
         for (EnsembleModule module : modules) {
-            if (module.getClassifier() instanceof SaveCVAccuracy) {
+            if (module.getClassifier() instanceof SaveParameterInfo) {
                 module.getClassifier().buildClassifier(train);
                 
                 if (needIndividualTrainPreds()) { //need the preds/dists of the train set (cv)
                     throw new Exception("This setup requires individual train preds/dists, but SaveCVAccuracy not updated yet to extract existing trainpreds from individuals");
                      
-//                  ModuleResults res = ((SaveCVAccuracy)module.getClassifier()).getModuleResults(); //implement
+//                  ModuleResults res = ((SaveParameterInfo)module.getClassifier()).getModuleResults(); //implement
                     //if that's not null, hooray
                     //else either throw exeption or perform cv manually again, to decide
 //                    
 //                    if (writeIndividualsResults) { //if we're doing trainFold# file writing
 //                        writeResultsFile(module.getModuleName(), module.getParameters(), module.trainResults, "train"); //write results out
-//                        printlnDebug(module.getModuleName() + " writing train file with full preds from SaveCVAccuracy...");
+//                        printlnDebug(module.getModuleName() + " writing train file with full preds from SaveParameterInfo...");
 //                    }
                 } else {//only need the accuracy
-                    String params = ((SaveCVAccuracy)module.getClassifier()).getParameters();
+                    String params = ((SaveParameterInfo)module.getClassifier()).getParameters();
                     double cvacc = Double.parseDouble(params.split(",")[1]);
                     module.trainResults = new ModuleResults(cvacc, numClasses);
                     

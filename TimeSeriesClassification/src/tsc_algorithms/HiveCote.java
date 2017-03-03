@@ -22,7 +22,7 @@ import weka.core.Instance;
 import weka.core.Instances;
 import weka.filters.timeseries.shapelet_transforms.ShapeletTransform;
 import weka.filters.timeseries.shapelet_transforms.ShapeletTransformFactory;
-import utilities.SaveCVAccuracy;
+import utilities.SaveParameterInfo;
 
 /**
  *

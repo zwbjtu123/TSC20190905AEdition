@@ -21,7 +21,7 @@ import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Random;
 import utilities.ClassifierTools;
-import utilities.SaveCVAccuracy;
+import utilities.SaveParameterInfo;
 import weka.classifiers.Evaluation;
 import weka.classifiers.meta.Bagging;
 import weka.core.Instance;
@@ -32,7 +32,7 @@ import weka.core.Utils;
  *
  * @author ajb
  */
-public class TunedRandomForest extends RandomForest implements SaveCVAccuracy{
+public class TunedRandomForest extends RandomForest implements SaveParameterInfo{
     long buildTime;
     boolean tune=true;
     boolean tuneFeatures=true;

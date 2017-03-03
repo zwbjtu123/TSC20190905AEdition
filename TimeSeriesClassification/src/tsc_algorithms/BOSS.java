@@ -11,7 +11,7 @@ import java.util.LinkedList;
 import java.util.List;
 import tsc_algorithms.cote.HiveCoteModule;
 import utilities.InstanceTools;
-import utilities.SaveCVAccuracy;
+import utilities.SaveParameterInfo;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -46,7 +46,7 @@ import weka.core.TechnicalInformation;
  * 
  * Implementation based on the algorithm described in getTechnicalInformation()
  */
-public class BOSS implements Classifier, SaveCVAccuracy, HiveCoteModule {
+public class BOSS implements Classifier, SaveParameterInfo, HiveCoteModule {
   
     public TechnicalInformation getTechnicalInformation() {
         TechnicalInformation 	result;

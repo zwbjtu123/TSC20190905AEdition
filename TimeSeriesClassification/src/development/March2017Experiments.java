@@ -30,7 +30,7 @@ import weka.classifiers.trees.TunedRandomForest;
 import weka.core.Instances;
 
 
-public class Feb2017Experiments{
+public class March2017Experiments{
     public static String[] classifiers={"RotF","RandRotF"};
     public static double propInTrain=0.5;
     public static int folds=30; 
@@ -47,7 +47,22 @@ public class Feb2017Experiments{
     static int[] numTrees={10,50,100,200,300,400,500,600,700,800,900,1000,1250,1500,1750,2000};
 
     
-    
+    public static void timingNormalisation(String file) throws Exception{
+        OutFile out=new OutFile(file);
+        for(int i=0;i<10;i++){
+            Instances train=ClassifierTools.loadData(DataSets.problemPath+"Yoga/Yoga");
+            RotationForest rf=new RotationForest();
+            long t1=System.currentTimeMillis();
+            rf.buildClassifier(train);
+            long t2=System.currentTimeMillis();
+            out.writeLine(i+","+(t2-t1));
+            System.out.println("Run "+i+" Time ="+(t2-t1)+" milliseconds ");
+            rf=null;
+            System.gc();
+        }
+            
+        
+    }
     
 public static boolean deleteDirectory(File directory) {
     if(directory.exists()){
@@ -498,7 +513,7 @@ public static boolean deleteDirectory(File directory) {
         String problem=args[1];
         int fold=Integer.parseInt(args[2])-1;
    
-        Classifier c=Feb2017Experiments.setClassifier(classifier,fold);
+        Classifier c=March2017Experiments.setClassifier(classifier,fold);
         Instances all=ClassifierTools.loadData(DataSets.problemPath+problem+"/"+problem);
         all.randomize(new Random());
         
@@ -855,7 +870,8 @@ public static boolean deleteDirectory(File directory) {
 //UCIRotFTimingExperiment();
   //             System.exit(0);
  //       collateTrain();
-
+            DataSets.problemPath="C:/Data/TSC Problems/";
+       timingNormalisation("c:/temp/benchmark.csv");
       
       classifiers=new String[]{"RotF","RandRotF1"};
         String dir="RepoScripts";
@@ -881,7 +897,7 @@ public static boolean deleteDirectory(File directory) {
             if(!f.isDirectory()){
                 f.mkdirs();
             }
-            Feb2017Experiments.singleClassifierAndFoldTrainTestSplit(args);
+            March2017Experiments.singleClassifierAndFoldTrainTestSplit(args);
         }
         else{
             DataSets.problemPath=DataSets.dropboxPath+"TSC Problems/";
@@ -894,19 +910,19 @@ public static boolean deleteDirectory(File directory) {
             String[] paras={"RandFCV","ItalyPowerDemand","1"};
 //            paras[0]="RotFCV";
 //            paras[2]="1";
-            Feb2017Experiments.singleClassifierAndFoldTrainTestSplit(paras);            
+            March2017Experiments.singleClassifierAndFoldTrainTestSplit(paras);            
             long t1=System.currentTimeMillis();
             for(int i=2;i<=11;i++){
                 paras[2]=i+"";
-                Feb2017Experiments.singleClassifierAndFoldSingleDataSet(paras);            
+                March2017Experiments.singleClassifierAndFoldSingleDataSet(paras);            
             }
             long t2=System.currentTimeMillis();
             paras[0]="RandFOOB";
-            Feb2017Experiments.singleClassifierAndFoldSingleDataSet(paras);            
+            March2017Experiments.singleClassifierAndFoldSingleDataSet(paras);            
             long t3=System.currentTimeMillis();
             for(int i=2;i<=11;i++){
                 paras[2]=i+"";
-                Feb2017Experiments.singleClassifierAndFoldSingleDataSet(paras);            
+                March2017Experiments.singleClassifierAndFoldSingleDataSet(paras);            
             }
             long t4=System.currentTimeMillis();
             System.out.println("Standard = "+(t2-t1)+", Enhanced = "+(t4-t3));
@@ -924,7 +940,7 @@ public static boolean deleteDirectory(File directory) {
             if(!f.isDirectory()){
                 f.mkdirs();
             }
-            Feb2017Experiments.singleClassifierAndFoldSingleDataSet(args);
+            March2017Experiments.singleClassifierAndFoldSingleDataSet(args);
         }
         else{
             DataSets.problemPath=DataSets.dropboxPath+"UCI Problems/";
@@ -940,19 +956,19 @@ public static boolean deleteDirectory(File directory) {
             File file =new File("C:\\Users\\ajb\\Dropbox\\Results\\UCIResults");
             paras[0]="RotFCV";
             paras[2]="1";
-            Feb2017Experiments.singleClassifierAndFoldSingleDataSet(paras);            
+            March2017Experiments.singleClassifierAndFoldSingleDataSet(paras);            
             long t1=System.currentTimeMillis();
             for(int i=2;i<=11;i++){
                 paras[2]=i+"";
-                Feb2017Experiments.singleClassifierAndFoldSingleDataSet(paras);            
+                March2017Experiments.singleClassifierAndFoldSingleDataSet(paras);            
             }
             long t2=System.currentTimeMillis();
             paras[0]="EnhancedRotF";
-            Feb2017Experiments.singleClassifierAndFoldSingleDataSet(paras);            
+            March2017Experiments.singleClassifierAndFoldSingleDataSet(paras);            
             long t3=System.currentTimeMillis();
             for(int i=2;i<=11;i++){
                 paras[2]=i+"";
-                Feb2017Experiments.singleClassifierAndFoldSingleDataSet(paras);            
+                March2017Experiments.singleClassifierAndFoldSingleDataSet(paras);            
             }
             long t4=System.currentTimeMillis();
             System.out.println("Standard = "+(t2-t1)+", Enhanced = "+(t4-t3));

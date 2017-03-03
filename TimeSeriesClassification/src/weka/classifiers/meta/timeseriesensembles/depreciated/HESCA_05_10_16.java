@@ -30,7 +30,7 @@ import weka.classifiers.trees.TunedRandomForest;
 import weka.classifiers.trees.J48;
 import weka.classifiers.trees.RandomForest;
 import weka.core.*;
-import utilities.SaveCVAccuracy;
+import utilities.SaveParameterInfo;
 
 /**
  *
@@ -39,7 +39,7 @@ import utilities.SaveCVAccuracy;
  * The Heterogeneous Ensemble of Standard Classification Algorithms (HESCA)
  * We use a Heterogeneous Ensemble of Standard Classification Algorithms (HESCA) that includes eight classifiers, two of which themselves are ensembles: $k$ Nearest Neighbour; Naive Bayes; C4.5 decision tree; Support Vector Machines with linear and quadratic basis function kernels; Random Forest (with 500 trees); Rotation Forest (with 50 trees); and a Bayesian network. These classifiers are chosen to give us a balance between probabilistic, instance based and tree based classifiers. A simple majority voting scheme is inappropriate for HESC; it would not capture the relative performance of classifier on any given dataset. Instead, each classifier is assigned a weight based on the ten fold cross validation training accuracy, and new data (after transformation) are classified with a vote weighted by cross validation accuracy. All the classifiers are the standard Weka implementations and with the exception of $k$-NN (where $k$ is set through cross validation at minimal cost), we do not optimise parameter settings or perform model selection for these classifiers. 
  */
-public class HESCA_05_10_16 extends AbstractClassifier implements SaveCVAccuracy, SaveableEnsemble {
+public class HESCA_05_10_16 extends AbstractClassifier implements SaveParameterInfo, SaveableEnsemble {
 //The McNemar test requires the actual predictions of each classifier. The others can be found directly
 //from the CV accuracy.    
     protected Instances train;

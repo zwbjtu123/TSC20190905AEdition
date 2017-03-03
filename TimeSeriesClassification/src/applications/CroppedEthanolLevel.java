@@ -8,7 +8,7 @@ import java.io.File;
 import java.text.DecimalFormat;
 import utilities.ClassifierTools;
 import utilities.InstanceTools;
-import utilities.SaveCVAccuracy;
+import utilities.SaveParameterInfo;
 import weka.classifiers.Classifier;
 import weka.classifiers.meta.timeseriesensembles.SaveableEnsemble;
 import weka.core.Instance;
@@ -171,8 +171,8 @@ Only used if sampleByAttribute set to true
         f=new File(predictions+"/testFold"+fold+".csv");
         if(!f.exists() || f.length()==0){
       //      of.writeString(problem+","); );
-            if(c instanceof SaveCVAccuracy)
-                ((SaveCVAccuracy)c).setCVPath(predictions+"/trainFold"+fold+".csv");
+            if(c instanceof SaveParameterInfo)
+                ((SaveParameterInfo)c).setCVPath(predictions+"/trainFold"+fold+".csv");
             double acc =CroppedEthanolLevel.singleClassifierAndFold(split[0],split[1],c,fold,predictions);
             System.out.println(classifier+","+problemName+","+fold+","+acc);
             
@@ -216,8 +216,8 @@ Only used if sampleByAttribute set to true
             acc/=test.numInstances();
             OutFile p=new OutFile(resultsPath+"/testFold"+fold+".csv");
             p.writeLine(train.relationName()+","+c.getClass().getName()+",test");
-            if(c instanceof SaveCVAccuracy){
-              p.writeLine(((SaveCVAccuracy)c).getParameters());
+            if(c instanceof SaveParameterInfo){
+              p.writeLine(((SaveParameterInfo)c).getParameters());
             }else
                 p.writeLine("No parameter info");
             p.writeLine(acc+"");

@@ -19,7 +19,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import utilities.ClassifierTools;
 import utilities.InstanceTools;
-import utilities.SaveCVAccuracy;
+import utilities.SaveParameterInfo;
 import weka.classifiers.Evaluation;
 import weka.classifiers.evaluation.EvaluationUtils;
 import weka.classifiers.functions.supportVector.Kernel;
@@ -40,7 +40,7 @@ import weka.core.*;
  2. Could use libSVM instead
  * 
  */
-public class TunedSVM extends SMO implements SaveCVAccuracy {
+public class TunedSVM extends SMO implements SaveParameterInfo {
     int min=-8;
     int max=16;
     long buildTime;

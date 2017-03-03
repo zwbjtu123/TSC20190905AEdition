@@ -15,7 +15,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import utilities.InstanceTools;
-import utilities.SaveCVAccuracy;
+import utilities.SaveParameterInfo;
 import weka.core.Capabilities;
 import weka.classifiers.Classifier;
 import weka.core.TechnicalInformation;
@@ -55,7 +55,7 @@ import weka.core.Instances;
  * BOSS implementation based on the algorithm described in getTechnicalInformation()
  * C45 done using the WEKA implementation 'weka.classifiers.trees.J48'
  */
-public class BOSSC45 implements Classifier, SaveCVAccuracy {
+public class BOSSC45 implements Classifier, SaveParameterInfo {
     
     public TechnicalInformation getTechnicalInformation() {
         TechnicalInformation 	result;

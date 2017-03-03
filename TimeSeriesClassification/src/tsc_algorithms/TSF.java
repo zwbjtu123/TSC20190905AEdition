@@ -49,13 +49,13 @@ import weka.core.FastVector;
 import weka.core.Instance;
 import weka.core.Instances;
 import weka.core.TechnicalInformation;
-import utilities.SaveCVAccuracy;
+import utilities.SaveParameterInfo;
 
 /*
 
 
  */
-public class TSF extends AbstractClassifier implements SaveCVAccuracy{
+public class TSF extends AbstractClassifier implements SaveParameterInfo{
     RandomTree[] trees;
     int numTrees=500;
     int numFeatures;

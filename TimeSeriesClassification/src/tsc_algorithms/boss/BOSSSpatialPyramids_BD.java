@@ -14,7 +14,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import utilities.InstanceTools;
-import utilities.SaveCVAccuracy;
+import utilities.SaveParameterInfo;
 import weka.core.TechnicalInformation;
 
 import utilities.generic_storage.ComparablePair;
@@ -50,7 +50,7 @@ import weka.classifiers.Classifier;
  * Base algorithm information found in BOSS.java
  * Spatial Pyramids based on the algorithm described in getTechnicalInformation()
  */
-public class BOSSSpatialPyramids_BD implements Classifier, SaveCVAccuracy {
+public class BOSSSpatialPyramids_BD implements Classifier, SaveParameterInfo {
     
     public TechnicalInformation getTechnicalInformation() {
         TechnicalInformation 	result;
