@@ -1,6 +1,8 @@
 
 package weka.classifiers.meta.timeseriesensembles.voting;
 
+import java.util.ArrayList;
+import java.util.Random;
 import utilities.DebugPrinting;
 import weka.classifiers.meta.timeseriesensembles.EnsembleModule;
 import weka.classifiers.meta.timeseriesensembles.ClassifierResults;
@@ -22,14 +24,14 @@ public abstract class ModuleVotingScheme implements DebugPrinting {
     
     public abstract double[] distributionForTrainInstance(EnsembleModule[] modules, int trainInstanceIndex);
     
-    public double classifyTrainInstance(EnsembleModule[] modules, int trainInstanceIndex) {
+    public double classifyTrainInstance(EnsembleModule[] modules, int trainInstanceIndex) throws Exception {
         double[] dist = distributionForTrainInstance(modules, trainInstanceIndex);
         return indexOfMax(dist);
     }
     
     public abstract double[] distributionForTestInstance(EnsembleModule[] modules, int testInstanceIndex);
     
-    public double classifyTestInstance(EnsembleModule[] modules, int testInstanceIndex) {
+    public double classifyTestInstance(EnsembleModule[] modules, int testInstanceIndex) throws Exception {
         double[] dist = distributionForTestInstance(modules, testInstanceIndex);
         return indexOfMax(dist);
     }
@@ -41,17 +43,44 @@ public abstract class ModuleVotingScheme implements DebugPrinting {
         return indexOfMax(dist);
     }
     
-    protected double indexOfMax(double[] dist) {
-        double max = dist[0];
-        double maxInd = 0;
+//    protected double indexOfMax(double[] dist) {
+//        double max = dist[0];
+//        double maxInd = 0;
+//        
+//        for (int i = 1; i < dist.length; ++i) {
+//            if (dist[i] > max) {
+//                max = dist[i];
+//                maxInd = i;
+//            }
+//        }
+//        return maxInd;
+//    }
+    
+    protected static double indexOfMax(double[] dist) throws Exception {  
+        double  bsfWeight = -(Double.MAX_VALUE);
+        ArrayList<Integer>  bsfClassVals = null;
         
-        for (int i = 1; i < dist.length; ++i) {
-            if (dist[i] > max) {
-                max = dist[i];
-                maxInd = i;
+        for (int c = 0; c < dist.length; c++) {
+            if(dist[c] > bsfWeight){
+                bsfWeight = dist[c];
+                bsfClassVals = new ArrayList<>();
+                bsfClassVals.add(c);
+            }else if(dist[c] == bsfWeight){
+                bsfClassVals.add(c);
             }
         }
-        return maxInd;
+
+        if(bsfClassVals == null)
+            throw new Exception("bsfClassVals == null, NaN problem");
+
+        double pred; 
+        //if there's a tie for highest voted class after all module have voted, settle randomly
+        if(bsfClassVals.size()>1)
+            pred = bsfClassVals.get(new Random().nextInt(bsfClassVals.size()));
+        else
+            pred = bsfClassVals.get(0);
+        
+        return pred;
     }
     
     /**
