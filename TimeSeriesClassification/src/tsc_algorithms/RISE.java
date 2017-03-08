@@ -38,7 +38,8 @@ VERSION 1:
 
 
  */
-public class RISE extends AbstractClassifier implements SaveParameterInfo, SubSampleTrain,TrainAccuracyEstimate{
+public class RISE extends AbstractClassifier implements SaveParameterInfo, SubSampleTrain{
+    long buildTime;
     Classifier[] baseClassifiers;
     Classifier baseClassifierTemplate=new RandomTree();
     int numBaseClassifiers=500;
@@ -49,33 +50,11 @@ public class RISE extends AbstractClassifier implements SaveParameterInfo, SubSa
     public static int MIN_BITS=3;
     Random rand;
     PowerSpectrum ps=new PowerSpectrum();
-//Cannot do this unless the strings below are set
-/* Train results are overwritten with each call to buildClassifier
-    File opened on this path.   */    
-    private String trainCVPath;
-    private boolean trainCV=false;
     private boolean subSample=false;
     private double sampleProp=1;
     private int sampleSeed=0;
-    private ClassifierResults res =new ClassifierResults();
     
-    
- @Override
-    public void writeCVTrainToFile(String train) {
-        trainCVPath=train;
-        trainCV=true;
-    }    
-    @Override
-    public boolean findsTrainAccuracyEstimate(){ return trainCV;}
-    
-    @Override
-    public ClassifierResults getTrainResults(){
-//Temporary : copy stuff into res.acc here
-//        res.acc=ensembleCvAcc;
-//TO DO: Write the other stats        
-        return res;
-    }        
-    
+
     public void subSampleTrain(double prop, int s){
         subSample=true;
         sampleProp=prop;
@@ -138,34 +117,17 @@ public class RISE extends AbstractClassifier implements SaveParameterInfo, SubSa
   }
 
     public String getParameters(){
-        return "buildTime,"+res.buildTime+",numTrees,"+numBaseClassifiers+","+"MinInterval"+MIN_INTERVAL;
+        return "buildTime,"+buildTime+",numTrees,"+numBaseClassifiers+","+"MinInterval"+MIN_INTERVAL;
     }
          
     @Override
     public void buildClassifier(Instances data) throws Exception {
-        res.buildTime=System.currentTimeMillis();
+        buildTime=System.currentTimeMillis();
 
 //Estimate Train CV, store CV     
          if(subSample){
             data=subSample(data,sampleProp,sampleSeed);
             System.out.println(" TRAIN SET SIZE NOW "+data.numInstances());
-        }
-       
-        if(trainCV){
-            int folds=setNumberOfFolds(data);
-    //Estimate train accuracy HERE. Use another classifier to make sure. 
-            RISE tsf=new RISE();
-            tsf.setTransformType(f);
-            tsf.trainCV=false;
-//HERE STORE IN RES REDO ALL THIS           
-            double[][] results=ClassifierTools.crossValidationWithStats(tsf, data, folds);
-            OutFile of=new OutFile(trainCVPath);
-           of.writeLine(data.relationName()+",RISE,train");
-            of.writeLine(getParameters());
-            of.writeLine(results[0][0]+"");
-            for(int i=1;i<results[0].length;i++)
-                of.writeLine((int)results[0][i]+","+(int)results[1][i]);
-            System.out.println("CV acc ="+results[0][0]);
         }
         
 //Determine the number of baseClassifiers, max the number of attributes. 
@@ -251,7 +213,7 @@ public class RISE extends AbstractClassifier implements SaveParameterInfo, SubSa
                baseClassifiers[i]=AbstractClassifier.makeCopy(baseClassifierTemplate);
             baseClassifiers[i].buildClassifier(newTrain);
         }
-        res.buildTime=System.currentTimeMillis()-res.buildTime;
+        buildTime=System.currentTimeMillis()-buildTime;
     }
 
     @Override
@@ -390,7 +352,6 @@ public class RISE extends AbstractClassifier implements SaveParameterInfo, SubSa
         Instances train=ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\TSC Problems\\ItalyPowerDemand\\ItalyPowerDemand_TRAIN");
         Instances test=ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\TSC Problems\\ItalyPowerDemand\\ItalyPowerDemand_TEST");
         RISE rif = new RISE();
-        rif.writeCVTrainToFile("C:\\Users\\ajb\\Dropbox\\Spectral Interval Experiments\\RIF\\Predictions\\InternalCV0.csv");
 
         
         rif.buildClassifier(train);

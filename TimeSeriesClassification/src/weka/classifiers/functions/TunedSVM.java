@@ -18,6 +18,7 @@ import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import utilities.ClassifierTools;
+import utilities.CrossValidator;
 import utilities.InstanceTools;
 import utilities.SaveParameterInfo;
 import utilities.TrainAccuracyEstimate;
@@ -43,19 +44,37 @@ import weka.core.*;
  * 
  */
 public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEstimate {
+    boolean setSeed=false;
+    int seed;
     int min=-8;
     int max=16;
     double[] paraSpace;
     private static int MAX_FOLDS=10;
     private double[] paras;
-    String trainPath;
+    String trainPath="";
     boolean debug=false;
     Random rng;
     ArrayList<Double> accuracy;
     private boolean kernelOptimise=false;   //Choose between linear, quadratic and RBF kernel
     private boolean paraOptimise=true;
     private ClassifierResults res =new ClassifierResults();
+    public TunedSVM(){
+        kernelOptimise=false;
+        kernel=KernelType.RBF;
+        paraOptimise=true;
+        setKernel(new RBFKernel());
+        rng=new Random();
+       accuracy=new ArrayList<>();
+         
+    }
 
+    public void setSeed(int s){
+        this.setSeed=true;
+        seed=s;
+        rng=new Random();
+        rng.setSeed(seed);
+    }
+    
  @Override
     public void writeCVTrainToFile(String train) {
         trainPath=train;
@@ -83,19 +102,6 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
     
     public enum KernelType {LINEAR,QUADRATIC,RBF};
     KernelType kernel;
-    public TunedSVM(){
-        kernelOptimise=false;
-        kernel=KernelType.RBF;
-        paraOptimise=true;
-        setKernel(new RBFKernel());
-        rng=new Random();
-       accuracy=new ArrayList<>();
-         
-    }
-    public void setSeed(int s){
-        rng=new Random();
-        rng.setSeed(s);
-    }
     public void debug(boolean b){
         this.debug=b;
     }
@@ -129,7 +135,18 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
     }
     public void optimiseKernel(boolean b){kernelOptimise=b;}
     public void optimiseParas(boolean b){paraOptimise=b;}
-    public void buildRBF(Instances train) throws Exception {
+    
+    static class ResultsHolder{
+        double x,y;
+        ClassifierResults res;
+        ResultsHolder(double a, double b,ClassifierResults r){
+            x=a;
+            y=b;
+            res=r;
+        }
+    }
+
+    public void tuneRBF(Instances train) throws Exception {
         paras=new double[2];
         int folds=MAX_FOLDS;
         if(folds>train.numInstances())
@@ -137,87 +154,94 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
 
         double minErr=1;
         this.setSeed(rng.nextInt());
-            class Pair{
-                double x,y;
-                Pair(double a, double b){
-                    x=a;
-                    y=b;
-                }
-            }
-           ArrayList<Pair> ties=new ArrayList<>();
-        
+        ArrayList<ResultsHolder> ties=new ArrayList<>();
+        ClassifierResults tempResults;
         for(double p1:paraSpace){
             for(double p2:paraSpace){
                 SMO model = new SMO();
-                RBFKernel kernel = new RBFKernel();
-                kernel.setGamma(p2);
-                model.setKernel(kernel);
+                RBFKernel kern = new RBFKernel();
+                kern.setGamma(p2);
+                model.setKernel(kern);
                 model.setC(p1);
-                Instances temp=new Instances(train);
-                Evaluation eval=new Evaluation(temp);
-                eval.crossValidateModel(model, temp, folds, rng);
-                double e=eval.errorRate();
-                accuracy.add(1-e);
+                model.setBuildLogisticModels(true);
+                CrossValidator cv = new CrossValidator();
+                if (setSeed)
+                  cv.setSeed(seed);
+                cv.setNumFolds(folds);
+                Instances temp=new Instances(train);//Just in case ...
+                tempResults=cv.crossValidateWithStats(model,temp);
+
+//                Evaluation eval=new Evaluation(temp);
+//                eval.crossValidateModel(model, temp, folds, rng);
+                double e=1-tempResults.acc;
+                accuracy.add(tempResults.acc);
 
                 if(debug)
                     System.out.println(" C= "+p1+" Gamma = "+p2+" Acc = "+(1-e));
                 if(e<minErr){
                     minErr=e;
-                       ties=new ArrayList<>();//Remove previous ties
-                        ties.add(new Pair(p1,p2));
-                    }
+                    ties=new ArrayList<>();//Remove previous ties
+                    ties.add(new ResultsHolder(p1,p2,tempResults));
+                }
                 else if(e==minErr){//Sort out ties
-                        ties.add(new Pair(p1,p2));
+                        ties.add(new ResultsHolder(p1,p2,tempResults));
                 }
             }
         }
         
         double bestC;
         double bestSigma;
-        Pair best=ties.get(rng.nextInt(ties.size()));
+        ResultsHolder best=ties.get(rng.nextInt(ties.size()));
         bestC=best.x;
         bestSigma=best.y;
+        res=best.res;
         paras[0]=bestC;
         setC(bestC);
         ((RBFKernel)m_kernel).setGamma(bestSigma);
         paras[1]=bestSigma;
-        res.acc=1-minErr;  
         if(debug)
             System.out.println("Best C ="+bestC+" best Gamma = "+bestSigma+" best train acc = "+res.acc);
     }
     
-   public void buildQuadratic(Instances train) throws Exception {
+   public void tuneQuadratic(Instances train) throws Exception {
         paras=new double[1];
         int folds=MAX_FOLDS;
         if(folds>train.numInstances())
             folds=train.numInstances();
         double minErr=1;
-           ArrayList<Double> ties=new ArrayList<>();
-        
+        this.setSeed(rng.nextInt());
+        ArrayList<ResultsHolder> ties=new ArrayList<>();
+        ClassifierResults tempResults;
         
         for(double d: paraSpace){
             Instances temp=new Instances(train);
             SMO model = new SMO();
             model.setKernel(m_kernel);
             model.setC(d);
-            Evaluation eval=new Evaluation(temp);
-            eval.crossValidateModel(model, temp, folds, rng);
-            double e=eval.errorRate();
-            accuracy.add(1-e);
-            
+            model.setBuildLogisticModels(true);
+            CrossValidator cv = new CrossValidator();
+            if (setSeed)
+              cv.setSeed(seed);
+            cv.setNumFolds(folds);
+            tempResults=cv.crossValidateWithStats(model,temp);
+
+//                Evaluation eval=new Evaluation(temp);
+//                eval.crossValidateModel(model, temp, folds, rng);
+            double e=1-tempResults.acc;
+            accuracy.add(tempResults.acc);
+
             if(e<minErr){
                 minErr=e;
                ties=new ArrayList<>();//Remove previous ties
-                ties.add(d);
+                ties.add(new ResultsHolder(d,0.0,tempResults));
             }
             else if(e==minErr){//Sort out ties
-                ties.add(d);
+                ties.add(new ResultsHolder(d,0.0,tempResults));
             }
         }
-        double bestC=ties.get(rng.nextInt(ties.size()));
-        setC(bestC);
-        res.acc=1-minErr;
-        paras[0]=bestC;  
+        ResultsHolder best=ties.get(rng.nextInt(ties.size()));
+        setC(best.x);
+        res=best.res;
     }
      
     public void selectKernel(Instances train) throws Exception {
@@ -237,7 +261,7 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
                     p.setExponent(1);
 
                     temp.setKernel(p);
-                    temp.buildQuadratic(train);
+                    temp.tuneQuadratic(train);
                     linearCVAcc=temp.res.acc;
                     linearBestC=temp.getC();
                 break;
@@ -245,14 +269,14 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
                     PolyKernel p2=new PolyKernel();
                     p2.setExponent(2);
                     temp.setKernel(p2);
-                    temp.buildQuadratic(train);
+                    temp.tuneQuadratic(train);
                     quadraticCVAcc=temp.res.acc;
                     quadraticBestC=temp.getC();
                 break;
                 case RBF:
                     RBFKernel kernel2 = new RBFKernel();
                     temp.setKernel(kernel2);
-                    temp.buildRBF(train);
+                    temp.tuneRBF(train);
                     rbfCVAcc=temp.res.acc;
                     rbfParas[0]=temp.getC();
                     rbfParas[1]=((RBFKernel)temp.m_kernel).getGamma();
@@ -297,19 +321,27 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
             selectKernel(train);
         else if(paraOptimise){
             if(this.getKernel() instanceof RBFKernel)
-                buildRBF(train); //Does MORE CV 
+                tuneRBF(train); //Does MORE CV 
             else
-                buildQuadratic(train);
+                tuneQuadratic(train);
         }
         
         super.buildClassifier(train);
         
         res.buildTime=System.currentTimeMillis()-res.buildTime;
-        if(trainPath!=""){  //Save basic train results
+        if(trainPath!=null && trainPath!=""){  //Save basic train results
+            DecimalFormat df= new DecimalFormat("#.####");
             OutFile f= new OutFile(trainPath);
-            f.writeLine(train.relationName()+",TunedSVMF,Train");
+            f.writeLine(train.relationName()+",TunedSVM,Train");
             f.writeLine(getParameters());
             f.writeLine(res.acc+"");
+            for(int i=0;i<train.numInstances();i++){
+                f.writeString(res.trueClassVals[i]+","+res.predClassVals[i]+",");
+                for(double d: res.distsForInsts[i])
+                    f.writeString(","+df.format(d));
+                f.writeString("\n");
+                
+            }
         }        
     }
     public static void main(String[] args) {

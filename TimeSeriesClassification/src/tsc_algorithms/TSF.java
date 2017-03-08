@@ -39,6 +39,7 @@ import fileIO.OutFile;
 import java.util.ArrayList;
 import java.util.Random;
 import utilities.ClassifierTools;
+import utilities.CrossValidator;
 import weka.classifiers.AbstractClassifier;
 import weka.classifiers.Evaluation;
 import weka.classifiers.trees.RandomForest;
@@ -58,28 +59,40 @@ import weka.classifiers.meta.timeseriesensembles.ClassifierResults;
 
  */
 public class TSF extends AbstractClassifier implements SaveParameterInfo, TrainAccuracyEstimate{
+    boolean setSeed=false;
+    int seed=0;
     RandomTree[] trees;
     int numTrees=500;
     int numFeatures;
     int[][][] intervals;
     Random rand;
     Instances testHolder;
-    boolean trainCV=false;//Cannot do this unless the strings below are set
-/* Train results are overwritten with each call to buildClassifier
-    File opened on this path.   */    
-    String trainCVPath;
+/*
+    There is no benefit from internally doing the CV for this classifier,   
+   so this is just for debugging really. Somewhat tidier
+ */
+    boolean trainCV=false;  
     private ClassifierResults res =new ClassifierResults();
-   
+/*  If nonTrain results are overwritten with each call to buildClassifier
+    File opened on this path.   */    
+    String trainCVPath="";
     
     
     public TSF(){
         rand=new Random();
     }
-    public TSF(int seed){
+    public TSF(int s){
+        rand=new Random();
+        seed=s;
+        rand.setSeed(seed);
+        setSeed=true;
+    }
+    public void setSeed(int s){
+        this.setSeed=true;
+        seed=s;
         rand=new Random();
         rand.setSeed(seed);
     }
-    
     @Override
     public void writeCVTrainToFile(String train) {
         trainCVPath=train;
@@ -223,27 +236,21 @@ public class TSF extends AbstractClassifier implements SaveParameterInfo, TrainA
       
     @Override
     public void buildClassifier(Instances data) throws Exception {
-        res.buildTime=System.currentTimeMillis();
+        long t1=System.currentTimeMillis();
+        numFeatures=(int)Math.sqrt(data.numAttributes()-1);
         
          if(trainCV){
-            int folds=setNumberOfFolds(data);
-            OutFile of=new OutFile(trainCVPath);
-           of.writeLine(data.relationName()+",TSF,train");
+           
+            int numFolds=setNumberOfFolds(data);
+            CrossValidator cv = new CrossValidator();
+            if (setSeed)
+              cv.setSeed(seed);
+            cv.setNumFolds(numFolds);
     //Estimate train accuracy HERE
             TSF tsf=new TSF();
-            double[][] results=ClassifierTools.crossValidationWithStats(tsf, data, folds);
-            res.acc=results[0][0];
-//HERE REWRITE THIS BIT AND STORE IN RES
-            of.writeLine(getParameters());
-            of.writeLine(results[0][0]+"");
-            for(int i=1;i<results[0].length;i++)
-                of.writeLine((int)results[0][i]+","+(int)results[1][i]);
-            System.out.println("CV acc ="+results[0][0]);
+            tsf.trainCV=false;
+            res=cv.crossValidateWithStats(tsf,data);
         }
-       
-        
-        
-        
         numFeatures=(int)Math.sqrt(data.numAttributes()-1);
         intervals =new int[numTrees][][];
         trees=new RandomTree[numTrees];
@@ -306,7 +313,25 @@ public class TSF extends AbstractClassifier implements SaveParameterInfo, TrainA
             trees[i].setKValue(numFeatures);
             trees[i].buildClassifier(result);
         }
-        res.buildTime=System.currentTimeMillis()-res.buildTime;
+        long t2=System.currentTimeMillis();
+        res.buildTime=t2-t1;
+        if(trainCVPath!=""){
+             OutFile of=new OutFile(trainCVPath);
+             of.writeLine(data.relationName()+",TSF,train");
+             of.writeLine(getParameters());
+            of.writeLine(res.acc+"");
+            for(int i=1;i<data.numInstances();i++){
+                //Basic sanity check
+                if(data.instance(i).classValue()!=res.trueClassVals[i]){
+                    throw new Exception("ERROR in TSF cross validation, class mismatch!");
+                }
+                of.writeString((int)res.trueClassVals[i]+","+(int)res.predClassVals[i]+",");
+                for(double d:res.distsForInsts[i])
+                    of.writeString(","+d);
+                of.writeString("\n");
+            }
+        }
+        
     }
     @Override
     public double[] distributionForInstance(Instance ins) throws Exception {
