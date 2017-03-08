@@ -1,9 +1,16 @@
 /**
- *
- * @author ajb
- *local class to run experiments with the UCI data
-
-
+*   Input format: ARFF files. 
+* Either a single file, 
+* *    problemPath/problemName/problemName.arff
+which is randomly split by propInTrain
+* or a train/test file
+* *    problemPath/problemName/problemName_TRAIN.arff
+* *    problemPath/problemName/problemName_TEST.arff
+*  in which case the zero fold is as in file, other folds are resampled with 
+* the same train/test splits.  
+* 
+* Perform an experiment. The base operation is building a classifier on a problem file with a given fold. 
+* 
 */
 package development;
 
@@ -31,443 +38,69 @@ import weka.classifiers.trees.TunedRandomForest;
 import weka.core.Instances;
 
 
-public class Feb2017Experiments{
+public class ICDMRandomRotationForest{
+    static boolean debug=true;
     public static String[] classifiers={"RotF","RandRotF"};
     public static double propInTrain=0.5;
     public static int folds=30; 
+
+    
     static String[] UCIContinuousFileNames={"abalone","acute-inflammation","acute-nephritis","adult","annealing","arrhythmia","audiology-std","balance-scale","balloons","bank","blood","breast-cancer","breast-cancer-wisc","breast-cancer-wisc-diag","breast-cancer-wisc-prog","breast-tissue","car","cardiotocography-10clases","cardiotocography-3clases",
         "chess-krvk","chess-krvkp","congressional-voting","conn-bench-sonar-mines-rocks","conn-bench-vowel-deterding",
         "connect-4","contrac","credit-approval","cylinder-bands","dermatology","echocardiogram","ecoli","energy-y1","energy-y2","fertility","flags","glass","haberman-survival","hayes-roth","heart-cleveland","heart-hungarian","heart-switzerland","heart-va","hepatitis","hill-valley","horse-colic","ilpd-indian-liver","image-segmentation","ionosphere","iris","led-display","lenses","letter","libras","low-res-spect","lung-cancer","lymphography","magic","mammographic",
         "miniboone","molec-biol-promoter","molec-biol-splice","monks-1","monks-2","monks-3","mushroom","musk-1","musk-2","nursery","oocytes_merluccius_nucleus_4d","oocytes_merluccius_states_2f","oocytes_trisopterus_nucleus_2f","oocytes_trisopterus_states_5b","optical","ozone","page-blocks","parkinsons","pendigits","pima","pittsburg-bridges-MATERIAL","pittsburg-bridges-REL-L","pittsburg-bridges-SPAN","pittsburg-bridges-T-OR-D","pittsburg-bridges-TYPE","planning","plant-margin","plant-shape","plant-texture","post-operative","primary-tumor","ringnorm","seeds","semeion","soybean","spambase","spect","spectf","statlog-australian-credit","statlog-german-credit","statlog-heart","statlog-image","statlog-landsat","statlog-shuttle","statlog-vehicle","steel-plates","synthetic-control","teaching","thyroid","tic-tac-toe","titanic","trains","twonorm","vertebral-column-2clases","vertebral-column-3clases","wall-following","waveform","waveform-noise","wine","wine-quality-red","wine-quality-white","yeast","zoo"};
-    static boolean debug=true;
+    
+    String problemPath=""; //The root location of the problem files. 
+    String resultsPath="";  //The directory where results will be written. If results are already there, nothing will happen
     
     static String[] files=UCIContinuousFileNames;
-//Parameter ranges for search, use same for C and gamma   
-    static double[] svmParas={0.00390625, 0.015625, 0.0625, 0.25, 0.5, 1, 2, 4, 16, 256};
-//Parameter ranges for trees for randF and rotF
-    static int[] numTrees={10,50,100,200,300,400,500,600,700,800,900,1000,1250,1500,1750,2000};
-
+/*
+Section ? Table ?
+    
+ Can we better scale Rotation Forest for large feature spaces?    
+ 
+This function performs all the resamples in a single thread. It is written
+this way for ease of comprehension, but in reality we distributed each resample
+   
+    To run a single problem/classifier/fold combination, 
+    
+    do this for UCI
+    
+    or this for UCR-UEA
     
     
-    
-public static boolean deleteDirectory(File directory) {
-    if(directory.exists()){
-        File[] files = directory.listFiles();
-        if(null!=files){
-            for(int i=0; i<files.length; i++) {
-                if(files[i].isDirectory())
-                    deleteDirectory(files[i]);
-                else
-                    files[i].delete();
-            }
-        }
-    }
-    return(directory.delete());
-}    
-    
-    public static void generateScripts(boolean grace,int mem, String jar,String[] fileNames, String dir){
-//Generates cluster scripts for allTest combos of classifier and data set
-//Generates txt files to run jobs for a single classifier        
-        String path=DataSets.dropboxPath+"Code\\Cluster Scripts\\"+dir+"\\";
-        File f=new File(path);
-        deleteDirectory(f);
-        f.delete();
-        f.mkdirs();
-        ArrayList<String> list=new ArrayList<>();
-        for(String s:classifiers){
-            OutFile of2;
-            if(grace)
-                of2=new OutFile(path+s+"Grace.txt");
-            else
-                of2=new OutFile(path+s+".txt");
-            for(String a:fileNames){
-                OutFile of;
-                if(grace)
-                    of = new OutFile(path+s+a+"Grace.bsub");
-                else
-                    of = new OutFile(path+s+a+".bsub");
-                of.writeLine("#!/bin/csh");
-                if(grace)
-                    of.writeLine("#BSUB -q short");
-                else
-                    of.writeLine("#BSUB -q long-eth");
-                of.writeLine("#BSUB -J "+s+a+"[1-"+folds+"]");
-                of.writeLine("#BSUB -oo output/"+a+".out");
-                of.writeLine("#BSUB -eo error/"+a+".err");
-                if(grace){
-                    of.writeLine("#BSUB -R \"rusage[mem="+mem+"]\"");
-                    of.writeLine("#BSUB -M "+mem);
-                    of.writeLine(" module add java/jdk/1.8.0_31");
-                }
-                else{
-                    of.writeLine("#BSUB -R \"rusage[mem="+(2000+mem)+"]\"");
-                    of.writeLine("#BSUB -M "+(2000+mem));
-                    of.writeLine("module add java/jdk1.8.0_51");
-                }
-                of.writeLine("java -jar "+jar+".jar "+s+" "+a+" $LSB_JOBINDEX");                
-                if(grace)
-                    of2.writeLine("bsub < Scripts/"+dir+"/"+s+a+"Grace.bsub");
-                else
-                    list.add("bsub < Scripts/"+dir+"/"+s+a+".bsub");
-            }
-            if(!grace){
-                Collections.reverse(list);
-                for(String str:list)
-                    of2.writeLine(str);
-            }
-        }
-    } 
-    public static boolean foldComplete(String path, int fold, int numTrain,int numTest){
-//Check both train and test present
-      File f=new File(path+"//testFold"+fold+".csv");
-      File f2=new File(path+"//trainFold"+fold+".csv");
-      if(!f.exists()||!f2.exists())//Neither exist
-          return false;
-      else{
-          InFile inf1=new InFile(path+"//testFold"+fold+".csv");
-          InFile inf2=new InFile(path+"//testFold"+fold+".csv");
-//Check number of lines
-          int c1=inf1.countLines();
-          int c2=inf2.countLines();
-          if(c1<(3) || c2<(3))
-              return false;
-      }
-      return true;
-    }
-  /**
-     * collates the differences between test and train into a single file
-     * @param folds
-     * @param cls
-     */
-    public static void collateTrain(){
-        String base="C:\\Research\\Papers\\2017\\ECML Standard Parameters\\Section 4 Bakeoff\\TuneCompare\\";
-        OutFile test=new OutFile(base+"inOneLineTest.csv");
-        OutFile train=new OutFile(base+"inOneLineTrain.csv");
-        InFile svmTrain=new InFile(base+"TunedSVMTrainCV.csv");
-        InFile svmTest=new InFile(base+"TunedSVMTest.csv");
-        InFile randFTrain=new InFile(base+"TunedRandFTrainCV.csv");
-        InFile randFTest=new InFile(base+"TunedRandFTest.csv");
-        InFile rotFTrain=new InFile(base+"TunedRotFTrainCV.csv");
-        InFile rotFTest=new InFile(base+"TunedRotFTest.csv");
-        for(String str:files){
-            String[] svmTr=svmTrain.readLine().split(",");
-            String[] svmTe=svmTest.readLine().split(",");
-            String[] randFTr=randFTrain.readLine().split(",");
-            String[] randFTe=randFTest.readLine().split(",");
-            String[] rotFTr=rotFTrain.readLine().split(",");
-            String[] rotFTe=rotFTest.readLine().split(",");
-            int l=31;
-            if(svmTr.length==l&& svmTe.length==l &&
-                randFTr.length==l&& randFTe.length==l &&
-                    rotFTr.length==l&& rotFTe.length==l
-                    ){//OK, GOT THEM ALL
-                for(int i=1;i<l;i++){
-                    train.writeLine(svmTr[i]+","+randFTr[i]+","+rotFTr[i]);
-                    test.writeLine(svmTe[i]+","+randFTe[i]+","+rotFTe[i]);
-                }
-            }
-        }
-    }
-
-
-    public static void collateResults(int folds, boolean onCluster, String[] classif){
-        if(onCluster)
-           DataSets.resultsPath=DataSets.clusterPath+classif[0];
-
-        String basePath=DataSets.resultsPath;
-//1. Collate single folds into single classifier_problem files        
-        for(int i=1;i<classif.length;i++){
-            String cls=classif[i];
-//Check classifier directory exists. 
-            File f=new File(basePath+cls);
-            if(f.isDirectory()){
-//Write collated results for this classifier to a single file                
-                OutFile clsResults=new OutFile(basePath+cls+"//"+cls+"Test.csv");
-                OutFile trainResults=new OutFile(basePath+cls+"//"+cls+"TrainCV.csv");
-                OutFile firstPara=new OutFile(basePath+cls+"//"+cls+"FirstParameter.csv");
-                OutFile secondPara=new OutFile(basePath+cls+"//"+cls+"SecondParameter.csv");
-                OutFile timings=new OutFile(basePath+cls+"//"+cls+"Timings.csv");
-                OutFile missing=null;
-                int missingCount=0;
-                for(String name:files){            
-                    clsResults.writeString(name+",");
-                    trainResults.writeString(name+",");
-                    firstPara.writeString(name+",");
-                    secondPara.writeString(name+",");
-                    String path=basePath+cls+"//Predictions//"+name;
-                    if(missing!=null && missingCount>0)
-                        missing.writeString("\n");
-                    missingCount=0;
-                    for(int j=0;j<folds;j++){
-    //Check fold exists
-                        f=new File(path+"//testFold"+j+".csv");
-
-                        if(f.exists() && f.length()>0){//This could fail if file only has partial probabilities on the line
- //This could fail if file only has partial probabilities on the line
-    //Read in test ccuracy and store                    
-    //Check fold exists
-    //Read in test ccuracy and store
-                            InFile inf=null;
-                            String[] trainRes=null;
-                            try{
-                                inf=new InFile(path+"//testFold"+j+".csv");
-                                inf.readLine();
-                                trainRes=inf.readLine().split(",");//Stores train CV and parameter info
-                                clsResults.writeString(inf.readDouble()+",");
-                                if(trainRes.length>1){//There IS parameter info
-                                    //First is train time build
-                                    timings.writeString(Double.parseDouble(trainRes[1])+",");
-                                    //The trainCV acc
-                                    if(trainRes.length>3)//There IS parameter info
-                                        trainResults.writeString(Double.parseDouble(trainRes[3])+",");
-                                    //Then parameter 1
-                                    if(trainRes.length>5)
-                                        firstPara.writeString(Double.parseDouble(trainRes[5])+",");
-                                    //Then parameter 2: this will be wrong if the 
-                                    if(trainRes.length>6)
-                                        secondPara.writeString(Double.parseDouble(trainRes[6])+",");
-                                    
-                                }
-                                else{
-                                    trainResults.writeString(",");
-                                    firstPara.writeString(",");
-                                    secondPara.writeString(",");
-                                    
-                                }
-                            }catch(Exception e){
-                                System.out.println(" Error "+e+" in "+path);
-                                trainResults.writeString(",");//Lazy!
-                                firstPara.writeString(",");//Lazy!
-                                secondPara.writeString(",");//Lazy!
-                                if(trainRes!=null){
-                                    System.out.println(" second line read has "+trainRes.length+" entries :");
-                                    for(String str:trainRes)
-                                        System.out.println(str);
-                                }
-//                                System.exit(1);
-                            }finally{
-                                if(inf!=null)
-                                    inf.closeFile();
-
-                            }
-                        }
-                        else{
-                            if(missing==null)
-                                missing=new OutFile(basePath+cls+"//"+cls+"MISSING.csv");
-                            if(missingCount==0)
-                                missing.writeString(name);
-                            missingCount++;
-                           missing.writeString(","+j);
-                        }
-                       
-                    }
-                    for(int j=0;j<folds;j++){
-                    }
-                    clsResults.writeString("\n");
-                    trainResults.writeString("\n");
-                    firstPara.writeString("\n");
-                    secondPara.writeString("\n");
-                }
-                clsResults.closeFile();
-                trainResults.closeFile();
-                firstPara.closeFile();
-                secondPara.closeFile();
-            }
-        }
-//3. Merge classifier files into a single file with average accuracies
-        //NEED TO REWRITE FOR TRAIN TEST DIFF
-        OutFile acc=new OutFile(basePath+"CombinedAcc.csv");
-        OutFile count=new OutFile(basePath+"CombinedCount.csv");
-        for(int i=1;i<classif.length;i++){
-            String cls=classif[i];
-            acc.writeString(","+cls);
-            count.writeString(","+cls);
-        }
-        acc.writeString("\n");
-        count.writeString("\n");
-        InFile[] allTest=new InFile[classif.length-1];
-        for(int i=0;i<allTest.length;i++){
-            String p=basePath+classif[i+1]+"/"+classif[i+1]+"Test.csv";
-            if(new File(p).exists())
-                allTest[i]=new InFile(p);
-            else
-                allTest[i]=null;//superfluous
-        }
-        for(int i=0;i<files.length;i++){
-            acc.writeString(files[i]+",");
-            count.writeString(files[i]+",");
-            String prev="First";
-            for(int j=0;j<allTest.length;j++){
-                if(allTest[j]==null){
-                    acc.writeString(",");
-                    count.writeString("0,");
-                }
-                else{//Find mean
-                    try{
-                        String r=allTest[j].readLine();
-                        String[] res=r.split(",");
-                        count.writeString((res.length-1)+",");
-                        double mean=0;
-                        for(int k=1;k<res.length;k++){
-                            mean+=Double.parseDouble(res[k]);
-                        }
-                        if(res.length>1){
-                            acc.writeString((mean/(res.length-1))+",");
-                        }
-                        else{
-                            acc.writeString(",");
-                        }
-                        prev=r;
-                    }catch(Exception ex){
-                        System.out.println("failed to read line: "+ex+" previous line = "+prev);
-                    }
-                }
-            }
-            acc.writeString("\n");
-            count.writeString("\n");
-        }
-        for(InFile  inf:allTest)
-            if(inf!=null)
-                inf.closeFile();
-        acc.closeFile();
-        count.closeFile();
-        
-    }
-
-    public static void collateTrainTestResults(int folds){
-        String basePath="C:\\Research\\Results\\UCIResults\\";
-//1. Collate single folds into single classifier_problem files        
-        for(String cls:classifiers){
-//Check classifier directory exists. 
-            File f=new File(basePath+cls);
-            if(f.isDirectory()){
-//Write collated results for this classifier to a single file                
-                OutFile clsResults=new OutFile(basePath+cls+"//"+cls+"TrainTestDiffs.csv");
-                OutFile missing=null;
-                int missingCount=0;
-                for(int i=0;i<files.length;i++){
-                    String name=files[i];
-                    clsResults.writeString(files[i]+",");
-                    String path=basePath+cls+"//Predictions//"+files[i];
-                    if(missing!=null && missingCount>0)
-                        missing.writeString("\n");
-                    missingCount=0;
-                    for(int j=0;j<folds;j++){
-    //Check fold exists
-                        f=new File(path+"//testFold"+j+".csv");
-                        File f2=new File(path+"//trainFold"+j+".csv");
-
-                        if((f2.exists() && f2.length()>0)&&(f.exists() && f.length()>0)){//This could fail if file only has partial probabilities on the line
- //This could fail if file only has partial probabilities on the line
-    //Read in test ccuracy and store                    
-    //Check fold exists
-    //Read in test ccuracy and store                    
-                            InFile inf=new InFile(path+"//testFold"+j+".csv");
-                            inf.readLine();
-                            inf.readLine();
-                            double test=inf.readDouble();
-                            inf=new InFile(path+"//trainFold"+j+".csv");
-                            inf.readLine();
-                            inf.readLine();
-                            double train=inf.readDouble();
-                            
-                            clsResults.writeString((test-train)+",");    
-                        }
-                        else{
-                            if(missing==null)
-                                missing=new OutFile(basePath+cls+"//"+cls+"MISSING.csv");
-                            if(missingCount==0)
-                                missing.writeString(name);
-                            missingCount++;
-                           missing.writeString(","+j);
-                        }
-                    }
-                    for(int j=0;j<folds;j++){
-                    }
-                    clsResults.writeString("\n");
-                }
-                clsResults.closeFile();
-            }
-        }
-//3. Merge classifier files into a single file with average accuracies
-        //NEED TO REWRITE FOR TRAIN TEST DIFF
-        OutFile diff=new OutFile(basePath+"TrainTestDiff.csv");
-        for(String cls:classifiers){
-            diff.writeString(","+cls);
-        }
-        diff.writeString("\n");
-        InFile[] allDiffs=new InFile[classifiers.length];
-        for(int i=0;i<allDiffs.length;i++){
-            String p=basePath+classifiers[i]+"//"+classifiers[i]+"TrainTestDiffs.csv";
-            if(new File(p).exists())
-                allDiffs[i]=new InFile(p);
-            else
-                allDiffs[i]=null;//superfluous
-        }
-        for(int i=0;i<files.length;i++){
-            diff.writeString(files[i]+",");
-            for(int j=0;j<allDiffs.length;j++){
-                if(allDiffs[j]==null){
-                    diff.writeString(",");
-                }
-                else{//Find mean
-                    String[] res=allDiffs[j].readLine().split(",");
-                    diff.writeString((res.length-1)+",");
-                    double diffMean=0;
-                    for(int k=1;k<res.length;k++){
-                        diffMean+=Double.parseDouble(res[k]);
-//                        diffMean+=Double.parseDouble(res[k])-Double.parseDouble(tr[k]);;
-                    }
-                    if(res.length>1){
-                        diff.writeString((diffMean/(res.length-1))+",");
-//                        diff.writeString((diffMean/(res.length-1))+",");
-                    }
-                    else{
-                        diff.writeString(",");
-//                        diff.writeString(",");
-                    }
-                }
-            } 
-            diff.writeString("\n");
+    */    
+    public static void randomRotationForest1(String problem, boolean singleFile){
+        if(singleFile){//one ARFF with all the data as with UCI data
             
         }
+        else{ //Train/Test ARFF as with UCR-UEA data
+            
+        }
+            
         
     }
-
 
     public static Classifier setClassifier(String classifier, int fold){
 //RandF or RotF
         TunedRandomForest randF;
         TunedRotationForest r;
         switch(classifier){
-            case "SVM":
-                TunedSVM svm=new TunedSVM();
-                svm.setKernelType(TunedSVM.KernelType.RBF);
-                svm.optimiseParas(true);
-                svm.optimiseKernel(false);
-                return svm;
+//Full Rotation Forest with no tuning            
            case "RotF":
                 r=new TunedRotationForest();
                 r.setNumIterations(200);
                 r.justBuildTheClassifier();
                 return r;
             case "RandRotF1":
+//Full Rotation Forest with no tuning            
                 RandomRotationForest1 r3=new RandomRotationForest1();
                 r3.setNumIterations(200);
                 r3.setMaxNumAttributes(100);
                 r3.justBuildTheClassifier();
                 return r3;
-            case "HESCA":
-                String[] names={"RotFCV","RandFOOB","SVM"};
-                Classifier[] c=new Classifier[3];
-                c[0]=new IBk();
-                c[1]=new IBk();
-                c[2]=new IBk();
-                HESCA h = new HESCA(c,names);
-                h.setDebug(true);
                 
                 
-                return h;    
             case "RotFCV":
                 r = new TunedRotationForest();
                 r.setNumIterations(200);
@@ -506,7 +139,7 @@ public static boolean deleteDirectory(File directory) {
         String problem=args[1];
         int fold=Integer.parseInt(args[2])-1;
    
-        Classifier c=Feb2017Experiments.setClassifier(classifier,fold);
+        Classifier c=ICDMRandomRotationForest.setClassifier(classifier,fold);
         Instances all=ClassifierTools.loadData(DataSets.problemPath+problem+"/"+problem);
         all.randomize(new Random());
         
@@ -850,8 +483,8 @@ public static boolean deleteDirectory(File directory) {
         }
         
     }
-    public static void baseTimingOperation(){
-//Benchmark operation is building full rotation forest on 
+    public static void timingExperiment(String classifier){
+//Test times
         
         
     }
@@ -868,8 +501,6 @@ public static boolean deleteDirectory(File directory) {
       classifiers=new String[]{"RotF","RandRotF1"};
         String dir="RepoScripts";
         String jarFile="Repo";
-     generateScripts(true,10000,jarFile,DataSets.fileNames,dir);
-    generateScripts(false,10000,jarFile,DataSets.fileNames,dir);
     System.exit(0);
 
 //        collateTrainTestResults(30);
@@ -889,7 +520,7 @@ public static boolean deleteDirectory(File directory) {
             if(!f.isDirectory()){
                 f.mkdirs();
             }
-            Feb2017Experiments.singleClassifierAndFoldTrainTestSplit(args);
+            ICDMRandomRotationForest.singleClassifierAndFoldTrainTestSplit(args);
         }
         else{
             DataSets.problemPath=DataSets.dropboxPath+"TSC Problems/";
@@ -902,19 +533,19 @@ public static boolean deleteDirectory(File directory) {
             String[] paras={"RandFCV","ItalyPowerDemand","1"};
 //            paras[0]="RotFCV";
 //            paras[2]="1";
-            Feb2017Experiments.singleClassifierAndFoldTrainTestSplit(paras);            
+            ICDMRandomRotationForest.singleClassifierAndFoldTrainTestSplit(paras);            
             long t1=System.currentTimeMillis();
             for(int i=2;i<=11;i++){
                 paras[2]=i+"";
-                Feb2017Experiments.singleClassifierAndFoldSingleDataSet(paras);            
+                ICDMRandomRotationForest.singleClassifierAndFoldSingleDataSet(paras);            
             }
             long t2=System.currentTimeMillis();
             paras[0]="RandFOOB";
-            Feb2017Experiments.singleClassifierAndFoldSingleDataSet(paras);            
+            ICDMRandomRotationForest.singleClassifierAndFoldSingleDataSet(paras);            
             long t3=System.currentTimeMillis();
             for(int i=2;i<=11;i++){
                 paras[2]=i+"";
-                Feb2017Experiments.singleClassifierAndFoldSingleDataSet(paras);            
+                ICDMRandomRotationForest.singleClassifierAndFoldSingleDataSet(paras);            
             }
             long t4=System.currentTimeMillis();
             System.out.println("Standard = "+(t2-t1)+", Enhanced = "+(t4-t3));
@@ -932,7 +563,7 @@ public static boolean deleteDirectory(File directory) {
             if(!f.isDirectory()){
                 f.mkdirs();
             }
-            Feb2017Experiments.singleClassifierAndFoldSingleDataSet(args);
+            ICDMRandomRotationForest.singleClassifierAndFoldSingleDataSet(args);
         }
         else{
             DataSets.problemPath=DataSets.dropboxPath+"UCI Problems/";
@@ -948,19 +579,19 @@ public static boolean deleteDirectory(File directory) {
             File file =new File("C:\\Users\\ajb\\Dropbox\\Results\\UCIResults");
             paras[0]="RotFCV";
             paras[2]="1";
-            Feb2017Experiments.singleClassifierAndFoldSingleDataSet(paras);            
+            ICDMRandomRotationForest.singleClassifierAndFoldSingleDataSet(paras);            
             long t1=System.currentTimeMillis();
             for(int i=2;i<=11;i++){
                 paras[2]=i+"";
-                Feb2017Experiments.singleClassifierAndFoldSingleDataSet(paras);            
+                ICDMRandomRotationForest.singleClassifierAndFoldSingleDataSet(paras);            
             }
             long t2=System.currentTimeMillis();
             paras[0]="EnhancedRotF";
-            Feb2017Experiments.singleClassifierAndFoldSingleDataSet(paras);            
+            ICDMRandomRotationForest.singleClassifierAndFoldSingleDataSet(paras);            
             long t3=System.currentTimeMillis();
             for(int i=2;i<=11;i++){
                 paras[2]=i+"";
-                Feb2017Experiments.singleClassifierAndFoldSingleDataSet(paras);            
+                ICDMRandomRotationForest.singleClassifierAndFoldSingleDataSet(paras);            
             }
             long t4=System.currentTimeMillis();
             System.out.println("Standard = "+(t2-t1)+", Enhanced = "+(t4-t3));

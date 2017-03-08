@@ -36,6 +36,7 @@ import tsc_algorithms.elastic_ensemble.ED1NN;
 import tsc_algorithms.elastic_ensemble.MSM1NN;
 import tsc_algorithms.elastic_ensemble.WDTW1NN;
 import utilities.ClassifierTools;
+import utilities.CrossValidator;
 import utilities.InstanceTools;
 import utilities.SaveParameterInfo;
 import utilities.TrainAccuracyEstimate;
@@ -50,6 +51,7 @@ import weka.classifiers.functions.supportVector.PolyKernel;
 import weka.classifiers.lazy.IBk;
 import weka.classifiers.meta.RotationForest;
 import weka.classifiers.meta.TunedRotationForest;
+import weka.classifiers.meta.timeseriesensembles.ClassifierResults;
 import weka.classifiers.meta.timeseriesensembles.HESCA;
 import weka.classifiers.meta.timeseriesensembles.SaveableEnsemble;
 import weka.classifiers.trees.J48;
@@ -61,7 +63,7 @@ import weka.core.Instances;
 public class RepoExperiments{
     public static int folds=30; 
     static boolean debug=true;
-    
+    static boolean generateTrainFiles=true;
     public static Classifier setClassifier(String classifier){
         Classifier c=null;
         switch(classifier){
@@ -221,7 +223,7 @@ public class RepoExperiments{
  * 3. This method just does the file set up then calls the next method. If you 
  * just want to run the problem, go to the next method
 * */
-    public static void singleClassifierAndFoldTrainTestSplit(String[] args){
+    public static void singleClassifierAndFoldTrainTestSplit(String[] args) throws Exception{
 //first gives the problem file      
         String classifier=args[0];
         String problem=args[1];
@@ -245,8 +247,38 @@ public class RepoExperiments{
         f=new File(predictions+"/testFold"+fold+".csv");
         if(!f.exists() || f.length()==0){
       //      of.writeString(problem+","); );
-            if(c instanceof TrainAccuracyEstimate)
-                ((TrainAccuracyEstimate)c).writeCVTrainToFile(predictions+"/trainFold"+fold+".csv");
+            if(generateTrainFiles){
+                if(c instanceof TrainAccuracyEstimate){
+                    ((TrainAccuracyEstimate)c).writeCVTrainToFile(predictions+"/trainFold"+fold+".csv");
+                }
+                else{ // Need to cross validate
+                    int numFolds=train.numInstances()>=10?10:train.numInstances();
+                    CrossValidator cv = new CrossValidator();
+                    cv.setSeed(fold);
+                    cv.setNumFolds(numFolds);
+        //Estimate train accuracy HERE
+                    ClassifierResults res=cv.crossValidateWithStats(c,train);
+        //Write to file
+                    OutFile of=new OutFile(predictions+"/trainFold"+fold+".csv");
+                    of.writeLine(train.relationName()+","+c.getClass().getName()+",train");
+                    if(c instanceof SaveParameterInfo )
+                        of.writeLine(((SaveParameterInfo)c).getParameters());
+                    else
+                        of.writeLine("No Parameter Info");
+                   of.writeLine(res.acc+"");
+                   for(int i=1;i<train.numInstances();i++){
+                       //Basic sanity check
+                       if(train.instance(i).classValue()!=res.trueClassVals[i]){
+                           throw new Exception("ERROR in TSF cross validation, class mismatch!");
+                       }
+                       of.writeString((int)res.trueClassVals[i]+","+(int)res.predClassVals[i]+",");
+                       for(double d:res.distsForInsts[i])
+                           of.writeString(","+d);
+                       of.writeString("\n");
+                   }
+                    
+                }
+            }
             double acc =singleClassifierAndFoldTrainTestSplit(train,test,c,fold,predictions);
             System.out.println(classifier+","+problem+","+fold+","+acc);
             
@@ -343,21 +375,30 @@ public class RepoExperiments{
     5.    int fold=Integer.parseInt(args[4])-1;
     */  
        
-    public static void main(String[] args) throws IOException{
-        if(args.length!=5){
-            System.out.println("ERROR two few args. Only "+args.length+" Not 5");
-            System.err.println("ERROR two few args. Only "+args.length+" Not 5");
-            System.exit(1);
+    public static void main(String[] args) throws Exception{
+        if(args.length!=6){//Local run
+            DataSets.problemPath="C:\\Users\\ajb\\Dropbox\\TSC Problems\\";
+            DataSets.resultsPath="c:\\Temp\\";
+            File f=new File(DataSets.resultsPath);
+            if(!f.isDirectory()){
+                f.mkdirs();
+            }
+            
+            String[] newArgs={"SVMQ","SonyAIBORobotSurface1","2"};
+            RepoExperiments.singleClassifierAndFoldTrainTestSplit(newArgs);
+            System.exit(0);
         }
             
         DataSets.problemPath=args[0];
         DataSets.resultsPath=args[1];
+//Third argument is whether to cross validate or not
+        generateTrainFiles=Boolean.parseBoolean(args[2]);
         File f=new File(DataSets.resultsPath);
         if(!f.isDirectory()){
             f.mkdirs();
         }
-        String[] newArgs=new String[args.length-2];
-        for(int i=2;i<args.length;i++)
+        String[] newArgs=new String[args.length-3];
+        for(int i=3;i<args.length;i++)
             newArgs[i-2]=args[i];
         RepoExperiments.singleClassifierAndFoldTrainTestSplit(newArgs);
         

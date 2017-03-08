@@ -32,7 +32,7 @@ import weka.core.Instances;
 
 
 public class March2017Experiments{
-    public static String[] classifiers={"RotF","RandRotF"};
+    public static String[] classifiers={"SVM"};
     public static double propInTrain=0.5;
     public static int folds=30; 
     static String[] UCIContinuousFileNames={"abalone","acute-inflammation","acute-nephritis","adult","annealing","arrhythmia","audiology-std","balance-scale","balloons","bank","blood","breast-cancer","breast-cancer-wisc","breast-cancer-wisc-diag","breast-cancer-wisc-prog","breast-tissue","car","cardiotocography-10clases","cardiotocography-3clases",
@@ -453,6 +453,8 @@ public static boolean deleteDirectory(File directory) {
                 svm.setKernelType(TunedSVM.KernelType.RBF);
                 svm.optimiseParas(true);
                 svm.optimiseKernel(false);
+                svm.setBuildLogisticModels(true);
+                svm.setSeed(fold);
                 return svm;
            case "RotF":
                 r=new TunedRotationForest();
@@ -572,10 +574,10 @@ public static boolean deleteDirectory(File directory) {
                 str.append(act);
                 str.append(",");
                 str.append(pred);
-                str.append(",,");
+                str.append(",");
                 for(double d:probs){
-                    str.append(df.format(d));
                     str.append(",");
+                    str.append(df.format(d));
                 }
                 str.append("\n");
             }
@@ -871,15 +873,19 @@ public static boolean deleteDirectory(File directory) {
 //UCIRotFTimingExperiment();
   //             System.exit(0);
  //       collateTrain();
-            DataSets.problemPath="C:/Data/TSC Problems/";
-       timingNormalisation("c:/temp/benchmark.csv");
+ //          DataSets.problemPath="C:/Data/TSC Problems/";
+ //      timingNormalisation("c:/temp/benchmark.csv");
       
-      classifiers=new String[]{"RotF","RandRotF1"};
+
+         classifiers=new String[]{"SVM"};
         String dir="RepoScripts";
-        String jarFile="Repo";
-     generateScripts(true,10000,jarFile,DataSets.fileNames,dir);
-    generateScripts(false,10000,jarFile,DataSets.fileNames,dir);
-    System.exit(0);
+        String jarFile="ClassifierExperiment";
+     generateScripts(true,4000,jarFile,DataSets.fileNames,dir);
+    generateScripts(false,4000,jarFile,DataSets.fileNames,dir);
+ /*        dir="UCIScripts";
+     generateScripts(true,4000,jarFile,UCIContinuousFileNames,dir);
+    generateScripts(false,4000,jarFile,UCIContinuousFileNames,dir);
+ */   System.exit(0);
 
 //        collateTrainTestResults(30);
 
