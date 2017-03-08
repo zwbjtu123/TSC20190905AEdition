@@ -12,11 +12,11 @@ public class ClassifierResults {
     public double[] predClassVals;
     public double acc; 
     public long buildTime;
-    public double[][] distsForInsts; //may be null
+    public double[][] distsForInsts; 
     public double[][] confusionMatrix; //[actual class][predicted class]
     public double[] trueClassVals;
-    public double variance;
-
+    public double stddev; //across cv folds
+    
     private int numClasses;
 
     //todo, re-work how this is done
@@ -25,6 +25,10 @@ public class ClassifierResults {
     private ArrayList<Double> testPredsSoFar;
     private ArrayList<ArrayList<Double>> testDistsSoFar;
     
+    /**
+     * for building results one by one while testing, call finaliseTestResults
+     * to populate the ClassifierResults object once testing is finished
+     */
     public ClassifierResults() {
         testPredsSoFar = new ArrayList<>();
         testDistsSoFar = new ArrayList<>();
@@ -46,10 +50,10 @@ public class ClassifierResults {
         this.trueClassVals = classVals;
         this.confusionMatrix = buildConfusionMatrix();
         
-        this.variance = -1; //not defined 
+        this.stddev = -1; //not defined 
     }
     
-    public ClassifierResults(double acc, double[] classVals, double[] preds, double[][] distsForInsts, double variance, int numClasses) {        
+    public ClassifierResults(double acc, double[] classVals, double[] preds, double[][] distsForInsts, double stddev, int numClasses) {        
         this.predClassVals = preds;
         this.acc = acc;
         this.distsForInsts = distsForInsts;
@@ -59,7 +63,7 @@ public class ClassifierResults {
         this.trueClassVals = classVals;
         this.confusionMatrix = buildConfusionMatrix();
         
-        this.variance = variance; 
+        this.stddev = stddev; 
     }
 
     /**

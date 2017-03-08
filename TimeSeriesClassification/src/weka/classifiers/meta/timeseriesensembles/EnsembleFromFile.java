@@ -30,7 +30,7 @@ public abstract class EnsembleFromFile extends AbstractClassifier implements Deb
     protected boolean writeIndividualsResults = false;
     
     protected boolean resultsFilesParametersInitialised;
-    protected String individualResultsFilesDirectory;
+    protected String resultsFilesDirectory;
     protected String ensembleIdentifier = "EnsembleFromFile";
     protected int resampleIdentifier;
 
@@ -46,7 +46,7 @@ public abstract class EnsembleFromFile extends AbstractClassifier implements Deb
     public void setResultsFileLocationParameters(String individualResultsFilesDirectory, String datasetName, int resampleIdentifier) {
         resultsFilesParametersInitialised = true;
         
-        this.individualResultsFilesDirectory = individualResultsFilesDirectory;
+        this.resultsFilesDirectory = individualResultsFilesDirectory;
         this.datasetName = datasetName;
         this.resampleIdentifier = resampleIdentifier;
     }
@@ -64,7 +64,7 @@ public abstract class EnsembleFromFile extends AbstractClassifier implements Deb
     }
     
     protected File findResultsFile(String classifierName, String trainOrTest) {
-        File file = new File(individualResultsFilesDirectory+classifierName+"/Predictions/"+datasetName+"/"+trainOrTest+"Fold"+resampleIdentifier+".csv");
+        File file = new File(resultsFilesDirectory+classifierName+"/Predictions/"+datasetName+"/"+trainOrTest+"Fold"+resampleIdentifier+".csv");
         if(!file.exists() || file.length() == 0)
             return null;
         else 
@@ -187,7 +187,7 @@ public abstract class EnsembleFromFile extends AbstractClassifier implements Deb
             }
         }
         
-        String fullPath = this.individualResultsFilesDirectory+classifierName+"/Predictions/"+datasetName;
+        String fullPath = this.resultsFilesDirectory+classifierName+"/Predictions/"+datasetName;
         new File(fullPath).mkdirs();
         FileWriter out = new FileWriter(fullPath+"/" + trainOrTest + "Fold"+this.resampleIdentifier+".csv");
         out.append(st);

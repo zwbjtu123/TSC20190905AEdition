@@ -160,6 +160,71 @@ public class MultipleClassifiersPairwiseTest {
         }
        
     }
+    
+    public static StringBuilder runTests(String input){
+         loadData(input);
+//        loadData("C:\\Research\\Papers\\2016\\JMLR HIVE-COTE Jason\\RiseTestWithNames.csv");
+        findPVals();
+        double alpha=0.1;
+//printPVals=false;
+//Bonferonni adjusted        
+//        alpha/=nosClassifiers*(nosClassifiers-1)/2;
+//Control adjusted 
+        alpha/=nosClassifiers-1;
+        findDifferences(alpha,true);
+        
+        StringBuilder cliques=new StringBuilder();
+        
+        cliques.append("T TEST");
+        for(int i=0;i<nosClassifiers;i++)
+            cliques.append(",").append(names[i]);
+        cliques.append("\n");
+        for(int i=0;i<nosClassifiers;i++){
+            cliques.append(names[i]);
+            for(int j=0;j<nosClassifiers;j++)
+                cliques.append(",").append(pValsTTest[i][j]);
+            cliques.append("\n");
+        }
+        cliques.append("\n");
+        
+        cliques.append("SIGN TEST");
+        for(int i=0;i<nosClassifiers;i++)
+            cliques.append(",").append(names[i]);
+        cliques.append("\n");
+        for(int i=0;i<nosClassifiers;i++){
+            cliques.append(names[i]);
+            for(int j=0;j<nosClassifiers;j++)
+                cliques.append(",").append(pValsSignTest[i][j]);
+            cliques.append("\n");
+        }
+        cliques.append("\n");
+        
+        cliques.append("SIGN RANK TEST");
+        for(int i=0;i<nosClassifiers;i++)
+            cliques.append(",").append(names[i]);
+        cliques.append("\n");
+        for(int i=0;i<nosClassifiers;i++){
+            cliques.append(names[i]);
+            for(int j=0;j<nosClassifiers;j++)
+                cliques.append(",").append(pValsSignRankTest[i][j]);
+            cliques.append("\n");
+        }
+        cliques.append("\n");
+        
+        cliques.append("NOSIGDIFFERENCE");
+        for(int i=0;i<nosClassifiers;i++)
+            cliques.append(",").append(names[i]);
+        cliques.append("\n");
+        for(int i=0;i<nosClassifiers;i++){
+            cliques.append(names[i]);
+            for(int j=0;j<nosClassifiers;j++)
+                cliques.append(",").append(noDifference[i][j]);
+            cliques.append("\n");
+        }
+        
+        return cliques;
+    }
+    
     public static void main(String[] args) {
 //ASSUME INPUT IN RANK ORDER, WITH TOP RANKED CLASSIFIER FIRST, WORST LAST        
 //        String input="C:\\Users\\ajb\\Dropbox\\Results\\SimulationExperiments\\BasicExperiments\\";

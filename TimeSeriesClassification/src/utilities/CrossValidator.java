@@ -32,6 +32,8 @@ public class CrossValidator {
         this.numFolds = 10;
     }
 
+    public ArrayList<ArrayList<Integer>> getFoldIndices() { return foldIndexing; }
+    
     public Integer getSeed() {
         return seed;
     }
@@ -120,15 +122,11 @@ public class CrossValidator {
         ClassifierResults[] results = new ClassifierResults[classifiers.length];
         double[] classVals = train.attributeToDoubleArray(train.classIndex());
         
-        for (int i = 0; i < classifiers.length; i++) {  
-            classifierAccs[i] /= predictions[i].length;
+        for (int c = 0; c < classifiers.length; c++) {  
+            classifierAccs[c] /= predictions[c].length;
+            double stddevOverFolds = StatisticalUtilities.standardDeviation(foldaccs[c], false, classifierAccs[c]);
             
-            double variance = 0.0;
-            for (int j = 0; j < foldaccs[i].length; ++j)
-                variance += (foldaccs[i][j] - classifierAccs[i]) * (foldaccs[i][j] - classifierAccs[i]);
-            variance /= foldaccs[i].length;
-            
-            results[i] = new ClassifierResults(classifierAccs[i], classVals, predictions[i], distsForInsts[i], variance, train.numClasses());
+            results[c] = new ClassifierResults(classifierAccs[c], classVals, predictions[c], distsForInsts[c], stddevOverFolds, train.numClasses());
         }
         
         return results;
