@@ -39,11 +39,6 @@ public class NormalClassValue implements Serializable{
     public double getClassValue(Instance in){
         return in.classValue();
     }
-    
-    public final double getUnAlteredClassValue(Instance in)
-    {
-        return in.classValue();
-    }
 
     public double getShapeletValue() {
         return shapeletValue;

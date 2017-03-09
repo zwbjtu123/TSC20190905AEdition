@@ -66,6 +66,8 @@ public class QualityMeasures implements Serializable
     public interface ShapeletQualityMeasure 
     {
         public double calculateQuality(ArrayList<OrderLineObj> orderline, ClassDistribution classDistribution);
+
+        public double calculateSeperationGap(ArrayList<OrderLineObj> orderline);
     }
 
     /**
@@ -193,6 +195,11 @@ public class QualityMeasures implements Serializable
             }
 
             return entropy;
+        }
+
+        @Override
+        public double calculateSeperationGap(ArrayList<OrderLineObj> orderline) {
+            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
         }
 
     }
@@ -342,6 +349,11 @@ public class QualityMeasures implements Serializable
 
             return f;
         }
+
+        @Override
+        public double calculateSeperationGap(ArrayList<OrderLineObj> orderline) {
+            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        }
     }
 
     /**
@@ -421,6 +433,11 @@ public class QualityMeasures implements Serializable
                 chi = 0; // fix for cases where the shapelet is a straight line and chi is calc'd as NaN
             }
             return chi;
+        }
+
+        @Override
+        public double calculateSeperationGap(ArrayList<OrderLineObj> orderline) {
+            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
         }
 
     }
@@ -518,6 +535,11 @@ public class QualityMeasures implements Serializable
             double h = 12.0 / (orderline.size() * (orderline.size() + 1)) * s;
 
             return h;
+        }
+
+        @Override
+        public double calculateSeperationGap(ArrayList<OrderLineObj> orderline) {
+            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
         }
     }
 }

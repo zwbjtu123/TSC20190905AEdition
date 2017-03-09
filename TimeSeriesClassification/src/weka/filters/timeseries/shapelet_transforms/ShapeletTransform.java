@@ -18,7 +18,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Scanner;
@@ -29,7 +28,6 @@ import utilities.ClassifierTools;
 import utilities.SaveParameterInfo;
 import utilities.class_distributions.ClassDistribution;
 import weka.classifiers.meta.RotationForest;
-import weka.classifiers.meta.timeseriesensembles.depreciated.HESCA_05_10_16;
 import weka.core.*;
 import weka.core.shapelet.*;
 import weka.filters.SimpleBatchFilter;
@@ -139,6 +137,7 @@ public class ShapeletTransform extends SimpleBatchFilter implements SaveParamete
     public SubSeqDistance getSubSequenceDistance(){
         return subseqDistance;
     }
+        
 
     protected int candidatePruningStartPercentage;
 
@@ -151,7 +150,7 @@ public class ShapeletTransform extends SimpleBatchFilter implements SaveParamete
     public ShapeletTransform() {
         this(DEFAULT_NUMSHAPELETS, DEFAULT_MINSHAPELETLENGTH, DEFAULT_MAXSHAPELETLENGTH, QualityMeasures.ShapeletQualityChoice.INFORMATION_GAIN);
     }
-
+    
     /**
      * Constructor for generating a shapelet transform from an ArrayList of
      * Shapelets.
@@ -491,7 +490,7 @@ public class ShapeletTransform extends SimpleBatchFilter implements SaveParamete
         }
 
         //build the transformed dataset with the shapelets we've found either on this data, or the previous training data
-        return buildTansformedDataset(data, shapelets);
+        return buildTansformedDataset(data);
     }
 
     protected void trainShapelets(Instances data) {
@@ -535,7 +534,9 @@ public class ShapeletTransform extends SimpleBatchFilter implements SaveParamete
         return dataset;
     }
 
-    protected Instances buildTansformedDataset(Instances data, ArrayList<Shapelet> shapelets) {
+    //given a set of instances transform it by the internal shapelets.
+    public Instances buildTansformedDataset(Instances data) {
+        
         //Reorder the training data and reset the shapelet indexes
         Instances output = determineOutputFormat(data);
 
@@ -566,8 +567,9 @@ public class ShapeletTransform extends SimpleBatchFilter implements SaveParamete
         //do the classValues.
         for (int j = 0; j < dataSize; j++) {
             //we always want to write the true ClassValue here. Irrelevant of binarised or not.
-            output.instance(j).setValue(size, classValue.getUnAlteredClassValue(data.instance(j)));
+            output.instance(j).setValue(size, data.instance(j).classValue());
         }
+
         return output;
     }
 

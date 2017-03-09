@@ -56,7 +56,6 @@ public class SubSeqDistance implements Serializable{
     public double calculate(double[] timeSeries, int timeSeriesId) 
     {
 
-        
         double bestSum = Double.MAX_VALUE;
         double sum;
         double[] subseq;

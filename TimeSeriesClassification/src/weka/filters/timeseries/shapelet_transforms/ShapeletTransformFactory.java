@@ -165,6 +165,7 @@ public class ShapeletTransformFactory
         ShapeletTransform transform;
         if(numClasses == 2){
             transform = new ShapeletTransform();
+            System.out.println("2 class");
         }else{
             transform = new BalancedClassShapeletTransform();
             transform.setClassValue(new BinarisedClassValue());
@@ -478,7 +479,7 @@ public class ShapeletTransformFactory
     public static void main(String[] args) throws IOException
     {     
         
-        
+       
         /*System.out.println(calculateOperationsWithSkipping(67, 23, 3, 23, 1, 1, 1.0f));
     
         System.out.println(calculateNumberOfShapelets(67,23,3,23));
@@ -486,10 +487,6 @@ public class ShapeletTransformFactory
         
         System.out.println(calculateOperationsWithSkipping(67, 23, 3, 23, 1, 1, 0.5f));*/
         
-        
-        
-        System.out.println(calculateOps(141745, 291, 1, 1));
-    
         
         /*String dirPath = "F:\\Dropbox\\TSC Problems (1)\\";
         File dir  = new File(dirPath);
@@ -535,6 +532,5 @@ public class ShapeletTransformFactory
             System.out.print(n + ",");
             System.out.print(proportion + "\n");
         }*/
-    
     }
 }

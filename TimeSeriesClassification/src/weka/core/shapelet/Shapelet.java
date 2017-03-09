@@ -11,7 +11,6 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Comparator;
 import utilities.class_distributions.ClassDistribution;
-import utilities.class_distributions.TreeSetClassDistribution;
 
 /**
  *
@@ -119,109 +118,9 @@ public class Shapelet implements Comparable<Shapelet>, Serializable
     {
         this.qualityValue = this.qualityType.calculateQuality(orderline, classDistribution);
     }
-//This also calculates the the separation gap used in the sampling routine    
-
-    public void calcInfoGainAndThreshold(ArrayList<OrderLineObj> orderline, ClassDistribution classDistribution)
-    {
-            // for each split point, starting between 0 and 1, ending between end-1 and end
-        // addition: track the last threshold that was used, don't bother if it's the same as the last one
-        double lastDist = orderline.get(0).getDistance(); // must be initialised as not visited(no point breaking before any data!)
-        double thisDist = -1;
-
-        double bsfGain = -1;
-        double threshold = -1;
-        
-        int numClasses = classDistribution.size();
-
-        for (int i = 1; i < orderline.size(); i++)
-        {
-            thisDist = orderline.get(i).getDistance();
-            if (i == 1 || thisDist != lastDist)
-            { // check that threshold has moved(no point in sampling identical thresholds)- special case - if 0 and 1 are the same dist
-
-                // count class instances below and above threshold
-                
-                
-                ClassDistribution lessClasses = new TreeSetClassDistribution();
-                ClassDistribution greaterClasses = new TreeSetClassDistribution();
-
-                int sumOfLessClasses = 0;
-                int sumOfGreaterClasses = 0;
-
-                //visit those below threshold
-                for (int j = 0; j < i; j++)
-                {
-                    double thisClassVal = orderline.get(j).getClassVal();
-                    int storedTotal = lessClasses.get(thisClassVal);
-                    storedTotal++;
-                    lessClasses.put(thisClassVal, storedTotal);
-                    sumOfLessClasses++;
-                }
-
-                //visit those above threshold
-                for (int j = i; j < orderline.size(); j++)
-                {
-                    double thisClassVal = orderline.get(j).getClassVal();
-                    int storedTotal = greaterClasses.get(thisClassVal);
-                    storedTotal++;
-                    greaterClasses.put(thisClassVal, storedTotal);
-                    sumOfGreaterClasses++;
-                }
-
-                int sumOfAllClasses = sumOfLessClasses + sumOfGreaterClasses;
-
-                double parentEntropy = QualityMeasures.InformationGain.entropy(classDistribution);
-
-                // calculate the info gain below the threshold
-                double lessFrac = (double) sumOfLessClasses / sumOfAllClasses;
-                double entropyLess = QualityMeasures.InformationGain.entropy(lessClasses);
-                // calculate the info gain above the threshold
-                double greaterFrac = (double) sumOfGreaterClasses / sumOfAllClasses;
-                double entropyGreater = QualityMeasures.InformationGain.entropy(greaterClasses);
-
-                double gain = parentEntropy - lessFrac * entropyLess - greaterFrac * entropyGreater;
-
-                if (gain > bsfGain)
-                {
-                    bsfGain = gain;
-                    threshold = (thisDist - lastDist) / 2 + lastDist;
-                }
-            }
-            lastDist = thisDist;
-        }
-        if (bsfGain >= 0)
-        {
-//                this.informationGain = bsfGain;
-//                this.splitThreshold = threshold;
-            this.separationGap = calculateSeparationGap(orderline, threshold);
-        }
-    }
     
-
-    private double calculateSeparationGap(ArrayList<OrderLineObj> orderline, double distanceThreshold)
-    {
-        double sumLeft = 0;
-        double leftSize = 0;
-        double sumRight = 0;
-        double rightSize = 0;
-
-        for (OrderLineObj orderline1 : orderline) {
-            if (orderline1.getDistance() < distanceThreshold) {
-                sumLeft += orderline1.getDistance();
-                leftSize++;
-            } else {
-                sumRight += orderline1.getDistance();
-                rightSize++;
-            }
-        }
-
-        if (rightSize == 0 || leftSize == 0)
-        {
-            return -1;
-        }
-        
-        double thisSeparationGap = 1 / rightSize * sumRight - 1 / leftSize * sumLeft; //!!!! they don't divide by 1 in orderLine::minGap(int j)
-        return thisSeparationGap;
+    public void calculateSeperationGap(ArrayList<OrderLineObj> orderline ){
+        this.separationGap = this.qualityType.calculateSeperationGap(orderline);
     }
 
     @Override

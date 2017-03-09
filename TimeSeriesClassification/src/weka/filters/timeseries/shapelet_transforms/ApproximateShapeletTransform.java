@@ -139,7 +139,7 @@ public class ApproximateShapeletTransform extends ShapeletTransform{
             }
         }
 
-        return this.buildTansformedDataset(dataInst, shapelets);
+        return this.buildTansformedDataset(dataInst);
     }
     
     //Method to apprimiate the training data

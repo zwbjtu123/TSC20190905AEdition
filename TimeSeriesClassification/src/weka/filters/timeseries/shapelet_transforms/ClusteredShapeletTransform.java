@@ -190,7 +190,8 @@ public class ClusteredShapeletTransform extends SimpleBatchFilter{
         allShapelets=st.shapelets;
         clusterShapelets();
         
-        return st.buildTansformedDataset(data, clusteredShapelets);
+        this.st.shapelets = clusteredShapelets;
+        return st.buildTansformedDataset(data);
     }
     
     /**

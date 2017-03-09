@@ -124,7 +124,7 @@ public class ShapeletTreeClassifier extends AbstractClassifier{
                         fw.append("\n");
                         fw.close();
                         
-                        System.out.println("shapelet completed at:"+System.nanoTime());
+                        //System.out.println("shapelet completed at:"+System.nanoTime());
                         
 
 //                        System.out.println("leftSize:"+splitLeft.size());
@@ -199,9 +199,9 @@ public class ShapeletTreeClassifier extends AbstractClassifier{
         TreeMap<Double, Integer> classDistributions = getClassDistributions(data); // used to calc info gain
 
         //for all time series
-        System.out.println("Processing data: ");
+        //System.out.println("Processing data: ");
         for(int i = 0; i < data.numInstances(); i++){
-            System.out.println((1+i)+"/"+data.numInstances()+"\t Started: "+getTime());
+            //System.out.println((1+i)+"/"+data.numInstances()+"\t Started: "+getTime());
 
             double[] wholeCandidate = data.instance(i).toDoubleArray();
             seriesShapelets = new ArrayList<Shapelet>();

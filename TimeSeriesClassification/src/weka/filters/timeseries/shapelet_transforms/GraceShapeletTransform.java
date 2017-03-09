@@ -85,7 +85,7 @@ public class GraceShapeletTransform extends ShapeletTransform {
         }
 
         //build the transformed dataset with the shapelets we've found either on this data, or the previous training data
-        return buildTansformedDataset(data, shapelets);
+        return buildTansformedDataset(data);
     }
 
     /**
@@ -201,7 +201,7 @@ public class GraceShapeletTransform extends ShapeletTransform {
         shapelets = kShapelets;
         m_FirstBatchDone = true;
 
-        return buildTansformedDataset(train, shapelets);
+        return buildTansformedDataset(train);
     }
     
            

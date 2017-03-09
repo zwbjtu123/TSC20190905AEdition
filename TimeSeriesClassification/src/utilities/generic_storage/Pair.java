@@ -13,8 +13,8 @@ package utilities.generic_storage;
  * Generic Tuple class.
  */
 public class Pair <T1, T2>{
-    public final T1 var1;
-    public final T2 var2;
+    public T1 var1;
+    public T2 var2;
     public Pair(T1 t1, T2 t2){
         var1 = t1;
         var2 = t2;
