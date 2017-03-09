@@ -3,15 +3,16 @@ Shaplet transform with the weighted ensemble
  */
 package tsc_algorithms;
 
-import weka.classifiers.meta.timeseriesensembles.SaveableEnsemble;
 import java.io.File;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.MathContext;
+import tsc_algorithms.cote.HiveCoteModule;
 import utilities.ClassifierTools;
 import utilities.InstanceTools;
+import utilities.SaveParameterInfo;
 import weka.classifiers.AbstractClassifier;
-import weka.classifiers.meta.timeseriesensembles.depreciated.HESCA_05_10_16;
+import weka.classifiers.meta.timeseriesensembles.HESCA;
 import weka.core.Instance;
 import weka.core.Instances;
 import weka.core.shapelet.Shapelet;
@@ -24,7 +25,8 @@ import weka.filters.timeseries.shapelet_transforms.searchFuntions.ImpRandomSearc
  *
  * @author raj09hxu
  */
-public class ST_HESCA  extends AbstractClassifier implements SaveableEnsemble{
+public class ST_HESCA  extends AbstractClassifier implements HiveCoteModule, SaveParameterInfo{
+
 
     public enum ST_TimeLimit {MINUTE, HOUR, DAY};
 
@@ -34,13 +36,10 @@ public class ST_HESCA  extends AbstractClassifier implements SaveableEnsemble{
     private boolean preferShortShapelets = false;
     private String shapeletOutputPath;
     
-    private HESCA_05_10_16 hesca;
+    private HESCA hesca;
     private ShapeletTransform transform;
     private Instances format;
     int[] redundantFeatures;
-    private boolean saveResults=false;
-    private String trainCV="";
-    private String testPredictions="";
     private boolean doTransform=true;
     
     
@@ -48,27 +47,27 @@ public class ST_HESCA  extends AbstractClassifier implements SaveableEnsemble{
     private long seed = 0;
     private long timeLimit = Long.MAX_VALUE;
     
-    protected void saveResults(boolean s){
-        saveResults=s;
-    }
-    
     public void setSeed(long sd){
         seed = sd;
     }
         
     @Override
-    public void saveResults(String tr, String te){
-        saveResults(true);
-        trainCV=tr;
-        testPredictions=te;
- //       transform.
-    }
-    @Override
     public String getParameters(){
         String paras=transform.getParameters();
         String ensemble=hesca.getParameters();
-        return paras+","+ensemble;
+        return paras+",timeLimit"+timeLimit+","+ensemble;
     }
+    
+    @Override
+    public double getEnsembleCvAcc() {
+        return hesca.getEnsembleCvAcc();
+    }
+
+    @Override
+    public double[] getEnsembleCvPreds() {
+        return hesca.getEnsembleCvPreds();
+    }
+    
     public void doSTransform(boolean b){
         doTransform=b;
     }
@@ -117,16 +116,10 @@ public class ST_HESCA  extends AbstractClassifier implements SaveableEnsemble{
     public void buildClassifier(Instances data) throws Exception {
         format = doTransform ? createTransformData(data, timeLimit) : data;
         
-        hesca=new HESCA_05_10_16();
-        hesca.setWeightType("prop");
+        hesca=new HESCA();
                 
         redundantFeatures=InstanceTools.removeRedundantTrainAttributes(format);
-        if(saveResults){
-            hesca.setCVPath(trainCV);
-            hesca.saveTestPreds(testPredictions);
-        }
-        
-        System.out.println("transformed");
+
         hesca.buildClassifier(format);
         format=new Instances(data,0);
     }
@@ -200,18 +193,15 @@ public class ST_HESCA  extends AbstractClassifier implements SaveableEnsemble{
                 numShapelets *= prop.doubleValue();
             }
                 
-            
             //we need to find atleast one shapelet in every series.
             transform.setSearchFunction(new ImpRandomSearch(3,m, numShapelets, seed));
-            //transform.setSearchFunction(new RefinedRandomSearch(3,m, shapelets, seed, 0.01f)); //1% of the shapelet set size.
-            
+
             // can't have more final shapelets than we actually search through.
             K =  numShapelets > K ? K : (int) numShapelets;
 
             transform.setNumberOfShapelets(K);
         }
 
-        
         return transform.process(train);
     }
     

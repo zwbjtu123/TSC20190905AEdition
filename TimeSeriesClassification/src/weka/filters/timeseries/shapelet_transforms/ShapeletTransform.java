@@ -26,6 +26,7 @@ import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import utilities.ClassifierTools;
+import utilities.SaveParameterInfo;
 import utilities.class_distributions.ClassDistribution;
 import weka.classifiers.meta.RotationForest;
 import weka.classifiers.meta.timeseriesensembles.depreciated.HESCA_05_10_16;
@@ -51,7 +52,7 @@ import weka.filters.timeseries.shapelet_transforms.subsequenceDist.SubSeqDistanc
  *
  * @author Aaron Bostrom
  */
-public class ShapeletTransform extends SimpleBatchFilter {
+public class ShapeletTransform extends SimpleBatchFilter implements SaveParameterInfo{
 
     //Variables for experiments
     protected static long subseqDistOpCount;
@@ -1170,8 +1171,12 @@ public class ShapeletTransform extends SimpleBatchFilter {
         }
         return str;
     }
+    
+    @Override
     public String getParameters(){
-        String str="minShapeletLength,"+minShapeletLength+",maxShapeletLength,"+maxShapeletLength+",numShapelets,"+numShapelets+",roundrobin,"+roundRobin;
+        String str="minShapeletLength,"+minShapeletLength+",maxShapeletLength,"+maxShapeletLength+",numShapelets,"+numShapelets+",roundrobin,"+roundRobin
+                + ",searchFunction,"+this.searchFunction.getClass().getSimpleName()
+                + ",qualityMeasure,"+this.qualityMeasure.getClass().getSimpleName();
         return str;
     }
     /**
