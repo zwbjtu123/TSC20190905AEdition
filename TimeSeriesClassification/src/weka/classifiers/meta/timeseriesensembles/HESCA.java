@@ -1125,33 +1125,44 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveParam
     }
     
     public static void test() throws Exception {
+        System.out.println("test()");
+        
         String dataset = "ItalyPowerDemand";
         
         Instances train = ClassifierTools.loadData("c:/tsc problems/"+dataset+"/"+dataset+"_TRAIN");
         Instances test = ClassifierTools.loadData("c:/tsc problems/"+dataset+"/"+dataset+"_TEST");
         
         String[] classifierNames = new String[] {
-            "TunedSVM",
-//            "RandomRotationForest",
-//            "RandomForest"
+            "bayesNet",
+            "C4.5",
+            "NB",
+            "NN",
+            "RandF",
+            "RotF",
+            "SVML",
+            "SVMQ"
         };
   
         Classifier[] classifiers = new Classifier[] {
-            new TunedSVM()
+            null, null, null, null, null, null, null, null
         };
         
 //        HESCA hesca = new HESCA(classifiers, classifierNames);
         HESCA hesca = new HESCA();
-//        hesca.setResultsFileLocationParameters("savecvacctest/", dataset, 0);
-//        hesca.setWriteIndividualsResultsFiles(true);
-//        hesca.setBuildIndividualsFromResultsFiles(true);
+        hesca.setResultsFileLocationParameters("C:/JamesLPHD/SmallUCRHESCAResultsFiles/", dataset, 0);
+        hesca.setBuildIndividualsFromResultsFiles(true);
         
 //        hesca.setWeightingScheme(new MCCWeighting());
+//        hesca.setVotingScheme(new MetaClassifier(new NaiveBayes()));
+        hesca.setVotingScheme(new MetaClassifier(new HESCA())); //YESSSS
+        
         hesca.buildClassifier(train);
+        
+        
         
         System.out.println(ClassifierTools.accuracy(test, hesca));
         
-        hesca.writeIndividualTestFiles(test.attributeToDoubleArray(test.classIndex()), false);
+//        hesca.writeIndividualTestFiles(test.attributeToDoubleArray(test.classIndex()), false);
     }
     
     public static void main(String[] args) throws Exception {
@@ -1171,11 +1182,11 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveParam
 //        
 //        buildBulkResultsFiles("bulkFilesTest/", new Classifier[] { new kNN(), new NaiveBayes() }, new String[] { "NN", "nbayes" });
 
-//        test();
+        test();
 //        debugTest();
 //        ensembleVariationTests(true, completeUCIDatasets, "E:/JamesLPHD/HESCA/UCI/UCIResults/", "test");
 //        ensembleVariationTests(true, completeUCIDatasets, "E:/20170301transfer/UCIResults/", "test");
-        ensembleVariationTests(false, smallishUCRdatasets, "C:/JamesLPHD/SmallUCRHESCAResultsFiles/", "corCon2");
+//        ensembleVariationTests(false, smallishUCRdatasets, "C:/JamesLPHD/SmallUCRHESCAResultsFiles/", "corCon2");
 //        exampleUseCase(); //look here for how to use, below is my random testing
         
         

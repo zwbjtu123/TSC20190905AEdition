@@ -179,7 +179,7 @@ public class InstanceTools {
     }
     
     
-    //converts a 2d array into a weka Instance.
+    //converts a 2d array into a weka Instances.
     public static Instances toWekaInstances(double[][] data) {
         Instances wekaInstances = null;
 
@@ -210,6 +210,13 @@ public class InstanceTools {
             wekaInstances.add(new DenseInstance(1.0, instanceValues));
         }
 
+        return wekaInstances;
+    }
+    
+    //converts a 2d array into a weka Instances, setting the last attribute to be the class value.
+    public static Instances toWekaInstancesWithClass(double[][] data) {
+        Instances wekaInstances = toWekaInstances(data);
+        wekaInstances.setClassIndex(wekaInstances.numAttributes()-1);
         return wekaInstances;
     }
 

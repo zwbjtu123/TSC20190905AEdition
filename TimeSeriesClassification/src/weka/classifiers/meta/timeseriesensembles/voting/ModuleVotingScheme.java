@@ -22,14 +22,14 @@ public abstract class ModuleVotingScheme implements DebugPrinting {
         this.numClasses = numClasses;
     }
     
-    public abstract double[] distributionForTrainInstance(EnsembleModule[] modules, int trainInstanceIndex);
+    public abstract double[] distributionForTrainInstance(EnsembleModule[] modules, int trainInstanceIndex)  throws Exception;
     
     public double classifyTrainInstance(EnsembleModule[] modules, int trainInstanceIndex) throws Exception {
         double[] dist = distributionForTrainInstance(modules, trainInstanceIndex);
         return indexOfMax(dist);
     }
     
-    public abstract double[] distributionForTestInstance(EnsembleModule[] modules, int testInstanceIndex);
+    public abstract double[] distributionForTestInstance(EnsembleModule[] modules, int testInstanceIndex)  throws Exception;
     
     public double classifyTestInstance(EnsembleModule[] modules, int testInstanceIndex) throws Exception {
         double[] dist = distributionForTestInstance(modules, testInstanceIndex);
