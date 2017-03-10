@@ -63,7 +63,7 @@ public abstract class EnsembleFromFile extends AbstractClassifier implements Deb
             readIndividualsResults = false;
     }
     
-    protected File findResultsFile(String classifierName, String trainOrTest) {
+    public File findResultsFile(String classifierName, String trainOrTest) {
         File file = new File(resultsFilesDirectory+classifierName+"/Predictions/"+datasetName+"/"+trainOrTest+"Fold"+resampleIdentifier+".csv");
         if(!file.exists() || file.length() == 0)
             return null;
@@ -71,7 +71,7 @@ public abstract class EnsembleFromFile extends AbstractClassifier implements Deb
             return file;
     }
     
-    protected static ClassifierResults loadResultsFile(File file, int numClasses) throws Exception {    
+    public static ClassifierResults loadResultsFile(File file, int numClasses) throws Exception {    
                 
         ArrayList<Double> alpreds = new ArrayList<>();
         ArrayList<Double> alclassvals = new ArrayList<>();

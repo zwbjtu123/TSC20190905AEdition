@@ -76,7 +76,7 @@ public abstract class ModuleVotingScheme implements DebugPrinting {
         double pred; 
         //if there's a tie for highest voted class after all module have voted, settle randomly
         if(bsfClassVals.size()>1)
-            pred = bsfClassVals.get(new Random().nextInt(bsfClassVals.size()));
+            pred = bsfClassVals.get(new Random(0).nextInt(bsfClassVals.size()));
         else
             pred = bsfClassVals.get(0);
         

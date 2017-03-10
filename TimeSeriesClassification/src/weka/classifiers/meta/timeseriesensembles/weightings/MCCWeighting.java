@@ -34,6 +34,9 @@ public class MCCWeighting extends ModuleWeightingScheme {
                     num += (confusionMatrix[k][k]*confusionMatrix[m][l])-
                             (confusionMatrix[l][k]*confusionMatrix[k][m]);
 
+        if (num == 0.0)
+            return 0;
+        
         double den1 = 0.0; 
         double den2 = 0.0;
         for (int k = 0; k < confusionMatrix.length; ++k) {

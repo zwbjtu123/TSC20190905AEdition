@@ -851,7 +851,7 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveParam
         double pred; 
         //if there's a tie for highest voted class after all module have voted, settle randomly
         if(bsfClassVals.size()>1)
-            pred = bsfClassVals.get(new Random().nextInt(bsfClassVals.size()));
+            pred = bsfClassVals.get(new Random(0).nextInt(bsfClassVals.size()));
         else
             pred = bsfClassVals.get(0);
         
@@ -1169,13 +1169,13 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveParam
 //        rotF.tuneTree(false);
 //        rotF.estimateAccFromTrain(true);
 //        
-        buildBulkResultsFiles("bulkFilesTest/", new Classifier[] { new kNN(), new NaiveBayes() }, new String[] { "NN", "nbayes" });
+//        buildBulkResultsFiles("bulkFilesTest/", new Classifier[] { new kNN(), new NaiveBayes() }, new String[] { "NN", "nbayes" });
 
 //        test();
 //        debugTest();
 //        ensembleVariationTests(true, completeUCIDatasets, "E:/JamesLPHD/HESCA/UCI/UCIResults/", "test");
 //        ensembleVariationTests(true, completeUCIDatasets, "E:/20170301transfer/UCIResults/", "test");
-//        ensembleVariationTests(smallishUCRdatasets, "C:/JamesLPHD/SmallUCRHESCAResultsFiles/", "corCon2");
+        ensembleVariationTests(false, smallishUCRdatasets, "C:/JamesLPHD/SmallUCRHESCAResultsFiles/", "corCon2");
 //        exampleUseCase(); //look here for how to use, below is my random testing
         
         
