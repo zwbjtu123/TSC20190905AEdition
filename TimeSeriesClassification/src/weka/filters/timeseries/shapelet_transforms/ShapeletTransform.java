@@ -31,7 +31,7 @@ import weka.classifiers.meta.RotationForest;
 import weka.core.*;
 import weka.core.shapelet.*;
 import weka.filters.SimpleBatchFilter;
-import weka.filters.timeseries.shapelet_transforms.classValue.BinarisedClassValue;
+import weka.filters.timeseries.shapelet_transforms.classValue.BinaryClassValue;
 import weka.filters.timeseries.shapelet_transforms.classValue.NormalClassValue;
 import weka.filters.timeseries.shapelet_transforms.searchFuntions.FastShapeletSearch;
 import weka.filters.timeseries.shapelet_transforms.searchFuntions.ShapeletSearch;
@@ -1213,7 +1213,7 @@ public class ShapeletTransform extends SimpleBatchFilter implements SaveParamete
            ShapeletTransform transform = new ShapeletTransform();
             transform.setRoundRobin(true);
             //construct shapelet classifiers.
-            transform.setClassValue(new BinarisedClassValue());
+            transform.setClassValue(new BinaryClassValue());
             transform.setSubSeqDistance(new ImprovedOnlineSubSeqDistance());
             transform.setShapeletMinAndMax(3, train.numAttributes() - 1);
             transform.useCandidatePruning();
@@ -1237,7 +1237,7 @@ public class ShapeletTransform extends SimpleBatchFilter implements SaveParamete
 
             ShapeletTransform transform1 = new ShapeletTransform();
             transform1.setRoundRobin(true);
-            transform1.setClassValue(new BinarisedClassValue());
+            transform1.setClassValue(new BinaryClassValue());
             transform1.setSubSeqDistance(new ImprovedOnlineSubSeqDistance());
             transform1.setSearchFunction(new FastShapeletSearch(3, train.numAttributes() - 1));
             transform1.useCandidatePruning();

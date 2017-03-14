@@ -15,14 +15,15 @@ import weka.core.shapelet.Shapelet;
  * @author Aaron
  */
 public class SubSeqDistance implements Serializable{
-
+    
+    public enum DistanceOptions{NORMAL, ONLINE, IMP_ONLINE, CACHED, ONLINE_CACHED};
+    
     public static final double ROUNDING_ERROR_CORRECTION = 0.000000000000001;
     
     protected Shapelet shapelet;
     protected double[] candidate;
     protected int      seriesId;
     protected int      startPos;
-    
     
     protected long count;
     

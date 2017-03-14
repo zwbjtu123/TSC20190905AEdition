@@ -26,7 +26,7 @@ import utilities.InstanceTools;
 import utilities.generic_storage.Pair;
 import weka.core.Instances;
 import weka.core.shapelet.*;
-import weka.filters.timeseries.shapelet_transforms.classValue.BinarisedClassValue;
+import weka.filters.timeseries.shapelet_transforms.classValue.BinaryClassValue;
 import weka.filters.timeseries.shapelet_transforms.classValue.NormalClassValue;
 import weka.filters.timeseries.shapelet_transforms.searchFuntions.ShapeletSearch;
 import weka.filters.timeseries.shapelet_transforms.subsequenceDist.CachedSubSeqDistance;
@@ -168,7 +168,7 @@ public class ShapeletTransformFactory
             System.out.println("2 class");
         }else{
             transform = new BalancedClassShapeletTransform();
-            transform.setClassValue(new BinarisedClassValue());
+            transform.setClassValue(new BinaryClassValue());
         }
         
         //transform.setSubSeqDistance(new ImprovedOnlineSubSeqDistance());

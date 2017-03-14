@@ -14,7 +14,7 @@ import weka.core.Instances;
  *
  * @author raj09hxu
  */
-public class BinarisedClassValue extends NormalClassValue{
+public class BinaryClassValue extends NormalClassValue{
 
     
     ClassDistribution[] binaryClassDistribution;
