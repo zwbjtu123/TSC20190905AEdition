@@ -1,4 +1,4 @@
-package weka.classifiers.meta.timeseriesensembles.voting;
+package weka.classifiers.meta.timeseriesensembles.voting.stacking;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -11,10 +11,12 @@ import java.util.logging.Level;
 import weka.classifiers.Classifier;
 import weka.classifiers.meta.timeseriesensembles.ClassifierResults;
 import weka.classifiers.meta.timeseriesensembles.EnsembleModule;
+import weka.classifiers.meta.timeseriesensembles.voting.ModuleVotingScheme;
 import weka.core.Attribute;
 import weka.core.DenseInstance;
 import weka.core.Instance;
 import weka.core.Instances;
+
 
 /**
  *
@@ -24,17 +26,17 @@ import weka.core.Instances;
  * 
  * @author James Large
  */
-public class MetaClassifier extends ModuleVotingScheme {
+public abstract class AbstractStacking extends ModuleVotingScheme {
     
-    private Classifier classifier;
-    private int numOutputAtts;
-    private Instances instsHeader;
+    protected Classifier classifier;
+    protected int numOutputAtts;
+    protected Instances instsHeader;
     
-    public MetaClassifier(Classifier classifier) {
+    public AbstractStacking(Classifier classifier) {
         this.classifier = classifier;
     }
     
-    public MetaClassifier(Classifier classifier, int numClasses) {
+    public AbstractStacking(Classifier classifier, int numClasses) {
         this.classifier = classifier;
         this.numClasses = numClasses;
     }
@@ -46,7 +48,7 @@ public class MetaClassifier extends ModuleVotingScheme {
     @Override
     public void trainVotingScheme(EnsembleModule[] modules, int numClasses) throws Exception {
         this.numClasses = numClasses;
-        this.numOutputAtts = modules.length*numClasses + 1; //each dist + class val
+        setNumOutputAttributes(modules);
         int numInsts = modules[0].trainResults.distsForInsts.length;
         
         initInstances();
@@ -58,39 +60,10 @@ public class MetaClassifier extends ModuleVotingScheme {
         classifier.buildClassifier(insts);
     }
     
-    private void initInstances() {
-        ArrayList<Attribute> atts = new ArrayList<>(numOutputAtts);
-        for (int i = 0; i < numOutputAtts-1; i++)
-            atts.add(new Attribute(""+i));
-        
-        ArrayList<String> classVals = new ArrayList<>(numClasses);
-        for (int i = 0; i < numClasses; i++)
-            classVals.add("" + i);
-        atts.add(new Attribute("class", classVals));
-        
-        instsHeader = new Instances("", atts, 1);
-        instsHeader.setClassIndex(numOutputAtts-1);
-    }
+    protected abstract void setNumOutputAttributes(EnsembleModule[] modules) throws Exception;
+    protected abstract Instance buildInst(double[][] dists, Double classVal) throws Exception;
     
-    private Instance buildInst(double[][] dists, Double classVal) {
-        double[] instData = new double[numOutputAtts];
-        
-        int i = 0;
-        for (int m = 0; m < dists.length; m++) 
-            for (int c = 0; c < numClasses; c++) 
-                instData[i++] = dists[m][c];
-        
-        assert(i == numOutputAtts-2);
-        
-        if (classVal != null)
-            instData[numOutputAtts-1] = classVal; 
-        //else irrelevent 
-        
-        instsHeader.add(new DenseInstance(1.0, instData));
-        return instsHeader.remove(0);
-    }
-    
-    private Instance buildInst(EnsembleModule[] modules, boolean train, int instIndex) {
+    protected Instance buildInst(EnsembleModule[] modules, boolean train, int instIndex)  throws Exception {
         double[][] dists = new double[modules.length][];
         
         for (int m = 0; m < modules.length; m++) {
@@ -107,6 +80,20 @@ public class MetaClassifier extends ModuleVotingScheme {
         return buildInst(dists, classVal);
     }
 
+    protected void initInstances() {
+        ArrayList<Attribute> atts = new ArrayList<>(numOutputAtts);
+        for (int i = 0; i < numOutputAtts-1; i++)
+            atts.add(new Attribute(""+i));
+        
+        ArrayList<String> classVals = new ArrayList<>(numClasses);
+        for (int i = 0; i < numClasses; i++)
+            classVals.add("" + i);
+        atts.add(new Attribute("class", classVals));
+        
+        instsHeader = new Instances("", atts, 1);
+        instsHeader.setClassIndex(numOutputAtts-1);
+    }
+    
     @Override
     public double[] distributionForTrainInstance(EnsembleModule[] modules, int trainInstanceIndex) throws Exception {
         Instance inst = buildInst(modules, true, trainInstanceIndex);

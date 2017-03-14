@@ -35,6 +35,9 @@ import weka.classifiers.functions.TunedSVM;
 import weka.classifiers.meta.TunedRotationForest;
 import weka.classifiers.meta.timeseriesensembles.weightings.*;
 import weka.classifiers.meta.timeseriesensembles.voting.*;
+import weka.classifiers.meta.timeseriesensembles.voting.stacking.StackingOnDists;
+import weka.classifiers.meta.timeseriesensembles.voting.stacking.StackingOnPredConfidences;
+import weka.classifiers.meta.timeseriesensembles.voting.stacking.StackingOnPreds;
 import weka.classifiers.trees.TunedRandomForest;
 import weka.filters.timeseries.SAX;
 
@@ -1153,8 +1156,8 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveParam
         hesca.setBuildIndividualsFromResultsFiles(true);
         
 //        hesca.setWeightingScheme(new MCCWeighting());
-//        hesca.setVotingScheme(new MetaClassifier(new NaiveBayes()));
-        hesca.setVotingScheme(new MetaClassifier(new HESCA())); //YESSSS
+//        hesca.setVotingScheme(new StackingOnPreds(new SMO())); 
+        hesca.setVotingScheme(new NaiveBayesCombiner());
         
         hesca.buildClassifier(train);
         
@@ -1186,7 +1189,7 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveParam
 //        debugTest();
 //        ensembleVariationTests(true, completeUCIDatasets, "E:/JamesLPHD/HESCA/UCI/UCIResults/", "test");
 //        ensembleVariationTests(true, completeUCIDatasets, "E:/20170301transfer/UCIResults/", "test");
-//        ensembleVariationTests(false, smallishUCRdatasets, "C:/JamesLPHD/SmallUCRHESCAResultsFiles/", "corCon2");
+//        ensembleVariationTests(false, smallishUCRdatasets, "C:/JamesLPHD/SmallUCRHESCAResultsFiles/", "metatests");
 //        exampleUseCase(); //look here for how to use, below is my random testing
         
         
@@ -1430,17 +1433,22 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveParam
         };
         
         ModuleVotingScheme[] voteSchemes = new ModuleVotingScheme[] { 
-            new MajorityVote(),
+//            new MajorityVote(),
 //            new MajorityVoteByCorrectedConfidence(),
-            new MajorityVoteByConfidence(),
-            new MajorityConfidence(),
+//            new MajorityVoteByConfidence(),
+//            new MajorityConfidence(),
 //            new NP_MAX(),
 //            new AverageOfConfidences(),
 //            new AverageVoteByConfidence(),
 //            new ProductOfConfidences(),
 //            new ProductOfVotesByConfidence()
-            new BestIndividualOracle(),
-            new BestIndividualTrain()
+//            new BestIndividualOracle(),
+//            new BestIndividualTrain()
+//            new AbstractStacking(new NaiveBayes()),
+//            new AbstractStacking(new J48()),
+//            new AbstractStacking(new RandomForest()),
+//            new AbstractStacking(new kNN()),
+//            new AbstractStacking(new BayesNet()),
         };
         
         

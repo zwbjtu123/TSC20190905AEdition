@@ -15,11 +15,13 @@ public class FScore extends ModuleWeightingScheme {
     public FScore() {
         this.beta = 1;
         uniformWeighting = false;
+        needTrainPreds = true;
     }
     
     public FScore(double beta) {
         this.beta = beta;
         uniformWeighting = false;
+        needTrainPreds = true;
     }
     
     @Override
