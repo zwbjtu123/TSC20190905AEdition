@@ -22,9 +22,8 @@ public class MagnifySearch extends ImpRandomSearch{
     
     //how many times do we want to make our search area smaller.
     int maxDepth = 3;
-    
-    @Deprecated
-    public MagnifySearch(ShapeletSearchOptions ops) {
+
+    protected MagnifySearch(ShapeletSearchOptions ops) {
         super(ops);
     }
     

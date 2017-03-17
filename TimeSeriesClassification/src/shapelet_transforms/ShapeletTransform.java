@@ -39,6 +39,7 @@ import shapelet_transforms.search_functions.ShapeletSearch;
 import shapelet_transforms.search_functions.ShapeletSearchOptions;
 import shapelet_transforms.distance_functions.ImprovedOnlineSubSeqDistance;
 import shapelet_transforms.distance_functions.SubSeqDistance;
+import shapelet_transforms.search_functions.ShapeletSearchFactory;
 
 /**
  * A filter to transform a dataset by k shapelets. Once built on a training set,
@@ -220,7 +221,7 @@ public class ShapeletTransform extends SimpleBatchFilter implements SaveParamete
         this.classValue = new NormalClassValue();
         
         ShapeletSearchOptions sOp = new ShapeletSearchOptions.Builder().setMin(minShapeletLength).setMax(maxShapeletLength).build();   
-        this.searchFunction = new ShapeletSearch(sOp);
+        this.searchFunction = new ShapeletSearchFactory(sOp).getShapeletSearch();
     }
 
     /**

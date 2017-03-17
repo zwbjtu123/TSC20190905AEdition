@@ -32,8 +32,8 @@ public class FastShapeletSearch extends ShapeletSearch implements Serializable{
     
     ArrayList<Pair<Integer, Double>> Score_List;
     HashMap<Integer, USAX_elm_type> USAX_Map;
-    @Deprecated
-    public FastShapeletSearch(ShapeletSearchOptions ops) {
+
+    protected FastShapeletSearch(ShapeletSearchOptions ops) {
         super(ops);
     }
     

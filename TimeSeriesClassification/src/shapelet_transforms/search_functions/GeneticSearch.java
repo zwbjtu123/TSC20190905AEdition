@@ -22,18 +22,9 @@ public class GeneticSearch extends ImpRandomSearch{
     private int numShapeletsPerSeries;
     private int evaluated;
     
-    /**
-    * These constructors are going to become protected.
-    * Use the ShapeletSearchFactory or Use the ShapeletTransformFactory
-    * 
-    * @param ops - options paramter
-    * @deprecated use {@see shapelet_transforms.search_functions.ShapeletSearchFactory} instead.  
-    */
-    @Deprecated
-    public GeneticSearch(ShapeletSearchOptions ops) {
-        super(ops);
+    protected GeneticSearch(ShapeletSearchOptions sop){
+        super(sop);
     }
-    
     
     @Override
     public void init(Instances input){

@@ -17,8 +17,7 @@ public class RefinedRandomSearch extends ImpRandomSearch{
 
     float shapeletToSeriesRatio;
     
-    @Deprecated
-    public RefinedRandomSearch(ShapeletSearchOptions ops) {
+    protected RefinedRandomSearch(ShapeletSearchOptions ops) {
         super(ops);
         
         shapeletToSeriesRatio = ops.getProportion();

@@ -18,8 +18,7 @@ public class LocalSearch extends RandomTimedSearch{
     
     int maxIterations;
     
-    @Deprecated
-    public LocalSearch(ShapeletSearchOptions ops) {
+    protected LocalSearch(ShapeletSearchOptions ops) {
         super(ops);
         
         maxIterations = ops.getMaxIterations();

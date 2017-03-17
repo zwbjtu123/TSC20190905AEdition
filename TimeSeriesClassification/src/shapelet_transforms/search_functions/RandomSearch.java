@@ -20,8 +20,7 @@ public class RandomSearch extends ShapeletSearch{
     
     protected boolean[][] visited;
     
-    @Deprecated
-    public RandomSearch(ShapeletSearchOptions ops) {
+    protected RandomSearch(ShapeletSearchOptions ops) {
         super(ops);    
         
         numShapelets = ops.getNumShapelets();

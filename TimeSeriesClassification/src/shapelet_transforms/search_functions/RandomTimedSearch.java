@@ -17,9 +17,7 @@ public class RandomTimedSearch extends RandomSearch{
         
     protected long timeLimit;
 
-    
-    @Deprecated
-    public RandomTimedSearch(ShapeletSearchOptions ops) {
+    protected RandomTimedSearch(ShapeletSearchOptions ops) {
         super(ops);    
         
         timeLimit = ops.getTimeLimit();

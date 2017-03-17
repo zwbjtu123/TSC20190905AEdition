@@ -27,11 +27,11 @@ public class ImpRandomSearch extends RandomSearch{
     public  Map<Integer, ArrayList<Pair<Integer,Integer>>> getShapeletsToFind(){
         return shapeletsToFind;
     }
-    
-    @Deprecated
-    public ImpRandomSearch(ShapeletSearchOptions ops) {
-        super(ops);    
+        
+    protected ImpRandomSearch(ShapeletSearchOptions ops) {
+        super(ops);
     }
+
     
     @Override
     public void init(Instances input){

@@ -18,9 +18,8 @@ public class SkippingSearch extends ShapeletSearch{
     int[] positions;
     int[] lengths;
     
-    @Deprecated
-    public SkippingSearch(ShapeletSearchOptions ops) {
-        super(ops);
+    protected SkippingSearch(ShapeletSearchOptions sops){
+        super(sops);
     }
     
     @Override

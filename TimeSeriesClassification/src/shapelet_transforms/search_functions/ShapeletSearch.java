@@ -47,8 +47,7 @@ public class ShapeletSearch implements Serializable{
     
     protected ShapeletSearchOptions options;
     
-    @Deprecated
-    public ShapeletSearch(ShapeletSearchOptions ops){
+    protected ShapeletSearch(ShapeletSearchOptions ops){
         options = ops;
         
         minShapeletLength = ops.getMin();

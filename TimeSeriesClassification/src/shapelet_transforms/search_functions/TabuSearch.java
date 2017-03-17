@@ -23,12 +23,11 @@ public class TabuSearch extends ImpRandomSearch{
 
     int numShapeletsPerSeries;
     
-    Shapelet bsf_shapelet;
-
-    @Deprecated
-    public TabuSearch(ShapeletSearchOptions ops) {
+    Shapelet bsf_shapelet;  
+    
+    protected TabuSearch(ShapeletSearchOptions ops) {
         super(ops);
-    }    
+    }
     
     @Override
     public void init(Instances input){

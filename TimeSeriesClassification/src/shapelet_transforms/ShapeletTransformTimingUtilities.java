@@ -8,7 +8,6 @@
  * 
  */
 package shapelet_transforms;
-import java.io.File;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -20,18 +19,14 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 import tsc_algorithms.ST_HESCA;
-import utilities.ClassifierTools;
 import utilities.InstanceTools;
 import utilities.generic_storage.Pair;
 import weka.core.Instances;
 import shapelet_transforms.class_value.BinaryClassValue;
-import shapelet_transforms.class_value.NormalClassValue;
-import shapelet_transforms.search_functions.ShapeletSearch;
 import shapelet_transforms.search_functions.ShapeletSearchOptions;
 import shapelet_transforms.distance_functions.CachedSubSeqDistance;
-import shapelet_transforms.distance_functions.ImprovedOnlineSubSeqDistance;
 import shapelet_transforms.distance_functions.OnlineSubSeqDistance;
-import shapelet_transforms.distance_functions.SubSeqDistance;
+import shapelet_transforms.search_functions.ShapeletSearchFactory;
 
 /**
  *
@@ -469,7 +464,7 @@ public class ShapeletTransformTimingUtilities
             //e.g. Eletric devices can be sampled to from 8000 for 2000 so we should be looking for 20,000 shapelets not 80,000
             transform.setNumberOfShapelets(subsample.numInstances());
             ShapeletSearchOptions sOptions = new ShapeletSearchOptions.Builder().setMin(3).setMax(m).setLengthInc(i).setPosInc(i).build();
-            transform.setSearchFunction(new ShapeletSearch(sOptions));
+            transform.setSearchFunction(new ShapeletSearchFactory(sOptions).getShapeletSearch());
             transform.process(subsample);
         }
         return transform;
