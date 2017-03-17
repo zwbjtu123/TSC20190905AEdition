@@ -15,11 +15,13 @@ import weka.classifiers.AbstractClassifier;
 import weka.classifiers.meta.timeseriesensembles.HESCA;
 import weka.core.Instance;
 import weka.core.Instances;
-import weka.core.shapelet.Shapelet;
-import weka.filters.timeseries.shapelet_transforms.ShapeletTransform;
-import weka.filters.timeseries.shapelet_transforms.ShapeletTransformFactory;
-import static weka.filters.timeseries.shapelet_transforms.ShapeletTransformFactory.nanoToOp;
-import weka.filters.timeseries.shapelet_transforms.searchFuntions.ImpRandomSearch;
+import shapelet_transforms.*;
+import static shapelet_transforms.ShapeletTransformTimingUtilities.nanoToOp;
+import shapelet_transforms.distance_functions.SubSeqDistance;
+import shapelet_transforms.quality_measures.ShapeletQuality;
+import shapelet_transforms.search_functions.ShapeletSearch;
+import static shapelet_transforms.search_functions.ShapeletSearch.SearchType.FULL;
+import shapelet_transforms.search_functions.ShapeletSearchOptions;
 
 /**
  *
@@ -91,7 +93,7 @@ public class ST_HESCA  extends AbstractClassifier implements HiveCoteModule, Sav
     //pass in an enum of hour, minut, day, and the amount of them. 
     public void setTimeLimit(ST_TimeLimit time, int amount){
         //min,hour,day in longs.
-        long[] times = {ShapeletTransformFactory.dayNano/24/60, ShapeletTransformFactory.dayNano/24, ShapeletTransformFactory.dayNano};
+        long[] times = {ShapeletTransformTimingUtilities.dayNano/24/60, ShapeletTransformTimingUtilities.dayNano/24, ShapeletTransformTimingUtilities.dayNano};
         
         timeLimit = times[time.ordinal()] * amount;
     }
@@ -163,25 +165,29 @@ public class ST_HESCA  extends AbstractClassifier implements HiveCoteModule, Sav
         int n = train.numInstances();
         int m = train.numAttributes()-1;
 
-        //construct shapelet classifiers from the factory.
-        transform = ShapeletTransformFactory.createTransform(train);
-        if(shapeletOutputPath != null)
-            transform.setLogOutputFile(shapeletOutputPath);
+        //construct the options for the transform.
+        ShapeletTransformFactoryOptions.Builder optionsBuilder = new ShapeletTransformFactoryOptions.Builder();
+        optionsBuilder.setDistanceType(SubSeqDistance.DistanceType.IMP_ONLINE);
+        optionsBuilder.setQualityMeasure(ShapeletQuality.ShapeletQualityChoice.INFORMATION_GAIN);
+        if(train.numClasses() > 2){
+            optionsBuilder.useBinaryClassValue();
+            optionsBuilder.useClassBalancing();
+        }
+        optionsBuilder.useRoundRobin();
+        optionsBuilder.useCandidatePruning();
+        optionsBuilder.setKShapelets(train.numInstances());
         
-        if(preferShortShapelets)
-            transform.setShapeletComparator(new Shapelet.ShortOrder());
-        
-        //Stop it printing everything
-        //transform.supressOutput();
-        
-        BigInteger opCountTarget = new BigInteger(Long.toString(time / nanoToOp));
-        
-        BigInteger opCount = ShapeletTransformFactory.calculateOps(n, m, 1, 1);
-        
-        //clamp K to 2000.
-        int K = n > 2000 ? 2000 : n;       
+        //create our search options.
+        ShapeletSearchOptions.Builder searchBuilder = new ShapeletSearchOptions.Builder();
+        searchBuilder.setMin(3);
+        searchBuilder.setMax(m);
 
+        //clamp K to 2000.
+        int K = n > 2000 ? 2000 : n;   
+        
         //how much time do we have vs. how long our algorithm will take.
+        BigInteger opCountTarget = new BigInteger(Long.toString(time / nanoToOp));
+        BigInteger opCount = ShapeletTransformTimingUtilities.calculateOps(n, m, 1, 1);
         if(opCount.compareTo(opCountTarget) == 1){
             BigDecimal oct = new BigDecimal(opCountTarget);
             BigDecimal oc = new BigDecimal(opCount);
@@ -189,19 +195,29 @@ public class ST_HESCA  extends AbstractClassifier implements HiveCoteModule, Sav
             
             //if we've not set a shapelet count, calculate one, based on the time set.
             if(numShapelets == 0){
-                numShapelets = ShapeletTransformFactory.calculateNumberOfShapelets(n,m,3,m);
+                numShapelets = ShapeletTransformTimingUtilities.calculateNumberOfShapelets(n,m,3,m);
                 numShapelets *= prop.doubleValue();
             }
-                
-            //we need to find atleast one shapelet in every series.
-            transform.setSearchFunction(new ImpRandomSearch(3,m, numShapelets, seed));
-
+             
+             //we need to find atleast one shapelet in every series.
+            searchBuilder.setSeed(seed);
+            searchBuilder.setSearchType(ShapeletSearch.SearchType.IMP_RANDOM);
+            searchBuilder.setNumShapelets(numShapelets);
+            
             // can't have more final shapelets than we actually search through.
             K =  numShapelets > K ? K : (int) numShapelets;
-
-            transform.setNumberOfShapelets(K);
         }
 
+        optionsBuilder.setKShapelets(K);
+        optionsBuilder.setSearchOptions(searchBuilder.build());
+        transform = new ShapeletTransformFactory(optionsBuilder.build()).getTransform();
+    
+        if(shapeletOutputPath != null)
+            transform.setLogOutputFile(shapeletOutputPath);
+        
+        if(preferShortShapelets)
+            transform.setShapeletComparator(new Shapelet.ShortOrder());
+        
         return transform.process(train);
     }
     

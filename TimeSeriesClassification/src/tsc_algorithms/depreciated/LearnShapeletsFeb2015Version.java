@@ -20,6 +20,7 @@ import weka.core.Capabilities;
 import weka.core.Instance;
 import weka.core.Instances;
 
+@Deprecated
 public class LearnShapeletsFeb2015Version extends AbstractClassifier implements ParameterSplittable{
 
     long seed;

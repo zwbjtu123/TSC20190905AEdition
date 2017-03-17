@@ -30,8 +30,9 @@ import weka.core.TechnicalInformation;
 import weka.filters.SimpleBatchFilter;
 import weka.filters.timeseries.ACF;
 import weka.filters.timeseries.PowerSpectrum;
-import weka.filters.timeseries.shapelet_transforms.ShapeletTransform;
-import weka.filters.timeseries.shapelet_transforms.ShapeletTransformFactory;
+import shapelet_transforms.ShapeletTransform;
+import shapelet_transforms.ShapeletTransformFactory;
+import shapelet_transforms.ShapeletTransformTimingUtilities;
 
 /**
  *
@@ -87,7 +88,7 @@ public class FlatCote extends AbstractClassifier{
         ee.buildClassifier(train);
         
         //ShapeletTransform shapeletTransform = ShapeletTransformFactory.createTransform(train);
-        ShapeletTransform shapeletTransform = ShapeletTransformFactory.createTransformWithTimeLimit(train, 24); // now defaults to max of 24 hours
+        ShapeletTransform shapeletTransform = ShapeletTransformTimingUtilities.createTransformWithTimeLimit(train, 24); // now defaults to max of 24 hours
         shapeletTransform.supressOutput();
         st = new HESCA(shapeletTransform);
         st.buildClassifier(train);

@@ -17,6 +17,7 @@ import weka.filters.timeseries.PowerSpectrum;
  *
  * @author ajb
  */
+@Deprecated
 public class PS_Ensemble extends AbstractClassifier implements SaveableEnsemble{
     Classifier baseClassifier;
     Instances format;

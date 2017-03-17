@@ -6,21 +6,27 @@ package tsc_algorithms.depreciated;
 import weka.classifiers.meta.timeseriesensembles.SaveableEnsemble;
 import java.io.File;
 import java.math.BigInteger;
+import shapelet_transforms.ShapeletTransform;
+import shapelet_transforms.ShapeletTransformFactory;
+import shapelet_transforms.ShapeletTransformFactoryOptions;
+import shapelet_transforms.ShapeletTransformTimingUtilities;
 import utilities.ClassifierTools;
 import utilities.InstanceTools;
 import weka.classifiers.AbstractClassifier;
 import weka.classifiers.meta.timeseriesensembles.depreciated.HESCA_05_10_16;
 import weka.core.Instance;
 import weka.core.Instances;
-import weka.filters.timeseries.shapelet_transforms.ShapeletTransform;
-import weka.filters.timeseries.shapelet_transforms.ShapeletTransformFactory;
-import static weka.filters.timeseries.shapelet_transforms.ShapeletTransformFactory.nanoToOp;
-import weka.filters.timeseries.shapelet_transforms.searchFuntions.ShapeletSearch;
+import static shapelet_transforms.ShapeletTransformTimingUtilities.nanoToOp;
+import shapelet_transforms.distance_functions.SubSeqDistance;
+import shapelet_transforms.quality_measures.ShapeletQuality;
+import shapelet_transforms.search_functions.ShapeletSearch;
+import shapelet_transforms.search_functions.ShapeletSearchOptions;
 
 /**
  *
  * @author raj09hxu
  */
+@Deprecated
 public class ST_HESCA  extends AbstractClassifier implements SaveableEnsemble{
 
     public enum ST_TimeLimit {MINUTE, HOUR, DAY};
@@ -90,7 +96,7 @@ public class ST_HESCA  extends AbstractClassifier implements SaveableEnsemble{
     //pass in an enum of hour, minut, day, and the amount of them. 
     public void setTimeLimit(ST_TimeLimit time, int amount){
         //min,hour,day in longs.
-        long[] times = {ShapeletTransformFactory.dayNano/24/60, ShapeletTransformFactory.dayNano/24, ShapeletTransformFactory.dayNano};
+        long[] times = {ShapeletTransformTimingUtilities.dayNano/24/60, ShapeletTransformTimingUtilities.dayNano/24, ShapeletTransformTimingUtilities.dayNano};
         
         timeLimit = times[time.ordinal()] * amount;
     }
@@ -160,27 +166,33 @@ public class ST_HESCA  extends AbstractClassifier implements SaveableEnsemble{
         int n = train.numInstances();
         int m = train.numAttributes()-1;
 
-        //construct shapelet classifiers from the factory.
-        transform = ShapeletTransformFactory.createTransform(train);
-        transform.supressOutput();
+        //construct the options for the transform.
+        ShapeletTransformFactoryOptions.Builder optionsBuilder = new ShapeletTransformFactoryOptions.Builder();
+        optionsBuilder.setDistanceType(SubSeqDistance.DistanceType.IMP_ONLINE);
+        optionsBuilder.setQualityMeasure(ShapeletQuality.ShapeletQualityChoice.INFORMATION_GAIN);
+        if(train.numClasses() > 2){
+            optionsBuilder.useBinaryClassValue();
+            optionsBuilder.useClassBalancing();
+        }
+        optionsBuilder.useRoundRobin();
+        optionsBuilder.useCandidatePruning();
+        optionsBuilder.setKShapelets(train.numInstances());
         
-        if(shapeletOutputPath != null)
-            transform.setLogOutputFile(shapeletOutputPath);
+        //we use a 
+        ShapeletSearchOptions.Builder searchBuilder = new ShapeletSearchOptions.Builder();
+        searchBuilder.setMin(3);
+        searchBuilder.setMax(m);
+        searchBuilder.setSearchType(ShapeletSearch.SearchType.FULL);
         
-        //Stop it printing everything
-        //transform.supressOutput();
-        
-        //at the moment this could be overrided.
-        //transform.setSearchFunction(new LocalSearch(3, m, 10, seed));
 
+        //at the moment this could be overrided.
         BigInteger opCountTarget = new BigInteger(Long.toString(time / nanoToOp));
         
-        BigInteger opCount = ShapeletTransformFactory.calculateOps(n, m, 1, 1);
+        BigInteger opCount = ShapeletTransformTimingUtilities.calculateOps(n, m, 1, 1);
         
         //we need to resample.
         if(opCount.compareTo(opCountTarget) == 1){
-            
-            double recommendedProportion = ShapeletTransformFactory.calculateN(n, m, time);
+            double recommendedProportion = ShapeletTransformTimingUtilities.calculateN(n, m, time);
             
             //calculate n for minimum class rep of 25.
             int small_sf = InstanceTools.findSmallestClassAmount(train);           
@@ -188,7 +200,6 @@ public class ST_HESCA  extends AbstractClassifier implements SaveableEnsemble{
             if (small_sf>minimumRepresentation){
                 proportion = (double)minimumRepresentation/(double)small_sf;
             }
-            
             //if recommended is smaller than our cutoff threshold set it to the cutoff.
             if(recommendedProportion < proportion){
                 recommendedProportion = proportion;
@@ -200,27 +211,30 @@ public class ST_HESCA  extends AbstractClassifier implements SaveableEnsemble{
             int i=1;
             //if we've properly resampled this should pass on first go. IF we haven't we'll try and reach our target. 
             //calculate N is an approximation, so the subsample might need to tweak q and p just to bring us under. 
-            while(ShapeletTransformFactory.calculateOps(subsample.numInstances(), m, i, i).compareTo(opCountTarget) == 1){
+            while(ShapeletTransformTimingUtilities.calculateOps(subsample.numInstances(), m, i, i).compareTo(opCountTarget) == 1){
                 i++;
             }
+            //add extra options for the 
+            searchBuilder.setLengthInc(i);
+            searchBuilder.setPosInc(i);
+            optionsBuilder.setKShapelets(subsample.numInstances());
+            optionsBuilder.setSearchOptions(searchBuilder.build());
+            transform = new ShapeletTransformFactory(optionsBuilder.build()).getTransform();
             
-//            System.out.println("new q and p: " + i);
+            transform.supressOutput();
+            if(shapeletOutputPath != null)
+                transform.setLogOutputFile(shapeletOutputPath);
             
-            
-            double percentageOfSeries = (double)i/(double)m * 100.0;
-            
-//            System.out.println("percentageOfSeries: "+ percentageOfSeries);
-
-  //          System.out.println("new n: " + subsample.numInstances());
-            
-            //we should look for less shapelets if we've resampled. 
-            //e.g. Eletric devices can be sampled to from 8000 for 2000 so we should be looking for 20,000 shapelets not 80,000
-            transform.setNumberOfShapelets(subsample.numInstances());
-            transform.setSearchFunction(new ShapeletSearch(3, m, i, i));
+            //build shapelet set from subsample.
             transform.process(subsample);
+        }else{
+            optionsBuilder.setSearchOptions(searchBuilder.build());
+            transform = new ShapeletTransformFactory(optionsBuilder.build()).getTransform();
         }
         
         return transform.process(train);
+        
+        
     }
     
     public static void main(String[] args) throws Exception {
@@ -239,7 +253,7 @@ public class ST_HESCA  extends AbstractClassifier implements SaveableEnsemble{
         ST_HESCA st= new ST_HESCA();
         //st.saveResults(trainS, testS);
         st.doSTransform(true);
-        st.setTimeLimit(ShapeletTransformFactory.dayNano);
+        st.setTimeLimit(ShapeletTransformTimingUtilities.dayNano);
         st.buildClassifier(train);
         double accuracy = utilities.ClassifierTools.accuracy(test, st);
         

@@ -20,6 +20,7 @@ import weka.filters.timeseries.PowerSpectrum;
  *
 easiest way to generate these is to deconstruct the weighted ensemble.  
  */
+@Deprecated
 public class PSACF_Ensemble extends AbstractClassifier implements SaveableEnsemble{
 
     public enum ClassifierType{

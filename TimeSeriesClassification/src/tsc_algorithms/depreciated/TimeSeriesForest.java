@@ -55,6 +55,7 @@ margin= min{ |f_i-v| }
 
 
  */
+@Deprecated
 public class TimeSeriesForest extends AbstractClassifier{
     RandomTree[] trees;
     int numTrees=500;

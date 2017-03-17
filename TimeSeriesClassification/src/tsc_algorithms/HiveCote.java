@@ -20,8 +20,9 @@ import weka.classifiers.Classifier;
 import weka.classifiers.meta.timeseriesensembles.HESCA;
 import weka.core.Instance;
 import weka.core.Instances;
-import weka.filters.timeseries.shapelet_transforms.ShapeletTransform;
-import weka.filters.timeseries.shapelet_transforms.ShapeletTransformFactory;
+import shapelet_transforms.ShapeletTransform;
+import shapelet_transforms.ShapeletTransformFactory;
+import shapelet_transforms.ShapeletTransformTimingUtilities;
 import utilities.SaveParameterInfo;
 
 /**
@@ -103,7 +104,7 @@ public class HiveCote extends AbstractClassifier{
             if(classifiers.get(i) instanceof HESCA){
                 if(((HESCA)classifiers.get(i)).getTransform() instanceof DefaultShapeletTransformPlaceholder){
                     classifiers.remove(i);
-                    ShapeletTransform shoutyThing = ShapeletTransformFactory.createTransformWithTimeLimit(train, 24);
+                    ShapeletTransform shoutyThing = ShapeletTransformTimingUtilities.createTransformWithTimeLimit(train, 24);
                     shoutyThing.supressOutput();
                     classifiers.add(i, new HESCA(shoutyThing));
                 }

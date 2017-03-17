@@ -26,7 +26,6 @@ import java.io.IOException;
 import java.text.DecimalFormat;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import weka.core.shapelet.*;
 
 
 /* package weka.filters.timeseries.shapelet_transforms.* contains
@@ -41,7 +40,6 @@ import weka.core.shapelet.*;
  * transformation clustering. 
 *       
 * */
-import weka.filters.timeseries.shapelet_transforms.*;
 
 /* package weka.classifiers.trees.shapelet_trees.* contains
  *  ShapeletTreeClassifier: implementation of a shapelet tree to match the 
@@ -50,10 +48,9 @@ import weka.filters.timeseries.shapelet_transforms.*;
  * QualityMeasures.
  */
 import weka.core.*;
-import weka.filters.timeseries.shapelet_transforms.subsequenceDist.CachedSubSeqDistance;
-import weka.filters.timeseries.shapelet_transforms.subsequenceDist.ImprovedOnlineSubSeqDistance;
-import weka.filters.timeseries.shapelet_transforms.subsequenceDist.OnlineSubSeqDistance;
-import weka.filters.timeseries.shapelet_transforms.subsequenceDist.SubSeqDistance;
+import shapelet_transforms.*;
+import shapelet_transforms.distance_functions.*;
+import shapelet_transforms.quality_measures.ShapeletQuality.ShapeletQualityChoice;
 public class ShapeletExamples {
 
     public static ShapeletTransform st;
@@ -88,7 +85,7 @@ value, since there will be many duplicates and there is little overhead in
 /*Next you need to set the quality measure. This defaults to IG, but         
  * we recommend using the F stat. It is faster and (debatably) more accurate.
  */
-        st.setQualityMeasure(QualityMeasures.ShapeletQualityChoice.F_STAT);
+        st.setQualityMeasure(ShapeletQualityChoice.F_STAT);
 // You can set the filter to output details of the shapelets or not  
         st.setLogOutputFile("ShapeletExampleLog.csv");
 // Alternatively, you can turn the logging off
@@ -142,7 +139,7 @@ value, since there will be many duplicates and there is little overhead in
        int maxLength=36;
 //       int maxLength=(train.numAttributes()-1)/10;
        s.setShapeletMinAndMax(minLength, maxLength);
-       s.setQualityMeasure(QualityMeasures.ShapeletQualityChoice.F_STAT);
+       s.setQualityMeasure(ShapeletQualityChoice.F_STAT);
        s.supressOutput();
        s.turnOffLog();
     }
@@ -203,7 +200,7 @@ value, since there will be many duplicates and there is little overhead in
             initializeShapelet(s1,train);
             s1.setCandidatePruning(true);
         }
-        QualityMeasures.ShapeletQualityChoice[] choices=QualityMeasures.ShapeletQualityChoice.values();
+        ShapeletQualityChoice[] choices=ShapeletQualityChoice.values();
         for(int i=0;i<s.length;i++){
             s[i].setQualityMeasure(choices[i]);
             pruned[i].setQualityMeasure(choices[i]);
@@ -252,7 +249,7 @@ value, since there will be many duplicates and there is little overhead in
             maxLength=ShapeletTransform.DEFAULT_MINSHAPELETLENGTH;
         st.setShapeletMinAndMax(minLength, maxLength);
         //3. Quality measure
-        st.setQualityMeasure(QualityMeasures.ShapeletQualityChoice.F_STAT);
+        st.setQualityMeasure(ShapeletQualityChoice.F_STAT);
         
         //4. Set the filter to output details of the shapelets or not  
         st.setLogOutputFile("ApproximateTransformExampleLog.csv");

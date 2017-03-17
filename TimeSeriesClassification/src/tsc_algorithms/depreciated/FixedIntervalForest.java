@@ -38,6 +38,7 @@ import weka.filters.timeseries.PowerSpectrum;
 
 
  */
+@Deprecated
 public class FixedIntervalForest extends AbstractClassifier{
     RandomTree[] trees;
     int numTrees=500;

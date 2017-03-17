@@ -23,12 +23,13 @@ import utilities.ClassifierTools;
 import weka.classifiers.AbstractClassifier;
 import weka.classifiers.meta.timeseriesensembles.depreciated.HESCA_05_10_16;
 import weka.core.*;
-import weka.core.shapelet.QualityMeasures;
 import weka.filters.timeseries.ACF;
 import weka.filters.timeseries.PowerSpectrum;
-import weka.filters.timeseries.shapelet_transforms.ShapeletTransform;
-import weka.filters.timeseries.shapelet_transforms.subsequenceDist.OnlineSubSeqDistance;
+import shapelet_transforms.ShapeletTransform;
+import shapelet_transforms.distance_functions.OnlineSubSeqDistance;
+import shapelet_transforms.quality_measures.ShapeletQuality.ShapeletQualityChoice;
 
+@Deprecated
 public class COTE extends AbstractClassifier{
     HESCA_05_10_16 change;
     HESCA_05_10_16 powerSpectrum;
@@ -92,7 +93,7 @@ public class COTE extends AbstractClassifier{
         shapeletT.setDebug(false);
         shapeletT.supressOutput();
         shapeletT.turnOffLog();  
-        shapeletT.setQualityMeasure(QualityMeasures.ShapeletQualityChoice.F_STAT);
+        shapeletT.setQualityMeasure(ShapeletQualityChoice.F_STAT);
         Instances shapeletTrain=shapeletT.process(train);
  //Build all the classifiers       
         change=new HESCA_05_10_16();
