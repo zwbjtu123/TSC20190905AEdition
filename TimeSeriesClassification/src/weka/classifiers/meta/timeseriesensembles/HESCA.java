@@ -109,7 +109,7 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveParam
                 throw new Exception(errorLog);
         }
         
-        public boolean isEmpty() { return anyErrors; };
+        public boolean isEmpty() { return !anyErrors; };
         public String getLog() { return errorLog; };
     }
     
@@ -821,45 +821,45 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveParam
         return indexOfMax(dist);
     }
     
-//    protected static double indexOfMax(double[] dist) {
-//        double max = dist[0];
-//        double maxInd = 0;
-//        
-//        for (int i = 1; i < dist.length; ++i) {
-//            if (dist[i] > max) {
-//                max = dist[i];
-//                maxInd = i;
-//            }
-//        }
-//        return maxInd;
-//    }
-    
-    protected static double indexOfMax(double[] dist) throws Exception {  
-        double  bsfWeight = -(Double.MAX_VALUE);
-        ArrayList<Integer>  bsfClassVals = null;
+    protected static double indexOfMax(double[] dist) {
+        double max = dist[0];
+        double maxInd = 0;
         
-        for (int c = 0; c < dist.length; c++) {
-            if(dist[c] > bsfWeight){
-                bsfWeight = dist[c];
-                bsfClassVals = new ArrayList<>();
-                bsfClassVals.add(c);
-            }else if(dist[c] == bsfWeight){
-                bsfClassVals.add(c);
+        for (int i = 1; i < dist.length; ++i) {
+            if (dist[i] > max) {
+                max = dist[i];
+                maxInd = i;
             }
         }
-
-        if(bsfClassVals == null)
-            throw new Exception("bsfClassVals == null, NaN problem");
-
-        double pred; 
-        //if there's a tie for highest voted class after all module have voted, settle randomly
-        if(bsfClassVals.size()>1)
-            pred = bsfClassVals.get(new Random(0).nextInt(bsfClassVals.size()));
-        else
-            pred = bsfClassVals.get(0);
-        
-        return pred;
+        return maxInd;
     }
+    
+//    protected static double indexOfMax(double[] dist) throws Exception {  
+//        double  bsfWeight = -(Double.MAX_VALUE);
+//        ArrayList<Integer>  bsfClassVals = null;
+//        
+//        for (int c = 0; c < dist.length; c++) {
+//            if(dist[c] > bsfWeight){
+//                bsfWeight = dist[c];
+//                bsfClassVals = new ArrayList<>();
+//                bsfClassVals.add(c);
+//            }else if(dist[c] == bsfWeight){
+//                bsfClassVals.add(c);
+//            }
+//        }
+//
+//        if(bsfClassVals == null)
+//            throw new Exception("bsfClassVals == null, NaN problem");
+//
+//        double pred; 
+//        //if there's a tie for highest voted class after all module have voted, settle randomly
+//        if(bsfClassVals.size()>1)
+//            pred = bsfClassVals.get(new Random(0).nextInt(bsfClassVals.size()));
+//        else
+//            pred = bsfClassVals.get(0);
+//        
+//        return pred;
+//    }
     
     /**
      * @return the predictions of each individual module, i.e [0] = first module's vote, [1] = second...
