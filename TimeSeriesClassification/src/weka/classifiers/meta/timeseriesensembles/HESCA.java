@@ -634,6 +634,10 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveParam
         writeResultsFile(ensembleIdentifier, getParameters(), ensembleTestResults, "test");
     }
 
+    public EnsembleModule[] getModules() {
+        return modules;
+    }
+    
     public String[] getClassifierNames() {
         return classifierNames;
     }
@@ -726,6 +730,9 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveParam
         return ensembleTrainResults;
     }        
      
+    public ClassifierResults getTestResults(){
+        return ensembleTestResults;
+    }
     
     @Override
     public String getParameters(){

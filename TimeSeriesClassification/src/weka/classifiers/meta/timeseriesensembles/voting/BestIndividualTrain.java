@@ -47,6 +47,8 @@ public class BestIndividualTrain extends ModuleVotingScheme {
                 bestModule = m;
             }
         }
+        
+        printlnDebug(modules[bestModule].getModuleName());
     }
 
     @Override

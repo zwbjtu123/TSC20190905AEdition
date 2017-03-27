@@ -1,5 +1,6 @@
 package weka.classifiers.meta.timeseriesensembles.voting;
 
+import utilities.DebugPrinting;
 import weka.classifiers.meta.timeseriesensembles.EnsembleModule;
 import weka.core.Instance;
 
@@ -38,6 +39,8 @@ public class BestIndividualOracle extends ModuleVotingScheme {
                 bestModule = m;
             }
         }
+        
+        printlnDebug(modules[bestModule].getModuleName());
     }
 
     @Override

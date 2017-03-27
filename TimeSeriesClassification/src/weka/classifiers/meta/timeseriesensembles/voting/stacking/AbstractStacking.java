@@ -123,4 +123,8 @@ public abstract class AbstractStacking extends ModuleVotingScheme {
         return classifier.distributionForInstance(inst);
     }
     
+    public String toString() { 
+        return super.toString() + "(" + classifier.getClass().getSimpleName() + ")";
+    }
+    
 }
