@@ -17,7 +17,7 @@ import shapelet_transforms.Shapelet;
  */
 public class ShapeletSearch implements Serializable{
     
-    public enum SearchType {FULL, FS, GENETIC, RANDOM, LOCAL, MAGNIFY, TIMED_RANDOM, SKIPPING, TABU, REFINED_RANDOM, IMP_RANDOM};
+    public enum SearchType {FULL, FS, GENETIC, RANDOM, LOCAL, MAGNIFY, TIMED_RANDOM, SKIPPING, TABU, REFINED_RANDOM, IMP_RANDOM, SUBSAMPLE_RANDOM};
     
     public interface ProcessCandidate{
         public Shapelet process(double[] candidate, int start, int length);
@@ -61,6 +61,14 @@ public class ShapeletSearch implements Serializable{
         maxShapeletLength = max;
     }
     
+    public int getMin(){
+        return minShapeletLength;
+    }
+    
+    public int getMax(){
+        return maxShapeletLength;
+    }
+    
     public void init(Instances input){
         inputData = input;
     }
@@ -72,17 +80,18 @@ public class ShapeletSearch implements Serializable{
 
         double[] series = timeSeries.toDoubleArray();
 
-        
         for (int length = minShapeletLength; length <= maxShapeletLength; length+=lengthIncrement) {
             //for all possible starting positions of that length. -1 to remove classValue
             for (int start = 0; start <= timeSeries.numAttributes() - length - 1; start+=positionIncrement) {
                 Shapelet shapelet = checkCandidate.process(series, start, length);
+                
                 if (shapelet != null) {
                     seriesShapelets.add(shapelet);
+                    shapeletsVisited.add(seriesCount+","+length+","+start+","+shapelet.qualityValue);
+                    System.out.print(shapelet.qualityValue + " ");
                 }
-                
-                shapeletsVisited.add(seriesCount+","+length+","+start);
             }
+            System.out.println();
         }
         
         seriesCount++;

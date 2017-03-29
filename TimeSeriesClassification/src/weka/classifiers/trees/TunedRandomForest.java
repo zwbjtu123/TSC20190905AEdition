@@ -20,11 +20,15 @@ package weka.classifiers.trees;
 import fileIO.OutFile;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Random;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import utilities.ClassifierTools;
+import utilities.CrossValidator;
+import utilities.InstanceTools;
 import utilities.SaveParameterInfo;
 import utilities.TrainAccuracyEstimate;
-import weka.classifiers.Evaluation;
 import weka.classifiers.meta.Bagging;
 import weka.classifiers.meta.timeseriesensembles.ClassifierResults;
 import weka.core.Instance;
@@ -150,7 +154,10 @@ public class TunedRandomForest extends RandomForest implements SaveParameterInfo
     */    
     @Override
     public void buildClassifier(Instances data) throws Exception{
-        res.buildTime=System.currentTimeMillis();
+//        res.buildTime=System.currentTimeMillis(); //removed with cv changes  (jamesl) 
+        long startTime=System.currentTimeMillis(); 
+        //now calced separately from any instance on ClassifierResults, and added on at the end
+        
         int folds=10;
         if(crossValidate){
             if(folds>data.numInstances())
@@ -179,6 +186,15 @@ public class TunedRandomForest extends RandomForest implements SaveParameterInfo
                     y=b;
                 }
             }
+            
+            CrossValidator cv = new CrossValidator();
+            cv.setSeed(rng.nextInt()); 
+            cv.setNumFolds(folds);
+            cv.buildFolds(data);
+            ClassifierResults tempres = null;
+            res.acc = -1;//is initialised using default constructor above, left it there 
+            //to avoid any unforeseen clashes (jamesl) 
+            
             ArrayList<Pair> ties=new ArrayList<>();
             for(int numFeatures:numFeaturesRange){//Need to start from scratch for each
                 if(debug)
@@ -189,35 +205,62 @@ public class TunedRandomForest extends RandomForest implements SaveParameterInfo
                     t.setSeed(rng.nextInt());
                     t.setNumFeatures(numFeatures);
                     t.setNumTrees(numTrees);
-                    Instances temp=new Instances(data);
-                    Evaluation eval=new Evaluation(temp);
-                    double e;
-                    if(crossValidate){  
-                        eval.crossValidateModel(t, temp, folds, rng);
-                        e=eval.errorRate();
-                    }
-                    else{
-                        t.buildClassifier(temp);
-                        e=t.measureOutOfBagError();
-                    }
-//                    double e=1-ClassifierTools.stratifiedCrossValidation(data,t, folds,0);
-                    accuracy.add(1-e);
-                    if(debug)
-                        System.out.println(" numTrees ="+numTrees+" Acc = "+(1-e));
                     
-//                    double e=t.measureOutOfBagError();
-//                    System.out.println(" CV Error ="+e);
-//                    t.addTrees(numTreesRange[j]-numTreesRange[j-1], data);
-//                    double e=t.findOOBError();
-                    if(e<bestErr){
-                        bestErr=e;
-                       ties=new ArrayList<>();//Remove previous ties
+                //new (jamesl)
+                    if(crossValidate){  
+                        tempres = cv.crossValidateWithStats(t, data);
+                    }else{
+                        Instances temp=new Instances(data);
+                        t.buildClassifier(temp);
+                        tempres = new ClassifierResults();
+                        tempres.acc = 1 - t.measureOutOfBagError();   
+                    }
+                    
+                    if(debug)
+                        System.out.println(" numTrees ="+numTrees+" Acc = "+tempres.acc);
+                    
+                    accuracy.add(tempres.acc);
+                    if (tempres.acc > res.acc) {
+                        res = tempres;
+                        ties=new ArrayList<>();//Remove previous ties
                         ties.add(new Pair(numFeatures,numTrees));
                     }
-                    else if(e==bestErr){//tied best, chosen randomeli
+                    else if(tempres.acc == res.acc){//Sort out ties
                         ties.add(new Pair(numFeatures,numTrees));
-   
                     }
+                //endofnew
+                    
+                //old
+//                    Instances temp=new Instances(data);
+//                    Evaluation eval=new Evaluation(temp);
+//                    double e;
+//                    if(crossValidate){  
+//                        eval.crossValidateModel(t, temp, folds, rng);
+//                        e=eval.errorRate();
+//                    }
+//                    else{
+//                        t.buildClassifier(temp);
+//                        e=t.measureOutOfBagError();
+//                    }
+////                    double e=1-ClassifierTools.stratifiedCrossValidation(data,t, folds,0);
+//                    accuracy.add(1-e);
+//                    if(debug)
+//                        System.out.println(" numTrees ="+numTrees+" Acc = "+(1-e));
+//                    
+////                    double e=t.measureOutOfBagError();
+////                    System.out.println(" CV Error ="+e);
+////                    t.addTrees(numTreesRange[j]-numTreesRange[j-1], data);
+////                    double e=t.findOOBError();
+//                    if(e<bestErr){
+//                        bestErr=e;
+//                       ties=new ArrayList<>();//Remove previous ties
+//                        ties.add(new Pair(numFeatures,numTrees));
+//                    }
+//                    else if(e==bestErr){//tied best, chosen randomeli
+//                        ties.add(new Pair(numFeatures,numTrees));
+//   
+//                    }
+                //endofold
                 }
             }
             int bestNumTrees;
@@ -228,7 +271,7 @@ public class TunedRandomForest extends RandomForest implements SaveParameterInfo
             
             this.setNumTrees(bestNumTrees);
             this.setNumFeatures(bestNumAtts);
-            res.acc=1-bestErr;
+//            res.acc=1-bestErr; //removed with cv change, saved from cver (jamesl) 
             if(debug)
                 System.out.println("Best num atts ="+bestNumAtts+" best num trees = "+bestNumTrees+" best train acc = "+res.acc);
             if(trainPath!=""){  //Save train results not implemented
@@ -239,21 +282,34 @@ public class TunedRandomForest extends RandomForest implements SaveParameterInfo
         super.buildClassifier(data);
         if(findTrainAcc){   //Need find train acc, either through CV or OOB
             if(crossValidate){  
-                    RandomForest t= new RandomForest();
-                    t.setNumFeatures(this.getNumFeatures());
-                    t.setNumTrees(this.getNumTrees());
-                    t.setSeed(rng.nextInt());
-                    Instances temp=new Instances(data);
-                    Evaluation eval=new Evaluation(temp);
-                    double e;
-                eval.crossValidateModel(t, data, folds, rng);
-                res.acc=1-eval.errorRate();
+                RandomForest t= new RandomForest();
+                t.setNumFeatures(this.getNumFeatures());
+                t.setNumTrees(this.getNumTrees());
+                t.setSeed(rng.nextInt());
+ 
+                //new (jamesl) 
+                CrossValidator cv = new CrossValidator();
+                cv.setSeed(rng.nextInt()); //trying to mimick old seeding behaviour below
+                cv.setNumFolds(folds);
+                cv.buildFolds(data);
+
+                res = cv.crossValidateWithStats(t, data);
+                //endofnew
+
+                //old
+//                Instances temp=new Instances(data);
+//                Evaluation eval=new Evaluation(temp);
+//                double e;
+//                eval.crossValidateModel(t, data, folds, rng);
+//                res.acc=1-eval.errorRate();
+                //endofold
             }
             else{
                 res.acc=1-this.measureOutOfBagError();
             }
         }
-        res.buildTime=System.currentTimeMillis()-res.buildTime;
+        
+        res.buildTime=System.currentTimeMillis()-startTime;
         if(trainPath!=""){  //Save basic train results
             OutFile f= new OutFile(trainPath);
             f.writeLine(data.relationName()+",TunedRandF,Train");
@@ -371,12 +427,115 @@ public class TunedRandomForest extends RandomForest implements SaveParameterInfo
         return ((EnhancedBagging)m_bagger).OOBProbabilities;
     }
   
-  
-  
-    public static void main(String[] args) {
+    public static void jamesltests() {
+        //tests to confirm correctness of cv changes
+        //summary: pre/post change avg accs over 50 folds
+        // train: 0.9689552238805973 vs 0.9680597014925374
+        // test: 0.9590670553935859 vs 0.9601943634596699
         
+        //post change trainaccs/testaccs on 50 folds of italypowerdemand: 
+//                trainacc=0.9680597014925374
+//        folds:
+//        [0.9552238805970149, 0.9552238805970149, 1.0, 1.0, 0.9552238805970149, 
+//        0.9701492537313433, 0.9552238805970149, 0.9402985074626866, 0.9552238805970149, 1.0, 
+//        0.9552238805970149, 0.9701492537313433, 0.9701492537313433, 0.9701492537313433, 0.9850746268656716, 
+//        0.9552238805970149, 0.9402985074626866, 0.9850746268656716, 1.0, 0.9552238805970149, 
+//        0.9850746268656716, 0.9701492537313433, 0.9701492537313433, 0.9552238805970149, 1.0, 
+//        0.9701492537313433, 0.9701492537313433, 0.9552238805970149, 0.9552238805970149, 0.9850746268656716, 
+//        0.9402985074626866, 0.9850746268656716, 1.0, 0.9850746268656716, 0.9850746268656716, 
+//        0.9402985074626866, 0.9552238805970149, 0.9253731343283582, 0.9701492537313433, 0.9701492537313433, 
+//        0.9701492537313433, 1.0, 0.9402985074626866, 0.9701492537313433, 0.9552238805970149, 
+//        0.9402985074626866, 0.9701492537313433, 0.9552238805970149, 0.9850746268656716, 0.9701492537313433]
+//
+//                testacc=0.9601943634596699
+//        folds:
+//        [0.9543245869776482, 0.9271137026239067, 0.9582118561710399, 0.966958211856171, 0.9718172983479106, 
+//        0.9650145772594753, 0.9582118561710399, 0.9689018464528668, 0.9494655004859086, 0.966958211856171, 
+//        0.9620991253644315, 0.9698736637512148, 0.9659863945578231, 0.9659863945578231, 0.966958211856171, 
+//        0.9718172983479106, 0.9416909620991254, 0.9640427599611273, 0.9368318756073858, 0.9698736637512148,
+//        0.966958211856171, 0.9494655004859086, 0.9582118561710399, 0.9698736637512148, 0.9620991253644315, 
+//        0.9650145772594753, 0.9640427599611273, 0.9601554907677357, 0.9319727891156463, 0.967930029154519, 
+//        0.9523809523809523, 0.967930029154519, 0.9591836734693877, 0.9727891156462585, 0.9572400388726919, 
+//        0.9329446064139941, 0.9718172983479106, 0.9620991253644315, 0.9689018464528668, 0.9514091350826045, 
+//        0.9630709426627794, 0.966958211856171, 0.9543245869776482, 0.9718172983479106, 0.9698736637512148, 
+//        0.9552964042759962, 0.9727891156462585, 0.9329446064139941, 0.9630709426627794, 0.9650145772594753]
+
+        //pre change trainaccs/testaccs on 50 folds of italypowerdemand: 
+//                trainacc=0.9689552238805973
+//        folds:
+//        [0.9402985074626866, 0.9701492537313433, 1.0, 1.0, 0.9253731343283582, 
+//        0.9850746268656716, 0.9850746268656716, 0.9552238805970149, 0.9552238805970149, 1.0, 
+//        0.9402985074626866, 0.9701492537313433, 0.9701492537313433, 0.9850746268656716, 0.9850746268656716, 
+//        0.9701492537313433, 0.9253731343283582, 0.9850746268656716, 1.0, 0.9701492537313433, 
+//        0.9850746268656716, 0.9850746268656716, 0.9701492537313433, 0.9701492537313433, 1.0, 
+//        0.9552238805970149, 0.9552238805970149, 0.9552238805970149, 0.9701492537313433, 0.9850746268656716, 
+//        0.9552238805970149, 0.9850746268656716, 1.0, 0.9850746268656716, 0.9850746268656716, 
+//        0.9701492537313433, 0.9552238805970149, 0.9402985074626866, 0.9701492537313433, 0.9552238805970149, 
+//        0.9850746268656716, 1.0, 0.9402985074626866, 0.9701492537313433, 0.9402985074626866, 
+//        0.9253731343283582, 0.9701492537313433, 0.9552238805970149, 0.9552238805970149, 0.9552238805970149]
+//
+//                testacc=0.9590670553935859
+//        folds:
+//        [0.9514091350826045, 0.9290573372206026, 0.9591836734693877, 0.967930029154519, 0.9708454810495627, 
+//        0.9689018464528668, 0.9650145772594753, 0.9708454810495627, 0.9358600583090378, 0.967930029154519, 
+//        0.9640427599611273, 0.9640427599611273, 0.9630709426627794, 0.9659863945578231, 0.9543245869776482, 
+//        0.9689018464528668, 0.9514091350826045, 0.9659863945578231, 0.9659863945578231, 0.9611273080660836,
+//        0.9689018464528668, 0.9504373177842566, 0.9504373177842566, 0.9698736637512148, 0.9630709426627794, 
+//        0.9620991253644315, 0.9582118561710399, 0.966958211856171, 0.9543245869776482, 0.9640427599611273, 
+//        0.9514091350826045, 0.9533527696793003, 0.9659863945578231, 0.9689018464528668, 0.9572400388726919, 
+//        0.967930029154519, 0.9689018464528668, 0.9698736637512148, 0.9698736637512148, 0.9582118561710399, 
+//        0.9601554907677357, 0.966958211856171, 0.9378036929057337, 0.9689018464528668, 0.9650145772594753, 
+//        0.8794946550048591, 0.9737609329446064, 0.9319727891156463, 0.9484936831875608, 0.9689018464528668]
+
+
+        System.out.println("ranftestsWITHCHANGES");
+        
+        String dataset = "ItalyPowerDemand";
+        
+        Instances train = ClassifierTools.loadData("c:/tsc problems/"+dataset+"/"+dataset+"_TRAIN");
+        Instances test = ClassifierTools.loadData("c:/tsc problems/"+dataset+"/"+dataset+"_TEST");
+        
+        int rs = 50;
+        
+        double[] trainAccs = new double[rs];
+        double[] testAccs = new double[rs];
+        double trainAcc =0;
+        double testAcc =0;
+        for (int r = 0; r < rs; r++) {
+            Instances[] data = InstanceTools.resampleTrainAndTestInstances(train, test, r);
+            
+            TunedRandomForest ranF = new TunedRandomForest();
+            ranF.setCrossValidate(true);
+            ranF.setTrainAcc(true);
+            try {
+                ranF.buildClassifier(data[0]);
+            } catch (Exception ex) {
+                Logger.getLogger(TunedRandomForest.class.getName()).log(Level.SEVERE, null, ex);
+            }
+            
+            trainAccs[r] = ranF.res.acc;
+            trainAcc+=trainAccs[r];
+            
+            testAccs[r] = ClassifierTools.accuracy(data[1], ranF);
+            testAcc+=testAccs[r];
+            
+            System.out.print(".");
+        }
+        trainAcc/=rs;
+        testAcc/=rs;
+        
+        System.out.println("\nacc="+trainAcc);
+        System.out.println(Arrays.toString(trainAccs));
+        
+        System.out.println("\nacc="+testAcc);
+        System.out.println(Arrays.toString(testAccs));
+    }
+      
+    
+    public static void main(String[] args) {
+        jamesltests();
   //      testBinMaker();
-  //      System.exit(0);
+        System.exit(0);
         DecimalFormat df = new DecimalFormat("##.###");
         try{
                 String s="SwedishLeaf";

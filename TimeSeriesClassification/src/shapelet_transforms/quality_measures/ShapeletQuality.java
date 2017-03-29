@@ -62,7 +62,7 @@ public class ShapeletQuality {
     
     ShapeletQualityChoice choice;
     ShapeletQualityMeasure qualityMeasure;
-    Optional<ShapeletQualityBound> bound;
+    Optional<ShapeletQualityBound> bound = Optional.empty();
     
     
     //init static lists of constructors.

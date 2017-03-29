@@ -175,7 +175,6 @@ public class ST_HESCA  extends AbstractClassifier implements HiveCoteModule, Sav
         }
         optionsBuilder.useRoundRobin();
         optionsBuilder.useCandidatePruning();
-        optionsBuilder.setKShapelets(train.numInstances());
         
         //create our search options.
         ShapeletSearchOptions.Builder searchBuilder = new ShapeletSearchOptions.Builder();

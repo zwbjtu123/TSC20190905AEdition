@@ -82,8 +82,6 @@ public class ImprovedOnlineSubSeqDistance extends OnlineSubSeqDistance{
 
         bestDist = (bestDist == 0.0) ? 0.0 : (1.0 / candidate.length * bestDist);
         
-        System.out.println(bestDist);
-        
         return bestDist;
     }
     

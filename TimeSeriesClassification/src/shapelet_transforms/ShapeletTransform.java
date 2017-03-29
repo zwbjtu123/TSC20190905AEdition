@@ -68,8 +68,6 @@ public class ShapeletTransform extends SimpleBatchFilter implements SaveParamete
     public int dataSet;
     
     protected boolean supressOutput; // defaults to print in System.out AS WELL as file, set to true to stop printing to console
-    protected int minShapeletLength;
-    protected int maxShapeletLength;
     protected int numShapelets;
     protected ArrayList<Shapelet> shapelets;
     protected String ouputFileLocation = "defaultShapeletOutput.txt"; // default store location
@@ -202,8 +200,6 @@ public class ShapeletTransform extends SimpleBatchFilter implements SaveParamete
      * filter
      */    
     public ShapeletTransform(int k, int minShapeletLength, int maxShapeletLength, ShapeletQualityChoice qualityChoice) {
-        this.minShapeletLength = minShapeletLength;
-        this.maxShapeletLength = maxShapeletLength;
         this.numShapelets = k;
         this.shapelets = new ArrayList<>();
         this.m_FirstBatchDone = false;
@@ -320,8 +316,6 @@ public class ShapeletTransform extends SimpleBatchFilter implements SaveParamete
      * @param maxShapeletLength maximum length of shapelets
      */
     public void setShapeletMinAndMax(int min, int max) {
-        minShapeletLength = min;
-        maxShapeletLength = max;
         searchFunction.setMinAndMax(min, max);
     }
 
@@ -418,10 +412,6 @@ public class ShapeletTransform extends SimpleBatchFilter implements SaveParamete
 
         if (dataInst.classIndex() >= 0) {
             maxPossibleLength -= 1;
-        }
-
-        if (minShapeletLength < 1 || maxShapeletLength < 1 || maxShapeletLength < minShapeletLength || maxShapeletLength > maxPossibleLength) {
-            throw new IllegalArgumentException("Shapelet length parameters initialised incorrectly");
         }
     }
 
@@ -636,8 +626,6 @@ public class ShapeletTransform extends SimpleBatchFilter implements SaveParamete
      */
     public ArrayList<Shapelet> findBestKShapeletsCache(int numShapelets, Instances data, int minShapeletLength, int maxShapeletLength) {
         this.numShapelets = numShapelets;
-        this.minShapeletLength = minShapeletLength;
-        this.maxShapeletLength = maxShapeletLength;
         //setup classsValue
         classValue.init(data);
         //setup subseqDistance
@@ -1152,7 +1140,7 @@ public class ShapeletTransform extends SimpleBatchFilter implements SaveParamete
     
     @Override
     public String getParameters(){
-        String str="minShapeletLength,"+minShapeletLength+",maxShapeletLength,"+maxShapeletLength+",numShapelets,"+numShapelets+",roundrobin,"+roundRobin
+        String str="minShapeletLength,"+searchFunction.getMin()+",maxShapeletLength,"+searchFunction.getMax()+",numShapelets,"+numShapelets+",roundrobin,"+roundRobin
                 + ",searchFunction,"+this.searchFunction.getClass().getSimpleName()
                 + ",qualityMeasure,"+this.quality.getQualityMeasure().getClass().getSimpleName();
         return str;

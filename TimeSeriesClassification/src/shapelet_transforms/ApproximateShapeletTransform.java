@@ -20,6 +20,8 @@ import weka.filters.unsupervised.instance.Resample;
  * 
  * @author Edgaras Baranauskas
  */
+
+@Deprecated
 public class ApproximateShapeletTransform extends ShapeletTransform{
     /**
      * Size of the subsample, as a percentage of the original set 
@@ -147,8 +149,8 @@ public class ApproximateShapeletTransform extends ShapeletTransform{
         output = performPAA(output);
         
         //Make shapelet length relative to that of the original
-        minShapeletLength = (output.numAttributes() - 1) * minShapeletLength / (data.numAttributes()-1);
-        maxShapeletLength = (output.numAttributes() - 1) * maxShapeletLength / (data.numAttributes()-1);
+        //minShapeletLength = (output.numAttributes() - 1) * minShapeletLength / (data.numAttributes()-1);
+        //maxShapeletLength = (output.numAttributes() - 1) * maxShapeletLength / (data.numAttributes()-1);
         
         return output;
     }

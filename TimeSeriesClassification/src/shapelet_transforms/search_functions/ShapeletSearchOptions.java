@@ -83,8 +83,8 @@ public class ShapeletSearchOptions {
         private int max;
         private long seed;
         private long numShapelets;
-        private int lengthInc;
-        private int posInc;
+        private int lengthInc = 1;
+        private int posInc = 1;
         private float proportion;
         private int maxIterations;
         private long timeLimit;

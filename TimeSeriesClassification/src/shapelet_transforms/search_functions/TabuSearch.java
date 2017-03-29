@@ -62,7 +62,7 @@ public class TabuSearch extends ImpRandomSearch{
             //create the random shapelet.
             //if it's the first iteration and we've got a previous best shapelet.
             if(numShapeletsEvaluated == 0 && bsf_shapelet != null){
-               shapelet = new Pair<Integer,Integer>(bsf_shapelet.length, bsf_shapelet.startPos) ;
+               shapelet = new Pair(bsf_shapelet.length, bsf_shapelet.startPos) ;
                bsf_shapelet = null; //reset the best one for this series.
             }else{
                 shapelet = createRandomShapelet(timeSeries);
@@ -162,7 +162,7 @@ public class TabuSearch extends ImpRandomSearch{
                    newPos >= (m-newLen+1))       //don't allow position to be greater than m-l+1.
                     continue;
                 
-                neighbourhood.add(new Pair<>(newLen, newPos));
+                neighbourhood.add(new Pair(newLen, newPos));
             } 
         }
         
@@ -188,7 +188,7 @@ public class TabuSearch extends ImpRandomSearch{
         //length of m, and 
         for (int len = 3; len < 100; len++) {
             for(int pos=0; pos< 100-len+1; pos++){
-                ArrayList<Pair<Integer, Integer>> createNeighbourhood = tb.createNeighbourhood(new Pair<>(len, pos), 100);
+                ArrayList<Pair<Integer, Integer>> createNeighbourhood = tb.createNeighbourhood(new Pair(len, pos), 100);
                 System.out.println(createNeighbourhood);
             }
         }
