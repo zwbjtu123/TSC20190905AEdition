@@ -20,7 +20,6 @@ import static shapelet_transforms.ShapeletTransformTimingUtilities.nanoToOp;
 import shapelet_transforms.distance_functions.SubSeqDistance;
 import shapelet_transforms.quality_measures.ShapeletQuality;
 import shapelet_transforms.search_functions.ShapeletSearch;
-import static shapelet_transforms.search_functions.ShapeletSearch.SearchType.FULL;
 import shapelet_transforms.search_functions.ShapeletSearchOptions;
 
 /**

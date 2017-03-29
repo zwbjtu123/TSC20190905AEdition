@@ -10,7 +10,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Random;
 import java.util.Scanner;
-import tsc_algorithms.cote.HiveCoteModule;
+import timeseries_classifiers.cote.HiveCoteModule;
 import utilities.ClassifierTools;
 import utilities.CrossValidator;
 import utilities.DebugPrinting;

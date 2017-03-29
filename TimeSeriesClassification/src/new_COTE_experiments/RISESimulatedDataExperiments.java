@@ -5,7 +5,6 @@
 */
 package new_COTE_experiments;
 
-import tsc_algorithms.ElasticEnsemble;
 import development.DataSets;
 import fileIO.OutFile;
 import java.util.ArrayList;
@@ -13,16 +12,10 @@ import statistics.distributions.Distribution;
 import statistics.simulators.DataSimulator;
 import statistics.simulators.Model;
 import statistics.simulators.SimulateSpectralData;
-import statistics.simulators.SimulateShapeletData;
 import statistics.simulators.WhiteNoiseModel;
-import tsc_algorithms.*;
 import utilities.ClassifierTools;
 import utilities.InstanceTools;
 import weka.classifiers.Classifier;
-import weka.classifiers.lazy.DTW_1NN;
-import weka.classifiers.meta.RotationForest;
-import weka.classifiers.meta.timeseriesensembles.HESCA;
-import weka.classifiers.trees.TunedRandomForest;
 import weka.core.Instances;
 import development.SimulationExperiments;
 import static development.SimulationExperiments.createClassifier;

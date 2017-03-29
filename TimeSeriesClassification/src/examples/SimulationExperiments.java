@@ -10,19 +10,14 @@ LINK HERE
 package examples;
 
 import development.DataSets;
-import tsc_algorithms.depreciated.COTE;
-import fileIO.InFile;
+import timeseries_classifiers.depreciated.COTE;
 import fileIO.OutFile;
-import java.io.File;
-import java.text.DecimalFormat;
-import statistics.simulators.DataSimulator;
 import statistics.simulators.Model;
 import statistics.simulators.SimulateSpectralData;
 import statistics.simulators.SimulateDictionaryData;
 import statistics.simulators.SimulateIntervalData;
 import statistics.simulators.SimulateShapeletData;
-import statistics.simulators.SimulateWholeSeriesData;
-import tsc_algorithms.*;
+import timeseries_classifiers.*;
 import utilities.InstanceTools;
 import utilities.SaveParameterInfo;
 import weka.classifiers.Classifier;
@@ -32,7 +27,6 @@ import weka.classifiers.meta.timeseriesensembles.HESCA;
 import weka.classifiers.meta.timeseriesensembles.SaveableEnsemble;
 import weka.classifiers.trees.TunedRandomForest;
 import weka.core.Instances;
-import tsc_algorithms.*;
 import utilities.ClassifierTools;
 import utilities.TrainAccuracyEstimate;
 
