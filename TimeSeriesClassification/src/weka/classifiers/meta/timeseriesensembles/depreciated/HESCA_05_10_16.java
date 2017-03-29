@@ -26,7 +26,7 @@ import weka.classifiers.lazy.kNN;
 import weka.classifiers.meta.RotationForest;
 import weka.classifiers.meta.timeseriesensembles.SaveableEnsemble;
 import weka.classifiers.rules.ZeroR;
-import weka.classifiers.trees.TunedRandomForest;
+import vector_classifiers.TunedRandomForest;
 import weka.classifiers.trees.J48;
 import weka.classifiers.trees.RandomForest;
 import weka.core.*;
