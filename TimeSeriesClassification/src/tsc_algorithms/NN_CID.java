@@ -29,7 +29,9 @@ package tsc_algorithms;
 import development.DataSets;
 import java.util.Enumeration;
 import utilities.ClassifierTools;
+import utilities.SaveParameterInfo;
 import weka.classifiers.lazy.kNN;
+import weka.classifiers.meta.timeseriesensembles.ClassifierResults;
 import weka.core.DistanceFunction;
 import weka.core.EuclideanDistance;
 import weka.core.Instance;
@@ -42,7 +44,9 @@ import weka.core.neighboursearch.PerformanceStats;
  *
  * @author ajb
  */
-public class NN_CID  extends kNN{    
+public class NN_CID  extends kNN implements SaveParameterInfo{
+     protected ClassifierResults res =new ClassifierResults();
+    
     CIDDistance cid=new CIDDistance();
     
        public NN_CID(){
@@ -166,13 +170,20 @@ public class NN_CID  extends kNN{
     };
       //</editor-fold>  
     
+    @Override
+    public String getParameters() {
+        return "BuildTime,"+res.buildTime;
+    }
     
     
     @Override
     public void buildClassifier(Instances train){      
+        res.buildTime=System.currentTimeMillis();
         this.setDistanceFunction(cid);
 //        cid.setInstances(train);
         super.buildClassifier(train);
+        res.buildTime=System.currentTimeMillis()-res.buildTime;
+        
     }
     public static class CIDDistance extends EuclideanDistance {
    

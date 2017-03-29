@@ -19,7 +19,7 @@ import weka.filters.timeseries.SAX;
  * 
  * @author James
  */
-public class BagOfPatterns implements Classifier {
+public class BagOfPatterns extends AbstractClassifierWithTrainingData{
 
     public TechnicalInformation getTechnicalInformation() {
     TechnicalInformation 	result;
@@ -91,7 +91,7 @@ public class BagOfPatterns implements Classifier {
     /**
      * @return { numIntervals(word length), alphabetSize, slidingWindowSize } 
      */
-    public int[] getParameters() {
+    public int[] getParameterArray() {
         return new int[] { PAA_intervalsPerWindow, SAX_alphabetSize, windowSize};
     }
     
@@ -151,6 +151,7 @@ public class BagOfPatterns implements Classifier {
     
     @Override
     public void buildClassifier(final Instances data) throws Exception {
+        trainResults.buildTime=System.currentTimeMillis();
         if (data.classIndex() != data.numAttributes()-1)
             throw new Exception("LinBoP_BuildClassifier: Class attribute not set as last attribute in dataset");
         
@@ -181,6 +182,8 @@ public class BagOfPatterns implements Classifier {
         //real work
         matrix = bop.process(data); //transform
         knn.buildClassifier(matrix); //give to 1nn
+        trainResults.buildTime=System.currentTimeMillis()-trainResults.buildTime;
+        
     }
 
     @Override
@@ -236,6 +239,14 @@ public class BagOfPatterns implements Classifier {
         
         return knn.distributionForInstance(newInsts.firstInstance());
     }
+    @Override
+    public String getParameters() {
+        StringBuilder sb = new StringBuilder();
+        sb.append(super.getParameters());
+        sb.append(",SAXAlphabetSize,").append(getSAX_alphabetSize()).append(",WindowSize,");
+        sb.append(getWindowSize()).append(",PAAIntervals,").append(getPAA_intervalsPerWindow());
+        return sb.toString();
+    }
 
     @Override
     public Capabilities getCapabilities() {
@@ -264,7 +275,7 @@ public class BagOfPatterns implements Classifier {
             System.out.println("Training done (" + trainTime + "s)");
 
             System.out.print("Params: ");
-            for (int p : bop.getParameters())
+            for (int p : bop.getParameterArray())
                 System.out.print(p + " ");
             System.out.println("");
 

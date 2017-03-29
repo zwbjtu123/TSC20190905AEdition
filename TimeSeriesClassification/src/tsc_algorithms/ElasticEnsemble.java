@@ -43,7 +43,7 @@ import weka.core.TechnicalInformation;
  *
  * @author sjx07ngu
  */
-public class ElasticEnsemble implements Classifier, HiveCoteModule, SaveParameterInfo, WritableTestResults,TrainAccuracyEstimate{
+public class ElasticEnsemble extends AbstractClassifierWithTrainingData implements HiveCoteModule, WritableTestResults,TrainAccuracyEstimate{
 
     
     public TechnicalInformation getTechnicalInformation() {
@@ -109,7 +109,6 @@ public class ElasticEnsemble implements Classifier, HiveCoteModule, SaveParamete
     
     double ensembleCvAcc =-1;
     double[] ensembleCvPreds = null;
-    private ClassifierResults res =new ClassifierResults();
     
     @Override
     public Capabilities getCapabilities() {
@@ -270,10 +269,10 @@ public class ElasticEnsemble implements Classifier, HiveCoteModule, SaveParamete
     
     @Override
     public ClassifierResults getTrainResults(){
-//Temporary : copy stuff into res.acc here
-        res.acc=ensembleCvAcc;
+//Temporary : copy stuff into trainResults.acc here
+        trainResults.acc=ensembleCvAcc;
 //TO DO: Write the other stats        
-        return res;
+        return trainResults;
     }        
     
     /**
@@ -283,7 +282,7 @@ public class ElasticEnsemble implements Classifier, HiveCoteModule, SaveParamete
      */
     @Override
     public void buildClassifier(Instances train) throws Exception{
-        res.buildTime=System.currentTimeMillis();
+        trainResults.buildTime=System.currentTimeMillis();
         this.train = train;
         this.derTrain = null;
         usesDer = false;
@@ -374,7 +373,7 @@ public class ElasticEnsemble implements Classifier, HiveCoteModule, SaveParamete
                 fullTrain.close();
             }
         }
-        res.buildTime=System.currentTimeMillis()-res.buildTime;
+        trainResults.buildTime=System.currentTimeMillis()-trainResults.buildTime;
         
     }
     
@@ -556,7 +555,7 @@ public class ElasticEnsemble implements Classifier, HiveCoteModule, SaveParamete
     
     public String getParameters(){
         StringBuilder params = new StringBuilder();
-        params.append("BuildTime,"+res.buildTime+",");
+        params.append(super.getParameters()).append(",");
         for(int c = 0; c < classifiers.length; c++){
             params.append(classifiers[c].getClassifierIdentifier()).append(",").append(classifiers[c].getParamInformationString()).append(",");
         }

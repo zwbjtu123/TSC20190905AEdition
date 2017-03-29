@@ -25,7 +25,7 @@ year="2013"
 
  * @author James
  */
-public class SAXVSM implements Classifier {
+public class SAXVSM extends AbstractClassifierWithTrainingData {
 
     Instances transformedData;
     Instances corpus;
@@ -87,10 +87,13 @@ public class SAXVSM implements Classifier {
     /**
      * @return { numIntervals(word length), alphabetSize, slidingWindowSize } 
      */
-    public int[] getParameters() {
+    public int[] getParametersArray() {
         return new int[] { PAA_intervalsPerWindow, SAX_alphabetSize, windowSize};
     }
-    
+    @Override
+    public String getParameters() {
+        return super.getParameters()+",PAAIntervalsPerWindow,"+PAA_intervalsPerWindow+",alphabetSize,"+SAX_alphabetSize+",windowSize,"+windowSize;
+    }
     /**
      * Performs cross validation on given data for varying parameter values, returns 
      * parameter set which yielded greatest accuracy
@@ -150,6 +153,8 @@ public class SAXVSM implements Classifier {
     
     @Override
     public void buildClassifier(Instances data) throws Exception {
+        trainResults.buildTime=System.currentTimeMillis();
+        
         if (data.classIndex() != data.numAttributes()-1)
             throw new Exception("SAXVSM_BuildClassifier: Class attribute not set as last attribute in dataset");
         
@@ -177,6 +182,7 @@ public class SAXVSM implements Classifier {
         transformedData = bop.process(data);
         
         corpus = tfxidf(transformedData);
+        trainResults.buildTime=System.currentTimeMillis()-trainResults.buildTime;
     }
     
     /**
@@ -354,7 +360,7 @@ public class SAXVSM implements Classifier {
             System.out.println("Training done (" + trainTime + "s)");
 
             System.out.print("Params: ");
-            for (int p : vsm.getParameters())
+            for (int p : vsm.getParametersArray())
                 System.out.print(p + " ");
             System.out.println("");
 

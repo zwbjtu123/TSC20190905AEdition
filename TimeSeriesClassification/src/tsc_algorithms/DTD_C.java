@@ -3,7 +3,9 @@ package tsc_algorithms;
 
 import java.text.DecimalFormat;
 import utilities.ClassifierTools;
+import utilities.SaveParameterInfo;
 import weka.classifiers.lazy.kNN;
+import weka.classifiers.meta.timeseriesensembles.ClassifierResults;
 import weka.core.Instance;
 import weka.core.Instances;
 import weka.core.TechnicalInformation;
@@ -222,6 +224,10 @@ public class DTD_C extends DD_DTW{
         this.distanceFunction = new TransformWeightedDTW(this.transformType);
     }
 
+     @Override
+    public String getParameters() {
+        return super.getParameters()+",transformType,"+this.transformType;
+    }
     
     public static class TransformWeightedDTW extends DD_DTW.GoreckiDerivativesDTW{
         

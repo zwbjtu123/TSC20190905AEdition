@@ -37,7 +37,7 @@ import weka.filters.timeseries.shapelet_transforms.ShapeletTransformFactory;
  *
  * @author Jason Lines (j.lines@uea.ac.uk)
  */
-public class FlatCote extends AbstractClassifier{
+public class FlatCote extends AbstractClassifierWithTrainingData{
 
       
     public TechnicalInformation getTechnicalInformation() {
@@ -80,7 +80,7 @@ public class FlatCote extends AbstractClassifier{
     
     @Override
     public void buildClassifier(Instances train) throws Exception{
-        
+        trainResults.buildTime=System.currentTimeMillis();
         this.train = train;
         
         ee = new ElasticEnsemble();
@@ -110,6 +110,7 @@ public class FlatCote extends AbstractClassifier{
                 cvSum+=cvAccs[e][c];
             }
         }
+        trainResults.buildTime=System.currentTimeMillis()-trainResults.buildTime;
 
     }
     

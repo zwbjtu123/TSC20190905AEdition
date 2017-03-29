@@ -25,7 +25,7 @@ import weka.filters.timeseries.shapelet_transforms.searchFuntions.ImpRandomSearc
  *
  * @author raj09hxu
  */
-public class ST_HESCA  extends AbstractClassifier implements HiveCoteModule, SaveParameterInfo{
+public class ST_HESCA  extends AbstractClassifierWithTrainingData implements HiveCoteModule, SaveParameterInfo{
 
 
     public enum ST_TimeLimit {MINUTE, HOUR, DAY};
@@ -114,6 +114,8 @@ public class ST_HESCA  extends AbstractClassifier implements HiveCoteModule, Sav
     
     @Override
     public void buildClassifier(Instances data) throws Exception {
+        trainResults.buildTime=System.currentTimeMillis();
+        
         format = doTransform ? createTransformData(data, timeLimit) : data;
         
         hesca=new HESCA();
@@ -122,7 +124,8 @@ public class ST_HESCA  extends AbstractClassifier implements HiveCoteModule, Sav
 
         hesca.buildClassifier(format);
         format=new Instances(data,0);
-    }
+       trainResults.buildTime=System.currentTimeMillis()-trainResults.buildTime;
+     }
     
      @Override
     public double classifyInstance(Instance ins) throws Exception{

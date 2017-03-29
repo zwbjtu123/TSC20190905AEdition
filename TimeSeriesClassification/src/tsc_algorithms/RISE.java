@@ -38,7 +38,7 @@ VERSION 1:
 
 
  */
-public class RISE extends AbstractClassifier implements SaveParameterInfo, SubSampleTrain{
+public class RISE extends AbstractClassifierWithTrainingData implements SaveParameterInfo, SubSampleTrain{
     long buildTime;
     Classifier[] baseClassifiers;
     Classifier baseClassifierTemplate=new RandomTree();
@@ -116,13 +116,14 @@ public class RISE extends AbstractClassifier implements SaveParameterInfo, SubSa
     return result;
   }
 
+    @Override
     public String getParameters(){
-        return "buildTime,"+buildTime+",numTrees,"+numBaseClassifiers+","+"MinInterval"+MIN_INTERVAL;
+        return super.getParameters()+",numTrees,"+numBaseClassifiers+","+"MinInterval"+MIN_INTERVAL;
     }
          
     @Override
     public void buildClassifier(Instances data) throws Exception {
-        buildTime=System.currentTimeMillis();
+        trainResults.buildTime=System.currentTimeMillis();
 
 //Estimate Train CV, store CV     
          if(subSample){
@@ -213,7 +214,7 @@ public class RISE extends AbstractClassifier implements SaveParameterInfo, SubSa
                baseClassifiers[i]=AbstractClassifier.makeCopy(baseClassifierTemplate);
             baseClassifiers[i].buildClassifier(newTrain);
         }
-        buildTime=System.currentTimeMillis()-buildTime;
+        trainResults.buildTime=System.currentTimeMillis()-trainResults.buildTime;
     }
 
     @Override

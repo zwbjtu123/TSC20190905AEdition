@@ -16,7 +16,7 @@ import weka.filters.unsupervised.instance.Randomize;
  *
  * @author James
  */
-public class SAX_1NN implements Classifier {
+public class SAX_1NN extends AbstractClassifierWithTrainingData {
 
     public Instances SAXdata;
     private kNN knn;
@@ -36,11 +36,18 @@ public class SAX_1NN implements Classifier {
         
         knn = new kNN(); //default to 1NN, Euclidean distance
     }
+    @Override
+    public String getParameters() {
+        return super.getParameters()+",PAAIntervalsPerWindow,"+PAA_intervalsPerWindow+",alphabetSize,"+SAX_alphabetSize;
+    }
     
     @Override
     public void buildClassifier(Instances data) throws Exception {
+        trainResults.buildTime=System.currentTimeMillis();
+        
         SAXdata = sax.process(data);
         knn.buildClassifier(SAXdata);
+        trainResults.buildTime=System.currentTimeMillis()-trainResults.buildTime;
     }
 
     @Override

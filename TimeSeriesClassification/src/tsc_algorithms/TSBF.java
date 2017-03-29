@@ -80,7 +80,7 @@ import weka.core.TechnicalInformation;
  * ARGUMENTS
  * 
  */
-public class TSBF extends AbstractClassifier implements ParameterSplittable{
+public class TSBF extends AbstractClassifierWithTrainingData implements ParameterSplittable{
 //Paras
     
 //<editor-fold defaultstate="collapsed" desc="results reported in PAMI paper">        
@@ -411,6 +411,7 @@ public TechnicalInformation getTechnicalInformation() {
     }
     @Override
     public void buildClassifier(Instances data) throws Exception {
+        trainResults.buildTime=System.currentTimeMillis();
         if(numReps>1){
             double bestOOB=1;
             TSBF bestRun=this;
@@ -577,6 +578,7 @@ public TechnicalInformation getTechnicalInformation() {
             for(int k=0;k<numClasses;k++)
                classProbs[i][k]/=numSubSeries; 
         }
+        trainResults.buildTime=System.currentTimeMillis()-trainResults.buildTime;
     }
     @Override
     public double[] distributionForInstance(Instance ins) throws Exception{

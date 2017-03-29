@@ -29,7 +29,7 @@ import utilities.SaveParameterInfo;
  * @author Jason Lines (j.lines@uea.ac.uk)
  */
 //public class HiveCote extends AbstractClassifier implements SaveTrainingPredictions{
-public class HiveCote extends AbstractClassifier{
+public class HiveCote extends AbstractClassifierWithTrainingData{
     
     private ArrayList<Classifier> classifiers;
     private ArrayList<String> names;
@@ -86,7 +86,8 @@ public class HiveCote extends AbstractClassifier{
     
     @Override
     public void buildClassifier(Instances train) throws Exception{
-        optionalOutputLine("Start of training");
+         trainResults.buildTime=System.currentTimeMillis();
+       optionalOutputLine("Start of training");
                 
         modules = new ConstituentHiveEnsemble[classifiers.size()];
         
@@ -154,6 +155,7 @@ public class HiveCote extends AbstractClassifier{
 //                        do i even need to write training preds?
 //            }
 //        }
+        trainResults.buildTime=System.currentTimeMillis()-trainResults.buildTime;
     }
     
     private static void genericCvResultsFileWriter(String outFilePathAndName, Instances instances, String classifierName, double[] preds, double cvAcc) throws Exception{

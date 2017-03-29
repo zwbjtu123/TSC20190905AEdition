@@ -30,7 +30,7 @@ import weka.core.TechnicalInformation;
  *
  * @author raj09hxu
  */
-public class FastShapelets implements Classifier {
+public class FastShapelets extends AbstractClassifierWithTrainingData {
 
       
     public TechnicalInformation getTechnicalInformation() {
@@ -54,30 +54,30 @@ public class FastShapelets implements Classifier {
 
     int MIN_OBJ_SPLIT;
 
-    int num_class, num_obj, subseq_len;
+    int numClass, numObj, subseqLength;
 
-    int[] Class_Freq, Org_Class_Freq;
-    ArrayList<ArrayList<Double>> Org_Data, Data;
+    int[] classFreq, orgClassFreq;
+    ArrayList<ArrayList<Double>> orgData, data;
     ArrayList<Integer> Org_Label, Label;
 
-    ArrayList<Integer> Classify_list;
+    ArrayList<Integer> classifyList;
 
-    ArrayList<Shapelet> Final_Sh;
+    ArrayList<Shapelet> finalSh;
 
-    ArrayList<Pair<Integer, Double>> Score_List;
+    ArrayList<Pair<Integer, Double>> scoreList;
 
     //USAX_Map_Type is typedef unordered_map<SAX_word_type, USAX_elm_type> USAX_Map_type;
     //where a SAX_word_type is just an int.
-    HashMap<Integer, USAX_elm_type> USAX_Map;
+    HashMap<Integer, USAX_elm_type> uSAXMap;
 
     private int seed;
     Random rand;
 
     //Obj_list_type  is a vector of ints. IE an ArrayList.
     // Node_Obj_set_type == vector<Obj_list_type> and Obj_list_type == vectorc<int>.. vector<vector<int>>
-    ArrayList<ArrayList<Integer>> Node_Obj_List;
+    ArrayList<ArrayList<Integer>> nodeObjList;
 
-    double class_entropy;
+    double classEntropy;
 
     NN_ED nn;
 
@@ -87,7 +87,17 @@ public class FastShapelets implements Classifier {
 
     @Override
     public void buildClassifier(Instances data) throws Exception {
+        trainResults.buildTime=System.currentTimeMillis();
         train(data, 10, 10);
+        trainResults.buildTime=System.currentTimeMillis()-trainResults.buildTime;
+    }
+    @Override
+    public String getParameters() {
+        StringBuilder sb = new StringBuilder();
+        sb.append(super.getParameters());
+//Add other fast shapelet parameters,         
+        
+        return sb.toString();
     }
 
     public void train(Instances data, int R, int top_k) {
@@ -99,8 +109,8 @@ public class FastShapelets implements Classifier {
 
         rand = new Random(seed);
 
-        num_class = data.numClasses();
-        num_obj = data.numInstances();
+        numClass = data.numClasses();
+        numObj = data.numInstances();
 
         sax_max_len = 15;
         percent_mask = 0.25;
@@ -110,36 +120,36 @@ public class FastShapelets implements Classifier {
         readTrainData(data);
 
         //initialise our data structures.
-        Node_Obj_List = new ArrayList<>();
-        Final_Sh = new ArrayList<>();
-        USAX_Map = new HashMap<>();
-        Score_List = new ArrayList<>();
-        Classify_list = new ArrayList<>();
+        nodeObjList = new ArrayList<>();
+        finalSh = new ArrayList<>();
+        uSAXMap = new HashMap<>();
+        scoreList = new ArrayList<>();
+        classifyList = new ArrayList<>();
 
         /// Find Shapelet
-        for (int node_id = 1; (node_id == 1) || (node_id < Node_Obj_List.size()); node_id++) {
+        for (int node_id = 1; (node_id == 1) || (node_id < nodeObjList.size()); node_id++) {
             Shapelet bsf_sh = new Shapelet();
             if (node_id <= 1) {
                 setCurData(node_id);
-            } else if (Classify_list.get(node_id) == -1) { /// non-leaf node (-1:body node, -2:unused node)
+            } else if (classifyList.get(node_id) == -1) { /// non-leaf node (-1:body node, -2:unused node)
                 setCurData(node_id);
             } else {
                 continue;
             }
 
             //3 to series length.
-            for (subseq_len = min_len; subseq_len <= max_len; subseq_len += step) {
+            for (subseqLength = min_len; subseqLength <= max_len; subseqLength += step) {
                 /// Shapelet cannot be too short, e.g. len=1.
-                if (subseq_len < SH_MIN_LEN) {
+                if (subseqLength < SH_MIN_LEN) {
                     continue;
                 }
 
                 sax_len = sax_max_len;
                 /// Make w and sax_len both integer
-                w = (int) Math.ceil(1.0 * subseq_len / sax_len);
-                sax_len = (int) Math.ceil(1.0 * subseq_len / w);
+                w = (int) Math.ceil(1.0 * subseqLength / sax_len);
+                sax_len = (int) Math.ceil(1.0 * subseqLength / w);
 
-                createSAXList(subseq_len, sax_len, w);
+                createSAXList(subseqLength, sax_len, w);
 
                 randomProjection(R, percent_mask, sax_len);
                 scoreAllSAX(R);
@@ -150,18 +160,18 @@ public class FastShapelets implements Classifier {
                     bsf_sh = sh;
                 }
 
-                USAX_Map.clear();
-                Score_List.clear();
+                uSAXMap.clear();
+                scoreList.clear();
             }
 
             if (bsf_sh.len > 0) {
                 double[] query = new double[bsf_sh.len];
                 for (int i = 0; i < bsf_sh.len; i++) {
-                    query[i] = Data.get(bsf_sh.obj).get(bsf_sh.pos + i);
+                    query[i] = this.data.get(bsf_sh.obj).get(bsf_sh.pos + i);
                 }
 
                 bsf_sh.setTS(query);
-                Final_Sh.add(bsf_sh);
+                finalSh.add(bsf_sh);
                 /// post-processing: create tree
                 setNextNodeObj(node_id, bsf_sh);
             }
@@ -174,7 +184,7 @@ public class FastShapelets implements Classifier {
     Shapelet findBestSAX(int top_k) {
         //init the ArrayList with nulls.
         ArrayList<Pair<Integer, Double>> Dist = new ArrayList<>();
-        for (int i = 0; i < num_obj; i++) {
+        for (int i = 0; i < numObj; i++) {
             Dist.add(null);
         }
 
@@ -187,36 +197,36 @@ public class FastShapelets implements Classifier {
         Shapelet sh = new Shapelet(), bsf_sh = new Shapelet();
 
         if (top_k > 0) {
-            Collections.sort(Score_List, new ScoreComparator());
+            Collections.sort(scoreList, new ScoreComparator());
         }
         top_k = Math.abs(top_k);
 
-        for (int k = 0; k < Math.min(top_k, Score_List.size()); k++) {
-            word = Score_List.get(k).first;
-            usax = USAX_Map.get(word);
+        for (int k = 0; k < Math.min(top_k, scoreList.size()); k++) {
+            word = scoreList.get(k).first;
+            usax = uSAXMap.get(word);
             for (kk = 0; kk < Math.min(usax.sax_id.size(), 1); kk++) {
-                int[] c_in = new int[num_class];
-                int[] c_out = new int[num_class];
+                int[] c_in = new int[numClass];
+                int[] c_out = new int[numClass];
                 //init the array list with 0s
-                double[] query = new double[subseq_len];
+                double[] query = new double[subseqLength];
 
                 q_obj = usax.sax_id.get(kk).first;
                 q_pos = usax.sax_id.get(kk).second;
 
-                for (int i = 0; i < num_class; i++) {
+                for (int i = 0; i < numClass; i++) {
                     c_in[i] = 0;
-                    c_out[i] = Class_Freq[i];
+                    c_out[i] = classFreq[i];
                 }
-                for (int i = 0; i < subseq_len; i++) {
-                    query[i] = Data.get(q_obj).get(q_pos + i);
+                for (int i = 0; i < subseqLength; i++) {
+                    query[i] = data.get(q_obj).get(q_pos + i);
                 }
 
                 double dist;
                 int m = query.length;
                 double[] Q = new double[m];
                 int[] order = new int[m];
-                for (int obj = 0; obj < num_obj; obj++) {
-                    dist = nn.nearestNeighborSearch(query, Data.get(obj), obj, Q, order);
+                for (int obj = 0; obj < numObj; obj++) {
+                    dist = nn.nearestNeighborSearch(query, data.get(obj), obj, Q, order);
                     Dist.set(obj, new Pair<>(obj, dist));
                 }
 
@@ -229,18 +239,18 @@ public class FastShapelets implements Classifier {
 
                     dist_th = (pair_i.second + pair_ii.second) / 2.0;
                     //gap = Dist[i+1].second - dist_th;
-                    gap = ((double) (pair_ii.second - dist_th)) / Math.sqrt(subseq_len);
+                    gap = ((double) (pair_ii.second - dist_th)) / Math.sqrt(subseqLength);
                     label = Label.get(pair_i.first);
                     c_in[label]++;
                     c_out[label]--;
                     total_c_in++;
-                    num_diff = Math.abs(num_obj - 2 * total_c_in);
+                    num_diff = Math.abs(numObj - 2 * total_c_in);
                     //gain = CalInfoGain1(c_in, c_out);
-                    gain = calcInfoGain2(c_in, c_out, total_c_in, num_obj - total_c_in);
+                    gain = calcInfoGain2(c_in, c_out, total_c_in, numObj - total_c_in);
 
                     sh.setValueFew(gain, gap, dist_th);
                     if (bsf_sh.lessThan(sh)) {
-                        bsf_sh.setValueAll(gain, gap, dist_th, q_obj, q_pos, subseq_len, num_diff, c_in, c_out);
+                        bsf_sh.setValueAll(gain, gap, dist_th, q_obj, q_pos, subseqLength, num_diff, c_in, c_out);
                     }
                 }
             }
@@ -249,7 +259,7 @@ public class FastShapelets implements Classifier {
     }
 
     double calcInfoGain2(int[] c_in, int[] c_out, int total_c_in, int total_c_out) {
-        return class_entropy - ((double) (total_c_in) / num_obj * entropyArray(c_in, total_c_in) + (double) (total_c_out) / num_obj * entropyArray(c_out, total_c_out));
+        return classEntropy - ((double) (total_c_in) / numObj * entropyArray(c_in, total_c_in) + (double) (total_c_out) / numObj * entropyArray(c_out, total_c_out));
     }
 
     /// Score each SAX
@@ -258,11 +268,11 @@ public class FastShapelets implements Classifier {
         double score;
         USAX_elm_type usax;
 
-        for (Map.Entry<Integer, USAX_elm_type> entry : USAX_Map.entrySet()) {
+        for (Map.Entry<Integer, USAX_elm_type> entry : uSAXMap.entrySet()) {
             word = entry.getKey();
             usax = entry.getValue();
             score = calcScore(usax, R);
-            Score_List.add(new Pair<>(word, score));
+            scoreList.add(new Pair<>(word, score));
         }
     }
 
@@ -270,8 +280,8 @@ public class FastShapelets implements Classifier {
     double calcScore(USAX_elm_type usax, int R) {
         double score = -1;
         int cid, count;
-        double[] c_in = new double[num_class];       // Count object inside hash bucket
-        double[] c_out = new double[num_class];      // Count object outside hash bucket
+        double[] c_in = new double[numClass];       // Count object inside hash bucket
+        double[] c_out = new double[numClass];      // Count object outside hash bucket
 
         /// Note that if no c_in, then no c_out of that object
         for (Map.Entry<Integer, Integer> entry : usax.obj_count.entrySet()) {
@@ -288,7 +298,7 @@ public class FastShapelets implements Classifier {
     double calcScoreFromObjCount(double[] c_in, double[] c_out) {
         /// multi-class
         double diff, sum = 0, max_val = Double.NEGATIVE_INFINITY, min_val = Double.POSITIVE_INFINITY;
-        for (int i = 0; i < num_class; i++) {
+        for (int i = 0; i < numClass; i++) {
             diff = (c_in[i] - c_out[i]);
             if (diff > max_val) {
                 max_val = diff;
@@ -313,7 +323,7 @@ public class FastShapelets implements Classifier {
             mask_word = createMaskWord(num_mask, sax_len);
 
             /// random projection and mark non-duplicate object
-            for (Map.Entry<Integer, USAX_elm_type> entry : USAX_Map.entrySet()) {
+            for (Map.Entry<Integer, USAX_elm_type> entry : uSAXMap.entrySet()) {
                 word = entry.getKey();
                 obj_set = entry.getValue().obj_set;
 
@@ -331,7 +341,7 @@ public class FastShapelets implements Classifier {
             }
 
             /// hash again for keep the count
-            for (Map.Entry<Integer, USAX_elm_type> entry : USAX_Map.entrySet()) {
+            for (Map.Entry<Integer, USAX_elm_type> entry : uSAXMap.entrySet()) {
                 word = entry.getKey();
                 new_word = word | mask_word;
                 obj_set = Hash_Mark.get(new_word);
@@ -359,29 +369,29 @@ public class FastShapelets implements Classifier {
         return a;
     }
 
-    /// Set variables for next node. They are Data, Label, Class_Freq, num_obj
+    /// Set variables for next node. They are data, Label, classFreq, numObj
     void setCurData(int node_id) {
         if (node_id == 1) {
             //clone the arrayList
-            Data = new ArrayList<>();
-            for (ArrayList<Double> a : Org_Data) {
-                Data.add(cloneArrayList(a));
+            data = new ArrayList<>();
+            for (ArrayList<Double> a : orgData) {
+                data.add(cloneArrayList(a));
             }
             Label = cloneArrayList(Org_Label);
 
             //clone the frequnecy array.
-            Class_Freq = new int[Org_Class_Freq.length];
-            System.arraycopy(Org_Class_Freq, 0, Class_Freq, 0, Org_Class_Freq.length);
+            classFreq = new int[orgClassFreq.length];
+            System.arraycopy(orgClassFreq, 0, classFreq, 0, orgClassFreq.length);
 
         } else {
-            ArrayList<Integer> it = Node_Obj_List.get(node_id);
-            num_obj = it.size();
+            ArrayList<Integer> it = nodeObjList.get(node_id);
+            numObj = it.size();
 
-            Data.clear();
+            data.clear();
             Label.clear();
 
-            for (int i = 0; i < num_class; i++) {
-                Class_Freq[i] = 0;
+            for (int i = 0; i < numClass; i++) {
+                classFreq[i] = 0;
             }
 
             int cur_class;
@@ -389,19 +399,19 @@ public class FastShapelets implements Classifier {
             //build our data structures based on the node and the labels and histogram.
             for (Integer in : it) {
                 cur_class = Org_Label.get(in);
-                Data.add(Org_Data.get(in));
+                data.add(orgData.get(in));
                 Label.add(cur_class);
-                Class_Freq[cur_class]++;
+                classFreq[cur_class]++;
             }
         }
-        class_entropy = entropyArray(Class_Freq, num_obj);
+        classEntropy = entropyArray(classFreq, numObj);
     }
 
     /// new function still in doubt (as in Mueen's paper)
     double entropyArray(int[] A, int total) {
         double en = 0;
         double a;
-        for (int i = 0; i < num_class; i++) {
+        for (int i = 0; i < numClass; i++) {
             a = (double) A[i] / (double) total;
             if (a > 0) {
                 en -= a * Math.log(a);
@@ -411,13 +421,13 @@ public class FastShapelets implements Classifier {
     }
 
     void readTrainData(Instances data) {
-        Org_Data = InstanceTools.fromWekaInstancesList(data);
-        Org_Class_Freq = new int[num_class];
+        orgData = InstanceTools.fromWekaInstancesList(data);
+        orgClassFreq = new int[numClass];
         Org_Label = new ArrayList<>();
         for (Instance i : data) {
             Org_Label.add((int) i.classValue());
 
-            Org_Class_Freq[(int) i.classValue()]++;
+            orgClassFreq[(int) i.classValue()]++;
         }
     }
 
@@ -462,7 +472,7 @@ public class FastShapelets implements Classifier {
 
         elm_segment[sax_len - 1] = subseq_len - (sax_len - 1) * w;
 
-        for (series = 0; series < Data.size(); series++) {
+        for (series = 0; series < data.size(); series++) {
             ex = ex2 = 0;
             prev_word = -1;
 
@@ -471,8 +481,8 @@ public class FastShapelets implements Classifier {
             }
 
             /// Case 1: Initial
-            for (j = 0; (j < Data.get(series).size()) && (j < subseq_len); j++) {
-                d = Data.get(series).get(j);
+            for (j = 0; (j < data.get(series).size()) && (j < subseq_len); j++) {
+                d = data.get(series).get(j);
                 ex += d;
                 ex2 += d * d;
                 slot = (int) Math.floor((j) / w);
@@ -480,7 +490,7 @@ public class FastShapelets implements Classifier {
             }
 
             /// Case 2: Slightly Update
-            for (; (j <= (int) Data.get(series).size()); j++) {
+            for (; (j <= (int) data.get(series).size()); j++) {
 
                 j_st = j - subseq_len;
                 mean = ex / subseq_len;
@@ -492,30 +502,30 @@ public class FastShapelets implements Classifier {
                 if (word != prev_word) {
                     prev_word = word;
                     //we're updating the reference so no need to re-add.
-                    ptr = USAX_Map.get(word);
+                    ptr = uSAXMap.get(word);
                     if (ptr == null) {
                         ptr = new USAX_elm_type();
                     }
                     ptr.obj_set.add(series);
                     ptr.sax_id.add(new Pair<>(series, j_st));
-                    USAX_Map.put(word, ptr);
+                    uSAXMap.put(word, ptr);
                 }
 
                 /// For next update
-                if (j < Data.get(series).size()) {
-                    double temp = Data.get(series).get(j_st);
+                if (j < data.get(series).size()) {
+                    double temp = data.get(series).get(j_st);
 
                     ex -= temp;
                     ex2 -= temp * temp;
 
                     for (k = 0; k < sax_len - 1; k++) {
-                        sum_segment[k] -= Data.get(series).get(j_st + (k) * w);
-                        sum_segment[k] += Data.get(series).get(j_st + (k + 1) * w);
+                        sum_segment[k] -= data.get(series).get(j_st + (k) * w);
+                        sum_segment[k] += data.get(series).get(j_st + (k + 1) * w);
                     }
-                    sum_segment[k] -= Data.get(series).get(j_st + (k) * w);
-                    sum_segment[k] += Data.get(series).get(j_st + Math.min((k + 1) * w, subseq_len));
+                    sum_segment[k] -= data.get(series).get(j_st + (k) * w);
+                    sum_segment[k] += data.get(series).get(j_st + Math.min((k + 1) * w, subseq_len));
 
-                    d = Data.get(series).get(j);
+                    d = data.get(series).get(j);
                     ex += d;
                     ex2 += d * d;
                 }
@@ -535,23 +545,23 @@ public class FastShapelets implements Classifier {
         int real_obj;
 
         /// Memory Allocation
-        while (Node_Obj_List.size() <= right_node_id) {
-            Node_Obj_List.add(new ArrayList<Integer>());
-            Classify_list.add(-2);
-            Final_Sh.add(new Shapelet());
+        while (nodeObjList.size() <= right_node_id) {
+            nodeObjList.add(new ArrayList<Integer>());
+            classifyList.add(-2);
+            finalSh.add(new Shapelet());
 
-            if (Node_Obj_List.size() == 2) {   /// Note that Node_Obj_List[0] is not used
-                for (int i = 0; i < num_obj; i++) {
-                    Node_Obj_List.get(1).add(i);
+            if (nodeObjList.size() == 2) {   /// Note that nodeObjList[0] is not used
+                for (int i = 0; i < numObj; i++) {
+                    nodeObjList.get(1).add(i);
                 }
             }
         }
 
-        Final_Sh.set(node_id, sh);
+        finalSh.set(node_id, sh);
 
-        /// Use the shapelet on previous Data
+        /// Use the shapelet on previous data
         for (int i = 0; i < q_len; i++) {
-            query[i] = Data.get(q_obj).get(q_pos + i);
+            query[i] = data.get(q_obj).get(q_pos + i);
         }
 
         double dist;
@@ -559,11 +569,11 @@ public class FastShapelets implements Classifier {
         double[] Q = new double[m];
         int[] order = new int[m];
 
-        for (int obj = 0; obj < num_obj; obj++) {
-            dist = nn.nearestNeighborSearch(query, Data.get(obj), obj, Q, order);
-            real_obj = Node_Obj_List.get(node_id).get(obj);
+        for (int obj = 0; obj < numObj; obj++) {
+            dist = nn.nearestNeighborSearch(query, data.get(obj), obj, Q, order);
+            real_obj = nodeObjList.get(node_id).get(obj);
             int node = dist <= dist_th ? left_node_id : right_node_id; //left or right node?
-            Node_Obj_List.get(node).add(real_obj);
+            nodeObjList.get(node).add(real_obj);
         }
         /// If left/right is pure, or so small, stop spliting
         int max_c_in = -1, sum_c_in = 0;
@@ -589,7 +599,7 @@ public class FastShapelets implements Classifier {
         boolean left_is_leaf = false;
         boolean right_is_leaf = false;
 
-        MIN_OBJ_SPLIT = (int) Math.ceil((double) (MIN_PERCENT_OBJ_SPLIT * num_obj) / (double) num_class);
+        MIN_OBJ_SPLIT = (int) Math.ceil((double) (MIN_PERCENT_OBJ_SPLIT * numObj) / (double) numClass);
         if ((sum_c_in <= MIN_OBJ_SPLIT) || ((double) max_c_in / (double) sum_c_in >= MAX_PURITY_SPLIT)) {
             left_is_leaf = true;
         }
@@ -597,22 +607,22 @@ public class FastShapelets implements Classifier {
             right_is_leaf = true;
         }
 
-        int max_tree_dept = (int) (EXTRA_TREE_DEPTH + Math.ceil(Math.log(num_class) / Math.log(2)));
+        int max_tree_dept = (int) (EXTRA_TREE_DEPTH + Math.ceil(Math.log(numClass) / Math.log(2)));
         if (node_id >= Math.pow(2, max_tree_dept)) {
             left_is_leaf = true;
             right_is_leaf = true;
         }
 
         //set node.
-        Classify_list.set(node_id, -1);
+        classifyList.set(node_id, -1);
 
         //set left child.
         int val = left_is_leaf ? max_ind_c_in : -1;
-        Classify_list.set(left_node_id, val);
+        classifyList.set(left_node_id, val);
 
         //set right child.
         val = right_is_leaf ? max_ind_c_out : -1;
-        Classify_list.set(right_node_id, val);
+        classifyList.set(right_node_id, val);
     }
 
     @Override
@@ -627,12 +637,12 @@ public class FastShapelets implements Classifier {
             data.add(dArray[i]);
         }
 
-        int tree_size = Node_Obj_List.size();
+        int tree_size = nodeObjList.size();
 
         /// start at the top node
         node_id = 1;
-        while ((Classify_list.get(node_id) < 0) || (node_id > tree_size)) {
-            Shapelet node = Final_Sh.get(node_id);
+        while ((classifyList.get(node_id) < 0) || (node_id > tree_size)) {
+            Shapelet node = finalSh.get(node_id);
 
             m = node.len;
             double[] Q = new double[m];
@@ -649,7 +659,7 @@ public class FastShapelets implements Classifier {
 
         }
 
-        return (double) Classify_list.get(node_id);
+        return (double) classifyList.get(node_id);
     }
 
     @Override

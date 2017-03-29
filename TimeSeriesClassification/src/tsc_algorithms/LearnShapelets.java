@@ -24,7 +24,7 @@ import weka.core.TechnicalInformation;
  * 
  */
 
-public class LearnShapelets extends AbstractClassifier implements ParameterSplittable{
+public class LearnShapelets extends AbstractClassifierWithTrainingData implements ParameterSplittable{
 
   
     public TechnicalInformation getTechnicalInformation() {
@@ -498,6 +498,7 @@ public class LearnShapelets extends AbstractClassifier implements ParameterSplit
    
     // build a classifier using cross-validation to tune hyper-parameters
     public void buildClassifier(Instances trainData) throws Exception {
+        trainResults.buildTime=System.currentTimeMillis();
         
         if(paraSearch){
             double[] paramsLambdaW;
@@ -591,6 +592,9 @@ public class LearnShapelets extends AbstractClassifier implements ParameterSplit
         }
         
         train(trainData);
+        
+        trainResults.buildTime=System.currentTimeMillis()-trainResults.buildTime;
+        
     }
     
     private void train(Instances data) throws Exception

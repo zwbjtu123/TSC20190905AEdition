@@ -48,7 +48,7 @@ import weka.core.TechnicalInformation;
  * 
  * Implementation based on the algorithm described in getTechnicalInformation()
  */
-public class BOSS implements Classifier, SaveParameterInfo, HiveCoteModule, TrainAccuracyEstimate {
+public class BOSS extends AbstractClassifierWithTrainingData implements HiveCoteModule, TrainAccuracyEstimate {
   
     public TechnicalInformation getTechnicalInformation() {
         TechnicalInformation 	result;
@@ -102,7 +102,6 @@ public class BOSS implements Classifier, SaveParameterInfo, HiveCoteModule, Trai
     private Instances train;
     private double ensembleCvAcc = -1;
     private double[] ensembleCvPreds = null;
-    private ClassifierResults res =new ClassifierResults();
 
     @Override
     public void writeCVTrainToFile(String outputPathAndName){
@@ -114,10 +113,10 @@ public class BOSS implements Classifier, SaveParameterInfo, HiveCoteModule, Trai
     
     @Override
     public ClassifierResults getTrainResults(){
-//Temporary : copy stuff into res.acc here
-        res.acc=ensembleCvAcc;
+//Temporary : copy stuff into trainResults.acc here
+        trainResults.acc=ensembleCvAcc;
 //TO DO: Write the other stats        
-        return res;
+        return trainResults;
     }        
     
     
@@ -254,7 +253,7 @@ public class BOSS implements Classifier, SaveParameterInfo, HiveCoteModule, Trai
     @Override
     public String getParameters() {
         StringBuilder sb = new StringBuilder();
-        sb.append("BuildTime,"+res.buildTime);
+        sb.append(super.getParameters());
         BOSSWindow first = classifiers.get(0);
         sb.append(",windowSize,").append(first.getWindowSize()).append(",wordLength,").append(first.getWordLength());
         sb.append(",alphabetSize,").append(first.getAlphabetSize()).append(",norm,").append(first.isNorm());
@@ -304,7 +303,7 @@ public class BOSS implements Classifier, SaveParameterInfo, HiveCoteModule, Trai
     
     @Override
     public void buildClassifier(final Instances data) throws Exception {
-        res.buildTime=System.currentTimeMillis();
+        trainResults.buildTime=System.currentTimeMillis();
         this.train=data;
         
         if (data.classIndex() != data.numAttributes()-1)
@@ -426,6 +425,7 @@ public class BOSS implements Classifier, SaveParameterInfo, HiveCoteModule, Trai
             }
         }
         
+        trainResults.buildTime=System.currentTimeMillis()-trainResults.buildTime;
         if (trainCV) {
             OutFile of=new OutFile(trainCVPath);
             of.writeLine(data.relationName()+",BOSSEnsemble,train");
@@ -438,7 +438,6 @@ public class BOSS implements Classifier, SaveParameterInfo, HiveCoteModule, Trai
                 of.writeLine(results[0][i]+","+results[1][i]);
             System.out.println("CV acc ="+results[0][0]);
         }
-        res.buildTime=System.currentTimeMillis()-res.buildTime;
         
     }
 
@@ -1214,6 +1213,7 @@ public class BOSS implements Classifier, SaveParameterInfo, HiveCoteModule, Trai
 
         @Override
         public void buildClassifier(Instances data) throws Exception {
+            
             if (data.classIndex() != data.numAttributes()-1)
                 throw new Exception("BOSS_BuildClassifier: Class attribute not set as last attribute in dataset");
 
@@ -1229,6 +1229,7 @@ public class BOSS implements Classifier, SaveParameterInfo, HiveCoteModule, Trai
                 bag.setClassVal(data.get(inst).classValue());
                 bags.add(bag);
             }
+            
         }
 
         /**

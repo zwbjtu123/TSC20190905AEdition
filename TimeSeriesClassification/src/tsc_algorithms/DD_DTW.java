@@ -3,7 +3,9 @@ package tsc_algorithms;
 import java.text.DecimalFormat;
 import utilities.ClassifierTools;
 import utilities.InstanceTools;
+import utilities.SaveParameterInfo;
 import weka.classifiers.lazy.kNN;
+import weka.classifiers.meta.timeseriesensembles.ClassifierResults;
 import weka.core.DenseInstance;
 import weka.core.EuclideanDistance;
 import weka.core.Instance;
@@ -62,7 +64,8 @@ Next iteration:
 NNTranformWeighting.java 
 */
 
-public class DD_DTW extends kNN{
+public class DD_DTW extends kNN implements SaveParameterInfo{
+     protected ClassifierResults res =new ClassifierResults();
 
     @Override
     public TechnicalInformation getTechnicalInformation() {
@@ -201,14 +204,22 @@ public class DD_DTW extends kNN{
     
     @Override
     public void buildClassifier(Instances train){
+        res.buildTime=System.currentTimeMillis();
+        
         if(!paramsSet){
             this.distanceFunction.crossValidateForAandB(train);
             paramsSet=true;
         }
         this.setDistanceFunction(this.distanceFunction);
         super.buildClassifier(train);
+        res.buildTime=System.currentTimeMillis()-res.buildTime;
     }
-    
+     @Override
+    public String getParameters() {
+        return "BuildTime,"+res.buildTime+",a,"+distanceFunction.a+",b,"+distanceFunction.b;
+    }
+     
+   
     
     public static class GoreckiDerivativesEuclideanDistance extends EuclideanDistance{
     

@@ -56,7 +56,7 @@ import weka.core.WeightedInstancesHandler;
 
  * 
  */
-public class LPS extends AbstractClassifier implements ParameterSplittable{
+public class LPS extends AbstractClassifierWithTrainingData implements ParameterSplittable{
     RandomRegressionTree[] trees;
     
     public static final int PARASEARCH_NOS_TREES=25;
@@ -311,6 +311,8 @@ public class LPS extends AbstractClassifier implements ParameterSplittable{
     
     @Override
     public void buildClassifier(Instances data) throws Exception {
+         trainResults.buildTime=System.currentTimeMillis();
+        
 //determine minimum and maximum possible segment length
         if(paramSearch){
             double bestErr=1;
@@ -432,6 +434,8 @@ public class LPS extends AbstractClassifier implements ParameterSplittable{
         }
   */      
         sequences=null;
+        trainResults.buildTime=System.currentTimeMillis()-trainResults.buildTime;
+        
         System.gc();
      }
     public double distance(int[][] test, int[][] train){

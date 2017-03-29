@@ -58,7 +58,7 @@ import weka.classifiers.meta.timeseriesensembles.ClassifierResults;
 
 
  */
-public class TSF extends AbstractClassifier implements SaveParameterInfo, TrainAccuracyEstimate{
+public class TSF extends AbstractClassifierWithTrainingData implements SaveParameterInfo, TrainAccuracyEstimate{
     boolean setSeed=false;
     int seed=0;
     RandomTree[] trees;
@@ -72,7 +72,6 @@ public class TSF extends AbstractClassifier implements SaveParameterInfo, TrainA
    so this is just for debugging really. Somewhat tidier
  */
     boolean trainCV=false;  
-    private ClassifierResults res =new ClassifierResults();
 /*  If nonTrain results are overwritten with each call to buildClassifier
     File opened on this path.   */    
     String trainCVPath="";
@@ -103,15 +102,15 @@ public class TSF extends AbstractClassifier implements SaveParameterInfo, TrainA
     
     @Override
      public ClassifierResults getTrainResults(){
- //Temporary : copy stuff into res.acc here
- //        res.acc=ensembleCvAcc;
+ //Temporary : copy stuff into trainResults.acc here
+ //        trainResults.acc=ensembleCvAcc;
  //TO DO: Write the other stats        
-         return res;
+         return trainResults;
      }        
 
     @Override
     public String getParameters() {
-        return "BuildTime,"+res.buildTime+",numTrees,"+numTrees+",numFeatures,"+numFeatures;
+        return super.getParameters()+",numTrees,"+numTrees+",numFeatures,"+numFeatures;
     }
     public void setNumTrees(int t){
         numTrees=t;
@@ -249,7 +248,7 @@ public class TSF extends AbstractClassifier implements SaveParameterInfo, TrainA
     //Estimate train accuracy HERE
             TSF tsf=new TSF();
             tsf.trainCV=false;
-            res=cv.crossValidateWithStats(tsf,data);
+            trainResults=cv.crossValidateWithStats(tsf,data);
         }
         numFeatures=(int)Math.sqrt(data.numAttributes()-1);
         intervals =new int[numTrees][][];
@@ -314,19 +313,19 @@ public class TSF extends AbstractClassifier implements SaveParameterInfo, TrainA
             trees[i].buildClassifier(result);
         }
         long t2=System.currentTimeMillis();
-        res.buildTime=t2-t1;
+        trainResults.buildTime=t2-t1;
         if(trainCVPath!=""){
              OutFile of=new OutFile(trainCVPath);
              of.writeLine(data.relationName()+",TSF,train");
              of.writeLine(getParameters());
-            of.writeLine(res.acc+"");
+            of.writeLine(trainResults.acc+"");
             for(int i=1;i<data.numInstances();i++){
                 //Basic sanity check
-                if(data.instance(i).classValue()!=res.trueClassVals[i]){
+                if(data.instance(i).classValue()!=trainResults.trueClassVals[i]){
                     throw new Exception("ERROR in TSF cross validation, class mismatch!");
                 }
-                of.writeString((int)res.trueClassVals[i]+","+(int)res.predClassVals[i]+",");
-                for(double d:res.distsForInsts[i])
+                of.writeString((int)trainResults.trueClassVals[i]+","+(int)trainResults.predClassVals[i]+",");
+                for(double d:trainResults.distsForInsts[i])
                     of.writeString(","+d);
                 of.writeString("\n");
             }
