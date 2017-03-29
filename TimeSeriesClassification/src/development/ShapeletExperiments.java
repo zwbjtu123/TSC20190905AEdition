@@ -21,7 +21,7 @@ package development;
 import fileIO.OutFile;
 import statistics.simulators.Model;
 import statistics.simulators.SimulateShapeletData;
-import tsc_algorithms.ST_HESCA;
+import timeseries_classifiers.ST_HESCA;
 import utilities.ClassifierTools;
 import utilities.InstanceTools;
 import weka.core.Instances;

@@ -27,14 +27,14 @@ import utilities.InstanceTools;
 import utilities.SaveParameterInfo;
 import utilities.TrainAccuracyEstimate;
 import weka.classifiers.Classifier;
-import weka.classifiers.functions.TunedSVM;
+import vector_classifiers.TunedSVM;
 import weka.classifiers.lazy.IBk;
 import weka.classifiers.meta.RotationForest;
-import weka.classifiers.meta.TunedRotationForest;
-import weka.classifiers.meta.timeseriesensembles.HESCA;
+import vector_classifiers.TunedRotationForest;
+import vector_classifiers.HESCA;
 import weka.classifiers.meta.timeseriesensembles.SaveableEnsemble;
 import weka.classifiers.trees.RandomForest;
-import weka.classifiers.trees.TunedRandomForest;
+import vector_classifiers.TunedRandomForest;
 import weka.core.Instances;
 
 

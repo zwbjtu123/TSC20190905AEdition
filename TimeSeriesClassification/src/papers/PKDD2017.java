@@ -5,11 +5,11 @@
  */
 package papers;
 
-import tsc_algorithms.BOSS;
-import tsc_algorithms.boss.BoTSWEnsemble;
-import tsc_algorithms.boss.BoTSWEnsemble.BoTSW;
-import tsc_algorithms.boss.BOSSSpatialPyramids;
-import tsc_algorithms.boss.BOSSSpatialPyramids_BD;
+import timeseries_classifiers.BOSS;
+import timeseries_classifiers.boss.BoTSWEnsemble;
+import timeseries_classifiers.boss.BoTSWEnsemble.BoTSW;
+import timeseries_classifiers.boss.BOSSSpatialPyramids;
+import timeseries_classifiers.boss.BOSSSpatialPyramids_BD;
 import utilities.ClassifierTools;
 import utilities.InstanceTools;
 import weka.core.Instances;

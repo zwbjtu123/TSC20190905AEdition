@@ -16,7 +16,7 @@ package development;
 
 import java.util.Random;
 import weka.classifiers.meta.RotationForest;
-import weka.classifiers.meta.TunedRotationForest;
+import vector_classifiers.TunedRotationForest;
 
 /**
  *

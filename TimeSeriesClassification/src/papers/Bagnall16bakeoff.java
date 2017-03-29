@@ -10,12 +10,27 @@ Code to reproduce all the results in the paper
  */
 package papers;
 
+import timeseries_classifiers.elastic_ensemble.WDTW1NN;
+import timeseries_classifiers.elastic_ensemble.DTW1NN;
+import timeseries_classifiers.elastic_ensemble.ED1NN;
+import timeseries_classifiers.elastic_ensemble.MSM1NN;
+import timeseries_classifiers.FastShapelets;
+import timeseries_classifiers.LearnShapelets;
+import timeseries_classifiers.NN_CID;
+import timeseries_classifiers.TSBF;
+import timeseries_classifiers.TSF;
+import timeseries_classifiers.DTD_C;
+import timeseries_classifiers.BOSS;
+import timeseries_classifiers.RISE;
+import timeseries_classifiers.LPS;
+import timeseries_classifiers.SAXVSM;
+import timeseries_classifiers.ST_HESCA;
+import timeseries_classifiers.DD_DTW;
+import timeseries_classifiers.BagOfPatterns;
 import development.DataSets;
 import fileIO.OutFile;
 import java.io.File;
 import java.text.DecimalFormat;
-import tsc_algorithms.*;
-import tsc_algorithms.elastic_ensemble.*;
 import utilities.ClassifierTools;
 import utilities.InstanceTools;
 import utilities.SaveParameterInfo;
@@ -30,7 +45,7 @@ import weka.classifiers.functions.supportVector.PolyKernel;
 import weka.classifiers.lazy.DTW_1NN;
 import weka.classifiers.lazy.kNN;
 import weka.classifiers.meta.RotationForest;
-import weka.classifiers.meta.timeseriesensembles.HESCA;
+import vector_classifiers.HESCA;
 import weka.classifiers.meta.timeseriesensembles.SaveableEnsemble;
 import weka.classifiers.trees.J48;
 import weka.classifiers.trees.RandomForest;
