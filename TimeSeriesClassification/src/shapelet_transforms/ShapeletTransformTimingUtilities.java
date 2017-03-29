@@ -18,7 +18,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
-import tsc_algorithms.ST_HESCA;
+import timeseries_classifiers.ST_HESCA;
 import utilities.InstanceTools;
 import utilities.generic_storage.Pair;
 import weka.core.Instances;
