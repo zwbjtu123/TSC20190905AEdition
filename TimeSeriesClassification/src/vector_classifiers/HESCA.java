@@ -283,17 +283,6 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveParam
         this.numClasses = train.numClasses();
         this.numAttributes = train.numAttributes();
         
-        //prev cv if needed
-        if (willNeedToDoCV()) {
-            int numFolds = setNumberOfFolds(train); //through TrainAccuracyEstimate interface
-            
-            cv = new CrossValidator();
-            if (setSeed)
-                cv.setSeed(seed);
-            cv.setNumFolds(numFolds);
-            cv.buildFolds(train);
-        }
-        
         //set up modules
         initialiseModules();
         weightingScheme.defineWeightings(modules, numClasses);
@@ -340,6 +329,17 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveParam
         this.modules = new EnsembleModule[classifierNames.length];
         for (int m = 0; m < modules.length; m++)
             modules[m] = new EnsembleModule(classifierNames[m], classifiers[m], classifierParameters[m]);
+        
+        //prep cv if needed
+        if (willNeedToDoCV()) {
+            int numFolds = setNumberOfFolds(train); //through TrainAccuracyEstimate interface
+            
+            cv = new CrossValidator();
+            if (setSeed)
+                cv.setSeed(seed);
+            cv.setNumFolds(numFolds);
+            cv.buildFolds(train);
+        }
         
         //currently will only have file reading ON or OFF (not load some files, train the rest) 
         //having that creates many, many, many annoying issues, especially when classifying test cases
@@ -1161,7 +1161,7 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveParam
         
 //        HESCA hesca = new HESCA(classifiers, classifierNames);
         HESCA hesca = new HESCA(classifiers, classifierNames);
-        hesca.setResultsFileLocationParameters("C:/JamesLPHD/HESCA/UCR/UCRResults/", dataset, fold);
+        hesca.setResultsFileLocationParameters("E:/JamesLPHD/HESCA/UCR/UCRResults/", dataset, fold);
         hesca.setBuildIndividualsFromResultsFiles(true);
         hesca.setPerformCV(true);
 //        hesca.setWeightingScheme(new MCCWeighting());
