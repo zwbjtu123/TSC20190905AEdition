@@ -1167,7 +1167,7 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveParam
         
 //        hesca.setWeightingScheme(new MCCWeighting());
 //        hesca.setVotingScheme(new StackingOnPreds(new SMO())); 
-        hesca.setVotingScheme(new NaiveBayesCombiner());
+        hesca.setVotingScheme(new BestIndividualTrain());
         
         hesca.buildClassifier(train);
         

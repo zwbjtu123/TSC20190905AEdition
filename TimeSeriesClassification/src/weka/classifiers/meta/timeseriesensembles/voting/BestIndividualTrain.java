@@ -15,15 +15,14 @@ import weka.core.Instance;
  * 
  * @author James Large james.large@uea.ac.uk
  */
-public class BestIndividualTrain extends ModuleVotingScheme {
+public class BestIndividualTrain extends BestIndividual {
 
-    int bestModule;
-    
     public BestIndividualTrain() {
+        super();
     }
     
     public BestIndividualTrain(int numClasses) {
-        this.numClasses = numClasses;
+        super(numClasses);
     }
     
     @Override
@@ -49,21 +48,9 @@ public class BestIndividualTrain extends ModuleVotingScheme {
         }
         
         printlnDebug(modules[bestModule].getModuleName());
-    }
-
-    @Override
-    public double[] distributionForTrainInstance(EnsembleModule[] modules, int trainInstanceIndex) {
-        return modules[bestModule].trainResults.distsForInsts[trainInstanceIndex];
-    }
-
-    @Override
-    public double[] distributionForTestInstance(EnsembleModule[] modules, int testInstanceIndex) {
-        return modules[bestModule].testResults.distsForInsts[testInstanceIndex];
-    }
-
-    @Override
-    public double[] distributionForInstance(EnsembleModule[] modules, Instance testInstance) throws Exception {
-        return modules[bestModule].getClassifier().distributionForInstance(testInstance);
+        
+        bestModulesInds.add(bestModule);
+        bestModulesNames.add(modules[bestModule].getModuleName());
     }
     
 }
