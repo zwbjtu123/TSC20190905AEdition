@@ -27,7 +27,7 @@ easures for Time Series Classification. In: Proceedings of SDM 2014
  */
 package papers;
 
-import timeseries_classifiers.ElasticEnsemble;
+import timeseriesweka.classifiers.ElasticEnsemble;
 import development.DataSets;
 import fileIO.OutFile;
 import java.text.DecimalFormat;

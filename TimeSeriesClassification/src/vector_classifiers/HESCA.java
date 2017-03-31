@@ -1,5 +1,12 @@
 package vector_classifiers;
 
+import timeseriesweka.classifiers.ensembles.weightings.EqualWeighting;
+import timeseriesweka.classifiers.ensembles.weightings.TrainAcc;
+import timeseriesweka.classifiers.ensembles.weightings.ModuleWeightingScheme;
+import timeseriesweka.classifiers.ensembles.weightings.TrainAccByClass;
+import timeseriesweka.classifiers.ensembles.voting.MajorityVote;
+import timeseriesweka.classifiers.ensembles.voting.NaiveBayesCombiner;
+import timeseriesweka.classifiers.ensembles.voting.ModuleVotingScheme;
 import development.MultipleClassifiersPairwiseTest;
 import fileIO.OutFile;
 import java.io.File;
@@ -10,7 +17,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Random;
 import java.util.Scanner;
-import timeseries_classifiers.cote.HiveCoteModule;
+import timeseriesweka.classifiers.cote.HiveCoteModule;
 import utilities.ClassifierTools;
 import utilities.CrossValidator;
 import utilities.DebugPrinting;
@@ -33,16 +40,14 @@ import utilities.StatisticalUtilities;
 import utilities.TrainAccuracyEstimate;
 import vector_classifiers.TunedSVM;
 import vector_classifiers.TunedRotationForest;
-import weka.classifiers.meta.timeseriesensembles.weightings.*;
-import weka.classifiers.meta.timeseriesensembles.voting.*;
-import weka.classifiers.meta.timeseriesensembles.voting.stacking.StackingOnDists;
-import weka.classifiers.meta.timeseriesensembles.voting.stacking.StackingOnPredConfidences;
-import weka.classifiers.meta.timeseriesensembles.voting.stacking.StackingOnPreds;
+import timeseriesweka.classifiers.ensembles.voting.stacking.StackingOnDists;
+import timeseriesweka.classifiers.ensembles.voting.stacking.StackingOnPredConfidences;
+import timeseriesweka.classifiers.ensembles.voting.stacking.StackingOnPreds;
 import vector_classifiers.TunedRandomForest;
-import weka.classifiers.meta.timeseriesensembles.ClassifierResults;
-import weka.classifiers.meta.timeseriesensembles.EnsembleFromFile;
-import weka.classifiers.meta.timeseriesensembles.EnsembleModule;
-import weka.filters.timeseries.SAX;
+import utilities.ClassifierResults;
+import timeseriesweka.classifiers.ensembles.EnsembleFromFile;
+import timeseriesweka.classifiers.ensembles.EnsembleModule;
+import timeseriesweka.filters.SAX;
 
 /**
  *

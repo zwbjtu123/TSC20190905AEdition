@@ -17,7 +17,7 @@ import utilities.ClassifierTools;
 import weka.core.Attribute;
 import weka.core.Instance;
 import weka.core.Instances;
-import weka.filters.timeseries.SummaryStats;
+import timeseriesweka.filters.SummaryStats;
 
 /**
  *

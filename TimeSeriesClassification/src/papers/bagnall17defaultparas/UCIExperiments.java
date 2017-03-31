@@ -61,7 +61,7 @@ import weka.classifiers.functions.supportVector.RBFKernel;
 import weka.classifiers.lazy.IBk;
 import weka.classifiers.meta.RotationForest;
 import vector_classifiers.HESCA;
-import weka.classifiers.meta.timeseriesensembles.SaveableEnsemble;
+import timeseriesweka.classifiers.ensembles.SaveableEnsemble;
 import weka.classifiers.trees.J48;
 import weka.classifiers.trees.RandomForest;
 import weka.core.Instances;
