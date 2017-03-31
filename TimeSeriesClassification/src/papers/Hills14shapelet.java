@@ -15,7 +15,7 @@
 package papers;
 
 
-import weka.filters.timeseries.shapelet_transforms.ShapeletTransform;
+import timeseriesweka.filters.shapelet_transforms.ShapeletTransform;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -33,7 +33,6 @@ import weka.classifiers.trees.shapelet_trees.*;
 
 import weka.core.Instances;
 import weka.core.shapelet.*;
-import weka.filters.timeseries.*;
 
 public class Hills14shapelet {
 
