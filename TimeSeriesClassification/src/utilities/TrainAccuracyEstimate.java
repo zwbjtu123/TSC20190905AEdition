@@ -1,5 +1,6 @@
 package utilities;
 
+import weka.classifiers.meta.timeseriesensembles.ClassifierResults;
 import weka.core.Instances;
 
 /**

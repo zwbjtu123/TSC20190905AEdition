@@ -28,7 +28,7 @@ import weka.classifiers.functions.SMO;
 import weka.classifiers.functions.supportVector.Kernel;
 import weka.classifiers.functions.supportVector.PolyKernel;
 import weka.classifiers.functions.supportVector.RBFKernel;
-import utilities.ClassifierResults;
+import weka.classifiers.meta.timeseriesensembles.ClassifierResults;
 import weka.core.*;
 
 /**

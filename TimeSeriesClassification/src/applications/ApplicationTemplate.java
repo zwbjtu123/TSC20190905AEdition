@@ -55,7 +55,7 @@ import utilities.InstanceTools;
 import utilities.SaveParameterInfo;
 import utilities.TrainAccuracyEstimate;
 import weka.classifiers.Classifier;
-import timeseriesweka.classifiers.ensembles.SaveableEnsemble;
+import weka.classifiers.meta.timeseriesensembles.SaveableEnsemble;
 import weka.core.Instance;
 import weka.core.Instances;
 

@@ -13,7 +13,7 @@ import java.util.TreeSet;
 import weka.classifiers.AbstractClassifier;
 import weka.classifiers.Classifier;
 import weka.core.*;
-import timeseriesweka.filters.shapelet_transforms.ShapeletTransform;
+import weka.filters.timeseries.shapelet_transforms.ShapeletTransform;
 //import java.io.File;
 //import java.util.Scanner;
 

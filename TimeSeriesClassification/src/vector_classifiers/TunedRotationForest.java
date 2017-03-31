@@ -18,7 +18,7 @@ import utilities.SaveParameterInfo;
 import utilities.TrainAccuracyEstimate;
 import weka.classifiers.Evaluation;
 import weka.classifiers.meta.RotationForest;
-import utilities.ClassifierResults;
+import weka.classifiers.meta.timeseriesensembles.ClassifierResults;
 import weka.core.Instance;
 import weka.core.Instances;
 import weka.core.Utils;
