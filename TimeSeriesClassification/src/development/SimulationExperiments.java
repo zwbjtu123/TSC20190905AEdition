@@ -3,22 +3,20 @@ Class to run one of various simulations.
 */
 package development;
 
-import timeseries_classifiers.FlatCote;
-import timeseries_classifiers.LearnShapelets;
-import timeseries_classifiers.FastShapelets;
-import timeseries_classifiers.TSBF;
-import timeseries_classifiers.TSF;
-import timeseries_classifiers.DTD_C;
-import timeseries_classifiers.BOSS;
-import timeseries_classifiers.RISE;
-import timeseries_classifiers.ST_HESCA;
-import timeseries_classifiers.LPS;
-import timeseries_classifiers.ElasticEnsemble;
-import timeseries_classifiers.DD_DTW;
-import timeseries_classifiers.BagOfPatterns;
-import timeseries_classifiers.HiveCote;
-import timeseries_classifiers.depreciated.LearnShapeletsFeb2015Version;
-import timeseries_classifiers.depreciated.COTE;
+import timeseriesweka.classifiers.FlatCote;
+import timeseriesweka.classifiers.LearnShapelets;
+import timeseriesweka.classifiers.FastShapelets;
+import timeseriesweka.classifiers.TSBF;
+import timeseriesweka.classifiers.TSF;
+import timeseriesweka.classifiers.DTD_C;
+import timeseriesweka.classifiers.BOSS;
+import timeseriesweka.classifiers.RISE;
+import timeseriesweka.classifiers.ST_HESCA;
+import timeseriesweka.classifiers.LPS;
+import timeseriesweka.classifiers.ElasticEnsemble;
+import timeseriesweka.classifiers.DD_DTW;
+import timeseriesweka.classifiers.BagOfPatterns;
+import timeseriesweka.classifiers.HiveCote;
 import fileIO.InFile;
 import fileIO.OutFile;
 import java.io.File;
@@ -38,7 +36,7 @@ import weka.classifiers.Classifier;
 import weka.classifiers.lazy.DTW_1NN;
 import weka.classifiers.meta.RotationForest;
 import vector_classifiers.HESCA;
-import weka.classifiers.meta.timeseriesensembles.SaveableEnsemble;
+import timeseriesweka.classifiers.ensembles.SaveableEnsemble;
 import vector_classifiers.TunedRandomForest;
 import weka.core.Instances;
 import utilities.ClassifierTools;
@@ -121,11 +119,6 @@ public class SimulationExperiments {
                    ((ST_HESCA)c).setOneHourLimit();
 //                ((ST_HESCA)c).setOneMinuteLimit();//DEBUG
                 break;
-            case "LearnShapelets":
-                c=new LearnShapeletsFeb2015Version();
-                ((LearnShapeletsFeb2015Version)c).setParamSearch(true);
-//                ((LearnShapeletsFeb2015Version)c).fixParameters();
-                break;
             case "BOP":
                 c=new BagOfPatterns();
                 break;
@@ -133,8 +126,6 @@ public class SimulationExperiments {
                 c=new BOSS();
                 break;
             case "COTE":
-                c=new COTE();
-                break;
             case "FLATCOTE":
                 c=new FlatCote();
                 break;
@@ -467,7 +458,7 @@ public class SimulationExperiments {
                         c=new BOSS();
                         break;
                     case "COTE":
-                        c=new COTE();
+                        c=new FlatCote();
                         break;
                     case "RISE":
                         c=new RISE();

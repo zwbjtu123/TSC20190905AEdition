@@ -30,7 +30,7 @@ import utilities.InstanceTools;
 import utilities.SaveParameterInfo;
 import utilities.TrainAccuracyEstimate;
 import weka.classifiers.meta.Bagging;
-import weka.classifiers.meta.timeseriesensembles.ClassifierResults;
+import utilities.ClassifierResults;
 import weka.classifiers.trees.RandomForest;
 import weka.classifiers.trees.RandomTree;
 import weka.core.Instance;
