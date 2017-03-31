@@ -80,12 +80,12 @@ public abstract class BestIndividual extends ModuleVotingScheme {
     
     @Override
     public double[] distributionForTrainInstance(EnsembleModule[] modules, int trainInstanceIndex) {
-        return modules[bestModule].trainResults.distsForInsts[trainInstanceIndex];
+        return modules[bestModule].trainResults.getDistributionForInstance(trainInstanceIndex);
     }
 
     @Override
     public double[] distributionForTestInstance(EnsembleModule[] modules, int testInstanceIndex) {
-        return modules[bestModule].testResults.distsForInsts[testInstanceIndex];
+        return modules[bestModule].testResults.getDistributionForInstance(testInstanceIndex);
     }
 
     @Override
