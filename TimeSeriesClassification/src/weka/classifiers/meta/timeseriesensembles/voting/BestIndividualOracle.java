@@ -16,14 +16,16 @@ import weka.core.Instance;
  * 
  * @author James Large james.large@uea.ac.uk
  */
-public class BestIndividualOracle extends BestIndividual {
-   
+public class BestIndividualOracle extends ModuleVotingScheme {
+
+    int bestModule;
+    
     public BestIndividualOracle() {
-        super();
+        
     }
     
     public BestIndividualOracle(int numClasses) {
-        super(numClasses);
+        this.numClasses = numClasses;
     }
     
     @Override
@@ -39,8 +41,20 @@ public class BestIndividualOracle extends BestIndividual {
         }
         
         printlnDebug(modules[bestModule].getModuleName());
-        
-        bestModulesInds.add(bestModule);
-        bestModulesNames.add(modules[bestModule].getModuleName());
+    }
+
+    @Override
+    public double[] distributionForTrainInstance(EnsembleModule[] modules, int trainInstanceIndex) {
+        return modules[bestModule].trainResults.getDistributionForInstance(trainInstanceIndex);
+    }
+
+    @Override
+    public double[] distributionForTestInstance(EnsembleModule[] modules, int testInstanceIndex) {
+        return modules[bestModule].testResults.getDistributionForInstance(testInstanceIndex);
+    }
+
+    @Override
+    public double[] distributionForInstance(EnsembleModule[] modules, Instance testInstance) throws Exception {
+        return modules[bestModule].getClassifier().distributionForInstance(testInstance);
     }
 }

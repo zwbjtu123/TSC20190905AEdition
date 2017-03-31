@@ -59,7 +59,7 @@ public class NaiveBayesCombiner extends ModuleVotingScheme {
             for (int pc = 0; pc < numClasses; pc++)
                 numInClass += (modules[0].trainResults.confusionMatrix[ac][pc] + correction);
             
-            priorClassProbs[ac] = numInClass / modules[0].trainResults.trueClassVals.length;
+            priorClassProbs[ac] = numInClass / modules[0].trainResults.numInstances();
             
             for (int m = 0; m < modules.length; m++)
                 for (int pc = 0; pc < numClasses; pc++)
@@ -75,7 +75,7 @@ public class NaiveBayesCombiner extends ModuleVotingScheme {
         
         int pred;
         for (int m = 0; m < modules.length; m++) {
-            pred = (int) modules[m].trainResults.predClassVals[trainInstanceIndex]; 
+            pred = (int) modules[m].trainResults.getPredClassValue(trainInstanceIndex); 
             for (int ac = 0; ac < numClasses; ac++) {
                 dist[ac] *= postProbs[ac][m][pred] *
                            modules[m].priorWeight * 
@@ -97,7 +97,7 @@ public class NaiveBayesCombiner extends ModuleVotingScheme {
         
         int pred;
         for (int m = 0; m < modules.length; m++) {
-            pred = (int) modules[m].testResults.predClassVals[testInstanceIndex]; 
+            pred = (int) modules[m].testResults.getPredClassValue(testInstanceIndex); 
             for (int ac = 0; ac < numClasses; ac++) {
                 dist[ac] *= postProbs[ac][m][pred] *
                            modules[m].priorWeight * 

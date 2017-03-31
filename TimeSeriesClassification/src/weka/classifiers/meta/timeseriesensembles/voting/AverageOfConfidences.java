@@ -33,9 +33,9 @@ public class AverageOfConfidences extends ModuleVotingScheme {
         for (int c = 0; c < numClasses; c++) {
             double sum = .0;
             for(int m = 0; m < modules.length; m++){
+                double[] p=modules[m].trainResults.getDistributionForInstance(trainInstanceIndex);
                 sum += modules[m].priorWeight * 
-                        modules[m].posteriorWeights[c] * 
-                        modules[m].trainResults.distsForInsts[trainInstanceIndex][c];
+                        modules[m].posteriorWeights[c]*p[c];
             }
             preds[c] = sum/modules.length;
         }
@@ -46,13 +46,12 @@ public class AverageOfConfidences extends ModuleVotingScheme {
     @Override
     public double[] distributionForTestInstance(EnsembleModule[] modules, int testInstanceIndex) {
         double[] preds = new double[numClasses];
-        
         for (int c = 0; c < numClasses; c++) {
             double sum = .0;
             for(int m = 0; m < modules.length; m++){
+                double[] p=modules[m].testResults.getDistributionForInstance(testInstanceIndex);
                 sum += modules[m].priorWeight * 
-                        modules[m].posteriorWeights[c] * 
-                        modules[m].testResults.distsForInsts[testInstanceIndex][c];
+                        modules[m].posteriorWeights[c]*p[c];
             }
             preds[c] = sum/modules.length;
         }

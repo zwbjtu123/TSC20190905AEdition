@@ -319,13 +319,16 @@ public class TSF extends AbstractClassifierWithTrainingData implements SaveParam
              of.writeLine(data.relationName()+",TSF,train");
              of.writeLine(getParameters());
             of.writeLine(trainResults.acc+"");
+            double[] trueClassVals,predClassVals;
+            trueClassVals=trainResults.getTrueClassVals();
+            predClassVals=trainResults.getPredClassVals();
             for(int i=1;i<data.numInstances();i++){
                 //Basic sanity check
-                if(data.instance(i).classValue()!=trainResults.trueClassVals[i]){
+                if(data.instance(i).classValue()!=trueClassVals[i]){
                     throw new Exception("ERROR in TSF cross validation, class mismatch!");
                 }
-                of.writeString((int)trainResults.trueClassVals[i]+","+(int)trainResults.predClassVals[i]+",");
-                for(double d:trainResults.distsForInsts[i])
+                of.writeString((int)trueClassVals[i]+","+(int)predClassVals[i]+",");
+                for(double d:trainResults.getDistributionForInstance(i))
                     of.writeString(","+d);
                 of.writeString("\n");
             }

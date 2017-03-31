@@ -31,12 +31,10 @@ public class AverageVoteByConfidence extends ModuleVotingScheme {
         
         int pred; 
         for(int m = 0; m < modules.length; m++){
-            pred = (int) modules[m].trainResults.predClassVals[trainInstanceIndex]; 
-            ++numPredsForClass[pred];
-            
-            preds[pred] += modules[m].priorWeight * 
-                    modules[m].posteriorWeights[pred] * 
-                    modules[m].trainResults.distsForInsts[trainInstanceIndex][pred];
+                pred = (int) modules[m].trainResults.getPredClassValue(trainInstanceIndex); 
+                ++numPredsForClass[pred];
+                double[] p=modules[m].trainResults.getDistributionForInstance(trainInstanceIndex);
+                preds[pred] += modules[m].priorWeight*modules[m].posteriorWeights[pred]*p[pred];
         }
         
         for (int c = 0; c < numClasses; c++) 
@@ -53,12 +51,11 @@ public class AverageVoteByConfidence extends ModuleVotingScheme {
         
         int pred; 
         for(int m = 0; m < modules.length; m++){
-            pred = (int) modules[m].testResults.predClassVals[testInstanceIndex]; 
+            pred = (int) modules[m].testResults.getPredClassValue(testInstanceIndex); 
             ++numPredsForClass[pred];
-            
+            double[] p=modules[m].testResults.getDistributionForInstance(testInstanceIndex);
             preds[pred] += modules[m].priorWeight * 
-                    modules[m].posteriorWeights[pred] * 
-                    modules[m].testResults.distsForInsts[testInstanceIndex][pred];
+                    modules[m].posteriorWeights[pred] * p[pred];
         }
         
         for (int c = 0; c < numClasses; c++) 

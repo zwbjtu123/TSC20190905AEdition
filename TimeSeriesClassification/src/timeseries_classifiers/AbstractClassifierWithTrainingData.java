@@ -50,5 +50,11 @@ abstract public class AbstractClassifierWithTrainingData extends AbstractClassif
         return "BuildTime,"+trainResults.buildTime;
     }
      
+    public String getTrainData() {
+        StringBuilder sb=new StringBuilder("AccEstimateFromTrain,");
+        sb.append(trainResults.acc).append(",");
+        
+        return "BuildTime,"+trainResults.buildTime;
+    }
      
 }

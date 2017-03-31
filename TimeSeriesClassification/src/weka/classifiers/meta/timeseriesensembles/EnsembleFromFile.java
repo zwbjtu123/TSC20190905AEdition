@@ -136,7 +136,7 @@ public abstract class EnsembleFromFile extends AbstractClassifier implements Deb
             return new ClassifierResults(acc, classVals, preds, distsForInsts, numClasses);
         else 
             return new ClassifierResults(acc, numClasses);
-        //now need to account for fact that some files might only have the frist 3 lines and 
+        //now need to account for fact that some files might only have the first 3 lines and 
         //not the full train cv preds
         //blame tony.
     }
@@ -175,13 +175,16 @@ public abstract class EnsembleFromFile extends AbstractClassifier implements Deb
         st.append(parameters + "\n"); //st.append("internalHesca\n");
         st.append(results.acc).append("\n");
         
-        if (results.predClassVals != null) {
-            for(int i = 0; i < results.predClassVals.length;i++) {
-                st.append(results.trueClassVals[i]).append(",").append(results.predClassVals[i]).append(","); //pred
+        double[] trueClassVals=results.getTrueClassVals();
+        double[] predClassVals=results.getPredClassVals();
+         if (predClassVals != null) {
+            for(int i = 0; i < predClassVals.length;i++) {
+                st.append(trueClassVals[i]).append(",").append(predClassVals[i]).append(","); //pred
+                       double[] distForInst=results.getDistributionForInstance(i);
 
-                if (results.distsForInsts != null && results.distsForInsts[i] != null)
-                    for (int j = 0; j < results.distsForInsts[i].length; j++)
-                        st.append("," + results.distsForInsts[i][j]);
+                if (distForInst != null)
+                    for (int j = 0; j < distForInst.length; j++)
+                        st.append("," + distForInst[j]);
 
                 st.append("\n");
             }

@@ -1,68 +1,66 @@
 
 package weka.classifiers.meta.timeseriesensembles;
 
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 
 /**
  * Simple container class for the results of a classifier (module) on a dataset
+ * It can be used in batch mode (add them all in at once) or online (add in one at a time).
+ * The former is sensible for storing training set results, the latter for test results
+ * 
  * 
  * @author James Large
  */
 public class ClassifierResults {
-    public double[] predClassVals;
-    public double acc; 
     public long buildTime;
-    public double[][] distsForInsts; 
-    public double[][] confusionMatrix; //[actual class][predicted class]
-    public double[] trueClassVals;
+    public double acc; 
     public double stddev; //across cv folds
-    
     private int numClasses;
 
-    //todo, re-work how this is done
-    //turns out storing/writing the test preds within the class that's being tested
-    //is extremely annoying and doesnt fit with the rest of the class structure
-    private ArrayList<Double> testPredsSoFar;
-    private ArrayList<ArrayList<Double>> testDistsSoFar;
+    public double[][] confusionMatrix; //[actual class][predicted class]
+    
+
+    
+    public ArrayList<Double> actualClassValues;
+    public ArrayList<Double> predictedClassValues;
+    public ArrayList<double[]> predictedClassProbabilities;
     
     /**
-     * for building results one by one while testing, call finaliseTestResults
-     * to populate the ClassifierResults object once testing is finished
+     * for building results one by one while testing, call finaliseResults
+ to populate the ClassifierResults object once testing is finished
      */
     public ClassifierResults() {
-        testPredsSoFar = new ArrayList<>();
-        testDistsSoFar = new ArrayList<>();
+        actualClassValues= new ArrayList<>();
+        predictedClassValues = new ArrayList<>();
+        predictedClassProbabilities = new ArrayList<>();
     }
     
     //for if we are only storing the cv accuracy in the context of SaveCVAccuracy
     public ClassifierResults(double cvacc, int numClasses) {
+        this();
         this.acc = cvacc;
         this.numClasses = numClasses;
     }
     
     public ClassifierResults(double acc, double[] classVals, double[] preds, double[][] distsForInsts, int numClasses) {        
-        this.predClassVals = preds;
+        this();
+        for(double d:preds)
+            predictedClassValues.add(d);
         this.acc = acc;
-        this.distsForInsts = distsForInsts;
-
+        for(double[] d:distsForInsts)
+            predictedClassProbabilities.add(d);
+ 
         this.numClasses = numClasses;
-
-        this.trueClassVals = classVals;
+       for(double d:classVals)
+           actualClassValues.add(d);
         this.confusionMatrix = buildConfusionMatrix();
         
         this.stddev = -1; //not defined 
     }
     
-    public ClassifierResults(double acc, double[] classVals, double[] preds, double[][] distsForInsts, double stddev, int numClasses) {        
-        this.predClassVals = preds;
-        this.acc = acc;
-        this.distsForInsts = distsForInsts;
-
-        this.numClasses = numClasses;
-
-        this.trueClassVals = classVals;
-        this.confusionMatrix = buildConfusionMatrix();
-        
+    public ClassifierResults(double acc, double[] classVals, double[] preds, double[][] distsForInsts, double stddev, int numClasses) { 
+        this(acc,classVals,preds,distsForInsts,numClasses);
         this.stddev = stddev; 
     }
 
@@ -71,54 +69,120 @@ public class ClassifierResults {
     */
     private double[][] buildConfusionMatrix() {
         double[][] matrix = new double[numClasses][numClasses];
-        for (int i = 0; i < predClassVals.length; ++i)
-            ++matrix[(int)trueClassVals[i]][(int)predClassVals[i]];
-
+        for (int i = 0; i < predictedClassValues.size(); ++i){
+            double actual=actualClassValues.get(i);
+            double predicted=predictedClassValues.get(i);
+            ++matrix[(int)actual][(int)predicted];
+        }
         return matrix;
     }
-    
-    //again when i have the willpower find a better way to do this
-    public void storeSingleTestResult(double[] dist) {        
+    public void addAllResults(double[] classVals, double[] preds, double[][] distsForInsts, int numClasses){
+//Overwrites previous        
+        actualClassValues= new ArrayList<>();
+        predictedClassValues = new ArrayList<>();
+        predictedClassProbabilities = new ArrayList<>();
+        for(double d:preds)
+            predictedClassValues.add(d);
+        this.acc = acc;
+        for(double[] d:distsForInsts)
+            predictedClassProbabilities.add(d);
+ 
+        this.numClasses = numClasses;
+       for(double d:classVals)
+           actualClassValues.add(d);
+        this.confusionMatrix = buildConfusionMatrix();
+        
+        this.stddev = -1; //not defined 
+        
+    }
+ //Pass the probability estimates for each class, but need the true class too
+    public void storeSingleResult(double[] dist) {        
         double max = dist[0];
         double maxInd = 0;
-           
-        ArrayList<Double> a = new ArrayList<>();
+        predictedClassProbabilities.add(dist);
         for (int i = 0; i < dist.length; i++) {
-            a.add(dist[i]);
             if (dist[i] > max) {
                 max = dist[i];
                 maxInd = i;
             }
         }
-        
-        testDistsSoFar.add(a);
-        testPredsSoFar.add(maxInd);
+        predictedClassValues.add(maxInd);
     }
     
     
-    public void finaliseTestResults(double[] testClassVals) throws Exception {
-        if (testDistsSoFar == null || testPredsSoFar == null ||
-                testDistsSoFar.size() == 0 || testPredsSoFar.size() == 0)
+    public void finaliseResults(double[] testClassVals) throws Exception {
+        if (predictedClassProbabilities == null || predictedClassValues == null ||
+                predictedClassProbabilities.isEmpty() || predictedClassValues.isEmpty())
             throw new Exception("finaliseTestResults(): no test predictions stored for this module");
         
-        if (testClassVals.length != testPredsSoFar.size())
+        if (testClassVals.length != predictedClassValues.size())
             throw new Exception("finaliseTestResults(): Number of test predictions made and number of test cases do not match");
         
-        this.trueClassVals = testClassVals;
+        for(double d:testClassVals)
+            actualClassValues.add(d);
         
-        distsForInsts = new double[testDistsSoFar.size()][testDistsSoFar.get(0).size()];
-        predClassVals = new double[testDistsSoFar.size()];
         
         double correct = .0;
-        for (int inst = 0; inst < distsForInsts.length; inst++) {
-            predClassVals[inst] = testPredsSoFar.get(inst);
-            if (testClassVals[inst] == predClassVals[inst])
+        for (int inst = 0; inst < predictedClassValues.size(); inst++) {
+            if (testClassVals[inst] == predictedClassValues.get(inst))
                     ++correct;
-            
-            for (int c = 0; c < distsForInsts[inst].length; c++) 
-                distsForInsts[inst][c] = testDistsSoFar.get(inst).get(c);
         }
-        
         acc = correct/testClassVals.length;
     }
+    public int numInstances(){ return predictedClassValues.size();}
+    public double[] getTrueClassVals(){
+        double[] d=new double[actualClassValues.size()];
+        int i=0;
+        for(double x:actualClassValues)
+            d[i++]=x;
+        return d;
+    }
+   public double[] getPredClassVals(){
+        double[] d=new double[predictedClassValues.size()];
+        int i=0;
+        for(double x:predictedClassValues)
+            d[i++]=x;
+        return d;
+    }
+   public double getPredClassValue(int index){
+        return predictedClassValues.get(index);
+    }
+   public double getTrueClassValue(int index){
+        return actualClassValues.get(index);
+    }
+   public double[] getDistributionForInstance(int i){
+       if(i<predictedClassProbabilities.size())
+            return predictedClassProbabilities.get(i);
+       return null;
+   }
+   public String writeInstancePredictions(){
+       DecimalFormat df=new DecimalFormat("#.######");
+       if(numInstances()>0 &&(predictedClassProbabilities.size()==actualClassValues.size()&& predictedClassProbabilities.size()==predictedClassValues.size())){
+           StringBuilder sb=new StringBuilder("");
+           for(int i=0;i<numInstances();i++){
+               sb.append(actualClassValues.get(i).intValue()).append(",");
+               sb.append(predictedClassValues.get(i).intValue()).append(",");
+               double[] probs=predictedClassProbabilities.get(i);
+               for(double d:probs)
+                   sb.append(",").append(df.format(d));
+               sb.append("\n");
+           }
+           if(confusionMatrix==null)
+               confusionMatrix=buildConfusionMatrix();
+           for(int i=0;i<confusionMatrix.length;i++){
+               for(int j=0;j<confusionMatrix[i].length;i++){
+                   sb.append(confusionMatrix[i][j]);
+                   if(j<confusionMatrix[i].length-1)
+                       sb.append(",");
+               }
+               sb.append("\n");
+           }
+           return sb.toString();
+       }
+       else
+           return "No Instance Prediction Information";
+       
+   }
+   boolean hasInstanceData(){ return numInstances()!=0;}
+   
 }

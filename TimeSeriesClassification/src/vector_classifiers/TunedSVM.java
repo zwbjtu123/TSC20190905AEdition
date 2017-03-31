@@ -336,13 +336,7 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
             f.writeLine(train.relationName()+",TunedSVM,Train");
             f.writeLine(getParameters());
             f.writeLine(res.acc+"");
-            for(int i=0;i<train.numInstances();i++){
-                f.writeString(res.trueClassVals[i]+","+res.predClassVals[i]+",");
-                for(double d: res.distsForInsts[i])
-                    f.writeString(","+df.format(d));
-                f.writeString("\n");
-                
-            }
+            f.writeLine(res.writeInstancePredictions());
         }        
     }
     public static void main(String[] args) {

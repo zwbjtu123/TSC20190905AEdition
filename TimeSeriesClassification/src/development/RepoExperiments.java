@@ -266,15 +266,22 @@ public class RepoExperiments{
                     else
                         of.writeLine("No Parameter Info");
                    of.writeLine(res.acc+"");
-                   for(int i=1;i<train.numInstances();i++){
-                       //Basic sanity check
-                       if(train.instance(i).classValue()!=res.trueClassVals[i]){
-                           throw new Exception("ERROR in TSF cross validation, class mismatch!");
-                       }
-                       of.writeString((int)res.trueClassVals[i]+","+(int)res.predClassVals[i]+",");
-                       for(double d:res.distsForInsts[i])
-                           of.writeString(","+d);
-                       of.writeString("\n");
+                   if(res.numInstances()>0){
+                    double[] trueClassVals=res.getTrueClassVals();
+                    double[] predClassVals=res.getPredClassVals();
+                    DecimalFormat df=new DecimalFormat("###.###");
+
+                    for(int i=0;i<train.numInstances();i++){
+                        //Basic sanity check
+                        if(train.instance(i).classValue()!=trueClassVals[i]){
+                            throw new Exception("ERROR in TSF cross validation, class mismatch!");
+                        }
+                        of.writeString((int)trueClassVals[i]+","+(int)predClassVals[i]+",");
+                        double[] distForInst=res.getDistributionForInstance(i);
+                        for(double d:distForInst)
+                            of.writeString(","+df.format(d));
+                        of.writeString("\n");
+                    }
                    }
                     
                 }

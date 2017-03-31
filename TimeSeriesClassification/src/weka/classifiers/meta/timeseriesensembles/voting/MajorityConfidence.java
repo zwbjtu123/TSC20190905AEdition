@@ -31,10 +31,10 @@ public class MajorityConfidence extends ModuleVotingScheme {
         double[] preds = new double[numClasses];
         
         for(int m = 0; m < modules.length; m++){
+            double[] p=modules[m].trainResults.getDistributionForInstance(trainInstanceIndex);
             for (int c = 0; c < numClasses; c++) {
                 preds[c] += modules[m].priorWeight * 
-                            modules[m].posteriorWeights[c] * 
-                            modules[m].trainResults.distsForInsts[trainInstanceIndex][c];
+                            modules[m].posteriorWeights[c] * p[c];
             }
         }
         
@@ -46,10 +46,10 @@ public class MajorityConfidence extends ModuleVotingScheme {
         double[] preds = new double[numClasses];
         
         for(int m = 0; m < modules.length; m++){
+            double[] p=modules[m].testResults.getDistributionForInstance(testInstanceIndex);
             for (int c = 0; c < numClasses; c++) {
                 preds[c] += modules[m].priorWeight * 
-                            modules[m].posteriorWeights[c] * 
-                            modules[m].testResults.distsForInsts[testInstanceIndex][c];
+                            modules[m].posteriorWeights[c] * p[c];
             }
         }
         

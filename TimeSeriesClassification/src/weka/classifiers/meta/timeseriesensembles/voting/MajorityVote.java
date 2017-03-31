@@ -30,7 +30,7 @@ public class MajorityVote extends ModuleVotingScheme {
         
         int pred;
         for(int c = 0; c < modules.length; c++){
-            pred = (int) modules[c].trainResults.predClassVals[trainInstanceIndex]; 
+            pred = (int) modules[c].trainResults.getPredClassValue(trainInstanceIndex); 
             
             preds[pred] += modules[c].priorWeight * 
                            modules[c].posteriorWeights[pred];
@@ -45,8 +45,7 @@ public class MajorityVote extends ModuleVotingScheme {
         
         int pred;
         for(int c = 0; c < modules.length; c++){
-            pred = (int) modules[c].testResults.predClassVals[testInstanceIndex]; 
-            
+            pred = (int) modules[c].testResults.getPredClassValue(testInstanceIndex); 
             preds[pred] += modules[c].priorWeight * 
                            modules[c].posteriorWeights[pred];
         }

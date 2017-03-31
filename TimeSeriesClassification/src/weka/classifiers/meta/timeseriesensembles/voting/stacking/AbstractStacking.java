@@ -49,7 +49,7 @@ public abstract class AbstractStacking extends ModuleVotingScheme {
     public void trainVotingScheme(EnsembleModule[] modules, int numClasses) throws Exception {
         this.numClasses = numClasses;
         setNumOutputAttributes(modules);
-        int numInsts = modules[0].trainResults.distsForInsts.length;
+        int numInsts = modules[0].trainResults.numInstances();
         
         initInstances();
         Instances insts = new Instances(this.instsHeader, numInsts);
@@ -68,15 +68,15 @@ public abstract class AbstractStacking extends ModuleVotingScheme {
         
         for (int m = 0; m < modules.length; m++) {
             if (train)
-                dists[m] = modules[m].trainResults.distsForInsts[instIndex];
+                dists[m] = modules[m].trainResults.getDistributionForInstance(instIndex);
             else //test
-                dists[m] = modules[m].testResults.distsForInsts[instIndex];
+                dists[m] = modules[m].testResults.getDistributionForInstance(instIndex);
             
             for (int c = 0; c < numClasses; c++) 
                 dists[m][c] *= modules[m].priorWeight * modules[m].posteriorWeights[c];
         }
         
-        Double classVal = train ? modules[0].trainResults.trueClassVals[instIndex] : null;
+        Double classVal = train ? modules[0].trainResults.getTrueClassValue(instIndex) : null;
         return buildInst(dists, classVal);
     }
 
