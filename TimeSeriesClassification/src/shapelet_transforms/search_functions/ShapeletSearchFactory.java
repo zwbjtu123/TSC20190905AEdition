@@ -38,6 +38,7 @@ public class ShapeletSearchFactory {
         sCons.add(TabuSearch::new);
         sCons.add(RefinedRandomSearch::new);
         sCons.add(ImpRandomSearch::new);
+        sCons.add(SubsampleRandomSearch::new);
         return sCons;
     }
     

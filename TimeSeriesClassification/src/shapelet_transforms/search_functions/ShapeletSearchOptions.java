@@ -54,6 +54,10 @@ public class ShapeletSearchOptions {
         return searchType;
     }
     
+    public int[] getLengthDistribution() {
+        return lengthDistribution;
+    }
+    
     private final int min;
     private final int max;
     private final long seed;
@@ -64,6 +68,7 @@ public class ShapeletSearchOptions {
     private final int maxIterations;
     private final long timeLimit;
     private final SearchType searchType;
+    private final int[] lengthDistribution;
     
     protected ShapeletSearchOptions(Builder ops){
         min = ops.min;
@@ -76,6 +81,7 @@ public class ShapeletSearchOptions {
         maxIterations = ops.maxIterations;
         timeLimit = ops.timeLimit;
         searchType = ops.searchType;
+        lengthDistribution = ops.lengthDistribution;
     }
     
     public static class Builder{
@@ -89,7 +95,13 @@ public class ShapeletSearchOptions {
         private int maxIterations;
         private long timeLimit;
         private SearchType searchType;
+        private int[] lengthDistribution;
 
+        public Builder setLengthDistribution(int[] lengthDist){
+            lengthDistribution = lengthDist;
+            return this;
+        }
+        
         public Builder setSearchType(SearchType st){
             searchType = st;
             return this;

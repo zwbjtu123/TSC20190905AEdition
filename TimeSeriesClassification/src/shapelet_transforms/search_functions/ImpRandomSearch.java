@@ -54,6 +54,7 @@ public class ImpRandomSearch extends RandomSearch{
             //add the random shapelet to the length
             shapeletList.add(new Pair(length, position));
             //put back the updated version.
+            
             shapeletsToFind.put(series, shapeletList);
         }          
     }
