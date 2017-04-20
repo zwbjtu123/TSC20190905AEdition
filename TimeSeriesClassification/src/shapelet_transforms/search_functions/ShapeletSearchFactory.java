@@ -17,7 +17,7 @@ import java.util.function.Function;
  */
 public class ShapeletSearchFactory {
     private static final List<Function<ShapeletSearchOptions, ShapeletSearch>> searchConstructors = createSearchConstructors();
-    //{FULL, FS, GENETIC, RANDOM, LOCAL, MAGNIFY, TIMED_RANDOM, SKIPPING, TABU, REFINED_RANDOM, IMP_RANDOM};
+    //{FULL, FS, GENETIC, RANDOM, LOCAL, MAGNIFY, TIMED_RANDOM, SKIPPING, TABU, REFINED_RANDOM, IMP_RANDOM, SUBSAMPLE, SKEWED};
 
     ShapeletSearchOptions options;
     
@@ -39,6 +39,7 @@ public class ShapeletSearchFactory {
         sCons.add(RefinedRandomSearch::new);
         sCons.add(ImpRandomSearch::new);
         sCons.add(SubsampleRandomSearch::new);
+        sCons.add(SkewedRandomSearch::new);
         return sCons;
     }
     

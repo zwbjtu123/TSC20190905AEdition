@@ -153,7 +153,7 @@ public class ShapeletTransformTimingUtilities
     
     public static ShapeletTransform createTransform(Instances train){
         int numClasses = train.numClasses();
-        int numInstances = train.numInstances();
+        int numInstances = train.numInstances() <= 2000 ? train.numInstances() : 2000;
         int numAttributes = train.numAttributes()-1;
         
         ShapeletTransform transform;

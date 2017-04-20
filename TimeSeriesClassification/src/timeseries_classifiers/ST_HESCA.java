@@ -20,6 +20,7 @@ import static shapelet_transforms.ShapeletTransformTimingUtilities.nanoToOp;
 import shapelet_transforms.distance_functions.SubSeqDistance;
 import shapelet_transforms.quality_measures.ShapeletQuality;
 import shapelet_transforms.search_functions.ShapeletSearch;
+import shapelet_transforms.search_functions.ShapeletSearch.SearchType;
 import shapelet_transforms.search_functions.ShapeletSearchOptions;
 
 /**
@@ -27,7 +28,6 @@ import shapelet_transforms.search_functions.ShapeletSearchOptions;
  * @author raj09hxu
  */
 public class ST_HESCA  extends AbstractClassifier implements HiveCoteModule, SaveParameterInfo{
-
 
     public enum ST_TimeLimit {MINUTE, HOUR, DAY};
 
@@ -44,6 +44,8 @@ public class ST_HESCA  extends AbstractClassifier implements HiveCoteModule, Sav
     private boolean doTransform=true;
     
     
+    private SearchType searchType = SearchType.IMP_RANDOM;
+    
     private long numShapelets = 0;
     private long seed = 0;
     private long timeLimit = Long.MAX_VALUE;
@@ -51,6 +53,13 @@ public class ST_HESCA  extends AbstractClassifier implements HiveCoteModule, Sav
     public void setSeed(long sd){
         seed = sd;
     }
+    
+    
+    //careful when setting search type as you could set a type that violates the contract.
+    public void setSearchType(ShapeletSearch.SearchType type) {
+        searchType = type;
+    }
+
         
     @Override
     public String getParameters(){
@@ -199,7 +208,7 @@ public class ST_HESCA  extends AbstractClassifier implements HiveCoteModule, Sav
              
              //we need to find atleast one shapelet in every series.
             searchBuilder.setSeed(seed);
-            searchBuilder.setSearchType(ShapeletSearch.SearchType.IMP_RANDOM);
+            searchBuilder.setSearchType(searchType);
             searchBuilder.setNumShapelets(numShapelets);
             
             // can't have more final shapelets than we actually search through.

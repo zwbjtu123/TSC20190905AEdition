@@ -28,15 +28,13 @@ public class BalancedClassShapeletTransform extends ShapeletTransform
      */
     @Override
     public ArrayList<Shapelet> findBestKShapeletsCache(Instances data){
-        
-        
         ArrayList<Shapelet> seriesShapelets;                                    // temp store of all shapelets for each time series
         //construct a map for our K-shapelets lists, on for each classVal.
         
         if(kShapeletsMap == null){
             kShapeletsMap = new TreeMap();
             for (int i=0; i < data.numClasses(); i++){
-                kShapeletsMap.put((double)i, new ArrayList<Shapelet>());
+                kShapeletsMap.put((double)i, new ArrayList<>());
             }
         }
         

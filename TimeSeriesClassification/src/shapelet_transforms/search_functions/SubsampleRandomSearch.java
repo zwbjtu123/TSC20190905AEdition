@@ -6,7 +6,6 @@
 package shapelet_transforms.search_functions;
 
 import java.util.ArrayList;
-import shapelet_transforms.ShapeletTransformTimingUtilities;
 import utilities.generic_storage.Pair;
 import weka.core.Instances;
 

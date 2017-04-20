@@ -17,7 +17,7 @@ import shapelet_transforms.Shapelet;
  */
 public class ShapeletSearch implements Serializable{
     
-    public enum SearchType {FULL, FS, GENETIC, RANDOM, LOCAL, MAGNIFY, TIMED_RANDOM, SKIPPING, TABU, REFINED_RANDOM, IMP_RANDOM, SUBSAMPLE_RANDOM};
+    public enum SearchType {FULL, FS, GENETIC, RANDOM, LOCAL, MAGNIFY, TIMED_RANDOM, SKIPPING, TABU, REFINED_RANDOM, IMP_RANDOM, SUBSAMPLE_RANDOM, SKEWED};
     
     public interface ProcessCandidate{
         public Shapelet process(double[] candidate, int start, int length);
