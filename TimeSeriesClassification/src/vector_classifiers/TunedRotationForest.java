@@ -273,6 +273,8 @@ this gives the option of finding one. It is inefficient
             f.writeLine(data.relationName()+",TunedRotF,Train");
             f.writeLine(getParameters());
             f.writeLine(res.acc+"");
+            f.writeString(res.writeInstancePredictions());
+            
         }
     }
   

@@ -7,6 +7,10 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import timeseriesweka.classifiers.ensembles.weightings.FScore;
+import utilities.generic_storage.Pair;
 
 /**
  * Simple container class for the results of a classifier (module) on a dataset
@@ -18,16 +22,24 @@ import java.util.ArrayList;
  */
 public class ClassifierResults {
     public long buildTime;
-    public double acc; 
-    public double stddev; //across cv folds
     private int numClasses;
-    private int numCases;
+    private int numInstances;
     private String name;
     private String paras;
     
-
-    public double[][] confusionMatrix; //[actual class][predicted class]
+    public double acc; 
+    public double balancedAcc; 
+    public double sensitivity;
+    public double specificity;
+    public double precision;
+    public double recall;
     
+    public double f1; 
+    public double nll; 
+    public double stddev; //across cv folds
+    
+    public double[][] confusionMatrix; //[actual class][predicted class]
+    public double[] countPerClass;
 
     
     public ArrayList<Double> actualClassValues;
@@ -116,6 +128,19 @@ public class ClassifierResults {
         }
         predictedClassValues.add(maxInd);
     }
+    public void storeSingleResult(double actual, double[] dist) {        
+        double max = dist[0];
+        double maxInd = 0;
+        predictedClassProbabilities.add(dist);
+        for (int i = 0; i < dist.length; i++) {
+            if (dist[i] > max) {
+                max = dist[i];
+                maxInd = i;
+            }
+        }
+        predictedClassValues.add(maxInd);
+        actualClassValues.add(actual);
+    }
     
     
     public void finaliseResults(double[] testClassVals) throws Exception {
@@ -173,7 +198,8 @@ public class ClassifierResults {
                double[] probs=predictedClassProbabilities.get(i);
                for(double d:probs)
                    sb.append(",").append(df.format(d));
-               sb.append("\n");
+               if(i<numInstances()-1)
+                   sb.append("\n");
            }
            return sb.toString();
        }
@@ -192,21 +218,29 @@ public class ClassifierResults {
             actualClassValues= new ArrayList<>();
             predictedClassValues = new ArrayList<>();
             predictedClassProbabilities = new ArrayList<>();
-            numCases=0;
+            numInstances=0;
+            acc=0;
            while(line!=null){
                String[] split=line.split(",");
-               double a=Double.valueOf(split[0]);
-               double b=Double.valueOf(split[1]);
-               actualClassValues.add(a);
-               predictedClassValues.add(b);
-               if(numCases==0){
-                   numClasses=split.length-3;   //Check!
+               if(split.length>3){
+                    double a=Double.valueOf(split[0]);
+                    double b=Double.valueOf(split[1]);
+                    actualClassValues.add(a);
+                    predictedClassValues.add(b);
+                    if(a==b)
+                        acc++;
+                    if(numInstances==0){
+                        numClasses=split.length-3;   //Check!
+                    }
+                    double[] probs=new double[numClasses];
+                    for(int i=0;i<probs.length;i++)
+                        probs[i]=Double.valueOf(split[3+i]);
+                    predictedClassProbabilities.add(probs);
+                   numInstances++;
                }
-               double[] probs=new double[numClasses];
-               for(int i=0;i<probs.length;i++)
-                   probs[i]=Double.valueOf(split[3+i]);
-               predictedClassProbabilities.add(probs);
+               line=inf.readLine();
            }
+           acc/=numInstances;
        }
        else
            throw new FileNotFoundException("File "+path+" NOT FOUND");
@@ -217,8 +251,112 @@ public class ClassifierResults {
  */   
    public void findAllStats(){
        confusionMatrix=buildConfusionMatrix();
+       countPerClass=new double[confusionMatrix.length];
+       for(int i=0;i<actualClassValues.size();i++)
+           countPerClass[actualClassValues.get(i).intValue()]++;
+//Accuracy       
+       acc=0;
+       for(int i=0;i<numClasses;i++)
+           acc+=confusionMatrix[i][i];
+       acc/=numInstances;
+//Balanced accuracy
+       balancedAcc=findBalancedAcc(confusionMatrix);
+//F1
+       f1=findF1(confusionMatrix);
+//Negative log likelihood
+       nll=findNLL();
+           
+       }
+       public double findNLL(){
+           double nll=0;
+            for(int i=0;i<actualClassValues.size();i++){
+                double[] dist=getDistributionForInstance(i);
+           
+            }
+            return nll;
+       }           
    }
-//   
+   
+/**
+ * Balanced accuracy: average of the accuracy for each class
+ * @param cm
+ * @return 
+ */   
+    public double findBalancedAcc(double[][] cm){
+       double[] accPerClass=new double[cm.length];
+       for(int i=0;i<cm.length;i++)
+           accPerClass[i]=cm[i][i]/countPerClass[i];
+       double b=accPerClass[0];
+       for(int i=1;i<cm.length;i++)
+          b+=accPerClass[i]; 
+       return b;
+    }
+ /**
+  * F1: If it is a two class problem we use the minority class
+  * if it is multiclass we average over all classes. 
+  * @param cm
+  * @return 
+  */   
+    public double findF1(double[][] cm){
+        double f=0;
+        if(numClasses==2){
+            if(countPerClass[0]<countPerClass[1])
+                f=computeFScore(cm,0,1);
+            else
+                f=computeFScore(cm,1,1);
+        }
+        else{//Average over all of them
+            for(int i=0;i<numClasses;i++)
+                f+=computeFScore(cm,i,1);
+            f/=numClasses;
+        }
+        return f;
+    }
+   
+    protected double computeFScore(double[][] confMat, int c,double beta) {
+        double tp = confMat[c][c]; //[actual class][predicted class]
+        //some very small non-zero value, in the extreme case that no cases of 
+        //this class were correctly classified
+        if (tp == .0)
+            return .0000001; 
+        
+        double fp = 0.0, fn = 0.0;
+        
+        for (int i = 0; i < confMat.length; i++) {
+            if (i!=c) {
+                fp += confMat[i][c];
+                fn += confMat[c][i];
+            }
+        }
+        double precision = tp / (tp+fp);
+        double recall = tp / (tp+fn);
+        return (1+beta*beta) * (precision*recall) / ((beta*beta)*precision + recall);
+    }
+    protected double computeAROC(int c){
+        class Pair implements Comparable<Pair>{
+            Double d1;
+            Double d2;
+            public Pair(Double a, Double b){
+                d1=a;
+                d2=b;
+            }
+            @Override
+            public int compareTo(Pair p) {
+                return d1.compareTo(p.d1);
+            }
+        }
+        
+        ArrayList<Pair> p=new ArrayList<>();
+        for(int i=0;i<numInstances;i++){
+            Pair temp=new Pair(predictedClassProbabilities.get(i)[c],actualClassValues.get(i));
+            p.add(temp);
+        }
+        Collections.sort(p);
+// Sum up the FP rate
+        
+        return 0;
+    } 
+    
    public void writeAllStats(String str){
        OutFile out=new OutFile(str);
        
@@ -226,4 +364,10 @@ public class ClassifierResults {
    
    boolean hasInstanceData(){ return numInstances()!=0;}
    
+    public static void main(String[] args) throws FileNotFoundException {
+        String path="C:\\Users\\ajb\\Dropbox\\Results\\UCIResults\\RotFCV\\Predictions\\semeion\\testFold0.csv";
+        ClassifierResults cr= new ClassifierResults();
+        cr.loadFromFile(path);
+        System.out.println("FILE TEST =\n"+cr.writeInstancePredictions());
+    }
 }

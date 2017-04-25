@@ -1,5 +1,7 @@
 /*
- Adjusted Rotation Forest. To do:
+ Adjusted Rotation Forest.
+
+VERSION 1: 
 
 1. Limit the max number of attributes per tree
     Test 1: make sure it still does the same thing when maxNumAttributes> numAtts in all cases
@@ -12,7 +14,7 @@ should be no difference:
 
 2. Impose bagging and work out OOB Error
  */
-package development;
+package vector_classifiers;
 
 import java.util.Random;
 import weka.classifiers.meta.RotationForest;

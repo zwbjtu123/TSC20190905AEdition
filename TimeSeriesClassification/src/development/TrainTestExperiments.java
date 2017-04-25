@@ -1,12 +1,13 @@
 /**
  *
  * @author ajb
- *local class to run experiments with the UCI data
+ *local class to run experiments with the UCI-UEA data
 
 
 */
 package development;
 
+import vector_classifiers.RandomRotationForest1;
 import fileIO.InFile;
 import fileIO.OutFile;
 import java.io.File;
@@ -60,7 +61,7 @@ import vector_classifiers.TunedRandomForest;
 import weka.core.Instances;
 
 
-public class RepoExperiments{
+public class TrainTestExperiments{
     public static int folds=30; 
     static boolean debug=true;
     static boolean generateTrainFiles=true;
@@ -95,13 +96,26 @@ public class RepoExperiments{
             case "MLP":
                 c=new MultilayerPerceptron();
                 break;
-            case "RandF":
-                c= new RandomForest();
+            case "RandFOOB":
+                c= new TunedRandomForest();
                 ((RandomForest)c).setNumTrees(500);
+                ((TunedRandomForest)c).tuneFeatures(false);
+                ((TunedRandomForest)c).tuneTree(false);
+                ((TunedRandomForest)c).setCrossValidate(false);
+                
+                break;
+            case "RandF":
+                c= new TunedRandomForest();
+                ((RandomForest)c).setNumTrees(500);
+                ((TunedRandomForest)c).tuneFeatures(false);
+                ((TunedRandomForest)c).tuneTree(false);
+                ((TunedRandomForest)c).setCrossValidate(true);
                 break;
             case "RotF":
-                c= new RotationForest();
+                c= new TunedRotationForest();
                 ((RotationForest)c).setNumIterations(200);
+                ((TunedRotationForest)c).tuneFeatures(false);
+                ((TunedRotationForest)c).tuneTree(false);
                 break;
             case "TunedRandF":
                 c= new TunedRandomForest();
@@ -280,7 +294,8 @@ public class RepoExperiments{
                         double[] distForInst=res.getDistributionForInstance(i);
                         for(double d:distForInst)
                             of.writeString(","+df.format(d));
-                        of.writeString("\n");
+                        if(i<train.numInstances()-1)
+                            of.writeString("\n");
                     }
                    }
                     
@@ -288,8 +303,6 @@ public class RepoExperiments{
             }
             double acc =singleClassifierAndFoldTrainTestSplit(train,test,c,fold,predictions);
             System.out.println(classifier+","+problem+","+fold+","+acc);
-            
- //       of.writeString("\n");
         }
     }
 /**
@@ -344,12 +357,13 @@ public class RepoExperiments{
                 str.append(act);
                 str.append(",");
                 str.append(pred);
-                str.append(",,");
+                str.append(",");
                 for(double d:probs){
-                    str.append(df.format(d));
                     str.append(",");
+                    str.append(df.format(d));
                 }
-                str.append("\n");
+                if(j<data[1].numInstances()-1)
+                    str.append("\n");
             }
             acc/=data[1].numInstances();
             OutFile p=new OutFile(resultsPath+"/testFold"+fold+".csv");
@@ -359,7 +373,7 @@ public class RepoExperiments{
             }else
                 p.writeLine("No parameter info");
             p.writeLine(acc+"");
-            p.writeLine(str.toString());
+            p.writeString(str.toString());
         }catch(Exception e)
         {
                 System.out.println(" Error ="+e+" in method simpleExperiment"+e);
@@ -383,6 +397,8 @@ public class RepoExperiments{
     */  
        
     public static void main(String[] args) throws Exception{
+        for(String str:args)
+            System.out.println(str);
         if(args.length!=6){//Local run
             DataSets.problemPath="C:\\Users\\ajb\\Dropbox\\TSC Problems\\";
             DataSets.resultsPath="c:\\Temp\\";
@@ -390,25 +406,25 @@ public class RepoExperiments{
             if(!f.isDirectory()){
                 f.mkdirs();
             }
-            
-            String[] newArgs={"SVMQ","SonyAIBORobotSurface1","2"};
-            RepoExperiments.singleClassifierAndFoldTrainTestSplit(newArgs);
+            generateTrainFiles=true;
+            String[] newArgs={"RandF","ItalyPowerDemand","1"};
+            TrainTestExperiments.singleClassifierAndFoldTrainTestSplit(newArgs);
             System.exit(0);
         }
-            
-        DataSets.problemPath=args[0];
-        DataSets.resultsPath=args[1];
-//Third argument is whether to cross validate or not
-        generateTrainFiles=Boolean.parseBoolean(args[2]);
-        File f=new File(DataSets.resultsPath);
-        if(!f.isDirectory()){
-            f.mkdirs();
+        else{    
+            DataSets.problemPath=args[0];
+            DataSets.resultsPath=args[1];
+    //Third argument is whether to cross validate or not
+            generateTrainFiles=Boolean.parseBoolean(args[2]);
+            File f=new File(DataSets.resultsPath);
+            if(!f.isDirectory()){
+                f.mkdirs();
+            }
+            String[] newArgs=new String[args.length-3];
+            for(int i=3;i<args.length;i++)
+                newArgs[i-3]=args[i];
+            TrainTestExperiments.singleClassifierAndFoldTrainTestSplit(newArgs);
         }
-        String[] newArgs=new String[args.length-3];
-        for(int i=3;i<args.length;i++)
-            newArgs[i-2]=args[i];
-        RepoExperiments.singleClassifierAndFoldTrainTestSplit(newArgs);
-        
     
     }
 

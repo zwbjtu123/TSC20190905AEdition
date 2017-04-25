@@ -1,5 +1,10 @@
 /*
-class to collate standard results files over  
+class to collate standard results files over multiple classifiers and problems
+
+Usage: 
+
+
+
  */
 package development;
 
@@ -10,6 +15,7 @@ import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import utilities.ClassifierResults;
 
 /**
  *
@@ -33,7 +39,7 @@ public class CollateResults {
         problemPath=args[1];
         System.out.println("Problem path = "+problemPath);
          folds =Integer.parseInt(args[2]);
-        System.out.println("Folds = "+30);
+        System.out.println("Folds = "+folds);
         numClassifiers=(args.length-3)/2;
         classifiers=new String[numClassifiers];
         for(int i=0;i<classifiers.length;i++)
@@ -68,6 +74,7 @@ public class CollateResults {
 //Write collated results for this classifier to a single file                
                 OutFile clsResults=new OutFile(basePath+cls+"/"+cls+"TestAcc.csv");
                 OutFile f1Results=new OutFile(basePath+cls+"/"+cls+"TestF1.csv");
+                OutFile BAccResults=new OutFile(basePath+cls+"/"+cls+"TestBAcc.csv");
                 System.out.println(basePath+cls+"/"+cls+"TestAcc.csv");
                 OutFile trainResults=new OutFile(basePath+cls+"/"+cls+"TrainCVAcc.csv");
                 OutFile[] paraFiles=new OutFile[numParas[i]];
@@ -82,6 +89,8 @@ public class CollateResults {
                 for(String name:problems){            
                     clsResults.writeString(name+",");
                     trainResults.writeString(name+",");
+                    f1Results.writeString(name);
+                    BAccResults.writeString(name);
                     for(OutFile out:paraFiles)
                         out.writeString(name+",");
                     String path=basePath+cls+"//Predictions//"+name;
@@ -131,9 +140,13 @@ public class CollateResults {
                                     for(int k=0;k<numParas[i];k++)
                                         paraFiles[k].writeString(",");
                                 }
-//Read in the rest to find contingency table. 
-//                            int[][]     
-                                
+//Read in the rest into a ClassifierResults object
+                                inf.closeFile();
+                                ClassifierResults res=new ClassifierResults();
+                                res.loadFromFile(path+"//testFold"+j+".csv");
+                                res.findAllStats();
+                                f1Results.writeString(","+res.f1);
+                                BAccResults.writeString(","+res.balancedAcc);
                                 
                             }catch(Exception e){
                                 System.out.println(" Error "+e+" in "+path);
@@ -157,7 +170,6 @@ public class CollateResults {
                             missingCount++;
                            missing.writeString(","+j);
                         }
-                       
                     }
                     counts.writeLine(name+","+(folds-missingCount));
                     clsResults.writeString("\n");

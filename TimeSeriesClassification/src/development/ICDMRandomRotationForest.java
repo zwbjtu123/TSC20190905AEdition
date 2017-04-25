@@ -14,6 +14,7 @@ which is randomly split by propInTrain
 */
 package development;
 
+import vector_classifiers.RandomRotationForest1;
 import fileIO.InFile;
 import fileIO.OutFile;
 import java.io.File;

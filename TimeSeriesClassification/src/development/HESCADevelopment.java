@@ -28,6 +28,7 @@ All depreciated by James's changes
 
 package development;
 
+import vector_classifiers.RandomRotationForest1;
 import fileIO.OutFile;
 import java.io.File;
 import java.io.FileWriter;

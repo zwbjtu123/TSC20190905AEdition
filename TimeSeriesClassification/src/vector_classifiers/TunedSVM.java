@@ -331,7 +331,6 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
         
         res.buildTime=System.currentTimeMillis()-res.buildTime;
         if(trainPath!=null && trainPath!=""){  //Save basic train results
-            DecimalFormat df= new DecimalFormat("#.####");
             OutFile f= new OutFile(trainPath);
             f.writeLine(train.relationName()+",TunedSVM,Train");
             f.writeLine(getParameters());

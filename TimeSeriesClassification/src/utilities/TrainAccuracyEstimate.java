@@ -25,7 +25,8 @@ public interface TrainAccuracyEstimate {
     default boolean findsTrainAccuracyEstimate(){ return true;}
 /**
  * TrainCV results are not by default written to file. If this method is called
- * they will be written in standard format. The minimum requirements for the
+ * they will be written in standard format, as defined in the ClassifierResults class
+ * The minimum requirements for the
  * train results are
  * 
  * ProblemName,ClassifierName,train
