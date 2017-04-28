@@ -75,12 +75,12 @@ public class MagnifySearch extends ImpRandomSearch{
                 
                 if(shape == null || bsf == null) continue;
                 
-                
                 //if we're at the bottom level we should start compiling the list.
                 if(depth == maxDepth-1)
                     candidateList.add(shape);
                 
-                if(comparator.compare(bsf, shape) < 0){
+                
+                if(comparator.compare(bsf, shape) > 0){
                     bsf = shape;
                 }
             }

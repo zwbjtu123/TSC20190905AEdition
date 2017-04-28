@@ -34,6 +34,8 @@ public class TabuSearch extends ImpRandomSearch{
         inputData = input;
         numShapeletsPerSeries = (int) (numShapelets / inputData.numInstances());  
         
+        maxTabuSize = (int) ((float) numShapeletsPerSeries / (float) neighbourhoodWidth);
+        
         // we might need to reduce the number of series. could do 10% subsampling.
         if(numShapeletsPerSeries < 1)
             System.err.println("Too Few Starting shapelets");
@@ -55,10 +57,9 @@ public class TabuSearch extends ImpRandomSearch{
         
         int numShapeletsEvaluated = 0;
 
-        
         //Only consider a fixed amount of shapelets.
         while(numShapeletsPerSeries > numShapeletsEvaluated){
-
+            
             //create the random shapelet.
             //if it's the first iteration and we've got a previous best shapelet.
             if(numShapeletsEvaluated == 0 && bsf_shapelet != null){
@@ -69,28 +70,21 @@ public class TabuSearch extends ImpRandomSearch{
             }
             
             ArrayList<Pair<Integer, Integer>> candidateList = new ArrayList<>();
-            //find it's local neighbours that are not in the tabuList.
-            ArrayList<Pair<Integer, Integer>> neighbourhood = createNeighbourhood(shapelet);
+            candidateList.add(shapelet);
+            candidateList.addAll(createNeighbourhood(shapelet, series.length));
             boolean inList = false;
-            for(Pair<Integer, Integer> neighbour : neighbourhood){
+            for(Pair<Integer, Integer> neighbour : candidateList){
                 //i think if we collide with the tabuList we should abandon the neighbourhood.
-                if(!tabuList.contains(neighbour))
-                    candidateList.add(neighbour);
-                else{
+                if(tabuList.contains(neighbour)){
                     inList = true;
                     break;
                 }
             }
             //if inList is true we want to abandon this whole search area.
-            //reckon we need to increase evaluated counter by one, 
-            //as a safety measure or we need to keep the tabuList smallish.
             if(inList){
-                //numShapeletsEvaluated++;
                 continue;
             }
-            
-            
-            
+
             //find the best local candidate
             Pair<Integer, Integer> bestLocal = null;
             Shapelet local_bsf_shapelet = null;
@@ -105,12 +99,9 @@ public class TabuSearch extends ImpRandomSearch{
                     bestLocal = shape;
                     local_bsf_shapelet = sh;
                 }
-                
-                
-                //System.out.println(sh.length +" " + sh.startPos + " " +sh.qualityValue);
-                
+
                 //if the comparator says it's better.
-                if(comparator.compare(local_bsf_shapelet, sh) < 0){
+                if(comparator.compare(local_bsf_shapelet, sh) > 0){
                     bestLocal = shape;
                     local_bsf_shapelet = sh;
                 }
@@ -118,11 +109,10 @@ public class TabuSearch extends ImpRandomSearch{
             
             if(local_bsf_shapelet == null) continue;
             
-            
             //update bsf shapelet if the local one is better.
             if(bsf_shapelet == null) bsf_shapelet = local_bsf_shapelet;
-            
-            if(comparator.compare(bsf_shapelet, local_bsf_shapelet) <= 0){
+
+            if(comparator.compare(bsf_shapelet, local_bsf_shapelet) > 0){
                 bsf_shapelet = local_bsf_shapelet;
                 seriesShapelets.add(local_bsf_shapelet); //stick the local best ones in the list.
             }          
