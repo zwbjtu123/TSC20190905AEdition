@@ -6,6 +6,7 @@
 package shapelet_transforms.search_functions;
 
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.LinkedList;
 import java.util.Queue;
 import utilities.generic_storage.Pair;
@@ -25,6 +26,10 @@ public class TabuSearch extends ImpRandomSearch{
     
     Shapelet bsf_shapelet;  
     
+    BitSet seriesToConsider;
+    
+    float proportion = 1.0f;
+    
     protected TabuSearch(ShapeletSearchOptions ops) {
         super(ops);
     }
@@ -32,9 +37,25 @@ public class TabuSearch extends ImpRandomSearch{
     @Override
     public void init(Instances input){
         inputData = input;
-        numShapeletsPerSeries = (int) (numShapelets / inputData.numInstances());  
         
-        maxTabuSize = (int) ((float) numShapeletsPerSeries / (float) neighbourhoodWidth);
+        float subsampleSize = (float) inputData.numInstances() * proportion;
+        
+        numShapeletsPerSeries = (int) ((float) numShapelets / subsampleSize);  
+        System.out.println(inputData.numInstances());
+        seriesToConsider = new BitSet(inputData.numInstances());
+        
+        if(proportion >= 1.0){
+            seriesToConsider.set(0, inputData.numInstances(), true); //enable all
+            return;
+        }
+        
+        //randomly select 25% of the series.
+        for(int i=0; i< subsampleSize; i++){
+            seriesToConsider.set(random.nextInt((int) subsampleSize));
+        }
+        
+        System.out.println(numShapeletsPerSeries);
+        System.out.println(subsampleSize);
         
         // we might need to reduce the number of series. could do 10% subsampling.
         if(numShapeletsPerSeries < 1)
@@ -47,9 +68,9 @@ public class TabuSearch extends ImpRandomSearch{
         
         ArrayList<Shapelet> seriesShapelets = new ArrayList<>();
         
+        if(!seriesToConsider.get(currentSeries++)) return seriesShapelets;
+        
         double[] series = timeSeries.toDoubleArray();
-
-        currentSeries++;
 
         Queue<Pair<Integer, Integer>> tabuList = new LinkedList<>();
         

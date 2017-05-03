@@ -54,8 +54,7 @@ public class TreeSetClassDistribution extends ClassDistribution{
 
     @Override
     public int get(double classValue) {
-        Integer val = classDistribution.get(classValue);
-        return val == null ? 0 : val;
+        return classDistribution.getOrDefault(classValue, 0);
     }
 
     @Override
@@ -70,7 +69,7 @@ public class TreeSetClassDistribution extends ClassDistribution{
 
     @Override
     public int get(int accessValue) {
-        return classDistribution.get((double) accessValue);
+        return classDistribution.getOrDefault((double) accessValue, 0);
     }
     
     @Override

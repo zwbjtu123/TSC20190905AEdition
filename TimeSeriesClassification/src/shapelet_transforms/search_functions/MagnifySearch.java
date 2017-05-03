@@ -6,6 +6,7 @@
 package shapelet_transforms.search_functions;
 
 import java.util.ArrayList;
+import java.util.BitSet;
 import static utilities.GenericTools.randomRange;
 import utilities.generic_storage.Pair;
 import weka.core.Instance;
@@ -27,13 +28,35 @@ public class MagnifySearch extends ImpRandomSearch{
         super(ops);
     }
     
+    float proportion = 1.0f;
+    BitSet seriesToConsider;
     
     @Override
     public void init(Instances input){
         maxDepth = 3;
         inputData = input;
-        numShapeletsPerSeries = (int) (numShapelets / inputData.numInstances());  
-        numShapeletsPerSeries /= maxDepth;
+        
+        float subsampleSize = (float) inputData.numInstances() * proportion;
+        System.out.println(subsampleSize);
+        
+        numShapeletsPerSeries = (int) ((float) numShapelets / subsampleSize);  
+        numShapeletsPerSeries /= (float) maxDepth;
+        
+        seriesToConsider = new BitSet(inputData.numInstances());
+        
+        //if proportion is 1.0 enable all series.
+        if(proportion >= 1.0){
+            seriesToConsider.set(0, inputData.numInstances(), true); //enable all
+            return;
+        }
+        
+        //randomly select 25% of the series.
+        for(int i=0; i< subsampleSize; i++){
+            seriesToConsider.set(random.nextInt((int) subsampleSize));
+        }
+        
+        System.out.println(numShapeletsPerSeries);
+        System.out.println(subsampleSize);
         
         if(numShapeletsPerSeries < 1)
             System.err.println("Too Few Starting shapelets");
@@ -42,23 +65,21 @@ public class MagnifySearch extends ImpRandomSearch{
     @Override
     public ArrayList<Shapelet> SearchForShapeletsInSeries(Instance timeSeries, ShapeletSearch.ProcessCandidate checkCandidate){
         
+        ArrayList<Shapelet> candidateList = new ArrayList<>();
+        
+        if(!seriesToConsider.get(currentSeries++)) return candidateList;
         
         double[] candidate = timeSeries.toDoubleArray();
         
         //we want to iteratively shrink our search area.
-        
         int minLength = minShapeletLength;
         int maxLength = maxShapeletLength;
         int minPos = 0;
         //if the series is m = 100. our max pos is 97, when min is 3.
         int maxPos = maxShapeletLength - minShapeletLength + 1;
         
-        
         int lengthWidth = (maxLength - minLength)  /  2;
         int posWidth = (maxPos + minPos) / 2;
-        
-        ArrayList<Shapelet> candidateList = new ArrayList<>();
-        
         
         for(int depth = 0; depth < maxDepth; depth++){
             
@@ -103,9 +124,7 @@ public class MagnifySearch extends ImpRandomSearch{
             minPos = bsf.startPos - posWidth;
             maxPos = bsf.startPos + posWidth;
         }
-        
-        
-        
+
         return candidateList;
     }
     
