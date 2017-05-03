@@ -12,6 +12,8 @@
 
 package papers;
 
+import timeseriesweka.filters.PowerSpectrum;
+import timeseriesweka.filters.ACF;
 import fileIO.InFile;
 import fileIO.OutFile;
 import java.text.DecimalFormat;
@@ -29,12 +31,11 @@ import weka.classifiers.lazy.kNN;
 import weka.classifiers.meta.AdaBoostM1;
 import weka.classifiers.meta.Bagging;
 import weka.classifiers.meta.RotationForest;
-import weka.classifiers.meta.timeseriesensembles.TransformEnsembles;
+import timeseriesweka.classifiers.ensembles.TransformEnsembles;
 import weka.classifiers.trees.J48;
 import weka.classifiers.trees.RandomForest;
 import weka.core.Instances;
 import weka.filters.NormalizeCase;
-import weka.filters.timeseries.*;
 import development.*;
 import weka.classifiers.AbstractClassifier;
 

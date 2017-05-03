@@ -7,7 +7,6 @@ import java.util.Collections;
 import java.util.Random;
 import weka.classifiers.Classifier;
 import weka.classifiers.lazy.kNN;
-import weka.classifiers.meta.timeseriesensembles.ClassifierResults;
 import weka.core.Instances;
 
 /**

@@ -28,7 +28,7 @@ import weka.classifiers.functions.SMO;
 import weka.classifiers.functions.supportVector.Kernel;
 import weka.classifiers.functions.supportVector.PolyKernel;
 import weka.classifiers.functions.supportVector.RBFKernel;
-import weka.classifiers.meta.timeseriesensembles.ClassifierResults;
+import utilities.ClassifierResults;
 import weka.core.*;
 
 /**
@@ -331,18 +331,11 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
         
         res.buildTime=System.currentTimeMillis()-res.buildTime;
         if(trainPath!=null && trainPath!=""){  //Save basic train results
-            DecimalFormat df= new DecimalFormat("#.####");
             OutFile f= new OutFile(trainPath);
             f.writeLine(train.relationName()+",TunedSVM,Train");
             f.writeLine(getParameters());
             f.writeLine(res.acc+"");
-            for(int i=0;i<train.numInstances();i++){
-                f.writeString(res.trueClassVals[i]+","+res.predClassVals[i]+",");
-                for(double d: res.distsForInsts[i])
-                    f.writeString(","+df.format(d));
-                f.writeString("\n");
-                
-            }
+            f.writeLine(res.writeInstancePredictions());
         }        
     }
     public static void main(String[] args) {

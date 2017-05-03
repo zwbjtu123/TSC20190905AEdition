@@ -7,6 +7,7 @@
 */
 package development;
 
+import vector_classifiers.RandomRotationForest1;
 import fileIO.InFile;
 import fileIO.OutFile;
 import java.io.File;
@@ -25,7 +26,7 @@ import weka.classifiers.lazy.IBk;
 import weka.classifiers.meta.RotationForest;
 import vector_classifiers.TunedRotationForest;
 import vector_classifiers.HESCA;
-import weka.classifiers.meta.timeseriesensembles.SaveableEnsemble;
+import timeseriesweka.classifiers.ensembles.SaveableEnsemble;
 import weka.classifiers.trees.RandomForest;
 import vector_classifiers.TunedRandomForest;
 import weka.core.Instances;
@@ -34,7 +35,8 @@ import weka.core.Instances;
 public class March2017Experiments{
     public static String[] classifiers={"SVM"};
     public static double propInTrain=0.5;
-    public static int folds=30; 
+    public static int folds=100;
+    public static Random rand=new Random(0);
     static String[] UCIContinuousFileNames={"abalone","acute-inflammation","acute-nephritis","adult","annealing","arrhythmia","audiology-std","balance-scale","balloons","bank","blood","breast-cancer","breast-cancer-wisc","breast-cancer-wisc-diag","breast-cancer-wisc-prog","breast-tissue","car","cardiotocography-10clases","cardiotocography-3clases",
         "chess-krvk","chess-krvkp","congressional-voting","conn-bench-sonar-mines-rocks","conn-bench-vowel-deterding",
         "connect-4","contrac","credit-approval","cylinder-bands","dermatology","echocardiogram","ecoli","energy-y1","energy-y2","fertility","flags","glass","haberman-survival","hayes-roth","heart-cleveland","heart-hungarian","heart-switzerland","heart-va","hepatitis","hill-valley","horse-colic","ilpd-indian-liver","image-segmentation","ionosphere","iris","led-display","lenses","letter","libras","low-res-spect","lung-cancer","lymphography","magic","mammographic",
@@ -47,6 +49,27 @@ public class March2017Experiments{
 //Parameter ranges for trees for randF and rotF
     static int[] numTrees={10,50,100,200,300,400,500,600,700,800,900,1000,1250,1500,1750,2000};
 
+    public static void generateAllRepoFolds(){
+        for(String str:DataSets.fileNames){
+            
+        }
+    
+        
+    }
+    public static void generateAllUCIFolds(String source, String dest) throws IOException{
+        for(String str:UCIContinuousFileNames){
+//Load full file
+            File f=new File(source+str+"/"+str); 
+            if(f.exists()){
+                Instances data=ClassifierTools.loadData(f);
+    //
+                for(int i=0;i<folds;i++){
+                    Instances[] d;
+                }
+            }
+        }
+        
+    }
     
     public static void timingNormalisation(String file) throws Exception{
         OutFile out=new OutFile(file);
@@ -518,7 +541,7 @@ public static boolean deleteDirectory(File directory) {
    
         Classifier c=March2017Experiments.setClassifier(classifier,fold);
         Instances all=ClassifierTools.loadData(DataSets.problemPath+problem+"/"+problem);
-        all.randomize(new Random());
+        all.randomize(rand);
         
         Instances[] split=InstanceTools.resampleInstances(all, fold, propInTrain);
         File f=new File(DataSets.resultsPath+classifier);

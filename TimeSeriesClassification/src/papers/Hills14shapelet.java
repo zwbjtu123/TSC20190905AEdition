@@ -15,13 +15,13 @@
 package papers;
 
 
-import shapelet_transforms.ShapeletTransform;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
-import shapelet_transforms.quality_measures.ShapeletQuality.ShapeletQualityChoice;
+import timeseriesweka.filters.shapelet_transforms.ShapeletTransform;
+import static timeseriesweka.filters.shapelet_transforms.quality_measures.ShapeletQuality.ShapeletQualityChoice.INFORMATION_GAIN;
 import weka.classifiers.Classifier;
 import weka.classifiers.bayes.BayesNet;
 import weka.classifiers.bayes.NaiveBayes;
@@ -33,7 +33,6 @@ import weka.classifiers.trees.RandomForest;
 import weka.classifiers.trees.shapelet_trees.*;
 
 import weka.core.Instances;
-import weka.filters.timeseries.*;
 
 public class Hills14shapelet {
 
@@ -439,7 +438,7 @@ public class Hills14shapelet {
                 shapeletFilter.supressOutput();
             }catch (Exception e){
                 shapeletFilter = new ShapeletTransform();
-                shapeletFilter.setQualityMeasure(ShapeletQualityChoice.INFORMATION_GAIN);
+                shapeletFilter.setQualityMeasure(INFORMATION_GAIN);
                 shapeletFilter.supressOutput();
                 shapeletFilter.setNumberOfShapelets(instancesTrain[dataIndex].numAttributes()/2);
                 shapeletFilter.setShapeletMinAndMax(shapeletMinMax[dataIndex][0], shapeletMinMax[dataIndex][1]);
@@ -518,7 +517,7 @@ public class Hills14shapelet {
                     shapeletFilter.supressOutput();
                 }catch (Exception e){
                     shapeletFilter = new ShapeletTransform();
-                    shapeletFilter.setQualityMeasure(ShapeletQualityChoice.INFORMATION_GAIN);
+                    shapeletFilter.setQualityMeasure(INFORMATION_GAIN);
                     shapeletFilter.supressOutput();
                     shapeletFilter.setNumberOfShapelets(instancesTrain[dataIndex].numAttributes()/2);
                     shapeletFilter.setShapeletMinAndMax(shapeletMinMax[dataIndex][0], shapeletMinMax[dataIndex][1]);

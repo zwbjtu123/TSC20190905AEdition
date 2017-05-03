@@ -10,10 +10,9 @@ import java.util.Collections;
 import java.util.GregorianCalendar;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import timeseriesweka.filters.shapelet_transforms.ShapeletTransform;
 import weka.classifiers.AbstractClassifier;
-import weka.classifiers.Classifier;
 import weka.core.*;
-import shapelet_transforms.ShapeletTransform;
 //import java.io.File;
 //import java.util.Scanner;
 

@@ -30,7 +30,7 @@ import utilities.InstanceTools;
 import utilities.SaveParameterInfo;
 import utilities.TrainAccuracyEstimate;
 import weka.classifiers.meta.Bagging;
-import weka.classifiers.meta.timeseriesensembles.ClassifierResults;
+import utilities.ClassifierResults;
 import weka.classifiers.trees.RandomForest;
 import weka.classifiers.trees.RandomTree;
 import weka.core.Instance;
@@ -150,36 +150,35 @@ public class TunedRandomForest extends RandomForest implements SaveParameterInfo
             
   }
     
-    
-    double[][] OOBPredictions;
-/*This 
-    */    
     @Override
     public void buildClassifier(Instances data) throws Exception{
-//        res.buildTime=System.currentTimeMillis(); //removed with cv changes  (jamesl) 
         long startTime=System.currentTimeMillis(); 
-        //now calced separately from any instance on ClassifierResults, and added on at the end
-        
-        int folds=10;
-        if(crossValidate){
-            if(folds>data.numInstances())
-                folds=data.numInstances();
-            if(debug)
-                System.out.print(" Folds ="+folds);
-        }
-        
+//********* 1: Set up the main classifier with standard Weka calls ***************/      
     // can classifier handle the data?
         getCapabilities().testWithFail(data);
         // remove instances with missing class
         data = new Instances(data);
         data.deleteWithMissingClass();
+//this is only used if CV is used to find parameters or estimate acc from train data        
+        int folds=10;
+        if(folds>data.numInstances())
+            folds=data.numInstances();
         super.setSeed(rng.nextInt());
+        
+/******* 2. Tune parameters if required: 
+ tunes number of features and number of trees  using either cross validation
+ if crossValidate==true or out of bag error otherwise
+ * 
+ * NOTE: the number of trees could be found incrementally, just start with the smallest
+ * number and add in each time rather than rebuild. It would massively speed up the search
+ * this has been implemented for the EnhancedBagger,but is not yet used. 
+ * Obviously cannot do this for the number of attributes
+ */
         if(tune){
             if(numTreesRange==null)
                 setDefaultGridSearchRange(data.numAttributes()-1);
             else if(numFeaturesRange==null)
                 setDefaultFeatureRange(data.numAttributes()-1);
-            double bestErr=1.0;
   //Its a local nested class! urggg            
             class Pair{
                 int x,y;
@@ -188,20 +187,17 @@ public class TunedRandomForest extends RandomForest implements SaveParameterInfo
                     y=b;
                 }
             }
-            
-            CrossValidator cv = new CrossValidator();
-            cv.setSeed(rng.nextInt()); 
-            cv.setNumFolds(folds);
-            cv.buildFolds(data);
             ClassifierResults tempres = null;
             res.acc = -1;//is initialised using default constructor above, left it there 
+            CrossValidator cv = new CrossValidator();
+            if(crossValidate){
+                cv.setSeed(rng.nextInt()); 
+                cv.setNumFolds(folds);
+                cv.buildFolds(data);
+            }
             //to avoid any unforeseen clashes (jamesl) 
-            
             ArrayList<Pair> ties=new ArrayList<>();
             for(int numFeatures:numFeaturesRange){//Need to start from scratch for each
-                if(debug)
-                    System.out.print(" numFeatures ="+numFeatures);
-                
                 for(int numTrees:numTreesRange){//Need to start from scratch for each                   t= new RandomForest();
                     RandomForest t= new RandomForest();
                     t.setSeed(rng.nextInt());
@@ -217,7 +213,6 @@ public class TunedRandomForest extends RandomForest implements SaveParameterInfo
                         tempres = new ClassifierResults();
                         tempres.acc = 1 - t.measureOutOfBagError();   
                     }
-                    
                     if(debug)
                         System.out.println(" numTrees ="+numTrees+" Acc = "+tempres.acc);
                     
@@ -230,39 +225,6 @@ public class TunedRandomForest extends RandomForest implements SaveParameterInfo
                     else if(tempres.acc == res.acc){//Sort out ties
                         ties.add(new Pair(numFeatures,numTrees));
                     }
-                //endofnew
-                    
-                //old
-//                    Instances temp=new Instances(data);
-//                    Evaluation eval=new Evaluation(temp);
-//                    double e;
-//                    if(crossValidate){  
-//                        eval.crossValidateModel(t, temp, folds, rng);
-//                        e=eval.errorRate();
-//                    }
-//                    else{
-//                        t.buildClassifier(temp);
-//                        e=t.measureOutOfBagError();
-//                    }
-////                    double e=1-ClassifierTools.stratifiedCrossValidation(data,t, folds,0);
-//                    accuracy.add(1-e);
-//                    if(debug)
-//                        System.out.println(" numTrees ="+numTrees+" Acc = "+(1-e));
-//                    
-////                    double e=t.measureOutOfBagError();
-////                    System.out.println(" CV Error ="+e);
-////                    t.addTrees(numTreesRange[j]-numTreesRange[j-1], data);
-////                    double e=t.findOOBError();
-//                    if(e<bestErr){
-//                        bestErr=e;
-//                       ties=new ArrayList<>();//Remove previous ties
-//                        ties.add(new Pair(numFeatures,numTrees));
-//                    }
-//                    else if(e==bestErr){//tied best, chosen randomeli
-//                        ties.add(new Pair(numFeatures,numTrees));
-//   
-//                    }
-                //endofold
                 }
             }
             int bestNumTrees;
@@ -276,12 +238,36 @@ public class TunedRandomForest extends RandomForest implements SaveParameterInfo
 //            res.acc=1-bestErr; //removed with cv change, saved from cver (jamesl) 
             if(debug)
                 System.out.println("Best num atts ="+bestNumAtts+" best num trees = "+bestNumTrees+" best train acc = "+res.acc);
-            if(trainPath!=""){  //Save train results not implemented
-            }
         }
         else //Override WEKA's default which is worse than sqrt(m)
             setNumFeatures(Math.max(1,(int)Math.sqrt(data.numAttributes()-1)));
-        super.buildClassifier(data);
+        
+/******** 3. Build final classifier ***************/        
+/*Cant call super.buildClassifier as it resets the bagger to Bagging instead of 
+ EnhancedBagging so instead straight cut and paste from RandomForest, with 
+ Bagging changed to EnhancedBagging and default size changed
+*/
+        m_bagger = new EnhancedBagging();
+        RandomTree rTree = new RandomTree();
+        // set up the random tree options
+        m_KValue = m_numFeatures;//Who knows why this is duplicated? From RandomForest
+        rTree.setKValue(m_KValue);
+        rTree.setMaxDepth(getMaxDepth());
+        // set up the bagger and build the forest
+        m_bagger.setClassifier(rTree);
+        m_bagger.setSeed(rng.nextInt());
+        m_bagger.setNumIterations(m_numTrees);
+        m_bagger.setCalcOutOfBag(true);
+        m_bagger.setNumExecutionSlots(m_numExecutionSlots);
+        m_bagger.buildClassifier(data);       
+
+/*** 4. Find the estimates of the train acc, either through CV or OOB  ****/
+// do this after the main build in case OOB is used, because we need the main 
+//classifier for that
+//NOTE IF THE CLASSIFIER IS TUNED THIS WILL BE A POSSIBLE SOURCE OF BIAS
+//It should really be nested up a level.         
+ 
+    
         if(findTrainAcc){   //Need find train acc, either through CV or OOB
             if(crossValidate){  
                 RandomForest t= new RandomForest();
@@ -294,20 +280,18 @@ public class TunedRandomForest extends RandomForest implements SaveParameterInfo
                 cv.setSeed(rng.nextInt()); //trying to mimick old seeding behaviour below
                 cv.setNumFolds(folds);
                 cv.buildFolds(data);
-
                 res = cv.crossValidateWithStats(t, data);
-                //endofnew
-
-                //old
-//                Instances temp=new Instances(data);
-//                Evaluation eval=new Evaluation(temp);
-//                double e;
-//                eval.crossValidateModel(t, data, folds, rng);
-//                res.acc=1-eval.errorRate();
-                //endofold
             }
             else{
                 res.acc=1-this.measureOutOfBagError();
+//Get OOB probabilities. This is not possible with the standard 
+//random forest bagger, hence the use of EnhancedBagger
+                System.out.println("BAGGER CLASS = "+m_bagger.getClass().getName());
+                
+                ((EnhancedBagging)m_bagger).findOOBProbabilities();
+                double[][] OOBPredictions=((EnhancedBagging)m_bagger).OOBProbabilities;
+                for(int i=0;i<data.numInstances();i++)
+                    res.storeSingleResult(data.instance(i).classValue(),OOBPredictions[i]);
             }
         }
         
@@ -317,7 +301,9 @@ public class TunedRandomForest extends RandomForest implements SaveParameterInfo
             f.writeLine(data.relationName()+",TunedRandF,Train");
             f.writeLine(getParameters());
             f.writeLine(res.acc+"");
-        }    
+            f.writeLine(res.writeInstancePredictions());
+        } 
+        
     }
 
     public void addTrees(int n, Instances data) throws Exception{
@@ -535,18 +521,19 @@ public class TunedRandomForest extends RandomForest implements SaveParameterInfo
       
     
     public static void main(String[] args) {
-        jamesltests();
+  //      jamesltests();
   //      testBinMaker();
-        System.exit(0);
+ //       System.exit(0);
         DecimalFormat df = new DecimalFormat("##.###");
         try{
-                String s="SwedishLeaf";
+                String s="ItalyPowerDemand";
                 System.out.println(" PROBLEM ="+s);
                 Instances train=ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\TSC Problems\\"+s+"\\"+s+"_TRAIN");
                 Instances test=ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\TSC Problems\\"+s+"\\"+s+"_TEST");
                 TunedRandomForest rf=new TunedRandomForest();
                rf.buildClassifier(train);
                 System.out.println(" bag percent ="+rf.getBaggingPercent()+" OOB error "+rf.measureOutOfBagError());
+/*                
                 for(int i=0;i<5;i++){
                     System.out.println(" Number f trees ="+rf.getNumTrees()+" num elements ="+rf.numElements());
                     System.out.println(" bag percent ="+rf.getBaggingPercent()+" OOB error "+rf.measureOutOfBagError());
@@ -560,7 +547,7 @@ public class TunedRandomForest extends RandomForest implements SaveParameterInfo
                         System.out.println("");
                         
                     }
-*/
+
                     rf.addTrees(50, train);
                 }
                 int correct=0;
@@ -578,6 +565,7 @@ public class TunedRandomForest extends RandomForest implements SaveParameterInfo
 //                tsbf.buildClassifier(train);
  //               double c=tsbf.classifyInstance(test.instance(0));
  //               System.out.println(" Class ="+c);
+*/
         }catch(Exception e){
             System.out.println("Exception "+e);
             e.printStackTrace();

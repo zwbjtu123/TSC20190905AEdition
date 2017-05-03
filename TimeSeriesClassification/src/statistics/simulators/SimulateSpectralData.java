@@ -4,11 +4,14 @@
 
 
 package statistics.simulators;
+import timeseriesweka.filters.FFT;
+import timeseriesweka.filters.ARMA;
+import timeseriesweka.filters.PACF;
+import timeseriesweka.filters.ACF;
 import java.util.*;
 import java.text.*;
 //import utilities.OutFile;
 import weka.core.*;
-import weka.filters.timeseries.*;
 import fileIO.*;
 import utilities.ClassifierTools;
 import weka.classifiers.Classifier;

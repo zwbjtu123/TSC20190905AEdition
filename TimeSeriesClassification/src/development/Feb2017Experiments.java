@@ -7,10 +7,10 @@
 */
 package development;
 
+import vector_classifiers.RandomRotationForest1;
 import fileIO.InFile;
 import fileIO.OutFile;
 import java.io.File;
-import java.io.IOException;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -25,7 +25,7 @@ import weka.classifiers.lazy.IBk;
 import weka.classifiers.meta.RotationForest;
 import vector_classifiers.TunedRotationForest;
 import vector_classifiers.HESCA;
-import weka.classifiers.meta.timeseriesensembles.SaveableEnsemble;
+import timeseriesweka.classifiers.ensembles.SaveableEnsemble;
 import weka.classifiers.trees.RandomForest;
 import vector_classifiers.TunedRandomForest;
 import weka.core.Instances;

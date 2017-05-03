@@ -18,7 +18,7 @@ import utilities.SaveParameterInfo;
 import utilities.TrainAccuracyEstimate;
 import weka.classifiers.Evaluation;
 import weka.classifiers.meta.RotationForest;
-import weka.classifiers.meta.timeseriesensembles.ClassifierResults;
+import utilities.ClassifierResults;
 import weka.core.Instance;
 import weka.core.Instances;
 import weka.core.Utils;
@@ -273,6 +273,8 @@ this gives the option of finding one. It is inefficient
             f.writeLine(data.relationName()+",TunedRotF,Train");
             f.writeLine(getParameters());
             f.writeLine(res.acc+"");
+            f.writeString(res.writeInstancePredictions());
+            
         }
     }
   

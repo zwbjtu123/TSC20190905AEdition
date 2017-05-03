@@ -1,5 +1,12 @@
 package vector_classifiers;
 
+import timeseriesweka.classifiers.ensembles.weightings.EqualWeighting;
+import timeseriesweka.classifiers.ensembles.weightings.TrainAcc;
+import timeseriesweka.classifiers.ensembles.weightings.ModuleWeightingScheme;
+import timeseriesweka.classifiers.ensembles.weightings.TrainAccByClass;
+import timeseriesweka.classifiers.ensembles.voting.MajorityVote;
+import timeseriesweka.classifiers.ensembles.voting.NaiveBayesCombiner;
+import timeseriesweka.classifiers.ensembles.voting.ModuleVotingScheme;
 import development.MultipleClassifiersPairwiseTest;
 import fileIO.OutFile;
 import java.io.File;
@@ -9,7 +16,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Random;
-import timeseries_classifiers.cote.HiveCoteModule;
+import java.util.Scanner;
+import timeseriesweka.classifiers.cote.HiveCoteModule;
 import utilities.ClassifierTools;
 import utilities.CrossValidator;
 import utilities.DebugPrinting;
@@ -30,12 +38,16 @@ import weka.filters.SimpleBatchFilter;
 import utilities.SaveParameterInfo;
 import utilities.StatisticalUtilities;
 import utilities.TrainAccuracyEstimate;
-import weka.classifiers.meta.timeseriesensembles.weightings.*;
-import weka.classifiers.meta.timeseriesensembles.voting.*;
-import weka.classifiers.meta.timeseriesensembles.ClassifierResults;
-import weka.classifiers.meta.timeseriesensembles.EnsembleFromFile;
-import weka.classifiers.meta.timeseriesensembles.EnsembleModule;
-import weka.filters.timeseries.SAX;
+import vector_classifiers.TunedSVM;
+import vector_classifiers.TunedRotationForest;
+import timeseriesweka.classifiers.ensembles.voting.stacking.StackingOnDists;
+import timeseriesweka.classifiers.ensembles.voting.stacking.StackingOnPredConfidences;
+import timeseriesweka.classifiers.ensembles.voting.stacking.StackingOnPreds;
+import vector_classifiers.TunedRandomForest;
+import utilities.ClassifierResults;
+import timeseriesweka.classifiers.ensembles.EnsembleFromFile;
+import timeseriesweka.classifiers.ensembles.EnsembleModule;
+import timeseriesweka.filters.SAX;
 
 /**
  *
@@ -105,7 +117,7 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveParam
                 throw new Exception(errorLog);
         }
         
-        public boolean isEmpty() { return anyErrors; };
+        public boolean isEmpty() { return !anyErrors; };
         public String getLog() { return errorLog; };
     }
     
@@ -301,12 +313,13 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveParam
         output.append(data.relationName()).append(",").append(ensembleIdentifier).append(",train\n");
         output.append(this.getParameters()).append("\n");
         output.append(ensembleTrainResults.acc).append("\n");
-
+        double[] predClassVals=ensembleTrainResults.getPredClassVals();
         for(int i = 0; i < numTrainInsts; i++){
             //realclassval,predclassval,[empty],probclass1,probclass2,...
-            output.append(data.instance(i).classValue()).append(",").append(ensembleTrainResults.predClassVals[i]).append(",");
+            output.append(data.instance(i).classValue()).append(",").append(predClassVals[i]).append(",");
+            double[] distForInst=ensembleTrainResults.getDistributionForInstance(i);
             for (int j = 0; j < numClasses; j++) 
-                output.append(",").append(ensembleTrainResults.distsForInsts[i][j]);
+                output.append(",").append(distForInst[j]);
             
             output.append("\n");
         }
@@ -445,24 +458,24 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveParam
 
                 modules[m].testResults = loadResultsFile(moduleTestResultsFile, numClasses);
 
-                numTestInsts = modules[m].testResults.predClassVals.length;
+                numTestInsts = modules[m].testResults.numInstances();
                 testResultsLoaded = true;
             }
             
             if (!trainResultsLoaded) {
                 errors.log("\nTRAIN results files for '" + classifierNames[m] + "' on '" + datasetName + "' fold '" + resampleIdentifier + "' not found. ");
             }
-            else if (needIndividualTrainPreds() && modules[m].trainResults.distsForInsts == null) {
+            else if (needIndividualTrainPreds() && modules[m].trainResults.predictedClassProbabilities.isEmpty()) {
                 errors.log("\nNo pred/distribution for instance data found in TRAIN results file for '" + classifierNames[m] + "' on '" + datasetName + "' fold '" + resampleIdentifier + "'. ");
             }
         
             if (!testResultsLoaded) {
                 errors.log("\nTEST results files for '" + classifierNames[m] + "' on '" + datasetName + "' fold '" + resampleIdentifier + "' not found. ");
             }
-            else if (modules[m].testResults.predClassVals == null) {
+            else if (modules[m].testResults.numInstances()==0) {
                 errors.log("\nNo prediction data found in TEST results file for '" + classifierNames[m] + "' on '" + datasetName + "' fold '" + resampleIdentifier + "'. ");
             }
-            else if (modules[m].testResults.distsForInsts == null) {
+            else if (modules[m].testResults.numInstances()==0) {
                 errors.log("\nNo distribution for instance data found in TEST results file for '" + classifierNames[m] + "' on '" + datasetName + "' fold '" + resampleIdentifier + "'. ");
             }
         }
@@ -572,7 +585,7 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveParam
      */
     public void finaliseIndividualModuleTestResults(double[] testSetClassVals) throws Exception {
         for (EnsembleModule module : modules)
-            module.testResults.finaliseTestResults(testSetClassVals); //converts arraylists to double[]s and preps for writing
+            module.testResults.finaliseResults(testSetClassVals); //converts arraylists to double[]s and preps for writing
     }
     
     /**
@@ -584,7 +597,7 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveParam
      */
     public void finaliseEnsembleTestResults(double[] testSetClassVals) throws Exception {
         for (EnsembleModule module : modules)
-            module.testResults.finaliseTestResults(testSetClassVals); //converts arraylists to double[]s and preps for writing
+            module.testResults.finaliseResults(testSetClassVals); //converts arraylists to double[]s and preps for writing
     }
     
     /**
@@ -626,16 +639,20 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveParam
         if (ensembleTrainResults != null) //performed cv
             writeResultsFile(ensembleIdentifier, getParameters(), ensembleTrainResults, "train");
         
-        this.ensembleTestResults.finaliseTestResults(testSetClassVals);
+        this.ensembleTestResults.finaliseResults(testSetClassVals);
         writeResultsFile(ensembleIdentifier, getParameters(), ensembleTestResults, "test");
     }
 
+    public EnsembleModule[] getModules() {
+        return modules;
+    }
+    
     public String[] getClassifierNames() {
         return classifierNames;
     }
 
     public double[] getEnsembleCvPreds() {
-        return ensembleTrainResults.predClassVals;
+        return ensembleTrainResults.getPredClassVals();
     }
 
     public double getEnsembleCvAcc() {
@@ -701,7 +718,7 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveParam
     public double[][] getIndividualCvPredictions() {
         double [][] preds = new double[modules.length][];
         for (int i = 0; i < modules.length; i++) 
-            preds[i] = modules[i].trainResults.predClassVals;
+            preds[i] = modules[i].trainResults.getPredClassVals();
         return preds;
     }
     
@@ -722,6 +739,9 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveParam
         return ensembleTrainResults;
     }        
      
+    public ClassifierResults getTestResults(){
+        return ensembleTestResults;
+    }
     
     @Override
     public String getParameters(){
@@ -787,7 +807,7 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveParam
         else //need to classify them normally
             dist = votingScheme.distributionForInstance(modules, ins);
         
-        ensembleTestResults.storeSingleTestResult(dist);
+        ensembleTestResults.storeSingleResult(dist);
         
         if (prevTestInstance != instance)
             ++testInstCounter;
@@ -817,45 +837,45 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveParam
         return indexOfMax(dist);
     }
     
-//    protected static double indexOfMax(double[] dist) {
-//        double max = dist[0];
-//        double maxInd = 0;
-//        
-//        for (int i = 1; i < dist.length; ++i) {
-//            if (dist[i] > max) {
-//                max = dist[i];
-//                maxInd = i;
-//            }
-//        }
-//        return maxInd;
-//    }
-    
-    protected static double indexOfMax(double[] dist) throws Exception {  
-        double  bsfWeight = -(Double.MAX_VALUE);
-        ArrayList<Integer>  bsfClassVals = null;
+    protected static double indexOfMax(double[] dist) {
+        double max = dist[0];
+        double maxInd = 0;
         
-        for (int c = 0; c < dist.length; c++) {
-            if(dist[c] > bsfWeight){
-                bsfWeight = dist[c];
-                bsfClassVals = new ArrayList<>();
-                bsfClassVals.add(c);
-            }else if(dist[c] == bsfWeight){
-                bsfClassVals.add(c);
+        for (int i = 1; i < dist.length; ++i) {
+            if (dist[i] > max) {
+                max = dist[i];
+                maxInd = i;
             }
         }
-
-        if(bsfClassVals == null)
-            throw new Exception("bsfClassVals == null, NaN problem");
-
-        double pred; 
-        //if there's a tie for highest voted class after all module have voted, settle randomly
-        if(bsfClassVals.size()>1)
-            pred = bsfClassVals.get(new Random(0).nextInt(bsfClassVals.size()));
-        else
-            pred = bsfClassVals.get(0);
-        
-        return pred;
+        return maxInd;
     }
+    
+//    protected static double indexOfMax(double[] dist) throws Exception {  
+//        double  bsfWeight = -(Double.MAX_VALUE);
+//        ArrayList<Integer>  bsfClassVals = null;
+//        
+//        for (int c = 0; c < dist.length; c++) {
+//            if(dist[c] > bsfWeight){
+//                bsfWeight = dist[c];
+//                bsfClassVals = new ArrayList<>();
+//                bsfClassVals.add(c);
+//            }else if(dist[c] == bsfWeight){
+//                bsfClassVals.add(c);
+//            }
+//        }
+//
+//        if(bsfClassVals == null)
+//            throw new Exception("bsfClassVals == null, NaN problem");
+//
+//        double pred; 
+//        //if there's a tie for highest voted class after all module have voted, settle randomly
+//        if(bsfClassVals.size()>1)
+//            pred = bsfClassVals.get(new Random(0).nextInt(bsfClassVals.size()));
+//        else
+//            pred = bsfClassVals.get(0);
+//        
+//        return pred;
+//    }
     
     /**
      * @return the predictions of each individual module, i.e [0] = first module's vote, [1] = second...
@@ -1725,13 +1745,13 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveParam
             sb.append("\n\nensemble train preds: ");
             sb.append("\ntrain acc: ").append(ensembleTrainResults.acc);
             sb.append("\n");
-            for(int i = 0; i < ensembleTrainResults.predClassVals.length;i++)
+            for(int i = 0; i < ensembleTrainResults.numInstances();i++)
                 sb.append(buildEnsemblePredsLine(true, i)).append("\n");
 
             sb.append("\n\nensemble test preds: ");
             sb.append("\ntest acc: ").append(builtFromFile ? ensembleTestResults.acc : "NA");
             sb.append("\n");
-            for(int i = 0; i < ensembleTestResults.predClassVals.length;i++)
+            for(int i = 0; i < ensembleTestResults.numInstances();i++)
                 sb.append(buildEnsemblePredsLine(false, i)).append("\n");
         }
         
@@ -1749,25 +1769,29 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveParam
         StringBuilder sb = new StringBuilder();
         
         if (train) //pred
-            sb.append(modules[0].trainResults.trueClassVals[index]).append(",").append(ensembleTrainResults.predClassVals[index]).append(","); 
+            sb.append(modules[0].trainResults.actualClassValues.get(index)).append(",").append(ensembleTrainResults.predictedClassValues.get(index)).append(","); 
         else
-            sb.append(modules[0].testResults.trueClassVals[index]).append(",").append(ensembleTestResults.predClassVals[index]).append(","); 
+            sb.append(modules[0].testResults.actualClassValues.get(index)).append(",").append(ensembleTestResults.predictedClassValues.get(index)).append(","); 
         
-        if (train) //dist
-            for (int j = 0; j < ensembleTrainResults.distsForInsts[index].length; j++) 
-                sb.append("," + ensembleTrainResults.distsForInsts[index][j]);
-        else
-            for (int j = 0; j < ensembleTestResults.distsForInsts[index].length; j++) 
-                sb.append("," + ensembleTestResults.distsForInsts[index][j]);
+        if (train){ //dist
+            double[] pred=ensembleTrainResults.getDistributionForInstance(index);
+            for (int j = 0; j < pred.length; j++) 
+                sb.append(",").append(pred[j]);
+        }
+        else{
+            double[] pred=ensembleTestResults.getDistributionForInstance(index);
+            for (int j = 0; j < pred.length; j++) 
+                sb.append(",").append(pred[j]);
+        }
         sb.append(",");
         
         
         double[] predDist = new double[numClasses]; //indpreddist
         for (int m = 0; m < modules.length; m++) {
             if (train) 
-                ++predDist[(int)modules[m].trainResults.predClassVals[index]];
+                ++predDist[(int)modules[m].trainResults.getPredClassValue(index)];
             else 
-                ++predDist[(int)modules[m].testResults.predClassVals[index]];
+                ++predDist[(int)modules[m].testResults.getPredClassValue(index)];
         }
         for (int c = 0; c < numClasses; c++) 
             sb.append(",").append(predDist[c]);
@@ -1775,9 +1799,9 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveParam
                 
         for (int m = 0; m < modules.length; m++) {
             if (train) 
-                sb.append(",").append(modules[m].trainResults.predClassVals[index]);
+                sb.append(",").append(modules[m].trainResults.getPredClassValue(index));
             else 
-                sb.append(",").append(modules[m].testResults.predClassVals[index]);
+                sb.append(",").append(modules[m].testResults.getPredClassValue(index));
         }   
         
         return sb.toString();

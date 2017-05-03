@@ -7,6 +7,7 @@ package utilities;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.util.List;
+import java.util.Random;
 
 /**
  * A class offering statistical utility functions like the average and the
@@ -121,5 +122,36 @@ public class StatisticalUtilities {
                     g = r;
             }
             return g;
+    }
+/**
+ * 
+ * @param counts count of number of items at each level i
+ * @return cumulative count of items at level <=i
+ */    
+    public static int[] findCumulativeCounts(int[] counts){
+        int[] c=new int[counts.length];
+        c[0]=counts[0];
+        int i=1;
+        while(i<counts.length){
+            c[i]=c[i-1]+counts[i];
+            i++;
+        }
+        return c;
+    }
+
+    
+ /**
+ * 
+ * @param cumulativeCounts: cumulativeCounts[i] is the number of items <=i
+ * as found by findCumulativeCounts 
+ * cumulativeCounts[length-1] is the total number of objects
+ * @return a randomly selected level i based on sample of cumulativeCounts
+ */
+    public static int sampleCounts(int[] cumulativeCounts, Random rand){
+        int c=rand.nextInt(cumulativeCounts[cumulativeCounts.length-1]);
+        int pos=0;
+        while(cumulativeCounts[pos]<c)
+            pos++;
+        return pos;
     }
 }
