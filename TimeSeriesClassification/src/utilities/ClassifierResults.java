@@ -33,12 +33,14 @@ public class ClassifierResults {
     
     public double f1; 
     public double nll; 
+    public double meanAUROC;
     public double stddev; //across cv folds
     
     public double[][] confusionMatrix; //[actual class][predicted class]
     public double[] countPerClass;
-
-    
+//Used to avoid infinite NLL scores when prob of true class =0 or 
+//prob of wrong class =1    
+    public static double NLL_PENALTY=20;
     public ArrayList<Double> actualClassValues;
     public ArrayList<Double> predictedClassValues;
     public ArrayList<double[]> predictedClassProbabilities;
@@ -262,16 +264,56 @@ public class ClassifierResults {
        f1=findF1(confusionMatrix);
 //Negative log likelihood
        nll=findNLL();
+       meanAUROC=findMeanAUROC();
            
-       }
+    }
        public double findNLL(){
            double nll=0;
             for(int i=0;i<actualClassValues.size();i++){
                 double[] dist=getDistributionForInstance(i);
-           
+                double trueClass=actualClassValues.get(i);
+//                System.out.println(" instance "+i+" class = "+trueClass+" prob true class = "+dist[(int)trueClass]);
+                double temp=0;
+                for(int j=0;j<dist.length;j++){
+                    if(j!=(int)trueClass){
+                        if(dist[j]==1)
+                            temp+=NLL_PENALTY;
+                        else{
+                            temp+=Math.log(1-dist[j])/Math.log(2);
+                            
+                        }
+                    }
+                    else{
+                        if(dist[j]==0)
+                            temp+=NLL_PENALTY;
+                        else{
+                            temp+=Math.log(dist[j])/Math.log(2);//Log 2
+                        }
+                    }
+                }
+ //               System.out.println(" Instance  "+i+" has NLL ="+temp);
+                nll+=temp;
             }
-            return nll;
+            return -nll;
    }
+       
+    public double findMeanAUROC(){
+        double a=0;
+        if(numClasses==2){
+                a=findAUROC(1);
+/*            if(countPerClass[0]<countPerClass[1])
+            else
+                a=findAUROC(1);
+ */       }
+        else{
+            for(int i=0;i<numClasses;i++){
+                a+=findAUROC(i);
+            }
+            a/=numClasses;
+        }
+        return a;
+    }
+       
    
 /**
  * Balanced accuracy: average of the accuracy for each class
@@ -285,6 +327,7 @@ public class ClassifierResults {
        double b=accPerClass[0];
        for(int i=1;i<cm.length;i++)
           b+=accPerClass[i]; 
+       b/=cm.length;
        return b;
     }
  /**
@@ -297,73 +340,153 @@ public class ClassifierResults {
         double f=0;
         if(numClasses==2){
             if(countPerClass[0]<countPerClass[1])
-                f=computeFScore(cm,0,1);
+                f=findConfusionMatrixStats(cm,0,1);
             else
-                f=computeFScore(cm,1,1);
+                f=findConfusionMatrixStats(cm,1,1);
         }
         else{//Average over all of them
             for(int i=0;i<numClasses;i++)
-                f+=computeFScore(cm,i,1);
+                f+=findConfusionMatrixStats(cm,i,1);
             f/=numClasses;
         }
         return f;
     }
    
-    protected double computeFScore(double[][] confMat, int c,double beta) {
+    protected double findConfusionMatrixStats(double[][] confMat, int c,double beta) {
         double tp = confMat[c][c]; //[actual class][predicted class]
         //some very small non-zero value, in the extreme case that no cases of 
         //this class were correctly classified
         if (tp == .0)
             return .0000001; 
         
-        double fp = 0.0, fn = 0.0;
+        double fp = 0.0, fn = 0.0,tn=0.0;
         
         for (int i = 0; i < confMat.length; i++) {
             if (i!=c) {
                 fp += confMat[i][c];
                 fn += confMat[c][i];
+                tn+=confMat[i][i];
             }
         }
-        double precision = tp / (tp+fp);
-        double recall = tp / (tp+fn);
+        precision = tp / (tp+fp);
+        recall = tp / (tp+fn);
+        sensitivity=recall;
+        specificity=tn/(fp+tn);
         return (1+beta*beta) * (precision*recall) / ((beta*beta)*precision + recall);
     }
-    protected double computeAROC(int c){
+    protected double findAUROC(int c){
         class Pair implements Comparable<Pair>{
-            Double d1;
-            Double d2;
+            Double x;
+            Double y;
             public Pair(Double a, Double b){
-                d1=a;
-                d2=b;
+                x=a;
+                y=b;
             }
             @Override
             public int compareTo(Pair p) {
-                return d1.compareTo(p.d1);
+                return p.x.compareTo(x);
             }
+            public String toString(){ return "("+x+","+y+")";}
         }
         
         ArrayList<Pair> p=new ArrayList<>();
+        double nosPositive=0,nosNegative;
         for(int i=0;i<numInstances;i++){
             Pair temp=new Pair(predictedClassProbabilities.get(i)[c],actualClassValues.get(i));
+            if(c==actualClassValues.get(i))
+                nosPositive++;
             p.add(temp);
         }
+        nosNegative=actualClassValues.size()-nosPositive;
         Collections.sort(p);
-// Sum up the FP rate
-        
-        return 0;
+        System.out.println(" List = "+p.toString());
+/* http://www.cs.waikato.ac.nz/~remco/roc.pdf
+        Determine points on ROC curve as follows; 
+        starts in the origin and goes one unit up, for every
+negative outcome the curve goes one unit to the right. Units on the x-axis
+are 1
+#TN and on the y-axis 1
+#TP where #TP (#TN) is the total number
+of true positives (true negatives). This gives the points on the ROC curve
+(0; 0); (x1; y1); : : : ; (xn; yn); (1; 1).
+        */
+        ArrayList<Pair> roc=new ArrayList<>();
+        double x=0;
+        double oldX=0;
+        double y=0;
+        int xAdd=0, yAdd=0;
+        boolean xLast=false,yLast=false;
+        roc.add(new Pair(x,y));
+        for(int i=0;i<numInstances;i++){
+            if(p.get(i).y==c){
+                if(yLast)
+                    roc.add(new Pair(x,y));
+                xLast=true;
+                yLast=false;
+                x+=1/nosPositive;
+                xAdd++;
+                if(xAdd==nosPositive)
+                    x=1.0;
+                
+            }
+            else{ 
+                if(xLast)
+                    roc.add(new Pair(x,y));
+                yLast=true;
+                xLast=false;
+                y+=1/nosNegative;
+                yAdd++;
+                if(yAdd==nosNegative)
+                    y=1.0;
+            }
+        }
+        roc.add(new Pair(1.0,1.0));
+        System.out.println(" ROC  = "+roc.toString());
+/* Calculate the area under the ROC curve, as the sum over all trapezoids with
+base xi+1 to xi , that is, A
+*/
+        System.out.println("Number of points ="+roc.size());    
+        double auroc=0;
+        for(int i=0;i<roc.size()-1;i++){
+            auroc+=(roc.get(i+1).y-roc.get(i).y)*(roc.get(i+1).x);
+        }
+        return auroc;
     } 
     
-   public void writeAllStats(String str){
-       OutFile out=new OutFile(str);
-       
+   public String writeAllStats(){
+        String str="Acc,"+acc+"\n";
+        str+="BalancedAcc,"+balancedAcc+"\n"; 
+        str+="sensitivity,"+sensitivity+"\n"; 
+        str+="precision,"+precision+"\n"; 
+        str+="recall,"+recall+"\n"; 
+        str+="specificity,"+specificity+"\n";         
+        str+="f1,"+f1+"\n"; 
+        str+="nll,"+nll+"\n"; 
+        str+="meanAUROC,"+meanAUROC+"\n"; 
+        str+="stddev,"+stddev+"\n"; 
+        str+="Count per class:\n";
+        for(int i=0;i<countPerClass.length;i++)
+            str+="Class "+i+","+countPerClass[i]+"\n";
+        str+="Confusion Matrix:\n";
+        for(int i=0;i<confusionMatrix.length;i++){
+            for(int j=0;j<confusionMatrix[i].length;j++)
+                str+=confusionMatrix[i][j]+",";
+            str+="\n";
+        }
+        return str;
    }
    
    boolean hasInstanceData(){ return numInstances()!=0;}
-   
+
     public static void main(String[] args) throws FileNotFoundException {
-        String path="C:\\Users\\ajb\\Dropbox\\Results\\UCIResults\\RotFCV\\Predictions\\semeion\\testFold0.csv";
+        
+        String path="C:\\Users\\ajb\\Dropbox\\Results\\DebugFiles\\TwoClass.csv";
         ClassifierResults cr= new ClassifierResults();
         cr.loadFromFile(path);
-        System.out.println("FILE TEST =\n"+cr.writeInstancePredictions());
+        cr.findAllStats();
+        System.out.println("AUROC = "+cr.meanAUROC);
+        System.out.println("FILE TEST =\n"+cr.writeAllStats());
+        OutFile out=new OutFile("C:\\Users\\ajb\\Dropbox\\Results\\DebugFiles\\TwoClassStats.csv");
+        out.writeLine(cr.writeAllStats());
     }
 }
