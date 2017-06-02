@@ -1,26 +1,23 @@
-
 package timeseriesweka.classifiers.ensembles.weightings;
 
 import timeseriesweka.classifiers.ensembles.EnsembleModule;
 
 /**
- * Simply uses the modules train acc as it's weighting. Extension: can raise the accuracy
- * to some power in order to scale the relative difference in accuracy between modules 
+ * Will call findBalancedAcc() on each module's results, therefore not necessary to call
+ * it within HESCA/whatever ensemble
  * 
- * e.g, if raising all accuracies to power of 2, weights (0.7, 0.8, 0.9) become (0.49, 0.64, 0.81)
- * 
- * @author James Large
+ * @author James Large (james.large@uea.ac.uk)
  */
-public class TrainAcc extends ModuleWeightingScheme {
+public class BalancedAccuracy extends ModuleWeightingScheme {
 
     private double power = 1.0;
     
-    public TrainAcc() {
+    public BalancedAccuracy() {
         uniformWeighting = true;
         needTrainPreds = false;
     }
     
-    public TrainAcc(double power) {
+    public BalancedAccuracy(double power) {
         this.power = power;
         uniformWeighting = true;
         needTrainPreds = false;
@@ -36,7 +33,7 @@ public class TrainAcc extends ModuleWeightingScheme {
     
     @Override
     public double[] defineWeighting(EnsembleModule module, int numClasses) {
-        return makeUniformWeighting(Math.pow(module.trainResults.acc, power), numClasses);
+        return makeUniformWeighting(Math.pow(module.trainResults.findBalancedAcc(module.trainResults.confusionMatrix), power), numClasses);
     }
     
     @Override

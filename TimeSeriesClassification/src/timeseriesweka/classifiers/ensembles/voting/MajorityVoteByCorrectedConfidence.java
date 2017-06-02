@@ -50,26 +50,26 @@ public class MajorityVoteByCorrectedConfidence extends ModuleVotingScheme {
         
         
 //debug start        
-        double[] unweightedPreds = new double[numClasses];
-        
-        for(int m = 0; m < modules.length; m++){
-            pred = (int) modules[m].trainResults.getPredClassValue(trainInstanceIndex); 
-            unweightedPreds[pred]++;
-        }
-        
-        for(int m = 0; m < modules.length; m++) {
-            printlnDebug(modules[m].getModuleName() + " distForInst:  " + Arrays.toString(modules[m].trainResults.getDistributionForInstance(trainInstanceIndex)));
-            printlnDebug(modules[m].getModuleName() + " priorweights: " + modules[m].priorWeight);
-            printlnDebug(modules[m].getModuleName() + " postweights:  " + Arrays.toString(modules[m].posteriorWeights));
-            printlnDebug(modules[m].getModuleName() + " voteweight:   " + (modules[m].priorWeight * 
-                            modules[m].posteriorWeights[(int) modules[m].trainResults.getPredClassValue(trainInstanceIndex)] * 
-                            (modules[m].trainResults.getDistributionForInstance(trainInstanceIndex)[(int) modules[m].trainResults.getPredClassValue(trainInstanceIndex)] - normValue)));
-        }
-        
-        printlnDebug("Ensemble Votes: " + Arrays.toString(unweightedPreds));
-        printlnDebug("Ensemble Dist:  " + Arrays.toString(preds));
-        printlnDebug("Normed:         " + Arrays.toString(normalise(preds)));
-        printlnDebug("");
+//        double[] unweightedPreds = new double[numClasses];
+//        
+//        for(int m = 0; m < modules.length; m++){
+//            pred = (int) modules[m].trainResults.getPredClassValue(trainInstanceIndex); 
+//            unweightedPreds[pred]++;
+//        }
+//        
+//        for(int m = 0; m < modules.length; m++) {
+//            printlnDebug(modules[m].getModuleName() + " distForInst:  " + Arrays.toString(modules[m].trainResults.getDistributionForInstance(trainInstanceIndex)));
+//            printlnDebug(modules[m].getModuleName() + " priorweights: " + modules[m].priorWeight);
+//            printlnDebug(modules[m].getModuleName() + " postweights:  " + Arrays.toString(modules[m].posteriorWeights));
+//            printlnDebug(modules[m].getModuleName() + " voteweight:   " + (modules[m].priorWeight * 
+//                            modules[m].posteriorWeights[(int) modules[m].trainResults.getPredClassValue(trainInstanceIndex)] * 
+//                            (modules[m].trainResults.getDistributionForInstance(trainInstanceIndex)[(int) modules[m].trainResults.getPredClassValue(trainInstanceIndex)] - normValue)));
+//        }
+//        
+//        printlnDebug("Ensemble Votes: " + Arrays.toString(unweightedPreds));
+//        printlnDebug("Ensemble Dist:  " + Arrays.toString(preds));
+//        printlnDebug("Normed:         " + Arrays.toString(normalise(preds)));
+//        printlnDebug("");
 //debug end
         
         return normalise(preds);

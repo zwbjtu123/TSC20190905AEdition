@@ -11,7 +11,9 @@ import weka.core.DenseInstance;
 import weka.core.Instance;
 
 /**
- *
+ *  This is dumb/useless in current format, just makes a vector of confidences but don't know what class
+ * those confidences refer too. Maybe revisit at some point and make the vector a list of pairs, (classval, confidence)
+ * 
  * @author James Large james.large@uea.ac.uk
  */
 public class StackingOnPredConfidences extends AbstractStacking {
