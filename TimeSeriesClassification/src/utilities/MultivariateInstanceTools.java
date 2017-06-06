@@ -5,7 +5,6 @@
  */
 package utilities;
 
-import static utilities.InstanceTools.indexOf2;
 import weka.core.Attribute;
 import weka.core.DenseInstance;
 import weka.core.FastVector;
@@ -17,6 +16,59 @@ import weka.core.Instances;
  * @author raj09hxu
  */
 public class MultivariateInstanceTools {
+    
+    
+        //given some univariate datastreams, we want to merge them to be interweaved.
+        //so given dataset X, Y, Z.
+        //X_0,Y_0,Z_0,X_1,.....,Z_m
+    
+        //Needs more testing.
+        public static Instances mergeStreams(String dataset, Instances[] inst, String[] dimChars){
+        FastVector atts = new FastVector();
+        String name;
+        
+        Instances firstInst = inst[0];
+        int dimensions = inst.length;
+        int length = (firstInst.numAttributes()-1)*dimensions;
+
+        
+        for (int i = 0; i < length; i++) {
+            name = dataset + "_" + dimChars[i%dimensions] + "_" + (i/dimensions);
+            atts.addElement(new Attribute(name));
+        }
+        
+        //clone the class values over. 
+        //Could be from x,y,z doesn't matter.
+        Attribute target = firstInst.attribute(firstInst.classIndex());
+        FastVector vals = new FastVector(target.numValues());
+        for (int i = 0; i < target.numValues(); i++) {
+            vals.addElement(target.value(i));
+        }
+        atts.addElement(new Attribute(firstInst.attribute(firstInst.classIndex()).name(), vals));
+        
+        //same number of xInstances 
+        Instances result = new Instances("AALTD" + dataset, atts, firstInst.numInstances());
+
+        int size = result.numAttributes()-1;
+        
+        for(int i=0; i< firstInst.numInstances(); i++){
+            result.add(new DenseInstance(size+1));
+            
+            for(int j=0; j<size;){
+                for(int k=0; k< dimensions; k++){
+                    result.instance(i).setValue(j,inst[k].get(i).value(j/dimensions)); j++;
+                }
+            }
+        }
+        
+        for (int j = 0; j < result.numInstances(); j++) {
+            result.instance(j).setValue(size, firstInst.get(j).classValue());
+        }
+        
+        return result;
+    }
+    
+    
     
     
     //function which returns the seperate channels of a multivariate problem as Instances[].
@@ -76,7 +128,8 @@ public class MultivariateInstanceTools {
         return output;
     }
     
-        
+    
+    //this won't include class value.    
     public static double[][] convertMultiInstanceToArrays(Instance[] data){
         double[][] output = new double[data.length][data[0].numAttributes()-1];
         
@@ -90,6 +143,7 @@ public class MultivariateInstanceTools {
         return output;
     }
     
+    //this won't include class value.
     public static double[][] convertMultiInstanceToTransposedArrays(Instance[] data){ 
         double[][] output = new double[data[0].numAttributes()-1][data.length];
         for(int i=0; i<output.length; i++){
