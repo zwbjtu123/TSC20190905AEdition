@@ -465,23 +465,20 @@ public class TwoSampleTests extends Tests{
 
 
 	public static void main(String args[]) {
+            testTwoSamples();
+            System.exit(0);
 
-
-		testTwoSamples();
-		System.exit(0);
-		
-		String fileName = "C:/JavaSource/Clustering/Clustering_Data/Java_Application_Release/Experiment3/Exp3NoRandomShocks.txt";
-		double[][] d;
-		TestResults T=new TestResults("SSS");
-
-		int testType=0;
-
-		T.h0=0;
-		T.level=0.05;
-		T.type=0;
-		loadData(fileName);
-		wilcoxonMatchedPairs(T,dataByLevel);	
-		System.out.println(T);
+            String fileName = "C:\\Users\\ajb\\Dropbox\\Results\\DebugFiles\\TwoSampleTest.csv";
+            double[][] d;
+            TestResults T=new TestResults("SSS");
+            T.h0=0;
+            T.level=0.05;
+            T.type=0;
+            loadData(fileName);
+            
+            
+            wilcoxonMatchedPairs(T,dataByLevel);	
+            System.out.println(T);
 /*		
 		d=getData(fileName);
 	

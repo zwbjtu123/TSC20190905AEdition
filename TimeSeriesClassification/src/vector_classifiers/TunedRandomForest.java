@@ -116,18 +116,26 @@ public class TunedRandomForest extends RandomForest implements SaveParameterInfo
         return result;
     }
     protected final void setDefaultGridSearchRange(int m){
-//This only involves 55 or 44 parameter searches, unlike RBF that uses 625 by default.   
+//This only involves 100 parameter searches.   
         if(debug)
             System.out.println("Setting defaults ....");
-        numTreesRange=new int[11];
+        numTreesRange=new int[10];
         numTreesRange[0]=10; //Weka default
         for(int i=1;i<numTreesRange.length;i++)
             numTreesRange[i]=100*i;
         if(tuneFeatures){
-            if(m>10)//Include defaults for Weka (Utils.log2(m)+1) and R version  (int)Math.sqrt(m)
-                numFeaturesRange=new int[]{1,10,(int)Math.sqrt(m),(int) Utils.log2(m)+1,m-1};
-            else
-                numFeaturesRange=new int[]{1,(int)Math.sqrt(m),(int) Utils.log2(m)+1,m-1};
+            if(m>10){// Space evenly possible values
+                numFeaturesRange=new int[10];
+                numFeaturesRange[0]=(int)Math.sqrt(m);
+                numFeaturesRange[1]=(int) Utils.log2(m)+1;
+                for(int i=2;i<10;i++)
+                    numFeaturesRange[i]=((i-1)*m)/10;
+            }
+            else{
+                numFeaturesRange=new int[m];
+                for(int i=0;i<m;i++)
+                    numFeaturesRange[i]=i+1;
+            }
         }
         else
             numFeaturesRange=new int[]{(int)Math.sqrt(m)};

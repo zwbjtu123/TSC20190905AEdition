@@ -28,7 +28,7 @@ import weka.core.Utils;
  * @author ajb
  */
 public class TunedRotationForest extends RotationForest implements SaveParameterInfo,TrainAccuracyEstimate{
-    boolean tune=true;
+    boolean tuneTree=true;
     int[] numTreesRange;
     int[] numFeaturesRange;
     String trainPath="";
@@ -71,7 +71,7 @@ public class TunedRotationForest extends RotationForest implements SaveParameter
     }
   
     public void tuneTree(boolean b){
-        tune=b;
+        tuneTree=b;
     }
     public void setNumTreesRange(int[] d){
         numTreesRange=d;
@@ -110,10 +110,17 @@ public class TunedRotationForest extends RotationForest implements SaveParameter
             numTreesRange[i]=(50)*i;  //This may be slow!
         
         if(tuneFeatures){
-            if(m>10)//Weka default is 3.
-                numFeaturesRange=new int[]{3,10,(int)Math.sqrt(m),(int) Utils.log2(m)+1,m/10};
-            else
-                numFeaturesRange=new int[]{3,(int)Math.sqrt(m),(int) Utils.log2(m)+1,m};
+            if(m>10){// Space evenly possible values
+                numFeaturesRange=new int[10];
+                numFeaturesRange[0]=3;
+                for(int i=1;i<10;i++)
+                    numFeaturesRange[i]=3+i;
+            }
+            else{
+                numFeaturesRange=new int[m-3];
+                for(int i=0;i<m-3;i++)
+                    numFeaturesRange[i]=m+i;
+            }
         }
         else
             numFeaturesRange=new int[]{3};
@@ -153,7 +160,7 @@ public class TunedRotationForest extends RotationForest implements SaveParameter
         data = new Instances(data);
         data.deleteWithMissingClass();
         super.setSeed(rng.nextInt());
-        if(tune){
+        if(tuneTree){
             if(numTreesRange==null)
                 setDefaultGridSearchRange(data.numAttributes()-1);
             else if(numFeaturesRange==null)

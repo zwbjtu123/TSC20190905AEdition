@@ -12,14 +12,14 @@ import statistics.tests.TwoSampleTests;
 /**
  * Reads in a file of accuracies for k classifiers and generates a kxk matrix
  * of p-values. INPUT FORMAT:
- *          ,Classifier1,Classifier2,Classifier3, ...,Classifierk
- * Problem1 , 0.5,....
- * Problem2 , 0.5,....
- * .
- * .
- * ProblemN, 0.5,....
- * 
- * Output: Pairwise matrix of difference and a version of cliques.
+          ,Classifier1,Classifier2,Classifier3, ...,Classifierk
+ Problem1 , 0.5,....
+ Problem2 , 0.5,....
+ .
+ .
+ ProblemN, 0.5,....
+ 
+ Output: Pairwise matrix of difference and a version of results.
  * 
  * @author ajb
  */
@@ -70,7 +70,7 @@ public class MultipleClassifiersPairwiseTest {
                 for(int k=0;k<accs[i].length;k++)
                     diff[k]=accs[i][k]-accs[j][k];
                 String str=test.performTests(diff);
-                System.out.println("TEST Classifier "+names[i]+" VS "+names[j]+" IS "+str);
+//                System.out.println("TEST Classifier "+names[i]+" VS "+names[j]);
                 String[] tmp=str.split(",");
                 pValsTTest[i][j]=Double.parseDouble(tmp[2]);
                 pValsSignTest[i][j]=Double.parseDouble(tmp[5]);
@@ -114,7 +114,7 @@ public class MultipleClassifiersPairwiseTest {
             }
         }
         DecimalFormat df = new DecimalFormat("##.#####");
-        System.out.println(" alpha =\n"+alpha);
+/*        System.out.println(" alpha ="+alpha);
         System.out.print("\t");
         for(int i=0;i<nosClassifiers;i++)
             System.out.print(names[i]+"\t");
@@ -132,7 +132,7 @@ public class MultipleClassifiersPairwiseTest {
             }
             System.out.print("\n");
         }
-        
+*/        
     } 
     public static void findCliques(){
 
@@ -160,7 +160,103 @@ public class MultipleClassifiersPairwiseTest {
         }
        
     }
+
+    public static StringBuilder runTests(double[][] d,String[] n){
+        nosProblems=d.length;
+        nosClassifiers=d[0].length;
+        names=n;
+        accs=d;
+        findPVals();
+        double alpha=0.05;
+//printPVals=false;
+//Bonferonni adjusted        
+//        alpha/=nosClassifiers*(nosClassifiers-1)/2;
+//Control adjusted 
+        alpha/=nosClassifiers-1;
+        findDifferences(alpha,true);
+        StringBuilder results=new StringBuilder();
+        
+        results.append("T TEST");
+        for(int i=0;i<nosClassifiers;i++)
+            results.append(",").append(names[i]);
+        results.append("\n");
+        for(int i=0;i<nosClassifiers;i++){
+            results.append(names[i]);
+            for(int j=0;j<nosClassifiers;j++)
+                results.append(",").append(pValsTTest[i][j]);
+            results.append("\n");
+        }
+        results.append("\n");
+        
+        results.append("SIGN TEST");
+        for(int i=0;i<nosClassifiers;i++)
+            results.append(",").append(names[i]);
+        results.append("\n");
+        for(int i=0;i<nosClassifiers;i++){
+            results.append(names[i]);
+            for(int j=0;j<nosClassifiers;j++)
+                results.append(",").append(pValsSignTest[i][j]);
+            results.append("\n");
+        }
+        results.append("\n");
+        
+        results.append("SIGN RANK TEST");
+        for(int i=0;i<nosClassifiers;i++)
+            results.append(",").append(names[i]);
+        results.append("\n");
+        for(int i=0;i<nosClassifiers;i++){
+            results.append(names[i]);
+            for(int j=0;j<nosClassifiers;j++)
+                results.append(",").append(pValsSignRankTest[i][j]);
+            results.append("\n");
+        }
+        results.append("\n");
+        
+        results.append("NOSIGDIFFERENCE");
+        for(int i=0;i<nosClassifiers;i++)
+            results.append(",").append(names[i]);
+        results.append("\n");
+        for(int i=0;i<nosClassifiers;i++){
+            results.append(names[i]);
+            for(int j=0;j<nosClassifiers;j++)
+                results.append(",").append(noDifference[i][j]);
+            results.append("\n");
+        }
+        
+        return results;
+    }
     
+    
+ 
+    public static StringBuilder runSignRankTest(double[][] d,String[] n){
+        nosProblems=d.length;
+        nosClassifiers=d[0].length;
+        names=n;
+        accs=d;
+        findPVals();
+        double alpha=0.05;
+//printPVals=false;
+//Bonferonni adjusted        
+//        alpha/=nosClassifiers*(nosClassifiers-1)/2;
+//Control adjusted 
+        alpha/=nosClassifiers-1;
+        findDifferences(alpha,true);
+        StringBuilder results=new StringBuilder();
+        results.append("SIGN RANK TEST \n ");
+        for(int i=0;i<nosClassifiers;i++)
+            results.append(",").append(names[i]);
+        results.append("\n");
+        for(int i=0;i<nosClassifiers;i++){
+            results.append(names[i]);
+            for(int j=0;j<nosClassifiers;j++)
+                results.append(",").append(pValsSignRankTest[i][j]);
+            results.append("\n");
+        }
+        return results;
+    }
+    
+    
+   
     public static StringBuilder runTests(String input){
          loadData(input);
 //        loadData("C:\\Research\\Papers\\2016\\JMLR HIVE-COTE Jason\\RiseTestWithNames.csv");
@@ -229,11 +325,12 @@ public class MultipleClassifiersPairwiseTest {
 //ASSUME INPUT IN RANK ORDER, WITH TOP RANKED CLASSIFIER FIRST, WORST LAST        
 //        String input="C:\\Users\\ajb\\Dropbox\\Results\\SimulationExperiments\\BasicExperiments\\";
 //        String output="C:\\Users\\ajb\\Dropbox\\Results\\SimulationExperiments\\BasicExperiments\\";
-        String[] allSimulators={"WholeSeriesElastic","Interval","Shapelet","Dictionary","ARMA","All"};
+//        String[] allSimulators={"WholeSeriesElastic","Interval","Shapelet","Dictionary","ARMA","All"};
 //        for(String s:allSimulators)
         String input="C:\\Research\\Results\\RepoResults\\HIVE Results";
 
         input="C:\\Research\\Papers\\2017\\PKDD BOP to BOSS\\Results\\vsCNN";
+        input="C:\\Users\\ajb\\Dropbox\\Temp\\test";
 //        String s= "All";
 //            runTests(input+s+"CombinedResults.csv",input+s+"Tests.csv");
             runTests(input+".csv",input+"Tests.csv");

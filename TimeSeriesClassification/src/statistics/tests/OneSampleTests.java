@@ -25,8 +25,14 @@ public class OneSampleTests extends Tests{
 
     public String performTests(double[] data){
         DataPoint[] d=new DataPoint[data.length];
-        for(int i=0;i<data.length;i++)
+        boolean allthesame=true;
+        for(int i=0;i<data.length;i++){
             d[i]=new DataPoint(data[i],0,i);
+            if(allthesame && d[i]!=d[0])
+                allthesame=false;
+        }
+        if(allthesame)
+            return "AllTheSame,0,0.5,AllTheSame,0,0.5,AllTheSame,0,0.5";
         Arrays.sort(d);
         TestResults test=new TestResults("T_Test");
         studentTTest(test,d);
@@ -37,7 +43,7 @@ public class OneSampleTests extends Tests{
         test.findPValue();
         str+="Sign_Test,"+test.testStat+","+df.format(test.pValue)+",";
         test.findPValue();
-        test=new TestResults("SignRankTest");
+        test=new TestResults("WilcoxonSignRankTest");
         wilcoxonSignRank(test,d);
         test.findPValue();
         str+="Sign_Rank_Test,"+test.testStat+","+df.format(test.pValue);
@@ -114,10 +120,10 @@ Tested with file signTestExample.txt
                 adjN--;
                 dupCount-=1;
             }
-            System.out.println("Duplicate count ="+dupCount);
+//            System.out.println("Duplicate count ="+dupCount);
             s1=left+1+dupCount/2.0;
             s2=(ranked.length-right)+dupCount/2.0;			
-            System.out.println("left = "+left+"\t right = "+right+"\t lower ="+s1+"\thigher = "+s2);
+//            System.out.println("left = "+left+"\t right = "+right+"\t lower ="+s1+"\thigher = "+s2);
 
         }
         else
@@ -126,7 +132,7 @@ Tested with file signTestExample.txt
             s1=-pos-1;
     //Number larger: THIS MAY BE A BUG IF adjN is adjusted
             s2=adjN-s2;
-            System.out.println("pos = "+pos+"\tlower ="+s1+"\thigher = "+s2);
+//            System.out.println("pos = "+pos+"\tlower ="+s1+"\thigher = "+s2);
         }	
 
         if(T.type==-1)
@@ -160,16 +166,14 @@ Need to rerank the data
         int adjN=0;
         for(int j=0;j<ranked.length;j++)
         {
-//			System.out.println(" Data = "+ranked[j].d+"\t in Pos "+ranked[j].position+" data ="+dataByLevel[0][ranked[j].position].d);
-                diff=(ranked[j].d>T.h0)?ranked[j].d-T.h0:T.h0-ranked[j].d;
-                if(diff>0)
-                {
-                        absRankedData[adjN]=new DataPoint(diff,0,j);
-                        adjN++;
-                }	
+//System.out.println(" Data = "+ranked[j].d+"\t in Pos "+ranked[j].position+" data ="+dataByLevel[0][ranked[j].position].d);
+            diff=(ranked[j].d>T.h0)?ranked[j].d-T.h0:T.h0-ranked[j].d;
+            if(diff>0){
+                absRankedData[adjN]=new DataPoint(diff,0,j);
+                adjN++;
+            }	
         }
-        if(adjN<ranked.length)
-        {
+        if(adjN<ranked.length){
                 DataPoint[] temp = new DataPoint[adjN];
                 for(int i=0;i<adjN;i++)
                         temp[i]=absRankedData[i];
@@ -185,10 +189,10 @@ Need to rerank the data
         for(int j=0;j<adjN;j++)
         {
             diff=ranked[absRankedData[j].position].d-T.h0;
-//			System.out.println(" Rank = "+ j +" Pos ="+absRankedData[j].position+" Val ="+ranked[absRankedData[j].position].d+" diff ="+diff+" Abs Val ="+absRankedData[j].d);
+			System.out.println(" Rank = "+ j +" Pos ="+absRankedData[j].position+" Val ="+ranked[absRankedData[j].position].d+" diff ="+diff+" Abs Val ="+absRankedData[j].d);
             if(diff<0)
             {
-//				System.out.println(" Rank = "+ absRankedData[j].rank +" Value ="+ranked[absRankedData[j].position].d+"\t diff ="+diff);
+				System.out.println(" Rank = "+ absRankedData[j].rank +" Value ="+ranked[absRankedData[j].position].d+"\t diff ="+diff);
                 rankSumUnder+=absRankedData[j].rank;
             }	
             else	
@@ -208,23 +212,20 @@ Need to rerank the data
 
     }
 
-    public static void main(String[] args)
-    {
-
-
+    public static void main(String[] args){
             TestResults t = new TestResults("SignTest");
 
-/*
-            loadData("oneSampleTest1.txt");				
-            t.type=1;
-            t.h0=0;
-            System.out.println("N = "+N);
-
-            signTest(t,rankedData);
-            System.out.println(t);
-            wilcoxonSignRank(t,rankedData);
-            System.out.println(t);
+            InFile inf=new InFile("C:\\Users\\ajb\\Dropbox\\Results\\DebugFiles\\TwoSampleTest.csv");				
+            int n=inf.readInt();
+            int m=inf.readInt();
+            double[] diff=new double[m];
+            for (int i = 0; i < diff.length; i++)
+                diff[i]=inf.readDouble();
+            for (int i = 0; i < diff.length; i++)
+                diff[i]-=inf.readDouble();
+            OneSampleTests one= new OneSampleTests();
+            System.out.println(one.performTests(diff));
     //Sign Test
-*/
+
     }
 }

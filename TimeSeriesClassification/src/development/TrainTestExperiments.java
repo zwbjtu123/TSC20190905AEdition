@@ -119,11 +119,20 @@ public class TrainTestExperiments{
                 break;
             case "TunedRandF":
                 c= new TunedRandomForest();
-                ((RandomForest)c).setNumTrees(500);
+                ((TunedRandomForest)c).tuneFeatures(true);
+                ((TunedRandomForest)c).tuneTree(true);
+                ((TunedRandomForest)c).setCrossValidate(true);
+                break;
+            case "TunedRandFOOB":
+                c= new TunedRandomForest();
+                ((TunedRandomForest)c).tuneFeatures(true);
+                ((TunedRandomForest)c).tuneTree(true);
+                ((TunedRandomForest)c).setCrossValidate(false);
                 break;
             case "TunedRotF":
                 c= new TunedRotationForest();
-                ((RotationForest)c).setNumIterations(200);
+                ((TunedRotationForest)c).tuneFeatures(true);
+                ((TunedRotationForest)c).tuneTree(true);
                 break;
             case "TunedSVM":
                 c= new TunedSVM();

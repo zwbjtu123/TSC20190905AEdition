@@ -294,7 +294,7 @@ public class ClassifierResults {
  //               System.out.println(" Instance  "+i+" has NLL ="+temp);
                 nll+=temp;
             }
-            return -nll;
+            return -nll/actualClassValues.size();
    }
        
     public double findMeanAUROC(){
@@ -399,7 +399,7 @@ public class ClassifierResults {
         }
         nosNegative=actualClassValues.size()-nosPositive;
         Collections.sort(p);
-        System.out.println(" List = "+p.toString());
+//        System.out.println(" List = "+p.toString());
 /* http://www.cs.waikato.ac.nz/~remco/roc.pdf
         Determine points on ROC curve as follows; 
         starts in the origin and goes one unit up, for every
@@ -441,11 +441,11 @@ of true positives (true negatives). This gives the points on the ROC curve
             }
         }
         roc.add(new Pair(1.0,1.0));
-        System.out.println(" ROC  = "+roc.toString());
+//        System.out.println(" ROC  = "+roc.toString());
 /* Calculate the area under the ROC curve, as the sum over all trapezoids with
 base xi+1 to xi , that is, A
 */
-        System.out.println("Number of points ="+roc.size());    
+//        System.out.println("Number of points ="+roc.size());    
         double auroc=0;
         for(int i=0;i<roc.size()-1;i++){
             auroc+=(roc.get(i+1).y-roc.get(i).y)*(roc.get(i+1).x);
@@ -480,7 +480,7 @@ base xi+1 to xi , that is, A
 
     public static void main(String[] args) throws FileNotFoundException {
         
-        String path="C:\\Users\\ajb\\Dropbox\\Results\\DebugFiles\\TwoClass.csv";
+        String path="C:\\Users\\ajb\\Dropbox\\Results\\DebugFiles\\ThreeClass.csv";
         ClassifierResults cr= new ClassifierResults();
         cr.loadFromFile(path);
         cr.findAllStats();

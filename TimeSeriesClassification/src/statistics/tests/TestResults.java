@@ -23,12 +23,12 @@ public class TestResults{
 	public TestResults(String s){
 		testName = s;
 		dist = null;
-		testStat=pValue=0;
+		testStat=pValue=h0=0;
 	}	
 	public TestResults(String s,Distribution d){
 		testName = s;
 		dist = d;
-		testStat=pValue=0;
+		testStat=pValue=h0=0;
 	}
 	public void findPValue(){
 		if(dist==null)
@@ -51,20 +51,19 @@ public class TestResults{
 		else
 			criticalValue=dist.getQuantile(level);
 	}		
-	public String toString()
-	{
-		String str="****** Results for "+testName+"   *********\n";
-		str+=" To test median ="+h0+" against H1: ";
-		if(type==-1)
-			str+="median < "+h0;
-		else if(type==1)
-			str+="median > "+h0;
-		else
-			str+="median not equal to "+h0;
-						
-		str+="\n T = "+testStat+"\t p value = "+pValue+"\tlevel = "+level+"\n";
-		str+=" Distribution = "+dist+"\t Level ="+level+"\t Critical Value ="+criticalValue;				
-		return str;
+	public String toString(){
+            String str="****** Results for "+testName+"   *********\n";
+            str+=" To test median ="+h0+" against H1: ";
+            if(type==-1)
+                    str+="median < "+h0;
+            else if(type==1)
+                    str+="median > "+h0;
+            else
+                    str+="median not equal to "+h0;
+
+            str+="\n T = "+testStat+"\t p value = "+pValue+"\tlevel = "+level+"\n";
+            str+=" Distribution = "+dist+"\t Level ="+level+"\t Critical Value ="+criticalValue;				
+            return str;
 	}	
 }		
 	

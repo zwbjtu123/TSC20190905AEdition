@@ -47,7 +47,7 @@ import weka.core.*;
 public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEstimate {
     boolean setSeed=false;
     int seed;
-    int min=-8;
+    int min=-16;
     int max=16;
     double[] paraSpace;
     private static int MAX_FOLDS=10;
