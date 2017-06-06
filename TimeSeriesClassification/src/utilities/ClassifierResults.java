@@ -55,6 +55,19 @@ public class ClassifierResults {
         predictedClassProbabilities = new ArrayList<>();
     }
     
+    /**
+     * for building results one by one while testing, call finaliseResults
+ to populate the ClassifierResults object once testing is finished
+     */
+    public ClassifierResults(int numClasses) {
+        actualClassValues= new ArrayList<>();
+        predictedClassValues = new ArrayList<>();
+        predictedClassProbabilities = new ArrayList<>();
+        
+        this.numClasses = numClasses;
+    }
+    
+    
     //for if we are only storing the cv accuracy in the context of SaveCVAccuracy
     public ClassifierResults(double cvacc, int numClasses) {
         this();
@@ -81,6 +94,22 @@ public class ClassifierResults {
     public ClassifierResults(double acc, double[] classVals, double[] preds, double[][] distsForInsts, double stddev, int numClasses) { 
         this(acc,classVals,preds,distsForInsts,numClasses);
         this.stddev = stddev; 
+    }
+
+    public int getNumClasses() {
+        return numClasses;
+    }
+
+    public void setNumClasses(int numClasses) {
+        this.numClasses = numClasses;
+    }
+
+    public int getNumInstances() {
+        return numInstances;
+    }
+
+    public void setNumInstances(int numInstances) {
+        this.numInstances = numInstances;
     }
 
     /**
@@ -480,13 +509,15 @@ base xi+1 to xi , that is, A
 
     public static void main(String[] args) throws FileNotFoundException {
         
-        String path="C:\\Users\\ajb\\Dropbox\\Results\\DebugFiles\\ThreeClass.csv";
+        String path="C:\\JamesLPHD\\testFold1.csv";
+//        String path="C:\\JamesLPHD\\testFold0.csv";
+//        String path="C:/JamesLPHD/TwoClass.csv";
         ClassifierResults cr= new ClassifierResults();
         cr.loadFromFile(path);
         cr.findAllStats();
         System.out.println("AUROC = "+cr.meanAUROC);
         System.out.println("FILE TEST =\n"+cr.writeAllStats());
-        OutFile out=new OutFile("C:\\Users\\ajb\\Dropbox\\Results\\DebugFiles\\TwoClassStats.csv");
+        OutFile out=new OutFile("C:\\JamesLPHD\\testFold1stats.csv");
         out.writeLine(cr.writeAllStats());
     }
 }

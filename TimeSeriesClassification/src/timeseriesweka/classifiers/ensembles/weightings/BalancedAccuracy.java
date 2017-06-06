@@ -33,7 +33,8 @@ public class BalancedAccuracy extends ModuleWeightingScheme {
     
     @Override
     public double[] defineWeighting(EnsembleModule module, int numClasses) {
-        return makeUniformWeighting(Math.pow(module.trainResults.findBalancedAcc(module.trainResults.confusionMatrix), power), numClasses);
+        module.trainResults.findAllStats(); //countsPerClass not initialised without this call
+        return makeUniformWeighting(Math.pow(module.trainResults.balancedAcc, power), numClasses);
     }
     
     @Override

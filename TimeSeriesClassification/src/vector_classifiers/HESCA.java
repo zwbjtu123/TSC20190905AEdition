@@ -739,10 +739,10 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveParam
             ins = converted.instance(0);
         }
         
-        if (testInstCounter == 0 && prevTestInstance == null) {//definitely the first call, not e.g the first inst being classified for the second time
+        if (ensembleTestResults == null || (testInstCounter == 0 && prevTestInstance == null)) {//definitely the first call, not e.g the first inst being classified for the second time
             printlnDebug("\n**TEST**");
             
-            ensembleTestResults = new ClassifierResults();
+            ensembleTestResults = new ClassifierResults(numClasses);
         }
         
         if (readIndividualsResults && testInstCounter >= numTestInsts) //if no test files loaded, numTestInsts == -1
