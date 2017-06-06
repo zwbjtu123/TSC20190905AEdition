@@ -73,7 +73,6 @@ public class MultivariateInstanceTools {
     
     //function which returns the seperate channels of a multivariate problem as Instances[].
     public static Instances[] splitMultivariateInstances(Instances multiInstances){
-        Attribute relationAtt = multiInstances.get(0).attribute(0);
         Instances[] output = new Instances[numChannels(multiInstances)];
         
         int length = channelLength(multiInstances); //all the values + a class value.
@@ -104,7 +103,7 @@ public class MultivariateInstanceTools {
                 output[i].add(new DenseInstance(length+1));
 
                 //System.out.println(index);
-                double [] channel = relationAtt.relation(j).get(i).toDoubleArray();
+                double [] channel = multiInstances.get(j).relationalValue(0).get(i).toDoubleArray();
                 int k=0;
                 for(; k<channel.length; k++){
                     output[i].instance(j).setValue(k, channel[k]);
@@ -119,11 +118,9 @@ public class MultivariateInstanceTools {
     }
 
     public static Instance[] splitMultivariateInstance(Instance instance){
-        int indexof = instance.dataset().indexOf(instance);        
-        Instances[] testChannel = splitMultivariateInstances(instance.dataset());
-        Instance[] output = new Instance[testChannel.length];
-        for(int i=0; i< testChannel.length; i++){
-            output[i] = testChannel[i].get(indexof); //we convert all the series, but we only want the 
+        Instance[] output = new Instance[numChannels(instance)];
+        for(int i=0; i< output.length; i++){
+            output[i] = instance.relationalValue(0).get(i);
         }    
         return output;
     }
@@ -171,20 +168,20 @@ public class MultivariateInstanceTools {
     }
     
     public static int numChannels(Instance multiInstance){
-        return multiInstance.attribute(0).relation(0).numInstances();
+        return multiInstance.relationalValue(0).numInstances();
     }
     
     public static int channelLength(Instance multiInstance){
-        return multiInstance.attribute(0).relation(0).numAttributes();
+        return multiInstance.relationalValue(0).numAttributes();
     }
     
     public static int numChannels(Instances multiInstances){
         //get the first attribute which we know is 
-        return numChannels(multiInstances.get(0));
+        return numChannels(multiInstances.firstInstance());
     }
     
     public static int channelLength(Instances multiInstances){
-        return channelLength(multiInstances.get(0));
+        return channelLength(multiInstances.firstInstance());
     }
     
 }
