@@ -46,10 +46,10 @@ public class MultipleClassifiersPairwiseTest {
             names[i]=temp[i+1];
         accs=new double[nosClassifiers][nosProblems];
         for(int j=0;j<nosProblems;j++){
-            String t=data.readString(); //Problem name
-            System.out.print("Problem ="+t+",");
+            String[] line = data.readLine().split(",");
+            System.out.print("Problem ="+line[0]+",");
             for(int i=0;i<nosClassifiers;i++){
-                accs[i][j]=data.readDouble();
+                accs[i][j]=Double.parseDouble(line[i+1]);
                 System.out.print(accs[i][j]+",");
             }
                 System.out.print("\n");
