@@ -30,6 +30,7 @@ import weka.filters.unsupervised.attribute.ReplaceMissingValues;
 import fileIO.OutFile;
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 import weka.classifiers.lazy.kNN;
 import weka.core.converters.ArffSaver;
 
@@ -496,6 +497,27 @@ public class ClassifierTools {
         }catch(Exception e){
             System.out.println(" Error in manual cross val");
         }
+        return results;
+    }
+    
+    
+    public static ClassifierResults constructClassifierResults(Classifier classifier, Instances test) throws Exception{
+        double[] preds = new double[test.numInstances()];
+        double[][] distForInstances = new double[test.numInstances()][];
+        double correct = 0;
+        for(int i=0; i<test.numInstances(); i++){
+            Instance test1 = test.get(i);
+            distForInstances[i] = classifier.distributionForInstance(test1);
+            preds[i] = utilities.GenericTools.indexOfMax(distForInstances[i]);
+            if(preds[i] == test1.classValue())
+                correct++;
+        }
+        
+        double accuracy = correct / (double) test.numInstances();
+        double[] classVals = test.attributeToDoubleArray(test.classIndex());
+        ClassifierResults results = new ClassifierResults(accuracy, classVals, preds, distForInstances, test.numClasses());
+        results.setNumInstances(test.numInstances());
+        results.setNumClasses(test.numClasses());
         return results;
     }
 	

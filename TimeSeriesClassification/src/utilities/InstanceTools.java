@@ -563,6 +563,17 @@ public class InstanceTools {
         return index;
     }
     
+    public static int indexOf2(Instances dataset, Instance find){
+        int index = -1;
+        for(int i=0; i< dataset.numInstances(); i++){
+            if(dataset.instance(i).toString(0).contains(find.toString(0))){
+                index  = i;
+                break;
+            }
+        }
+        return index;
+    }
+    
     
     
     //this function concatinates an array of instances by adding the attributes together. maintains same size in n.

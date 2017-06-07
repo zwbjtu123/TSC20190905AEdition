@@ -18,12 +18,12 @@ import weka.core.Instances;
 public class MultivariateInstanceTools {
     
     
-        //given some univariate datastreams, we want to merge them to be interweaved.
-        //so given dataset X, Y, Z.
-        //X_0,Y_0,Z_0,X_1,.....,Z_m
-    
-        //Needs more testing.
-        public static Instances mergeStreams(String dataset, Instances[] inst, String[] dimChars){
+    //given some univariate datastreams, we want to merge them to be interweaved.
+    //so given dataset X, Y, Z.
+    //X_0,Y_0,Z_0,X_1,.....,Z_m
+
+    //Needs more testing.
+    public static Instances mergeStreams(String dataset, Instances[] inst, String[] dimChars){
         FastVector atts = new FastVector();
         String name;
         
@@ -47,7 +47,7 @@ public class MultivariateInstanceTools {
         atts.addElement(new Attribute(firstInst.attribute(firstInst.classIndex()).name(), vals));
         
         //same number of xInstances 
-        Instances result = new Instances("AALTD" + dataset, atts, firstInst.numInstances());
+        Instances result = new Instances(dataset, atts, firstInst.numInstances());
 
         int size = result.numAttributes()-1;
         
@@ -67,9 +67,6 @@ public class MultivariateInstanceTools {
         
         return result;
     }
-    
-    
-    
     
     //function which returns the seperate channels of a multivariate problem as Instances[].
     public static Instances[] splitMultivariateInstances(Instances multiInstances){
@@ -128,11 +125,8 @@ public class MultivariateInstanceTools {
     
     //this won't include class value.    
     public static double[][] convertMultiInstanceToArrays(Instance[] data){
-        double[][] output = new double[data.length][data[0].numAttributes()-1];
-        
+        double[][] output = new double[data.length][data[0].numAttributes()];
         for(int i=0; i<output.length; i++){
-            //build muiltchannel column.
-            output[i] = new double[data[0].numAttributes()-1];
             for(int j=0; j<output[i].length; j++){
                 output[i][j] = data[i].value(j);
             }
@@ -142,10 +136,8 @@ public class MultivariateInstanceTools {
     
     //this won't include class value.
     public static double[][] convertMultiInstanceToTransposedArrays(Instance[] data){ 
-        double[][] output = new double[data[0].numAttributes()-1][data.length];
+        double[][] output = new double[data[0].numAttributes()][data.length];
         for(int i=0; i<output.length; i++){
-            //build muiltchannel column.
-            output[i] = new double[data.length];
             for(int j=0; j<output[i].length; j++){
                 output[i][j] = data[j].value(i);
             }

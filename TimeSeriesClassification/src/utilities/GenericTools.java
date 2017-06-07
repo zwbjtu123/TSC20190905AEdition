@@ -19,6 +19,19 @@ import java.util.Random;
  */
 public class GenericTools {
     
+    public static double indexOfMax(double[] dist) {
+        double max = dist[0];
+        int maxInd = 0;
+        
+        for (int i = 1; i < dist.length; ++i) {
+            if (dist[i] > max) {
+                max = dist[i];
+                maxInd = i;
+            }
+        }
+        return maxInd;
+    }
+    
     public static <E> ArrayList<E> cloneArrayList(ArrayList<E> list){
         ArrayList<E> temp = new ArrayList<>();
         for (E el : list) {
