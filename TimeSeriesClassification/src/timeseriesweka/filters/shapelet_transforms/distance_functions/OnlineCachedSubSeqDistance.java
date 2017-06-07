@@ -69,13 +69,9 @@ public class OnlineCachedSubSeqDistance extends SubSeqDistance{
         double minSum = Double.MAX_VALUE;
         int subLength = candidate.length;
         
-        //System.out.println(startPos);
-        
+
         double xMean = stats.getMeanX(startPos, subLength);
         double xStdDev = stats.getStdDevX(startPos, subLength);
-        
-        //System.out.println("mean "+ xMean);
-        //System.out.println("stdv "+xStdDev);
         
         double yMean;
         double yStdDev;
@@ -88,10 +84,6 @@ public class OnlineCachedSubSeqDistance extends SubSeqDistance{
             yStdDev = stats.getStdDevY(v, subLength);
             crossProd = stats.getSumOfProds(startPos, v, subLength);
 
-           /* System.out.println(v);
-            System.out.println("mean "+ yMean);
-            System.out.println("stdv "+ yStdDev);*/
-            
             double cXY = 0.0;
             if (xStdDev != 0 && yStdDev != 0)
             {
@@ -106,9 +98,6 @@ public class OnlineCachedSubSeqDistance extends SubSeqDistance{
             }
         }
 
-        
-        //System.out.println(minSum);
-        
         return minSum;
     }
     

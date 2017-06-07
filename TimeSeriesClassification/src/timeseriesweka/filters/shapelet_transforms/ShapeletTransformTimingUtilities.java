@@ -285,8 +285,7 @@ public class ShapeletTransformTimingUtilities
     //not exact with shapelet proportion, because of nondeterministic nature.
     public static long calculateOperationsWithSkipping(int numInstances, int numAttributes, int minShapeletLength, int maxShapeletLength, int posSkip, int lengthSkip, float Shapeletproportion){
         long numOps=0;
-        
-        
+
         int shapelets =0;
         //calculate number of shapelets in a single instance.
         for (int length = minShapeletLength; length <= maxShapeletLength; length+=lengthSkip) {

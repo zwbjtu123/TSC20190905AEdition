@@ -26,12 +26,14 @@ import timeseriesweka.filters.shapelet_transforms.search_functions.ShapeletSearc
 import timeseriesweka.filters.shapelet_transforms.search_functions.ShapeletSearch.SearchType;
 import timeseriesweka.filters.shapelet_transforms.search_functions.ShapeletSearchOptions;
 import timeseriesweka.classifiers.cote.HiveCoteModule;
+import utilities.ClassifierResults;
+import utilities.TrainAccuracyEstimate;
 
 /**
  *
  * @author raj09hxu
  */
-public class ST_HESCA  extends AbstractClassifier implements HiveCoteModule, SaveParameterInfo{
+public class ST_HESCA  extends AbstractClassifier implements HiveCoteModule, SaveParameterInfo, TrainAccuracyEstimate{
 
     public enum ST_TimeLimit {MINUTE, HOUR, DAY};
 
@@ -58,12 +60,25 @@ public class ST_HESCA  extends AbstractClassifier implements HiveCoteModule, Sav
         seed = sd;
     }
     
-    
     //careful when setting search type as you could set a type that violates the contract.
     public void setSearchType(ShapeletSearch.SearchType type) {
         searchType = type;
     }
 
+    @Override
+    public void writeCVTrainToFile(String train) {
+        hesca.writeCVTrainToFile(train);
+    }
+
+    /*//if you want HESCA to perform CV.
+    public void setPerformCV(boolean b) {
+        hesca.setPerformCV(b);
+    }*/
+    
+    @Override
+    public ClassifierResults getTrainResults() {
+        return  hesca.getTrainResults();
+    }
         
     @Override
     public String getParameters(){
@@ -131,6 +146,7 @@ public class ST_HESCA  extends AbstractClassifier implements HiveCoteModule, Sav
         format = doTransform ? createTransformData(data, timeLimit) : data;
         
         hesca=new HESCA();
+        hesca.setRandSeed((int) seed);
                 
         redundantFeatures=InstanceTools.removeRedundantTrainAttributes(format);
 
@@ -222,7 +238,8 @@ public class ST_HESCA  extends AbstractClassifier implements HiveCoteModule, Sav
         optionsBuilder.setKShapelets(K);
         optionsBuilder.setSearchOptions(searchBuilder.build());
         transform = new ShapeletTransformFactory(optionsBuilder.build()).getTransform();
-    
+        transform.supressOutput();
+        
         if(shapeletOutputPath != null)
             transform.setLogOutputFile(shapeletOutputPath);
         

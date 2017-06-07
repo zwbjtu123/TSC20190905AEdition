@@ -28,8 +28,6 @@ public class RefinedRandomSearch extends ImpRandomSearch{
          int numInstances = input.numInstances();
          int numAttributes = input.numAttributes() - 1;
         
-        System.out.println("numIntances: " + numInstances);
-         
          float currentRatio;
          do{
             long totalShapelets = ShapeletTransformTimingUtilities.calculateNumberOfShapelets(--numInstances, numAttributes, minShapeletLength, maxShapeletLength);
@@ -39,10 +37,7 @@ public class RefinedRandomSearch extends ImpRandomSearch{
             
         }while(currentRatio < shapeletToSeriesRatio);
          
-        System.out.println("numIntances: " + numInstances);
-        System.out.println(currentRatio);
-         
-        
+
         inputData = input;
         int numLengths = maxShapeletLength - minShapeletLength; //want max value to be inclusive.
         

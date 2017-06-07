@@ -17,8 +17,6 @@ public class ImprovedOnlineSubSeqDistance extends OnlineSubSeqDistance{
     @Override
     public double calculate(double[] timeSeries, int timeSeriesId)
     {    
-        
-        //System.out.println(startPos);
         DoubleWrapper sumPointer = new DoubleWrapper();
         DoubleWrapper sum2Pointer = new DoubleWrapper();
 

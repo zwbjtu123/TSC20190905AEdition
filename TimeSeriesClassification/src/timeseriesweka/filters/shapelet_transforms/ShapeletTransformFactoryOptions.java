@@ -150,8 +150,6 @@ public class ShapeletTransformFactoryOptions {
         
         public ShapeletTransformFactoryOptions build(){
             setDefaults();
-            
-            System.out.println(qualityChoice);
             return new ShapeletTransformFactoryOptions(this);
         }
         

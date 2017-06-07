@@ -73,7 +73,6 @@ public class InformationGainBound extends ShapeletQualityBound{
                         }
 
                         if(bsfGain > bsfQuality){
-                            System.out.println("cycles left: " + (totalCycles - cycle));
                             break;
                         }
 

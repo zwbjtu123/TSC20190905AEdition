@@ -205,8 +205,6 @@ public class BinaryTransform extends SimpleBatchFilter{
                 double entropyGreater = entropy(greaterClasses);
 
                 double gain = parentEntropy - lessFrac * entropyLess - greaterFrac * entropyGreater;
-//                    System.out.println(parentEntropy+" - "+lessFrac+" * "+entropyLess+" - "+greaterFrac+" * "+entropyGreater);
-//                    System.out.println("gain calc:"+gain);
                 if(gain > bsfGain){
                     bsfGain = gain;
                     threshold =(thisDist - lastDist) / 2 + lastDist;
