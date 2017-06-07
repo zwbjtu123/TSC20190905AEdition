@@ -24,14 +24,14 @@ public class MultivariateInstanceTools {
 
     //Needs more testing.
     public static Instances mergeStreams(String dataset, Instances[] inst, String[] dimChars){
-        FastVector atts = new FastVector();
+        
         String name;
         
         Instances firstInst = inst[0];
         int dimensions = inst.length;
         int length = (firstInst.numAttributes()-1)*dimensions;
 
-        
+        FastVector atts = new FastVector();
         for (int i = 0; i < length; i++) {
             name = dataset + "_" + dimChars[i%dimensions] + "_" + (i/dimensions);
             atts.addElement(new Attribute(name));
@@ -66,6 +66,80 @@ public class MultivariateInstanceTools {
         }
         
         return result;
+    }
+    
+    
+    private static Instances createRelationFrom(Instances header, double[][] data){
+        int numAttsInChannel = data[0].length;
+        Instances output = new Instances(header, data.length);
+
+        //each dense instance is row/ which is actually a channel.
+        for(int i=0; i< data.length; i++){
+            output.add(new DenseInstance(numAttsInChannel));
+            for(int j=0; j<numAttsInChannel; j++)
+                output.instance(i).setValue(j, data[i][j]);
+        }
+        
+        return output;
+    }
+    
+    private static Instances createRelationHeader(int numAttsInChannel, int numChannels){
+        //construct relational attribute vector.
+        FastVector relational_atts = new FastVector(numAttsInChannel);
+        for (int i = 0; i < numAttsInChannel; i++) {
+            relational_atts.addElement(new Attribute("att" + i));
+        }
+        
+        return new Instances("", relational_atts, numChannels);
+    }
+    
+    public static Instances mergeToMultivariateInstances(Instances[] instances){
+        //given a set of seperate channels, can we merge them back into a relation object.
+        
+        Instance firstInst = instances[0].firstInstance();
+        int numAttsInChannel = instances[0].numAttributes()-1;
+        
+
+        FastVector attributes = new FastVector();
+        
+        //construct relational attribute.#
+        Instances relationHeader = createRelationHeader(numAttsInChannel, instances.length);
+        relationHeader.setRelationName("relationalAtt");
+        Attribute relational_att = new Attribute("relationalAtt", relationHeader, numAttsInChannel);        
+        attributes.addElement(relational_att);
+        
+        //clone the class values over. 
+        //Could be from x,y,z doesn't matter.
+        Attribute target = firstInst.attribute(firstInst.classIndex());
+        FastVector vals = new FastVector(target.numValues());
+        for (int i = 0; i < target.numValues(); i++) {
+            vals.addElement(target.value(i));
+        }
+        attributes.addElement(new Attribute(firstInst.attribute(firstInst.classIndex()).name(), vals));
+        
+        Instances output = new Instances("", attributes, instances[0].numInstances());
+        
+        for(int i=0; i < instances[0].numInstances(); i++){
+            //create each row.
+            //only two attribtues, relational and class.
+            output.add(new DenseInstance(2));
+            
+            double[][] data = new double[instances.length][numAttsInChannel];
+            for(int j=0; j<instances.length; j++)
+                for(int k=0; k<numAttsInChannel; k++)
+                    data[j][k] = instances[j].get(i).value(k);
+            
+            //set relation for the dataset/
+            Instances relational = createRelationFrom(relationHeader, data);
+            
+            int index = output.instance(i).attribute(0).addRelation(relational);
+            output.instance(i).setValue(0, index);           
+            
+            //set class value.
+            output.instance(i).setValue(1, instances[0].get(i).classValue());
+        }
+        //System.out.println(relational);
+        return output; 
     }
     
     //function which returns the seperate channels of a multivariate problem as Instances[].

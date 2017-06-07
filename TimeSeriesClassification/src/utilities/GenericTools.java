@@ -32,6 +32,14 @@ public class GenericTools {
         return maxInd;
     }
     
+    public static double indexOf(double[] array, double val){
+        for(int i=0; i<array.length; i++)
+            if(array[i] == val)
+               return i;
+        
+        return -1;
+    }
+    
     public static <E> ArrayList<E> cloneArrayList(ArrayList<E> list){
         ArrayList<E> temp = new ArrayList<>();
         for (E el : list) {
