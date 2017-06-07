@@ -64,7 +64,6 @@ public class ShapeletQuality {
     ShapeletQualityMeasure qualityMeasure;
     Optional<ShapeletQualityBound> bound = Optional.empty();
     
-    
     //init static lists of constructors.
     private static final List<Supplier<ShapeletQualityMeasure>> qualityConstructors = createQuality();
     private static final List<BiFunction<ClassDistribution, Integer, ShapeletQualityBound>>  boundConstructor = createBound();
@@ -76,6 +75,7 @@ public class ShapeletQuality {
         cons.add(MoodsMedian::new);
         return cons;
     }
+    
     private static List<BiFunction<ClassDistribution, Integer, ShapeletQualityBound>> createBound(){
         List<BiFunction<ClassDistribution, Integer, ShapeletQualityBound>> cons = new ArrayList();
         cons.add(InformationGainBound::new);

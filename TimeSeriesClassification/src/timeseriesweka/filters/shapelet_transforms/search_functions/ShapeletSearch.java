@@ -88,10 +88,8 @@ public class ShapeletSearch implements Serializable{
                 if (shapelet != null) {
                     seriesShapelets.add(shapelet);
                     shapeletsVisited.add(seriesCount+","+length+","+start+","+shapelet.qualityValue);
-                    System.out.print(shapelet.qualityValue + " ");
                 }
             }
-            System.out.println();
         }
         
         seriesCount++;

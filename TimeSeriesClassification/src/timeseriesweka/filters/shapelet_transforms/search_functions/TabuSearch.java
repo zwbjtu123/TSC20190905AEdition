@@ -32,6 +32,8 @@ public class TabuSearch extends ImpRandomSearch{
     
     protected TabuSearch(ShapeletSearchOptions ops) {
         super(ops);
+        
+        proportion = ops.getProportion();
     }
     
     @Override
@@ -41,7 +43,6 @@ public class TabuSearch extends ImpRandomSearch{
         float subsampleSize = (float) inputData.numInstances() * proportion;
         
         numShapeletsPerSeries = (int) ((float) numShapelets / subsampleSize);  
-        System.out.println(inputData.numInstances());
         seriesToConsider = new BitSet(inputData.numInstances());
         
         if(proportion >= 1.0){
@@ -53,9 +54,6 @@ public class TabuSearch extends ImpRandomSearch{
         for(int i=0; i< subsampleSize; i++){
             seriesToConsider.set(random.nextInt((int) subsampleSize));
         }
-        
-        System.out.println(numShapeletsPerSeries);
-        System.out.println(subsampleSize);
         
         // we might need to reduce the number of series. could do 10% subsampling.
         if(numShapeletsPerSeries < 1)

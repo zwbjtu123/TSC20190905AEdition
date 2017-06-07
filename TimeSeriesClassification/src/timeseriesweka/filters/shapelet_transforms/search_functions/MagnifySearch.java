@@ -26,6 +26,8 @@ public class MagnifySearch extends ImpRandomSearch{
 
     protected MagnifySearch(ShapeletSearchOptions ops) {
         super(ops);
+        
+        proportion = ops.getProportion();
     }
     
     float proportion = 1.0f;
@@ -37,8 +39,6 @@ public class MagnifySearch extends ImpRandomSearch{
         inputData = input;
         
         float subsampleSize = (float) inputData.numInstances() * proportion;
-        System.out.println(subsampleSize);
-        
         numShapeletsPerSeries = (int) ((float) numShapelets / subsampleSize);  
         numShapeletsPerSeries /= (float) maxDepth;
         
@@ -54,9 +54,6 @@ public class MagnifySearch extends ImpRandomSearch{
         for(int i=0; i< subsampleSize; i++){
             seriesToConsider.set(random.nextInt((int) subsampleSize));
         }
-        
-        System.out.println(numShapeletsPerSeries);
-        System.out.println(subsampleSize);
         
         if(numShapeletsPerSeries < 1)
             System.err.println("Too Few Starting shapelets");
@@ -82,13 +79,14 @@ public class MagnifySearch extends ImpRandomSearch{
         int posWidth = (maxPos + minPos) / 2;
         
         for(int depth = 0; depth < maxDepth; depth++){
-            
             Shapelet bsf = null;
+
             //we divide the numShapeletsPerSeries by maxDepth.
             for(int i=0; i<numShapeletsPerSeries; i++){
                 
                 Pair<Integer, Integer> sh = createRandomShapelet(timeSeries.numAttributes()-1, minLength, maxLength, minPos, maxPos);
                 Shapelet shape = checkCandidate.process(candidate, sh.var1, sh.var2);
+                
                 
                 if(bsf == null) {
                     bsf = shape;

@@ -61,7 +61,6 @@ public class SkippingSearch extends ShapeletSearch{
             }
         }
         
-        
         //IE if we're skipping 2positions. we want to cycle between starting a series at 0,1
         positions[index] = ++positions[index] % positionIncrement;
         lengths[index] = ++lengths[index] % lengthIncrement;

@@ -43,7 +43,7 @@ public abstract class ModuleVotingScheme implements DebugPrinting {
         return indexOfMax(dist);
     }
     
-    protected double indexOfMax(double[] dist) {
+    public double indexOfMax(double[] dist) {
         double max = dist[0];
         double maxInd = 0;
         
@@ -86,7 +86,7 @@ public abstract class ModuleVotingScheme implements DebugPrinting {
     /**
      * makes array sum to 1
      */
-    protected double[] normalise(double[] dist) {
+    public double[] normalise(double[] dist) {
         //normalise so all sum to one 
         double sum=dist[0];
         for(int i = 1; i < dist.length; i++)
@@ -102,7 +102,7 @@ public abstract class ModuleVotingScheme implements DebugPrinting {
         return dist;
     }
     
-    protected void storeModuleTestResult(EnsembleModule module, double[] dist) {
+    public void storeModuleTestResult(EnsembleModule module, double[] dist) {
         if (module.testResults == null)
             module.testResults = new ClassifierResults();
         

@@ -28,9 +28,6 @@ public class SubsampleRandomSearch extends ImpRandomSearch{
         int numInstances = (int) (input.numInstances() * shapeletToSeriesRatio) ;
         int numAttributes = input.numAttributes() - 1;
         
-        System.out.println(input.numInstances());
-        System.out.println(numInstances);
-        
         inputData = input;
         int numLengths = maxShapeletLength - minShapeletLength; //want max value to be inclusive.
         

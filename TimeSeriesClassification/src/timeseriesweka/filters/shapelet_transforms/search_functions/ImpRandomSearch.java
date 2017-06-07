@@ -38,7 +38,6 @@ public class ImpRandomSearch extends RandomSearch{
         inputData = input;
         int numLengths = maxShapeletLength - minShapeletLength; //want max value to be inclusive.
         
-        
         //generate the random shapelets we're going to visit.
         for(int i=0; i<numShapelets; i++){
             //randomly generate values.

@@ -59,9 +59,6 @@ public class SubSeqDistance implements Serializable{
         double sum;
         double[] subseq;
         double temp;
-
-        
-        //System.out.println(startPos);
         
         for (int i = 0; i < timeSeries.length - candidate.length; i++)
         {
@@ -70,7 +67,6 @@ public class SubSeqDistance implements Serializable{
             subseq = new double[candidate.length];
             System.arraycopy(timeSeries, i, subseq, 0, candidate.length);
 
-            //System.out.println(i);
             subseq = zNormalise(subseq, false); // Z-NORM HERE
 
             for (int j = 0; j < candidate.length; j++)
@@ -88,7 +84,6 @@ public class SubSeqDistance implements Serializable{
         }
 
         double dist = (bestSum == 0.0) ? 0.0 : (1.0 / candidate.length * bestSum);
-        //System.out.println(dist);
         return dist;
     }
 
