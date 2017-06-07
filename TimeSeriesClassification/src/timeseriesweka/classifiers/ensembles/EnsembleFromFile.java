@@ -80,8 +80,17 @@ public abstract class EnsembleFromFile extends AbstractClassifier implements Deb
         
         Scanner scan = new Scanner(file);
         scan.useDelimiter("\n");
-        scan.next();
-        scan.next();
+        String nameLine = scan.next();
+        String paramLine = scan.next();
+                       
+        //gets the buildTime from the params line
+        long buildTime = -1;
+        if (paramLine!=null && !paramLine.isEmpty()) {
+            String[] paras = paramLine.split(",");
+            if (paras[0].equalsIgnoreCase("BuildTime")) 
+                buildTime = Long.parseLong(paras[1].trim());
+        }        
+        
         double acc = Double.parseDouble(scan.next().trim());
         
         boolean fileHasPreds = false;
@@ -133,13 +142,20 @@ public abstract class EnsembleFromFile extends AbstractClassifier implements Deb
                     distsForInsts[i][j] = aldists.get(i).get(j);
         }
         
+        ClassifierResults results = null;
         if (fileHasPreds)
-            return new ClassifierResults(acc, classVals, preds, distsForInsts, numClasses);
+            results = new ClassifierResults(acc, classVals, preds, distsForInsts, numClasses);
         else 
-            return new ClassifierResults(acc, numClasses);
+            results = new ClassifierResults(acc, numClasses);
         //now need to account for fact that some files might only have the first 3 lines and 
         //not the full train cv preds
         //blame tony.
+        
+        results.buildTime = buildTime;
+        results.setName(nameLine);
+        results.setParas(paramLine);
+        
+        return results;
     }
     
     /**
