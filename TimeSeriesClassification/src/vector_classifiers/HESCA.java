@@ -356,6 +356,11 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveParam
         } 
         else 
             trainModules();
+        
+        for (int m = 0; m < modules.length; m++) {
+            modules[m].trainResults.setNumClasses(numClasses);
+            modules[m].trainResults.setNumInstances(numTrainInsts);
+        }
     }
     
     protected boolean willNeedToDoCV() {
@@ -517,7 +522,8 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveParam
         double stddevOverFolds = StatisticalUtilities.standardDeviation(accPerFold, false, acc);
         
         ensembleTrainResults = new ClassifierResults(acc, data.attributeToDoubleArray(data.classIndex()), preds, dists, stddevOverFolds, numClasses);
-        
+        ensembleTrainResults.setNumClasses(numClasses);
+        ensembleTrainResults.setNumInstances(numTrainInsts);
     }
     
     /**
@@ -541,6 +547,8 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveParam
      */
     public void finaliseEnsembleTestResults(double[] testSetClassVals) throws Exception {
         this.ensembleTestResults.finaliseResults(testSetClassVals);
+        ensembleTestResults.setNumClasses(numClasses);
+        ensembleTestResults.setNumInstances(numTestInsts);        
     }
     
     /**

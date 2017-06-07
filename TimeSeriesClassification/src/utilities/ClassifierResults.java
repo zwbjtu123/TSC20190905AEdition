@@ -5,6 +5,8 @@ import fileIO.InFile;
 import fileIO.OutFile;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -112,6 +114,22 @@ public class ClassifierResults {
         this.numInstances = numInstances;
     }
 
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getParas() {
+        return paras;
+    }
+
+    public void setParas(String paras) {
+        this.paras = paras;
+    }
+    
     /**
     * @return [actual class][predicted class]
     */
@@ -235,6 +253,29 @@ public class ClassifierResults {
            return "No Instance Prediction Information";
        
    }
+   
+   public String writeResultsFileToString() throws IOException {                
+        StringBuilder st = new StringBuilder();
+        st.append(name).append("\n");
+        st.append("BuildTime,").append(buildTime).append(",").append(paras).append("\n");
+        st.append(acc).append("\n");
+        
+        if (predictedClassValues != null) {
+            for(int i = 0; i < predictedClassValues.size();i++) {
+                st.append(actualClassValues.get(i)).append(",").append(predictedClassValues.get(i)).append(","); //pred
+                
+                double[] distForInst=getDistributionForInstance(i);
+                if (distForInst != null)
+                    for (int j = 0; j < distForInst.length; j++)
+                        st.append("," + distForInst[j]);
+
+                st.append("\n");
+            }
+        }
+        
+        return st.toString();
+    }
+   
    public void loadFromFile(String path) throws FileNotFoundException{
        File f=new File(path);
        if(f.exists() && f.length()>0){
