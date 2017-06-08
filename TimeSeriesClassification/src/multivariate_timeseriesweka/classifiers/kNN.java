@@ -34,7 +34,7 @@ public class kNN extends weka.classifiers.lazy.kNN{
        
         String dataset = "UWaveGesture";
         Instances train = utilities.ClassifierTools.loadData("E:\\LocalData\\Dropbox\\Multivariate TSC\\Aarons Official\\"+dataset+"\\"+dataset+"_TRAIN.arff");//load some train data.
-        Instances test = utilities.ClassifierTools.loadData("E:\\LocalData\\Dropbox\\Multivariate TSC\\Aarons Official\\"+dataset+"\\"+dataset+"_TRAIN.arff");//load some test data.
+        Instances test = utilities.ClassifierTools.loadData("E:\\LocalData\\Dropbox\\Multivariate TSC\\Aarons Official\\"+dataset+"\\"+dataset+"_TEST.arff");//load some test data.
         
         kNN nn = new kNN(1);
         nn.setDistanceFunction(new DTW_D());
