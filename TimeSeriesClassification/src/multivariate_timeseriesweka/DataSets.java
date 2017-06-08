@@ -47,7 +47,7 @@ public class DataSets {
             
             Instances train;
             try {
-                train = utilities.ClassifierTools.loadData(new File(multivariate_timeseriesweka.DataSets.dropboxPath + dataset + "\\" + dataset +"_TRAIN.arff"));
+                train = utilities.ClassifierTools.loadData(new File(multivariate_timeseriesweka.DataSets.dropboxPath + dataset + "/" + dataset +"_TRAIN.arff"));
             } catch (IOException ex) {
                 continue; //if dataset doesn't exist move on.
             }

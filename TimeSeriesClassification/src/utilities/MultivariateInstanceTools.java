@@ -138,6 +138,8 @@ public class MultivariateInstanceTools {
             //set class value.
             output.instance(i).setValue(1, instances[0].get(i).classValue());
         }
+        
+        output.setClassIndex(output.numAttributes()-1);
         //System.out.println(relational);
         return output; 
     }
@@ -188,6 +190,28 @@ public class MultivariateInstanceTools {
         return output;
     }
 
+        
+    public static Instances[] resampleMultivariateTrainAndTestInstances(Instances train, Instances test, long seed){
+        Instances[] train_channels = splitMultivariateInstances(train);
+        Instances[] test_channels = splitMultivariateInstances(test);
+        
+        Instances[] resample_train_channels = new Instances[train_channels.length];
+        Instances[] resample_test_channels = new Instances[test_channels.length];
+        
+        for (int i = 0; i < resample_train_channels.length; i++) {
+            Instances[] temp = utilities.InstanceTools.resampleTrainAndTestInstances(train_channels[i], test_channels[i], seed);
+            resample_train_channels[i] = temp[0];
+            resample_test_channels[i] = temp[1];
+        }
+        
+        Instances[] output = new Instances[2];
+        output[0] = mergeToMultivariateInstances(resample_train_channels);
+        output[1] = mergeToMultivariateInstances(resample_test_channels);
+        
+        return output;
+    }
+    
+    
     public static Instance[] splitMultivariateInstance(Instance instance){
         Instance[] output = new Instance[numChannels(instance)];
         for(int i=0; i< output.length; i++){

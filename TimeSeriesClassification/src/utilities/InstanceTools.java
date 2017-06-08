@@ -114,7 +114,7 @@ public class InstanceTools {
      * @param seed Used to create reproducible folds by using a consistent seed value
      * @return Instances[] with two elements; [0] is the output training instances, [1] output test instances
      */
-    public static Instances[] resampleTrainAndTestInstances(Instances train, Instances test, int seed){
+    public static Instances[] resampleTrainAndTestInstances(Instances train, Instances test, long seed){
         if(seed==0){    //For consistency, I have made this clone the data. Its not necessary generally, but not doing it introduced a bug indiagnostics elsewhere
             Instances newTrain = new Instances(train);
             Instances newTest = new Instances(test);
@@ -145,6 +145,7 @@ public class InstanceTools {
 
         return new Instances[]{outputTrain,outputTest};
     }
+
     
 /**
  * 
