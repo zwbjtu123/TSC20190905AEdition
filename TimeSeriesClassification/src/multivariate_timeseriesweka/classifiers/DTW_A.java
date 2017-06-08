@@ -5,6 +5,8 @@
  */
 package multivariate_timeseriesweka.classifiers;
 
+import multivariate_timeseriesweka.elasticmeasures.DTW_D;
+import multivariate_timeseriesweka.elasticmeasures.DTW_I;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;

@@ -1,4 +1,4 @@
-package multivariate_timeseriesweka.classifiers;
+package multivariate_timeseriesweka.elasticmeasures;
 
 import static utilities.MultivariateInstanceTools.splitMultivariateInstance;
 import weka.core.Instance;
