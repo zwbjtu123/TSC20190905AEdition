@@ -19,13 +19,17 @@ public class Timer {
     String name;
     
     public Timer(String name) {
-        this.name = name;
-        start();
+        this(name, true);
     }
     
     public Timer() {
-        this.name = "Timer";
-        start();
+        this("", true);
+    }
+    
+    public Timer(String name, boolean auto_start){
+        this.name = name;
+        if(auto_start)
+            start();
     }
     
     public void start() {

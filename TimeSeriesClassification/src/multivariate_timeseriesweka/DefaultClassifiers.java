@@ -32,18 +32,24 @@ public class DefaultClassifiers {
     }
     
     public static Classifier createDTW_A(){
-        return new DTW_A(1);
+        DTW_A A = new DTW_A(1);
+        A.setR(0.2); //20%
+        return A;
     }
     
     public static Classifier createDTW_I(){
         kNN nn = new kNN(1);
-        nn.setDistanceFunction(new DTW_I());
+        DTW_I I = new DTW_I();
+        I.setR(0.2);
+        nn.setDistanceFunction(I);
         return nn;
     }
     
     public static Classifier createDTW_D(){
         kNN nn = new kNN(1);
-        nn.setDistanceFunction(new DTW_D());
+        DTW_D D = new DTW_D();
+        D.setR(0.2);
+        nn.setDistanceFunction(D);
         return nn;
     }
     

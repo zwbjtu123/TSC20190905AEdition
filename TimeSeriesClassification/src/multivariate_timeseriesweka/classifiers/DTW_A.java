@@ -10,16 +10,13 @@ import multivariate_timeseriesweka.elasticmeasures.DTW_I;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import timeseriesweka.filters.shapelet_transforms.OrderLineObj;
-import static timeseriesweka.filters.shapelet_transforms.quality_measures.InformationGain.entropy;
-import utilities.class_distributions.ClassDistribution;
-import utilities.class_distributions.TreeSetClassDistribution;
 import utilities.generic_storage.Pair;
 import weka.classifiers.lazy.kNN;
 import weka.core.Capabilities;
 import weka.core.DistanceFunction;
 import weka.core.Instance;
 import weka.core.Instances;
+import weka.core.elastic_distance_measures.DTW_DistanceBasic;
 import weka.core.neighboursearch.LinearNNSearch;
 
 /**
@@ -35,8 +32,10 @@ public class DTW_A extends kNN{
     kNN DTW_I;
     kNN DTW_D;
     
-    DistanceFunction I;
-    DistanceFunction D;
+    DTW_DistanceBasic I;
+    DTW_DistanceBasic D;
+    
+    double R;
     
     public DTW_A(int k){
         super(k);
@@ -44,6 +43,12 @@ public class DTW_A extends kNN{
         DTW_D = new kNN(1);
         I = new DTW_I();
         D = new DTW_D();
+    }
+    
+    public void setR(double r){
+        R = r;
+        I.setR(R);
+        D.setR(R);
     }
     
     
@@ -93,81 +98,60 @@ public class DTW_A extends kNN{
         else
             //not sure this is exactly the same as the paper.
             //does use pseudo information gain to establish best ordering.
-            output = calculateIGForThresholds(S_dSuccess, S_iSuccess); 
+            output = calculateThreshold(S_dSuccess, S_iSuccess); 
             
         return output;
     }
     
-    double calculateIGForThresholds(List<Double> s_d, List<Double> s_i){
-        
-        //construct an orderline. we'll say d is class0, and i is class1.
-        List<OrderLineObj> orderline = new ArrayList();
-        for(Double s : s_d){
-            orderline.add(new OrderLineObj(s, 0));
-        }
-        
-        for(Double s : s_i){
-            orderline.add(new OrderLineObj(s, 1));
-        }
-            
-        return calculateThreshold(orderline);
-    }
-    
-    public double calculateThreshold(List<OrderLineObj> orderline)
-    {
-        Collections.sort(orderline);
-
-        // initialise class counts
-        ClassDistribution lessClasses = new TreeSetClassDistribution();
-        ClassDistribution greaterClasses = new TreeSetClassDistribution();
-
-        for (OrderLineObj obj : orderline)
-        {
-            lessClasses.put(obj.getClassVal(), 0);
-            greaterClasses.addTo(obj.getClassVal(), 1);
-        }
-        int countOfLeftClasses = 0;
-        int countOfRightClasses = orderline.size();
-
-        double lastDist = -1;
-        double thisDist = -1;
-        double bsfGain = Double.NEGATIVE_INFINITY;
-        
-        double bsf_threshold = 1;
-        for (OrderLineObj ol : orderline)
-        {
-            thisDist = ol.getDistance();
-            
-            lessClasses.addTo(ol.getClassVal(), 1);
-            greaterClasses.addTo(ol.getClassVal(), -1);
-
-            countOfLeftClasses++;
-            countOfRightClasses--;
-            
-            if (thisDist != lastDist)
-            {
-                // calculate the info gain below the threshold
-                double lessFrac = (double) countOfLeftClasses / (double) orderline.size();
-                double entropyLess = entropy(lessClasses);
-
-                // calculate the info gain above the threshold
-                double greaterFrac = (double) countOfRightClasses / (double) orderline.size();
-                double entropyGreater = entropy(greaterClasses);
-
-                //don't have a parent entropy, so just use 1. 
-                //think its fine as long as its the same for all.
-                double gain = 1.0 - lessFrac * entropyLess - greaterFrac * entropyGreater;
-                if (gain > bsfGain)
-                {
-                    bsfGain = gain;
-                    bsf_threshold = ol.getDistance();
-                }
+    double calculateThreshold(List<Double> dSuccess, List<Double> iSuccess){
+        double output = 0;
+        //trying to minimse common
+        int common = iSuccess.size() + dSuccess.size();           
+        for (int j = 0;j<dSuccess.size();j++){
+            int in = 0;
+            int dp = 0;
+            for (int i = 0;i<dSuccess.size();i++){
+                if (dSuccess.get(i) >= dSuccess.get(j)){
+                    dp++;
+                }    
             }
-            lastDist = thisDist;
+
+            for (int i = 0;i<iSuccess.size();i++){
+                if (iSuccess.get(i) < dSuccess.get(j)){
+                    in++;
+                }    
+            }
+
+            if (in+dp < common){
+                common = in+dp;
+                output = dSuccess.get(j);
+            }
         }
-        
-        return bsf_threshold;
+            
+        for (int j = 0;j<iSuccess.size();j++){
+            int in = 0;
+            int dp = 0;
+            for (int i = 0;i<dSuccess.size();i++){
+                if (dSuccess.get(i) >= iSuccess.get(j)){
+                    dp++;
+                }    
+            }
+
+            for (int i = 0;i<iSuccess.size();i++){
+                if (iSuccess.get(i) < iSuccess.get(j)){
+                    in++;
+                }    
+            }
+
+            if (in+dp < common){
+                common = in+dp;
+                output = dSuccess.get(j);
+            }
+        }
+            
+        return output;
     }
+
     
     Pair<List<Double>, List<Double>> findScores(Instances data){
         List<Double> S_dSuccess = new ArrayList<>();
