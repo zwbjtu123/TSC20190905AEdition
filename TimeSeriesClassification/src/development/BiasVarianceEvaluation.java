@@ -127,14 +127,14 @@ public class BiasVarianceEvaluation {
  * ("Bias-variance analysis of support vector machines ...") is a good background 
  
  */
-        double biasKohavi;
-        double varianceKohavi;
-        double biasDomingos;
-        double varianceDomingos;
-        double unbiasedVariance;
-        double biasedVariance;
-        double netVariance; //
-        double acc=0;
+        public double biasKohavi;
+        public double varianceKohavi;
+        public double biasDomingos;
+        public double varianceDomingos;
+        public double unbiasedVariance;
+        public double biasedVariance;
+        public double netVariance; //
+        public double acc=0;
         BVResult(){
             biasKohavi=0;
             varianceKohavi=0;
@@ -218,6 +218,13 @@ public class BiasVarianceEvaluation {
             int actual=allActual[i];
             double[] p = new double[numClasses];
             int numClassifiers=preds.length;
+            
+            //if this case only has 0 or 1 predictions for it, will break the analysis
+            //when calcing bSum += (x - p[j])*(x - p[j])- p[j] * (1 - p[j]) / (numClassifiers - 1);
+            //so just skip this case
+            if (numClassifiers < 2)
+                continue;
+            
 //            System.out.println("Instance "+i+" has "+numClassifiers+" predictions and "+numClasses+" classes");
             for(int j:preds){
                 p[j]++;
