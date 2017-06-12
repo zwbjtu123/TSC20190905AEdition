@@ -69,6 +69,15 @@ public class ShapeletTransformFactoryOptions {
         return distance;
     }
     
+    public boolean useRoundRobin(){
+        return roundRobin;
+    }
+    
+        
+    public boolean useCandidatePruning(){
+        return candidatePruning;
+    }
+    
     public ShapeletSearchOptions getSearchOptions(){
         return searchOptions;
     }
@@ -153,7 +162,7 @@ public class ShapeletTransformFactoryOptions {
             return new ShapeletTransformFactoryOptions(this);
         }
         
-        private void setDefaults(){
+        private void setDefaults(){            
             //if there is no search options. use default params;
             if(searchOptions == null){
                 searchOptions = new ShapeletSearchOptions.Builder()

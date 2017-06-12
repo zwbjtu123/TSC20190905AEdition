@@ -11,6 +11,7 @@ import java.util.Comparator;
 import weka.core.Instance;
 import weka.core.Instances;
 import timeseriesweka.filters.shapelet_transforms.Shapelet;
+import static utilities.MultivariateInstanceTools.channelLength;
 /**
  *
  * @author raj09hxu
@@ -19,8 +20,11 @@ public class ShapeletSearch implements Serializable{
     
     public enum SearchType {FULL, FS, GENETIC, RANDOM, LOCAL, MAGNIFY, TIMED_RANDOM, SKIPPING, TABU, REFINED_RANDOM, IMP_RANDOM, SUBSAMPLE_RANDOM, SKEWED};
     
+    
+    
+    
     public interface ProcessCandidate{
-        public Shapelet process(double[] candidate, int start, int length);
+        public Shapelet process(Instance candidate, int start, int length);
     }
     
     ArrayList<String> shapeletsVisited = new ArrayList<>();
@@ -36,7 +40,7 @@ public class ShapeletSearch implements Serializable{
         comparator = comp;
     }
     
-    
+    protected int seriesLength;
     protected int minShapeletLength;
     protected int maxShapeletLength;
     
@@ -71,19 +75,25 @@ public class ShapeletSearch implements Serializable{
     
     public void init(Instances input){
         inputData = input;
+        
+        //we need to detect whether it's multivariate or univariate.
+        //this feels like a hack. BOO.
+        //one relational and a class att.
+        seriesLength = getSeriesLength();
     }
     
+    public int getSeriesLength(){
+        return inputData.numAttributes() >= maxShapeletLength ? inputData.numAttributes() : channelLength(inputData) + 1; //we add one here, because lots of code assumes it has a class value on the end/ 
+    }
     
     //given a series and a function to find a shapelet 
     public ArrayList<Shapelet> SearchForShapeletsInSeries(Instance timeSeries, ProcessCandidate checkCandidate){
         ArrayList<Shapelet> seriesShapelets = new ArrayList<>();
-
-        double[] series = timeSeries.toDoubleArray();
-
+        
         for (int length = minShapeletLength; length <= maxShapeletLength; length+=lengthIncrement) {
-            //for all possible starting positions of that length. -1 to remove classValue
-            for (int start = 0; start <= timeSeries.numAttributes() - length - 1; start+=positionIncrement) {
-                Shapelet shapelet = checkCandidate.process(series, start, length);
+            //for all possible starting positions of that length. -1 to remove classValue but would be +1 (m-l+1) so cancel.
+            for (int start = 0; start < seriesLength - length; start+=positionIncrement) {
+                Shapelet shapelet = checkCandidate.process(timeSeries, start, length);
                 
                 if (shapelet != null) {
                     seriesShapelets.add(shapelet);

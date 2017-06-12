@@ -236,7 +236,7 @@ public class ClusteredShapeletTransform extends SimpleBatchFilter{
        
        for(int i=0;i<shapeletSet.length;i++)
        {
-           shapeletSet[i] = allShapelets.get(i).content;
+           shapeletSet[i] = allShapelets.get(i).getUniveriateShapeletContent();
        }
        
        distanceMap = getDistanceMap(shapeletSet);
@@ -535,7 +535,7 @@ public class ClusteredShapeletTransform extends SimpleBatchFilter{
             Shapelet s = clusteredShapelets.get(i);
             cout.println(s.qualityValue+","+s.seriesId+","+s.startPos);
             cout.flush();
-            double[] con = s.getContent();
+            double[] con = s.getUniveriateShapeletContent();
             
             cout.print(con[0]);
             cout.flush();

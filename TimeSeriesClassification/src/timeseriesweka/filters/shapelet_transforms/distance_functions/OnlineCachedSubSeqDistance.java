@@ -67,7 +67,7 @@ public class OnlineCachedSubSeqDistance extends SubSeqDistance{
         stats.setCurrentY(timeSeriesId, data);
         
         double minSum = Double.MAX_VALUE;
-        int subLength = candidate.length;
+        int subLength = length;
         
 
         double xMean = stats.getMeanX(startPos, subLength);

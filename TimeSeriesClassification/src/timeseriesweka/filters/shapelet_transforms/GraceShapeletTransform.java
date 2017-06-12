@@ -104,9 +104,6 @@ public class GraceShapeletTransform extends ShapeletTransform {
         outputPrint("Processing data: ");
 
         outputPrint("data : " + currentSeries);
-
-        double[] wholeCandidate = data.get(currentSeries).toDoubleArray();
-
         //we don't have a worst shapelet because we're doing a single scan.
         
         //set the series we're working with.
@@ -114,11 +111,7 @@ public class GraceShapeletTransform extends ShapeletTransform {
         //set the clas value of the series we're working with.
         classValue.setShapeletValue(data.get(currentSeries));
 
-        seriesShapelets = searchFunction.SearchForShapeletsInSeries(data.get(dataSet), new ShapeletSearch.ProcessCandidate(){
-        @Override
-        public Shapelet process(double[] candidate, int start, int length){
-           return checkCandidate(candidate, start, length);
-        }});
+        seriesShapelets = searchFunction.SearchForShapeletsInSeries(data.get(dataSet), this::checkCandidate);
         
         Collections.sort(seriesShapelets, shapeletComparator);
 

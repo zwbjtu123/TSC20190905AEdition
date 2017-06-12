@@ -6,9 +6,8 @@
 package timeseriesweka.filters.shapelet_transforms.distance_functions;
 
 import java.util.Arrays;
-import java.util.Comparator;
-import weka.core.Instances;
 import timeseriesweka.filters.shapelet_transforms.Shapelet;
+import weka.core.Instance;
 
 /**
  *
@@ -22,13 +21,13 @@ public class OnlineSubSeqDistance extends SubSeqDistance {
     public void setShapelet(Shapelet shp)
     {
         super.setShapelet(shp);
-        sortedIndices = sortIndexes(candidate);
+        sortedIndices = sortIndexes(cand.getShapeletContent());
     }
     
     @Override
-    public void setCandidate(double [] cnd, int strtPos) {
-        super.setCandidate(cnd, strtPos);
-        sortedIndices = sortIndexes(candidate);
+    public void setCandidate(Instance inst, int start, int length) {
+        super.setCandidate(inst, start, length);
+        sortedIndices = sortIndexes(cand.getShapeletContent());
     }
     
     //we take in a start pos, but we also start from 0.
@@ -38,7 +37,7 @@ public class OnlineSubSeqDistance extends SubSeqDistance {
         DoubleWrapper sumsqPointer = new DoubleWrapper();
 
         //Generate initial subsequence 
-        double[] subseq = new double[candidate.length];
+        double[] subseq = new double[length];
         System.arraycopy(timeSeries, 0, subseq, 0, subseq.length);
         subseq = zNormalise(subseq, false, sumPointer, sumsqPointer);
         //Keep count of fundamental ops for experiment
@@ -52,17 +51,17 @@ public class OnlineSubSeqDistance extends SubSeqDistance {
         
         int bestPos =0;
         //Compute initial distance
-        for (int i = 0; i < candidate.length; i++) {
-            temp = candidate[i] - subseq[i];
+        for (int i = 0; i < length; i++) {
+            temp = cand.getShapeletContent()[i] - subseq[i];
             bestDist = bestDist + (temp * temp);
         }
 
         double currentDist, start, end;
         // Scan through all possible subsequences of two
-        for (int i = 1; i < timeSeries.length - candidate.length; i++) {
+        for (int i = 1; i < timeSeries.length - length; i++) {
             //Update the running sums
             start = timeSeries[i - 1];
-            end = timeSeries[i - 1 + candidate.length];
+            end = timeSeries[i - 1 + length];
             
             //get rid of the start and add on the ends.
             sum = sum + end - start;
@@ -74,7 +73,7 @@ public class OnlineSubSeqDistance extends SubSeqDistance {
                 bestPos = i;
             }
         }
-        bestDist = (bestDist == 0.0) ? 0.0 : (1.0 / candidate.length * bestDist);
+        bestDist = (bestDist == 0.0) ? 0.0 : (1.0 / length * bestDist);
         
         return bestDist;
     }
@@ -83,10 +82,10 @@ public class OnlineSubSeqDistance extends SubSeqDistance {
     protected double calculateBestDistance(int i, double[] timeSeries, double bestDist, double sum, double sum2)
     {
         //Compute the stats for new series
-        double mean = sum / candidate.length;
+        double mean = sum / length;
 
         //Get rid of rounding errors
-        double stdv2 = (sum2 - (mean * mean * candidate.length)) / candidate.length;
+        double stdv2 = (sum2 - (mean * mean * length)) / length;
 
         double stdv = (stdv2 < ROUNDING_ERROR_CORRECTION) ? 0.0 : Math.sqrt(stdv2);
                   
@@ -99,7 +98,7 @@ public class OnlineSubSeqDistance extends SubSeqDistance {
         double normalisedVal = 0.0;
         boolean dontStdv = (stdv == 0.0);
 
-        while (j < candidate.length  && currentDist < bestDist)
+        while (j < length  && currentDist < bestDist)
         {
             //count ops
             incrementCount();
@@ -107,7 +106,7 @@ public class OnlineSubSeqDistance extends SubSeqDistance {
             reordedIndex = (int) sortedIndices[j][0];
             //if our stdv isn't done then make it 0.
             normalisedVal = dontStdv ? 0.0 : ((timeSeries[i + reordedIndex] - mean) / stdv);
-            toAdd = candidate[reordedIndex] - normalisedVal;
+            toAdd = cand.getShapeletContent()[reordedIndex] - normalisedVal;
             currentDist = currentDist + (toAdd * toAdd);
             j++;
         }

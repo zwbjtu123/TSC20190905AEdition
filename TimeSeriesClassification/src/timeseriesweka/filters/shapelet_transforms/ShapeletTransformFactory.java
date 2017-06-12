@@ -18,6 +18,8 @@ import timeseriesweka.filters.shapelet_transforms.search_functions.ShapeletSearc
 import timeseriesweka.filters.shapelet_transforms.search_functions.ShapeletSearchOptions;
 import timeseriesweka.filters.shapelet_transforms.distance_functions.CachedSubSeqDistance;
 import timeseriesweka.filters.shapelet_transforms.distance_functions.ImprovedOnlineSubSeqDistance;
+import timeseriesweka.filters.shapelet_transforms.distance_functions.MultivariateDependentDistance;
+import timeseriesweka.filters.shapelet_transforms.distance_functions.MultivariateIndependentDistance;
 import timeseriesweka.filters.shapelet_transforms.distance_functions.OnlineCachedSubSeqDistance;
 import timeseriesweka.filters.shapelet_transforms.distance_functions.OnlineSubSeqDistance;
 import timeseriesweka.filters.shapelet_transforms.distance_functions.SubSeqDistance.DistanceType;
@@ -30,16 +32,19 @@ import static timeseriesweka.filters.shapelet_transforms.distance_functions.SubS
 public class ShapeletTransformFactory {
     
     
+    //could change this to a map tbh.
     private static final List<Supplier<SubSeqDistance>> distanceFunctions = createDistanceTable();
     
     private static List<Supplier<SubSeqDistance>> createDistanceTable(){
-        //istanceType{NORMAL, ONLINE, IMP_ONLINE, CACHED, ONLINE_CACHED};
+        //istanceType{NORMAL, ONLINE, IMP_ONLINE, CACHED, ONLINE_CACHED, DEPENDENT, INDEPENDENT};
         List<Supplier<SubSeqDistance>> dCons = new ArrayList<>();
         dCons.add(SubSeqDistance::new);
         dCons.add(OnlineSubSeqDistance::new);
         dCons.add(ImprovedOnlineSubSeqDistance::new);
         dCons.add(CachedSubSeqDistance::new);
         dCons.add(OnlineCachedSubSeqDistance::new);
+        dCons.add(MultivariateDependentDistance::new);
+        dCons.add(MultivariateIndependentDistance::new);
         return dCons;
     }
     
@@ -58,6 +63,8 @@ public class ShapeletTransformFactory {
         st.setSubSeqDistance(createDistance(options.getDistance()));
         st.setSearchFunction(createSearch(options.getSearchOptions()));
         st.setQualityMeasure(options.getQualityChoice());
+        st.setRoundRobin(options.useRoundRobin());
+        st.setCandidatePruning(options.useCandidatePruning());
         return st;
     }    
     

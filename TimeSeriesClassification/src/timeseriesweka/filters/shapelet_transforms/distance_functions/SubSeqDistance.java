@@ -6,23 +6,30 @@
 package timeseriesweka.filters.shapelet_transforms.distance_functions;
 
 import java.io.Serializable;
+import java.util.Arrays;
 import weka.core.Instances;
 import timeseriesweka.filters.shapelet_transforms.Shapelet;
+import timeseriesweka.filters.shapelet_transforms.ShapeletCandidate;
+import weka.core.Instance;
 
 /**
  *
  * @author Aaron
  */
 public class SubSeqDistance implements Serializable{
-    
-    public enum DistanceType{NORMAL, ONLINE, IMP_ONLINE, CACHED, ONLINE_CACHED};
+       
+    public enum DistanceType{NORMAL, ONLINE, IMP_ONLINE, CACHED, ONLINE_CACHED, DEPENDENT, INDEPENDENT};
     
     public static final double ROUNDING_ERROR_CORRECTION = 0.000000000000001;
     
+    protected Instance candidateInst;
+    protected double[] candidateArray;
+    
     protected Shapelet shapelet;
-    protected double[] candidate;
+    protected ShapeletCandidate cand;
     protected int      seriesId;
     protected int      startPos;
+    protected int      length;
     
     protected long count;
     
@@ -35,22 +42,45 @@ public class SubSeqDistance implements Serializable{
     
     public long getCount() {return count;}
     
-    public void setShapelet(Shapelet shp) {
-        shapelet = shp;
-        candidate = shp.content;
-        seriesId = shp.seriesId;
-        startPos = shp.startPos;
+    public ShapeletCandidate getCandidate(){
+        return cand;
     }
     
-    public void setCandidate(double [] cnd, int strtPos) {
-        candidate = cnd;
-        startPos = strtPos;
+    public void setShapelet(Shapelet shp) {
+        shapelet = shp;
+        startPos = shp.startPos;
+        cand = shp.getContent();
+        length = shp.getLength();
+    }
+    
+    public void setCandidate(Instance inst, int start, int len) {
+        //extract shapelet and nomrliase.
+        cand = new ShapeletCandidate();
+        startPos = start;
+        length = len;
+        
+        //only call to double array when we've changed series.
+        if(candidateInst==null || candidateInst != inst){
+            candidateArray = inst.toDoubleArray();
+            candidateInst = inst;
+        }
+        
+        double[] temp = new double[length];
+        //copy the data from the whole series into a candidate.
+        System.arraycopy(candidateArray, start, temp, 0, length);
+        cand.setShapeletContent(temp);
+        
+        // znorm candidate here so it's only done once, rather than in each distance calculation
+        cand.setShapeletContent(zNormalise(cand.getShapeletContent(), false));
     }
     
     public void setSeries(int srsId) {
         seriesId = srsId;
     }
     
+    public double calculate(Instance timeSeries, int timeSeriesId){
+        return calculate(timeSeries.toDoubleArray(), timeSeriesId);
+    }
            
     //we take in a start pos, but we also start from 0.
     public double calculate(double[] timeSeries, int timeSeriesId) 
@@ -60,20 +90,20 @@ public class SubSeqDistance implements Serializable{
         double[] subseq;
         double temp;
         
-        for (int i = 0; i < timeSeries.length - candidate.length; i++)
+        for (int i = 0; i < timeSeries.length - length; i++)
         {
             sum = 0;
             // get subsequence of two that is the same lengh as one
-            subseq = new double[candidate.length];
-            System.arraycopy(timeSeries, i, subseq, 0, candidate.length);
+            subseq = new double[length];
+            System.arraycopy(timeSeries, i, subseq, 0, length);
 
             subseq = zNormalise(subseq, false); // Z-NORM HERE
 
-            for (int j = 0; j < candidate.length; j++)
+            for (int j = 0; j < length; j++)
             {
                 //count ops
                 incrementCount();
-                temp = (candidate[j] - subseq[j]);
+                temp = (cand.getShapeletContent()[j] - subseq[j]);
                 sum = sum + (temp * temp);
             }
             
@@ -83,7 +113,7 @@ public class SubSeqDistance implements Serializable{
             }
         }
 
-        double dist = (bestSum == 0.0) ? 0.0 : (1.0 / candidate.length * bestSum);
+        double dist = (bestSum == 0.0) ? 0.0 : (1.0 / length * bestSum);
         return dist;
     }
 
