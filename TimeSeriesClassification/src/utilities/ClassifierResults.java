@@ -34,7 +34,8 @@ public class ClassifierResults {
     public double recall;
     
     public double f1; 
-    public double nll; 
+    public double nll; //the true-class only version
+    public double nllFull; //the (original) full-distribution version 
     public double meanAUROC;
     public double stddev; //across cv folds
     
@@ -334,39 +335,61 @@ public class ClassifierResults {
        f1=findF1(confusionMatrix);
 //Negative log likelihood
        nll=findNLL();
+       nllFull=findNLLFullDistribution();
        meanAUROC=findMeanAUROC();
            
     }
-       public double findNLL(){
-           double nll=0;
-            for(int i=0;i<actualClassValues.size();i++){
-                double[] dist=getDistributionForInstance(i);
-                double trueClass=actualClassValues.get(i);
+   
+    /**
+     * uses all probabilities in the distribution
+     */
+    public double findNLLFullDistribution(){
+        double nll=0;
+        for(int i=0;i<actualClassValues.size();i++){
+            double[] dist=getDistributionForInstance(i);
+            double trueClass=actualClassValues.get(i);
 //                System.out.println(" instance "+i+" class = "+trueClass+" prob true class = "+dist[(int)trueClass]);
-                double temp=0;
-                for(int j=0;j<dist.length;j++){
-                    if(j!=(int)trueClass){
-                        if(dist[j]==1)
-                            temp+=NLL_PENALTY;
-                        else{
-                            temp+=Math.log(1-dist[j])/Math.log(2);
-                            
-                        }
-                    }
+            double temp=0;
+            for(int j=0;j<dist.length;j++){
+                if(j!=(int)trueClass){
+                    if(dist[j]==1)
+                        temp+=NLL_PENALTY;
                     else{
-                        if(dist[j]==0)
-                            temp+=NLL_PENALTY;
-                        else{
-                            temp+=Math.log(dist[j])/Math.log(2);//Log 2
-                        }
+                        temp+=Math.log(1-dist[j])/Math.log(2);
+
                     }
                 }
- //               System.out.println(" Instance  "+i+" has NLL ="+temp);
-                nll+=temp;
+                else{
+                    if(dist[j]==0)
+                        temp+=NLL_PENALTY;
+                    else{
+                        temp+=Math.log(dist[j])/Math.log(2);//Log 2
+                    }
+                }
             }
-            return -nll/actualClassValues.size();
-   }
-       
+//               System.out.println(" Instance  "+i+" has NLL ="+temp);
+            nll+=temp;
+        }
+        return -nll/actualClassValues.size();
+    }
+    
+    /**
+     * uses only the probability of the true class
+     */
+    public double findNLL(){
+        double nll=0;
+        for(int i=0;i<actualClassValues.size();i++){
+            double[] dist=getDistributionForInstance(i);
+            int trueClass = actualClassValues.get(i).intValue();
+            
+            if(dist[trueClass]==0)
+                nll+=NLL_PENALTY;
+            else
+                nll+=Math.log(dist[trueClass])/Math.log(2);//Log 2
+        }
+        return -nll/actualClassValues.size();
+    }
+           
     public double findMeanAUROC(){
         double a=0;
         if(numClasses==2){
@@ -532,6 +555,7 @@ base xi+1 to xi , that is, A
         str+="specificity,"+specificity+"\n";         
         str+="f1,"+f1+"\n"; 
         str+="nll,"+nll+"\n"; 
+        str+="nllFull,"+nllFull+"\n";
         str+="meanAUROC,"+meanAUROC+"\n"; 
         str+="stddev,"+stddev+"\n"; 
         str+="Count per class:\n";
