@@ -15,13 +15,13 @@ public class AUROC extends ModuleWeightingScheme {
     
     public AUROC() {
         uniformWeighting = true;
-        needTrainPreds = false;
+        needTrainPreds = true;
     }
     
     public AUROC(double power) {
         this.power = power;
         uniformWeighting = true;
-        needTrainPreds = false;
+        needTrainPreds = true;
     }
     
     public double getPower() { 

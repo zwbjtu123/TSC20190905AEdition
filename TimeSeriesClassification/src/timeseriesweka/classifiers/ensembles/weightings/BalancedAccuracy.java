@@ -14,13 +14,13 @@ public class BalancedAccuracy extends ModuleWeightingScheme {
     
     public BalancedAccuracy() {
         uniformWeighting = true;
-        needTrainPreds = false;
+        needTrainPreds = true;
     }
     
     public BalancedAccuracy(double power) {
         this.power = power;
         uniformWeighting = true;
-        needTrainPreds = false;
+        needTrainPreds = true;
     }
     
     public double getPower() { 
