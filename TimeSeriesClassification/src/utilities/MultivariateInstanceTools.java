@@ -189,6 +189,24 @@ public class MultivariateInstanceTools {
         
         return output;
     }
+    
+    public static Instances[] resampleMultivariateInstances(Instances dataset, long seed, double prop){
+        Instances[] data_channels = splitMultivariateInstances(dataset);
+        Instances[] resample_train_channels = new Instances[data_channels.length];
+        Instances[] resample_test_channels = new Instances[data_channels.length];
+        
+       for (int i = 0; i < resample_train_channels.length; i++) {
+            Instances[] temp = utilities.InstanceTools.resampleInstances(data_channels[i], seed, prop);
+            resample_train_channels[i] = temp[0];
+            resample_test_channels[i] = temp[1];
+        }
+        
+        Instances[] output = new Instances[2];
+        output[0] = mergeToMultivariateInstances(resample_train_channels);
+        output[1] = mergeToMultivariateInstances(resample_test_channels);
+       
+        return output;
+    }
 
         
     public static Instances[] resampleMultivariateTrainAndTestInstances(Instances train, Instances test, long seed){

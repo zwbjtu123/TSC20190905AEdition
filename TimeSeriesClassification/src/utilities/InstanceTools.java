@@ -154,7 +154,7 @@ public class InstanceTools {
  * @param propInTrain proportion of data for training
  * @return 
  */
-    public static Instances[] resampleInstances(Instances all, int seed, double propInTrain){
+    public static Instances[] resampleInstances(Instances all, long seed, double propInTrain){
         ClassDistribution classDist = new TreeSetClassDistribution(all);
         Map<Double, Instances> classBins = createClassInstancesMap(all);
        
