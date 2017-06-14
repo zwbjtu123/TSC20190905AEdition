@@ -96,6 +96,8 @@ public class PLSNominalClassifier extends PLSClassifier {
                     
                     dist[i] = propToRight;
                     dist[i-1] = 1-propToRight;
+                    
+                    break;
                 }    
             }
         }

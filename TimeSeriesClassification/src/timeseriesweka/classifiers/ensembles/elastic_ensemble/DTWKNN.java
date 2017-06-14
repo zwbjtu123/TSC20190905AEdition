@@ -8,9 +8,15 @@ import utilities.generic_storage.Pair;
 import weka.core.Instance;
 
 /**
- * Hacky extension of DTW1NN to allow different values of k, originally written 
+ * Extension of DTW1NN to allow different values of k, originally written 
  * to include in HESCA (for timeseries data) so that DTW returns reasonable probability distributions, 
  * instead of a zero-one vector 
+ * 
+ * ***DO NOT USE 
+ * 
+ * There's some mega edge case where the distributionForInstance returns a distribution with NaN values, 
+ * found only in ElectricDevices (so far) 99.9...% of test predictions were fine, enough for me personally 
+ * to show that 1NN > 5NN > 11NN anyways, so I'm not going to bother spending the time fixing it 
  * 
  * @author James Large (james.large@uea.ac.uk)
  */
