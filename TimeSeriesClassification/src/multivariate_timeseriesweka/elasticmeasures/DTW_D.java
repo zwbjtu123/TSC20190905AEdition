@@ -48,11 +48,9 @@ public class DTW_D extends DTW_DistanceBasic{
         Instance[] multi2 = splitMultivariateInstance(multiseries2);
 
         //TODO: might need to normalise here.
-
-        
         double[][] data1 = utilities.MultivariateInstanceTools.convertMultiInstanceToTransposedArrays(multi1);
         double[][] data2 = utilities.MultivariateInstanceTools.convertMultiInstanceToTransposedArrays(multi2);
-        return distance(data1, data2, cutoff);
+        return Math.sqrt(distance(data1, data2, cutoff));
     }
     
     

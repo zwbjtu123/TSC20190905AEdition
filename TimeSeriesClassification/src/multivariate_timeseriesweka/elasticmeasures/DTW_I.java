@@ -57,7 +57,7 @@ public class DTW_I extends DTW_DistanceBasic{
         //pairwise compare and sum dtw measures.
         double cumulative_distance = 0;
         for(int i=0; i< multi1.length; i++){
-            cumulative_distance += super.distance(multi1[i], multi2[i], cutoff);
+            cumulative_distance += Math.sqrt(super.distance(multi1[i], multi2[i], cutoff));
         }
         
         return cumulative_distance;

@@ -17,8 +17,10 @@ import java.util.Scanner;
 import java.util.TreeMap;
 import utilities.class_distributions.ClassDistribution;
 import utilities.class_distributions.TreeSetClassDistribution;
+import utilities.generic_storage.Pair;
 import weka.core.Attribute;
 import weka.core.DenseInstance;
+import weka.core.DistanceFunction;
 import weka.core.FastVector;
 import weka.core.Instance;
 import weka.core.Instances;
@@ -29,6 +31,20 @@ import weka.core.Instances;
  */
 public class InstanceTools {
 
+    public static Pair<Instance, Double> findMinDistance(Instances data, Instance inst, DistanceFunction dist){
+        double min = dist.distance(data.get(0), inst);
+        Instance minI = data.get(0);
+        for (int i = 1; i < data.numInstances(); i++) {
+            double temp = dist.distance(data.get(i), inst);
+            if(temp < min){
+                min = temp;
+                minI = data.get(i);
+            }
+        }
+        
+        return new Pair(minI, min);
+    }
+    
     public static int[] deleteClassValues(Instances d){
         int[] classVals=new int[d.numInstances()];
         for(int i=0;i<d.numInstances();i++){
