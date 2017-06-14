@@ -43,7 +43,7 @@ public class ClassifierResults {
     public double[] countPerClass;
 //Used to avoid infinite NLL scores when prob of true class =0 or 
 //prob of wrong class =1    
-    public static double NLL_PENALTY=20;
+    public static double NLL_PENALTY=-20.0;
     public ArrayList<Double> actualClassValues;
     public ArrayList<Double> predictedClassValues;
     public ArrayList<double[]> predictedClassProbabilities;
