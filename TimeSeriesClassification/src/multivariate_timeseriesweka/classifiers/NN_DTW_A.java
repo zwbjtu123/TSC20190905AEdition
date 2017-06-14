@@ -78,9 +78,6 @@ public class NN_DTW_A extends AbstractClassifier{
         List<Double> S_dSuccess = scores.var1;
         List<Double> S_iSuccess = scores.var2;
         
-        System.out.println(S_dSuccess);
-        System.out.println(S_iSuccess);
-        
         double output;
         if(S_iSuccess.isEmpty() && S_dSuccess.isEmpty())
             output= 1;
