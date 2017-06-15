@@ -26,18 +26,30 @@ public class DataSets {
 
     //All of the multivariate datasets.
     public static String[] multivariateNames = {
-        "AALTD",
+        "AALTD_0",
+        "AALTD_1",
+        "AALTD_2",
+        "AALTD_3",
+        "AALTD_4",
+        "AALTD_5",
+        "AALTD_6",
+        "AALTD_7",
         "ArabicDigit",
-        //"ArticularyWord", //this is the only dataset that has sub types.
-        "Cricket",
+        "ArticularyWordLL",
+        "ArticularyWordT1",
+        "ArticularyWordUL",
+        "CricketLeft",
+        "CricketRight",
         "HandwritingAccelerometer",
         "HandwritingGyroscope",
         "JapaneseVowels",
-        "MVMotion",
+        "MVMotionA",
+        "MVMotionG",
+        "MVMotionAG",
         "PEMS",
         "PenDigits",
         "UWaveGesture",
-        "VillarData"
+        "VillarData",
     };
     
     

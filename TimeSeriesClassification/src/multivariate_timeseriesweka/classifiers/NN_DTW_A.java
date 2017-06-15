@@ -116,7 +116,7 @@ public class NN_DTW_A extends AbstractClassifier{
             }
         }
             
-        for (int j = 0;j<iSuccess.size();j++){
+        for (int j = 0; j<iSuccess.size();j++){
             int in = 0;
             int dp = 0;
             for (int i = 0;i<dSuccess.size();i++){
@@ -133,7 +133,7 @@ public class NN_DTW_A extends AbstractClassifier{
 
             if (in+dp < common){
                 common = in+dp;
-                output = dSuccess.get(j);
+                output = iSuccess.get(j);
             }
         }
             
