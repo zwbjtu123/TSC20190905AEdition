@@ -7,16 +7,16 @@ import timeseriesweka.classifiers.ensembles.EnsembleModule;
  *
  * @author James Large (james.large@uea.ac.uk)
  */
-public class NLLTrue extends ModuleWeightingScheme {
+public class NLL extends ModuleWeightingScheme {
 
     private double power = 1.0;
     
-    public NLLTrue() {
+    public NLL() {
         uniformWeighting = true;
         needTrainPreds = true;
     }
     
-    public NLLTrue(double power) {
+    public NLL(double power) {
         this.power = power;
         uniformWeighting = true;
         needTrainPreds = true;

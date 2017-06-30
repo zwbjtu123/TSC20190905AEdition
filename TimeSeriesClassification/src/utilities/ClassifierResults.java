@@ -35,15 +35,13 @@ public class ClassifierResults {
     
     public double f1; 
     public double nll; //the true-class only version
-    public double nllFull; //the (original) full-distribution version 
     public double meanAUROC;
     public double stddev; //across cv folds
     
     public double[][] confusionMatrix; //[actual class][predicted class]
     public double[] countPerClass;
 //Used to avoid infinite NLL scores when prob of true class =0 or 
-//prob of wrong class =1    
-    public static double NLL_PENALTY=-20.0;
+    public static double NLL_PENALTY=-6.64; //Log_2(0.01)
     public ArrayList<Double> actualClassValues;
     public ArrayList<Double> predictedClassValues;
     public ArrayList<double[]> predictedClassProbabilities;
@@ -335,44 +333,10 @@ public class ClassifierResults {
        f1=findF1(confusionMatrix);
 //Negative log likelihood
        nll=findNLL();
-       nllFull=findNLLFullDistribution();
        meanAUROC=findMeanAUROC();
            
     }
-   
-    /**
-     * uses all probabilities in the distribution
-     */
-    public double findNLLFullDistribution(){
-        double nll=0;
-        for(int i=0;i<actualClassValues.size();i++){
-            double[] dist=getDistributionForInstance(i);
-            double trueClass=actualClassValues.get(i);
-//                System.out.println(" instance "+i+" class = "+trueClass+" prob true class = "+dist[(int)trueClass]);
-            double temp=0;
-            for(int j=0;j<dist.length;j++){
-                if(j!=(int)trueClass){
-                    if(dist[j]==1)
-                        temp+=NLL_PENALTY;
-                    else{
-                        temp+=Math.log(1-dist[j])/Math.log(2);
-
-                    }
-                }
-                else{
-                    if(dist[j]==0)
-                        temp+=NLL_PENALTY;
-                    else{
-                        temp+=Math.log(dist[j])/Math.log(2);//Log 2
-                    }
-                }
-            }
-//               System.out.println(" Instance  "+i+" has NLL ="+temp);
-            nll+=temp;
-        }
-        return -nll/actualClassValues.size();
-    }
-    
+      
     /**
      * uses only the probability of the true class
      */
@@ -555,7 +519,6 @@ base xi+1 to xi , that is, A
         str+="specificity,"+specificity+"\n";         
         str+="f1,"+f1+"\n"; 
         str+="nll,"+nll+"\n"; 
-        str+="nllFull,"+nllFull+"\n";
         str+="meanAUROC,"+meanAUROC+"\n"; 
         str+="stddev,"+stddev+"\n"; 
         str+="Count per class:\n";
