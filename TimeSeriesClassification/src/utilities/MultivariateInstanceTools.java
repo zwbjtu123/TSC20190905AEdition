@@ -68,6 +68,66 @@ public class MultivariateInstanceTools {
         return result;
     }
     
+    //this function concatinates an array of instances by adding the attributes together. maintains same size in n.
+    //assumes properly orderered for class values
+    //all atts in inst1, then all atts in inst2 etc.
+    public static Instances concatinateInstances(Instances[] data){
+        FastVector atts = new FastVector();
+        String name;
+        
+        Instances firstInst = data[0];       
+        int length =0;
+        for (Instances data1 : data) {
+            length += data1.numAttributes() - 1;
+        }
+                
+        int dim = 0;
+        int localAtt = 0;
+        for (int i = 0; i < length; i++) {
+            if(i % (length/(firstInst.numAttributes()-1)) == 0){
+                    dim++;
+                    localAtt=0;
+            }
+            
+            name = "attribute_dimension_" + dim + "_" + localAtt++;
+            atts.addElement(new Attribute(name));
+        }
+        
+        //clone the class values over. 
+        //Could be from x,y,z doesn't matter.
+        Attribute target = firstInst.attribute(firstInst.classIndex());
+        FastVector vals = new FastVector(target.numValues());
+        for (int i = 0; i < target.numValues(); i++) {
+            vals.addElement(target.value(i));
+        }
+        atts.addElement(new Attribute(firstInst.attribute(firstInst.classIndex()).name(), vals));
+        
+        //same number of xInstances 
+        Instances result = new Instances(firstInst.relationName() + "_concatinated", atts, firstInst.numInstances());
+        
+        for(int i=0; i< firstInst.numInstances(); i++){
+            result.add(new DenseInstance(length+1));
+            int k=0;
+            //for each instance 
+            for(Instances inst  : data){
+                double[] values = inst.get(i).toDoubleArray();
+                for(int j=0; j<values.length - 1; j++){
+                    result.instance(i).setValue(k++, values[j]);
+                }
+            }
+        } 
+        
+        for (int j = 0; j < result.numInstances(); j++) {
+            //we always want to write the true ClassValue here. Irrelevant of binarised or not.
+            result.instance(j).setValue(length, firstInst.get(j).classValue());
+        }
+        
+        //se the class index where we put it.
+        result.setClassIndex(length);
+        
+        return result;
+    }
+    
     
     private static Instances createRelationFrom(Instances header, double[][] data){
         int numAttsInChannel = data[0].length;
@@ -229,6 +289,18 @@ public class MultivariateInstanceTools {
         return output;
     }
     
+    
+    public static Instance[] splitMultivariateInstanceWithClassVal(Instance instance){
+        Instances[] split = splitMultivariateInstances(instance.dataset());
+        
+        int index = instance.dataset().indexOf(instance);
+        
+        Instance[] output = new Instance[numChannels(instance)];
+        for(int i=0; i< output.length; i++){
+            output[i] = split[i].get(index);
+        }  
+        return output;
+    }
     
     public static Instance[] splitMultivariateInstance(Instance instance){
         Instance[] output = new Instance[numChannels(instance)];

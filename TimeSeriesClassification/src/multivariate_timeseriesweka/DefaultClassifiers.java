@@ -9,10 +9,19 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Supplier;
+import multivariate_timeseriesweka.classifiers.ConcatenateClassifier;
 import multivariate_timeseriesweka.classifiers.NN_DTW_A;
 import multivariate_timeseriesweka.classifiers.NN_DTW_D;
 import multivariate_timeseriesweka.classifiers.NN_DTW_I;
+import multivariate_timeseriesweka.ensembles.IndependentDimensionEnsemble;
+import timeseriesweka.classifiers.ensembles.elastic_ensemble.DTW1NN;
 import weka.classifiers.Classifier;
+import weka.classifiers.functions.MultilayerPerceptron;
+import weka.classifiers.functions.SMO;
+import weka.classifiers.functions.supportVector.PolyKernel;
+import weka.classifiers.meta.RotationForest;
+import weka.classifiers.trees.J48;
+import weka.classifiers.trees.RandomForest;
 
 /**
  *
@@ -27,6 +36,16 @@ public class DefaultClassifiers {
         map.put("DTW_A", DefaultClassifiers::createDTW_A);
         map.put("DTW_D", DefaultClassifiers::createDTW_D);
         map.put("DTW_I", DefaultClassifiers::createDTW_I);
+        map.put("RotationForest", DefaultClassifiers::createRotationForest);
+        map.put("RandomForest", DefaultClassifiers::createRandomForest);
+        map.put("1NN_DTW",DefaultClassifiers::create1NNDTW);
+        map.put("MLP",DefaultClassifiers::createMultilayerPerceptron);
+        map.put("SMO",DefaultClassifiers::createSMO);
+        map.put("RotationForest_concat", DefaultClassifiers::createRotationForest_concat);
+        map.put("RandomForest_concat", DefaultClassifiers::createRandomForest_concat);
+        map.put("1NN_DTW_concat",DefaultClassifiers::create1NNDTW_concat);
+        map.put("MLP_concat",DefaultClassifiers::createMultilayerPerceptron_concat);
+        map.put("SMO_concat",DefaultClassifiers::createSMO_concat);
         CLASSIFIERS = Collections.unmodifiableMap(map);
     }
     
@@ -47,5 +66,87 @@ public class DefaultClassifiers {
        nn.setR(0.2);
        return nn;
     }
+    
+    public static Classifier createRotationForest(){
+        RotationForest rf = new RotationForest();
+        rf.setNumIterations(50);
+        
+        Classifier c = new IndependentDimensionEnsemble(rf);
+        return c;
+    }
+    
+    public static Classifier createRandomForest(){
+        RandomForest rf = new RandomForest();
+        rf.setNumTrees(500);
+        
+        Classifier c = new IndependentDimensionEnsemble(rf);
+        return c;
+    }
+    
+    
+    public static Classifier create1NNDTW(){
+        DTW1NN nn = new DTW1NN();        
+        Classifier c = new IndependentDimensionEnsemble(nn);
+        return c;
+    }
+    
+    public static Classifier createMultilayerPerceptron(){
+        MultilayerPerceptron mlp = new MultilayerPerceptron();     
+        Classifier c = new IndependentDimensionEnsemble(mlp);
+        return c;
+    }
+    
+    public static Classifier createSMO(){
+        SMO svmq =new SMO();
+//Assumes no missing, all real valued and a discrete class variable        
+        svmq.turnChecksOff();
+        PolyKernel kq = new PolyKernel();
+        kq.setExponent(2);
+        svmq.setKernel(kq);
+        Classifier c = new IndependentDimensionEnsemble(svmq);
+        return c;
+    }
+    
+        public static Classifier createRotationForest_concat(){
+        RotationForest rf = new RotationForest();
+        rf.setNumIterations(50);
+        
+        Classifier c = new ConcatenateClassifier(rf);
+        return c;
+    }
+    
+    public static Classifier createRandomForest_concat(){
+        RandomForest rf = new RandomForest();
+        rf.setNumTrees(500);
+        
+        Classifier c = new ConcatenateClassifier(rf);
+        return c;
+    }
+    
+    
+    public static Classifier create1NNDTW_concat(){
+        DTW1NN nn = new DTW1NN();        
+        Classifier c = new IndependentDimensionEnsemble(nn);
+        return c;
+    }
+    
+    public static Classifier createMultilayerPerceptron_concat(){
+        MultilayerPerceptron mlp = new MultilayerPerceptron();     
+        Classifier c = new ConcatenateClassifier(mlp);
+        return c;
+    }
+    
+    public static Classifier createSMO_concat(){
+        SMO svmq =new SMO();
+//Assumes no missing, all real valued and a discrete class variable        
+        svmq.turnChecksOff();
+        PolyKernel kq = new PolyKernel();
+        kq.setExponent(2);
+        svmq.setKernel(kq);
+        Classifier c = new ConcatenateClassifier(svmq);
+        return c;
+    }
+    
+    
     
 }

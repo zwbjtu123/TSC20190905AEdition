@@ -593,58 +593,7 @@ public class InstanceTools {
     
     
     
-    //this function concatinates an array of instances by adding the attributes together. maintains same size in n.
-    //assumes properly orderered for class values
-    //all atts in inst1, then all atts in inst2 etc.
-    public static Instances concatinateInstances(String dataName, Instances[] data, String[] dimChars){
-        FastVector atts = new FastVector();
-        String name;
-        
-        Instances firstInst = data[0];       
-        int length =0;
-        for (Instances data1 : data) {
-            length += data1.numAttributes() - 1;
-        }
-                
-        for (int i = 0; i < length; i++) {
-            name = dataName + "_" + (i % (length/dimChars.length)) + "_" + dimChars[i / (length/dimChars.length)];
-            atts.addElement(new Attribute(name));
-        }
-        
-        //clone the class values over. 
-        //Could be from x,y,z doesn't matter.
-        Attribute target = firstInst.attribute(firstInst.classIndex());
-        FastVector vals = new FastVector(target.numValues());
-        for (int i = 0; i < target.numValues(); i++) {
-            vals.addElement(target.value(i));
-        }
-        atts.addElement(new Attribute(firstInst.attribute(firstInst.classIndex()).name(), vals));
-        
-        //same number of xInstances 
-        Instances result = new Instances(dataName + "_concatinated", atts, firstInst.numInstances());
-        
-        int size = result.numAttributes() - 1;
-        
-        
-        for(int i=0; i< firstInst.numInstances(); i++){
-            result.add(new DenseInstance(size+1));
-            int k=0;
-            //for each instance 
-            for(Instances inst  : data){
-                double[] values = inst.get(i).toDoubleArray();
-                for(int j=0; j<values.length - 1; j++){
-                    result.instance(i).setValue(k++, values[j]);
-                }
-            }
-        } 
-        
-        for (int j = 0; j < result.numInstances(); j++) {
-            //we always want to write the true ClassValue here. Irrelevant of binarised or not.
-            result.instance(j).setValue(size, firstInst.get(j).classValue());
-        }
-        
-        return result;
-    }
+
     
     //similar to concatinate, but interweaves the attributes. 
     //all of att_0 in each instance, then att_1 etc.
