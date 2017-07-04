@@ -95,6 +95,21 @@ public class InstanceTools {
             dist[i]/=data.numInstances();
         return dist;
     }
+    
+    /**
+     * by James...
+     * Public method to calculate the class distributions given a list of class labels and the number of classes.
+     * Mostly to use with the data classifierresults/results analysis tools keep
+     */
+    public static double[] findClassDistributions(ArrayList<Double> classLabels, int numClasses)
+    {
+        double[] dist=new double[numClasses];
+        for(double d:classLabels)
+            dist[(int)d]++;
+        for(int i=0;i<dist.length;i++)
+            dist[i]/=classLabels.size();
+        return dist;
+    }
      
     public static Map<Double, Instances> createClassInstancesMap(Instances data)
     {

@@ -363,10 +363,16 @@ public class ClassifierResults {
                 a=findAUROC(1);
  */       }
         else{
+            double[] classDist = InstanceTools.findClassDistributions(actualClassValues, numClasses);
             for(int i=0;i<numClasses;i++){
-                a+=findAUROC(i);
+                a+=findAUROC(i) * classDist[i];
             }
-            a/=numClasses;
+            
+            //original, unweighted
+//            for(int i=0;i<numClasses;i++){
+//                a+=findAUROC(i);
+//            }
+//            a/=numClasses;
         }
         return a;
     }
