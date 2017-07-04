@@ -25,8 +25,10 @@ public class SubsampleRandomSearch extends ImpRandomSearch{
        
     @Override
     public void init(Instances input){
+        super.init(input);
+        
         int numInstances = (int) (input.numInstances() * shapeletToSeriesRatio) ;
-        int numAttributes = input.numAttributes() - 1;
+        int numAttributes = seriesLength - 1;
         
         inputData = input;
         int numLengths = maxShapeletLength - minShapeletLength; //want max value to be inclusive.

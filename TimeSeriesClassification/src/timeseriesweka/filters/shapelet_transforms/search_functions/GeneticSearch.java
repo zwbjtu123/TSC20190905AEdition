@@ -16,6 +16,7 @@ import timeseriesweka.filters.shapelet_transforms.Shapelet;
  *
  * @author raj09hxu
  */
+@Deprecated
 public class GeneticSearch extends ImpRandomSearch{
 
     int initialPopulationSize = 50;
@@ -28,20 +29,17 @@ public class GeneticSearch extends ImpRandomSearch{
     
     @Override
     public void init(Instances input){
-        inputData = input;
+        super.init(input);
        
         numShapeletsPerSeries = (int) (numShapelets / inputData.numInstances());  
     }
 
-    
-        @Override
+    @Override
     public ArrayList<Shapelet> SearchForShapeletsInSeries(Instance timeSeries, ProcessCandidate checkCandidate){
-        
        evaluated = 0;
         
        double[] series = timeSeries.toDoubleArray();
         
-
        List<Shapelet> population = new ArrayList<>();
        
         //generate the random shapelets we're going to visit.
@@ -49,7 +47,7 @@ public class GeneticSearch extends ImpRandomSearch{
             //randomly generate values.
 
             Pair<Integer, Integer> pair = createRandomShapelet(series);
-            Shapelet shape = checkCandidate.process(series, pair.var2, pair.var1);
+            Shapelet shape = checkCandidate.process(timeSeries, pair.var2, pair.var1);
             evaluated++;
             if(shape != null)
                 population.add(shape);
@@ -57,7 +55,7 @@ public class GeneticSearch extends ImpRandomSearch{
         
         // so we evaluate the initial population
         while(evaluated < numShapeletsPerSeries){
-            population = evolvePopulation(series, population, checkCandidate);
+            population = evolvePopulation(timeSeries, population, checkCandidate);
         }
         
 
@@ -75,7 +73,7 @@ public class GeneticSearch extends ImpRandomSearch{
     private static final int tournamentSize = 5;
     private static final boolean elitism = true;
     
-    private List<Shapelet> evolvePopulation(double[] series, List<Shapelet> shapesIn, ProcessCandidate checkCandidate){
+    private List<Shapelet> evolvePopulation(Instance timeSeries, List<Shapelet> shapesIn, ProcessCandidate checkCandidate){
         List<Shapelet> newPopulation = new ArrayList<>();
         List<Pair<Integer, Integer>> populationToBe = new ArrayList<>();
 
@@ -96,6 +94,8 @@ public class GeneticSearch extends ImpRandomSearch{
             populationToBe.add(crossed);
         }
 
+        double[] series = timeSeries.toDoubleArray();
+        
         // Mutate population
         for (Pair<Integer, Integer> populationToBe1 : populationToBe) {
             mutate(populationToBe1);
@@ -106,7 +106,7 @@ public class GeneticSearch extends ImpRandomSearch{
                 populationToBe1 = pair;
             }
             
-            Shapelet sh = checkCandidate.process(series, populationToBe1.var2, populationToBe1.var1);
+            Shapelet sh = checkCandidate.process(timeSeries, populationToBe1.var2, populationToBe1.var1);
             evaluated++;
             if(sh != null)
             newPopulation.add(sh);

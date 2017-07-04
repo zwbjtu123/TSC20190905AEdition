@@ -32,8 +32,6 @@ public class RandomSearch extends ShapeletSearch{
         
         ArrayList<Shapelet> seriesShapelets = new ArrayList<>();
         
-        double[] series = timeSeries.toDoubleArray();
-
         int numLengths = maxShapeletLength - minShapeletLength /*+ 1*/; //want max value to be inclusive.
         
         visited = new boolean[numLengths][];
@@ -43,13 +41,13 @@ public class RandomSearch extends ShapeletSearch{
             int lengthIndex = random.nextInt(numLengths);
             int length = lengthIndex + minShapeletLength; //offset the index by the min value.
             
-            int maxPositions = series.length - length ;
+            int maxPositions = seriesLength - length ;
             int start  = random.nextInt(maxPositions); // can only have valid start positions based on the length.
 
             //we haven't constructed the memory for this length yet.
-            initVisitedMemory(series, length);
+            initVisitedMemory(seriesLength, length);
             
-            Shapelet shape = visitCandidate(series, start, length, checkCandidate);
+            Shapelet shape = visitCandidate(timeSeries, start, length, checkCandidate);
             if(shape != null)
                 seriesShapelets.add(shape);           
         }
@@ -69,10 +67,10 @@ public class RandomSearch extends ShapeletSearch{
     }
     
         
-    protected void initVisitedMemory(double[] series, int length){
+    protected void initVisitedMemory(int seriesLength, int length){
         int lengthIndex = getLenghtIndex(length);
         if(visited[lengthIndex] == null){
-            int maxPositions = series.length - length;
+            int maxPositions = seriesLength - length;
             visited[lengthIndex] = new boolean[maxPositions];
         }  
     }
@@ -83,8 +81,8 @@ public class RandomSearch extends ShapeletSearch{
     }
       
         
-    protected Shapelet visitCandidate(double[] series, int start, int length, ProcessCandidate checkCandidate){
-        initVisitedMemory(series, length);
+    protected Shapelet visitCandidate(Instance series, int start, int length, ProcessCandidate checkCandidate){
+        initVisitedMemory(series.numAttributes(), length);
         int lengthIndex = getLenghtIndex(length);
         Shapelet shape = null;     
         if(!visited[lengthIndex][start]){

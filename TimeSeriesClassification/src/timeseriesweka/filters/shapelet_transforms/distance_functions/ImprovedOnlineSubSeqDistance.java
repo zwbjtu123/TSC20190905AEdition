@@ -21,7 +21,7 @@ public class ImprovedOnlineSubSeqDistance extends OnlineSubSeqDistance{
         DoubleWrapper sum2Pointer = new DoubleWrapper();
 
         //Generate initial subsequence that starts at the same position our candidate does.
-        double[] subseq = new double[candidate.length];
+        double[] subseq = new double[length];
         System.arraycopy(timeSeries, startPos, subseq, 0, subseq.length);
         subseq = zNormalise(subseq, false, sumPointer, sum2Pointer);
         
@@ -29,9 +29,9 @@ public class ImprovedOnlineSubSeqDistance extends OnlineSubSeqDistance{
         double temp;
         
         //Compute initial distance. from the startPosition the candidate was found.
-        for (int i = 0; i < candidate.length; i++)
+        for (int i = 0; i < length; i++)
         {
-            temp = candidate[i] - subseq[i];
+            temp = cand.getShapeletContent()[i] - subseq[i];
             bestDist = bestDist + (temp * temp);
             incrementCount();
         }
@@ -55,7 +55,7 @@ public class ImprovedOnlineSubSeqDistance extends OnlineSubSeqDistance{
                 pos[j] = startPos + (modifier*i); 
                 
                 //if we're going left check we're greater than 0 if we're going right check we've got room to move.
-                traverse[j] = j==0 ? pos[j] >= 0 : pos[j] < timeSeries.length - candidate.length;
+                traverse[j] = j==0 ? pos[j] >= 0 : pos[j] < timeSeries.length - length;
 
                 //if we can't traverse in that direction. skip it.
                 if(!traverse[j] )
@@ -63,7 +63,7 @@ public class ImprovedOnlineSubSeqDistance extends OnlineSubSeqDistance{
                 
                 //either take off nothing, or take off 1. This gives us our offset.
                 double start = timeSeries[pos[j]-j];
-                double end   = timeSeries[pos[j]-j + candidate.length];
+                double end   = timeSeries[pos[j]-j + length];
                                 
                 sum[j] = sum[j] + (modifier*end) - (modifier*start);
                 sumsq[j] = sumsq[j] + (modifier *(end * end)) - (modifier*(start * start));
@@ -78,7 +78,7 @@ public class ImprovedOnlineSubSeqDistance extends OnlineSubSeqDistance{
             i++;
         }
 
-        bestDist = (bestDist == 0.0) ? 0.0 : (1.0 / candidate.length * bestDist);
+        bestDist = (bestDist == 0.0) ? 0.0 : (1.0 / length * bestDist);
         
         return bestDist;
     }
@@ -96,10 +96,10 @@ public class ImprovedOnlineSubSeqDistance extends OnlineSubSeqDistance{
 
         ImprovedOnlineSubSeqDistance iosd = new ImprovedOnlineSubSeqDistance();
 
-        iosd.setCandidate(subseq, series.length-subseq.length);
+        //iosd.setCandidate(subseq, series.length-subseq.length);
         double leftToRight = iosd.calculate(series, 1);
         
-        iosd.setCandidate(subseq, startPos);
+        //iosd.setCandidate(subseq, startPos);
         double rightToLeft = iosd.calculate(series, 1);
         
         //iosd.setCandidate(subseq, startPos);
@@ -111,7 +111,7 @@ public class ImprovedOnlineSubSeqDistance extends OnlineSubSeqDistance{
         //System.out.println(middleOut);
         
         OnlineSubSeqDistance osd = new OnlineSubSeqDistance();
-        osd.setCandidate(subseq, 0);
+        //osd.setCandidate(subseq, 0);
         
         double original = osd.calculate(series, 1);
         

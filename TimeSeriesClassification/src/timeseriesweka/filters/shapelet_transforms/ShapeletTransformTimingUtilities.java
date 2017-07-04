@@ -222,8 +222,8 @@ public class ShapeletTransformTimingUtilities
         }
 
         Collections.sort(shapelets, new ShapeletLengthComparator());
-        int min = shapelets.get(24).getContent().length;
-        int max = shapelets.get(74).getContent().length;
+        int min = shapelets.get(24).getLength();
+        int max = shapelets.get(74).getLength();
 
         return new int[]{min,max};
     }
@@ -239,8 +239,8 @@ public class ShapeletTransformTimingUtilities
    
         @Override
         public int compare(Shapelet shapelet1, Shapelet shapelet2){
-            int shapelet1Length = shapelet1.getContent().length;        
-            int shapelet2Length = shapelet2.getContent().length;
+            int shapelet1Length = shapelet1.getLength();        
+            int shapelet2Length = shapelet2.getLength();
 
             return Integer.compare(shapelet1Length, shapelet2Length);  
         }
