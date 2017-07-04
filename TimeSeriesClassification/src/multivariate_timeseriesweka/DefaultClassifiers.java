@@ -126,7 +126,7 @@ public class DefaultClassifiers {
     
     public static Classifier create1NNDTW_concat(){
         DTW1NN nn = new DTW1NN();        
-        Classifier c = new IndependentDimensionEnsemble(nn);
+        Classifier c = new ConcatenateClassifier(nn);
         return c;
     }
     
