@@ -13,7 +13,7 @@ public class Timer {
     
     public static boolean PRINT = false;
     
-    public static double SECS = 1000000000.0;
+    public static double SECS = 1000.0;
     
     long startTime;
     String name;
@@ -33,17 +33,17 @@ public class Timer {
     }
     
     public void start() {
-        startTime = System.nanoTime();
+        startTime = System.currentTimeMillis();
     }
     
     public long restart() { 
         long t = timeSoFar();
-        startTime = System.nanoTime();
+        startTime = System.currentTimeMillis();
         return t;
     }
     
     public long timeSoFar() {
-        return System.nanoTime() - startTime;
+        return System.currentTimeMillis() - startTime;
     }
     
     @Override

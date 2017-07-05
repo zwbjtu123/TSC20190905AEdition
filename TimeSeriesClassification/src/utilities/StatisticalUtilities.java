@@ -6,6 +6,7 @@ package utilities;
 
 import java.math.BigDecimal;
 import java.math.MathContext;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 
@@ -28,6 +29,19 @@ public class StatisticalUtilities {
         }
 
         return sum / (double) values.length - offset;
+    }
+    
+    // jamesl
+    // the median of a list of values, just sorts (a copy, original remains unsorted) and takes middle for now
+    // can make O(n) if wanted later 
+    public static double median(double[] values) {
+        double[] copy = Arrays.copyOf(values, values.length);
+        Arrays.sort(copy);
+        
+        if (copy .length % 2 == 1)
+            return copy[copy.length/2 + 1];
+        else 
+            return (copy[copy.length/2] + copy[copy.length/2 + 1]) / 2;
     }
 
     public static double standardDeviation(double[] values, boolean classVal, double mean) {
