@@ -40,6 +40,7 @@ public class ShapeletSearchFactory {
         sCons.add(ImpRandomSearch::new);
         sCons.add(SubsampleRandomSearch::new);
         sCons.add(SkewedRandomSearch::new);
+        sCons.add(MultivariatIndepdentShapeletSearch::new);
         return sCons;
     }
     

@@ -25,8 +25,8 @@ public class OnlineSubSeqDistance extends SubSeqDistance {
     }
     
     @Override
-    public void setCandidate(Instance inst, int start, int length) {
-        super.setCandidate(inst, start, length);
+    public void setCandidate(Instance inst, int start, int length, int dim) {
+        super.setCandidate(inst, start, length, dim);
         sortedIndices = sortIndexes(cand.getShapeletContent());
     }
     

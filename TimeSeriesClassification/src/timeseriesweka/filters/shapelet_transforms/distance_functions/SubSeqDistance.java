@@ -18,7 +18,7 @@ import weka.core.Instance;
  */
 public class SubSeqDistance implements Serializable{
        
-    public enum DistanceType{NORMAL, ONLINE, IMP_ONLINE, CACHED, ONLINE_CACHED, DEPENDENT, INDEPENDENT};
+    public enum DistanceType{NORMAL, ONLINE, IMP_ONLINE, CACHED, ONLINE_CACHED, DEPENDENT, INDEPENDENT, DIMENSION};
     
     public static final double ROUNDING_ERROR_CORRECTION = 0.000000000000001;
     
@@ -30,6 +30,7 @@ public class SubSeqDistance implements Serializable{
     protected int      seriesId;
     protected int      startPos;
     protected int      length;
+    protected int      dimension;
     
     protected long count;
     
@@ -51,13 +52,15 @@ public class SubSeqDistance implements Serializable{
         startPos = shp.startPos;
         cand = shp.getContent();
         length = shp.getLength();
+        dimension = shp.getDimension();
     }
     
-    public void setCandidate(Instance inst, int start, int len) {
+    public void setCandidate(Instance inst, int start, int len, int dim) {
         //extract shapelet and nomrliase.
         cand = new ShapeletCandidate();
         startPos = start;
         length = len;
+        dimension =  dim;
         
         //only call to double array when we've changed series.
         if(candidateInst==null || candidateInst != inst){

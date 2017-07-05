@@ -28,11 +28,10 @@ public class MultivariateDistance extends SubSeqDistance{
         
     }
     
-    //purposefully overwriting.
     protected double[][] candidateArray2;
     
     @Override
-    public void setCandidate(Instance inst, int start, int len) {
+    public void setCandidate(Instance inst, int start, int len, int dim) {
         //extract shapelet and nomrliase.
         cand = new ShapeletCandidate(numChannels);
         startPos = start;

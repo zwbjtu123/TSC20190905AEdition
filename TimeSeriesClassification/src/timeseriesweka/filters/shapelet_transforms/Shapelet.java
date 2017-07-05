@@ -36,8 +36,9 @@ public class Shapelet implements Comparable<Shapelet>, Serializable
      */
     public ShapeletCandidate content;
     
-    public int numChannels = 1;
+    public int numDimensions = 1;
     
+    public int dimension = 0;
     public int length;
     public int seriesId;
     public int startPos;
@@ -61,8 +62,12 @@ public class Shapelet implements Comparable<Shapelet>, Serializable
         return length;
     }
     
-    public int getNumChannels(){
-        return numChannels;
+    public int getNumDimensions(){
+        return numDimensions;
+    }
+    
+    public int getDimension(){
+        return dimension;
     }
 
     public double getQualityValue()
@@ -88,7 +93,7 @@ public class Shapelet implements Comparable<Shapelet>, Serializable
     public Shapelet(ShapeletCandidate content)
     {
         this.content = content;
-        numChannels = content.getNumChannels();
+        numDimensions = content.getNumChannels();
         length = content.getLength();
     }
 
@@ -105,7 +110,7 @@ public class Shapelet implements Comparable<Shapelet>, Serializable
     public Shapelet(ShapeletCandidate content, double qualValue, int seriesId, int startPos)
     {
         this.content = content;
-        numChannels = content.getNumChannels();
+        numDimensions = content.getNumChannels();
         length = content.getLength();
         this.seriesId = seriesId;
         this.startPos = startPos;
@@ -115,7 +120,7 @@ public class Shapelet implements Comparable<Shapelet>, Serializable
     public Shapelet(ShapeletCandidate content, double qualValue, int seriesId, int startPos, double sepGap)
     {
         this.content = content;
-        numChannels = content.getNumChannels();
+        numDimensions = content.getNumChannels();
         length = content.getLength();
         this.seriesId = seriesId;
         this.startPos = startPos;
@@ -165,7 +170,7 @@ public class Shapelet implements Comparable<Shapelet>, Serializable
     @Override
     public String toString()
     {
-        String str = seriesId + "," + startPos + "," + length +"," + qualityValue;
+        String str = seriesId + "," + startPos + "," + length + "," + dimension + "," + qualityValue;
 
         return str;
     }

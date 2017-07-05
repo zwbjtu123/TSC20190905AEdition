@@ -20,7 +20,6 @@ import weka.classifiers.functions.MultilayerPerceptron;
 import weka.classifiers.functions.SMO;
 import weka.classifiers.functions.supportVector.PolyKernel;
 import weka.classifiers.meta.RotationForest;
-import weka.classifiers.trees.J48;
 import weka.classifiers.trees.RandomForest;
 
 /**

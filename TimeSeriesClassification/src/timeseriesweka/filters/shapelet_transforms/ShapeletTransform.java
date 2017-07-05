@@ -741,7 +741,7 @@ public class ShapeletTransform extends SimpleBatchFilter implements SaveParamete
         return outputShapelets;
     }
 
-    protected Shapelet checkCandidate(Instance series, int start, int length) {
+    protected Shapelet checkCandidate(Instance series, int start, int length, int dimension) {
         //init qualityBound.        
         initQualityBound(classValue.getClassDistributions());        
         
@@ -751,7 +751,7 @@ public class ShapeletTransform extends SimpleBatchFilter implements SaveParamete
         }
         
         //set the candidate. This is the instance, start and length.
-        subseqDistance.setCandidate(series, start, length);
+        subseqDistance.setCandidate(series, start, length, dimension);
 
         // create orderline by looping through data set and calculating the subsequence
         // distance from candidate to all data, inserting in order.
@@ -787,6 +787,7 @@ public class ShapeletTransform extends SimpleBatchFilter implements SaveParamete
         //this class distribution could be binarised or normal.
         shapelet.calculateQuality(orderline, classValue.getClassDistributions());
         shapelet.classValue = classValue.getShapeletValue(); //set classValue of shapelet. (interesing to know).
+        shapelet.dimension = dimension;
         return shapelet;
     }
     
@@ -822,7 +823,8 @@ public class ShapeletTransform extends SimpleBatchFilter implements SaveParamete
      * @return
      */
     private static boolean selfSimilarity(Shapelet shapelet, Shapelet candidate) {
-        if (candidate.seriesId == shapelet.seriesId) {
+        //check whether they're the same dimension or not.
+        if (candidate.seriesId == shapelet.seriesId && candidate.dimension == shapelet.dimension) {
             if (candidate.startPos >= shapelet.startPos && candidate.startPos < shapelet.startPos + shapelet.getLength()) { //candidate starts within exisiting shapelet
                 return true;
             }
@@ -903,13 +905,13 @@ public class ShapeletTransform extends SimpleBatchFilter implements SaveParamete
         System.out.println();
         System.out.println("Output Shapelets:");
         System.out.println("-------------------");
-        System.out.println("informationGain,seriesId,startPos,classVal,numChannels");
+        System.out.println("informationGain,seriesId,startPos,classVal,numChannels,dimenion");
         System.out.println("<shapelet>");
         System.out.println("-------------------");
         System.out.println();
         for (Shapelet kShapelet : kShapelets) {
-            System.out.println(kShapelet.qualityValue + "," + kShapelet.seriesId + "," + kShapelet.startPos + "," + kShapelet.classValue + "," + kShapelet.getNumChannels());
-            for (int i = 0; i < kShapelet.numChannels; i++) {
+            System.out.println(kShapelet.qualityValue + "," + kShapelet.seriesId + "," + kShapelet.startPos + "," + kShapelet.classValue + "," + kShapelet.getNumDimensions() + "," + kShapelet.dimension);
+            for (int i = 0; i < kShapelet.numDimensions; i++) {
                 double[] shapeletContent = kShapelet.getContent().getShapeletContent(i);
                 for (int j = 0; j < shapeletContent.length; j++) {
                     System.out.print(shapeletContent[j] + ",");

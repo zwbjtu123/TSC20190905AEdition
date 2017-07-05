@@ -17,6 +17,7 @@ import timeseriesweka.filters.shapelet_transforms.search_functions.ShapeletSearc
 import timeseriesweka.filters.shapelet_transforms.search_functions.ShapeletSearchFactory;
 import timeseriesweka.filters.shapelet_transforms.search_functions.ShapeletSearchOptions;
 import timeseriesweka.filters.shapelet_transforms.distance_functions.CachedSubSeqDistance;
+import timeseriesweka.filters.shapelet_transforms.distance_functions.DimensionDistance;
 import timeseriesweka.filters.shapelet_transforms.distance_functions.ImprovedOnlineSubSeqDistance;
 import timeseriesweka.filters.shapelet_transforms.distance_functions.MultivariateDependentDistance;
 import timeseriesweka.filters.shapelet_transforms.distance_functions.MultivariateIndependentDistance;
@@ -45,6 +46,7 @@ public class ShapeletTransformFactory {
         dCons.add(OnlineCachedSubSeqDistance::new);
         dCons.add(MultivariateDependentDistance::new);
         dCons.add(MultivariateIndependentDistance::new);
+        dCons.add(DimensionDistance::new);
         return dCons;
     }
     

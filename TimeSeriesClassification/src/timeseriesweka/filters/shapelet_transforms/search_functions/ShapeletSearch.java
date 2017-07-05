@@ -18,13 +18,12 @@ import static utilities.MultivariateInstanceTools.channelLength;
  */
 public class ShapeletSearch implements Serializable{
     
-    public enum SearchType {FULL, FS, GENETIC, RANDOM, LOCAL, MAGNIFY, TIMED_RANDOM, SKIPPING, TABU, REFINED_RANDOM, IMP_RANDOM, SUBSAMPLE_RANDOM, SKEWED};
+    public enum SearchType {FULL, FS, GENETIC, RANDOM, LOCAL, MAGNIFY, TIMED_RANDOM, SKIPPING, TABU, REFINED_RANDOM, IMP_RANDOM, SUBSAMPLE_RANDOM, SKEWED, MULTI_I};
     
-    
-    
-    
+
     public interface ProcessCandidate{
-        public Shapelet process(Instance candidate, int start, int length);
+        public default Shapelet process(Instance candidate, int start, int length) {return process(candidate, start, length, 0);}
+        public Shapelet process(Instance candidate, int start, int length, int dimension);
     }
     
     ArrayList<String> shapeletsVisited = new ArrayList<>();
