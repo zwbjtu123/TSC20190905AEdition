@@ -5,7 +5,7 @@
  */
 package multivariate_timeseriesweka.classifiers;
 
-import multivariate_timeseriesweka.measures.DTW_I;
+import multivariate_timeseriesweka.measures.EuclideanDistance_I;
 import static utilities.InstanceTools.findMinDistance;
 import utilities.generic_storage.Pair;
 import weka.classifiers.AbstractClassifier;
@@ -14,18 +14,14 @@ import weka.core.Instances;
 
 /**
  *
- * @author raj09hxu
+ * @author Aaron
  */
-public class NN_DTW_I extends AbstractClassifier{
+public class NN_ED_I extends AbstractClassifier{
     
     Instances train;
-    DTW_I I;
-    public NN_DTW_I(){
-        I = new DTW_I();
-    }
-    
-    public void setR(double r){
-        I.setR(r);
+    EuclideanDistance_I I;
+    public NN_ED_I(){
+        I = new EuclideanDistance_I();
     }
 
     @Override

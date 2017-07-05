@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package multivariate_timeseriesweka.elasticmeasures;
+package multivariate_timeseriesweka.measures;
 
 import static utilities.MultivariateInstanceTools.splitMultivariateInstance;
 import weka.core.Instance;
@@ -37,13 +37,12 @@ public class DTW_I extends DTW_DistanceBasic{
     
     @Override
     public double distance(Instance first, Instance second, double cutOffValue, PerformanceStats stats){
-        //Get the double arrays
         return distance(first,second,cutOffValue);
     }
     @Override    
     public double distance(Instance first, Instance second) {
-    return distance(first, second, Double.POSITIVE_INFINITY);
-  }
+        return distance(first, second, Double.POSITIVE_INFINITY);
+    }
     
     @Override
     public double distance(Instance multiSeries1, Instance multiseries2, double cutoff){

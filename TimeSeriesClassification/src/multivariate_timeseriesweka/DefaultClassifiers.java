@@ -13,6 +13,8 @@ import multivariate_timeseriesweka.classifiers.ConcatenateClassifier;
 import multivariate_timeseriesweka.classifiers.NN_DTW_A;
 import multivariate_timeseriesweka.classifiers.NN_DTW_D;
 import multivariate_timeseriesweka.classifiers.NN_DTW_I;
+import multivariate_timeseriesweka.classifiers.NN_ED_D;
+import multivariate_timeseriesweka.classifiers.NN_ED_I;
 import multivariate_timeseriesweka.ensembles.IndependentDimensionEnsemble;
 import timeseriesweka.classifiers.ensembles.elastic_ensemble.DTW1NN;
 import weka.classifiers.Classifier;
@@ -20,7 +22,6 @@ import weka.classifiers.functions.MultilayerPerceptron;
 import weka.classifiers.functions.SMO;
 import weka.classifiers.functions.supportVector.PolyKernel;
 import weka.classifiers.meta.RotationForest;
-import weka.classifiers.trees.J48;
 import weka.classifiers.trees.RandomForest;
 
 /**
@@ -36,6 +37,8 @@ public class DefaultClassifiers {
         map.put("DTW_A", DefaultClassifiers::createDTW_A);
         map.put("DTW_D", DefaultClassifiers::createDTW_D);
         map.put("DTW_I", DefaultClassifiers::createDTW_I);
+        map.put("ED_I", DefaultClassifiers::createED_D);
+        map.put("ED_D", DefaultClassifiers::createED_I);
         map.put("RotationForest", DefaultClassifiers::createRotationForest);
         map.put("RandomForest", DefaultClassifiers::createRandomForest);
         map.put("1NN_DTW",DefaultClassifiers::create1NNDTW);
@@ -66,6 +69,15 @@ public class DefaultClassifiers {
        nn.setR(0.2);
        return nn;
     }
+    
+    public static Classifier createED_I(){
+       return new NN_ED_I();
+    }
+    
+    public static Classifier createED_D(){
+       return new NN_ED_D();
+    }
+    
     
     public static Classifier createRotationForest(){
         RotationForest rf = new RotationForest();

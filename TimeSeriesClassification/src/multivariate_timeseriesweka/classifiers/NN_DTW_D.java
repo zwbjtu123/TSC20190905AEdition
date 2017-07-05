@@ -5,7 +5,7 @@
  */
 package multivariate_timeseriesweka.classifiers;
 
-import multivariate_timeseriesweka.elasticmeasures.DTW_D;
+import multivariate_timeseriesweka.measures.DTW_D;
 import static utilities.InstanceTools.findMinDistance;
 import utilities.generic_storage.Pair;
 import weka.classifiers.AbstractClassifier;
