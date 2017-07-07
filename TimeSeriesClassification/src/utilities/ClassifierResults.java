@@ -281,6 +281,20 @@ public class ClassifierResults {
            InFile inf=new InFile(path);
            name = inf.readLine();
            paras= inf.readLine();
+           
+           //handle buildtime, taking it out of the generic paras string and putting 
+           //the value into the actual field
+           String[] parts = paras.split(",");
+           if (parts.length > 0 && parts[0].contains("BuildTime")) {
+               buildTime = Long.parseLong(parts[1]);
+                if (parts.length > 2) { //actual paras too, rebuild this string without buildtime
+                    paras = parts[2];
+                    for (int i = 3; i < parts.length; i++) {
+                        paras += "," + parts[i];
+                    }
+                }
+           }
+           
            double testAcc=inf.readDouble();
            String line=inf.readLine();
             actualClassValues= new ArrayList<>();
