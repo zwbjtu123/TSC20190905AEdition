@@ -134,11 +134,6 @@ public class MultipleClassifiersPairwiseTest {
         }
 */        
     } 
-    public static void findCliques(){
-
-        
-        
-    }
     
     public static void runTests(String input, String output){
          loadData(input);
@@ -321,20 +316,97 @@ public class MultipleClassifiersPairwiseTest {
         return cliques;
     }
     
+    public static String printCliques() {
+        StringBuilder sb = new StringBuilder();
+        
+        sb.append("\n\ncliques = [");
+        boolean[][] cliques = findCliques(noDifference);
+        for (int i = 0; i < cliques.length; i++) {
+            for (int j = 0; j < cliques[i].length; j++) 
+                sb.append(cliques[i][j] ? "1" : 0).append(" ");
+            sb.append("\n");
+        }
+        sb.append("]\n");
+        
+        return sb.toString();
+    }
+    
+    public static boolean[][] findCliques(boolean[][] same) {
+        boolean[][] cliques = new boolean[same.length][];
+        for (int i = 0; i < same.length; i++) {
+            
+            boolean[] clique = new boolean[same.length];
+            boolean inClique = false;
+            
+            for (int j = i+1; j < same[i].length; j++) {
+                //all before i assumed false, wrong side of the diagonal
+                //i,j assumed true, no sig diff with self
+                //however only set later, to take advantaged of a binary flag
+                //for the existance of a clique for this classifier
+                inClique = inClique || same[i][j];
+                clique[j] = same[i][j];
+            }
+            clique[i] = true; //self similarity always true
+           
+            if (inClique) //if similarity with at least one other
+                if (!isSubClique(cliques, clique)) //if similarity not already represented within a previously found clique
+                    addClique(cliques, clique);
+        }
+        
+        int numNull = 0;
+        for (int i = cliques.length-1; i >= 0; i--) {
+            if (cliques[i] == null)
+                numNull++;
+            else 
+                break;
+        }
+        
+        //shittiest way to avoid arraylists
+        boolean[][] finalCliques = new boolean[cliques.length-numNull][];
+        System.arraycopy(cliques, 0, finalCliques, 0, finalCliques.length);
+        
+        return finalCliques;
+    }
+    
+    public static void addClique(boolean[][] cliques, boolean[] newClique) {
+        for (int i = 0; i < cliques.length; i++) {
+            if (cliques[i] == null) {
+                cliques[i] = newClique;
+                break;
+            }
+        }
+    }
+    
+    public static boolean isSubClique(boolean[][] cliques, boolean[] newClique) {
+        for (int i = 0; i < cliques.length && cliques[i]!=null; i++) {
+            boolean subOfThisClique = true;
+            for (int j = 0; j < cliques[i].length; j++) {
+                if (newClique[j] && !cliques[i][j]) //if j is similar in new, but is not similar in old, found a difference and therefore new is not sub of this one
+                    subOfThisClique = false;                    
+            }
+            if (subOfThisClique)
+                return true;
+        }
+        return false;
+    }
+    
     public static void main(String[] args) {
 //ASSUME INPUT IN RANK ORDER, WITH TOP RANKED CLASSIFIER FIRST, WORST LAST        
 //        String input="C:\\Users\\ajb\\Dropbox\\Results\\SimulationExperiments\\BasicExperiments\\";
 //        String output="C:\\Users\\ajb\\Dropbox\\Results\\SimulationExperiments\\BasicExperiments\\";
 //        String[] allSimulators={"WholeSeriesElastic","Interval","Shapelet","Dictionary","ARMA","All"};
 //        for(String s:allSimulators)
-        String input="C:\\Research\\Results\\RepoResults\\HIVE Results";
-
-        input="C:\\Research\\Papers\\2017\\PKDD BOP to BOSS\\Results\\vsCNN";
-        input="C:\\Users\\ajb\\Dropbox\\Temp\\test";
+        String input="C:/JamesLPHD/allinds_bigger_UCI_TESTACCS.csv";
+//        String input="C:\\Research\\Results\\RepoResults\\HIVE Results";
+////
+//        input="C:\\Research\\Papers\\2017\\PKDD BOP to BOSS\\Results\\vsCNN";
+//        input="C:\\Users\\ajb\\Dropbox\\Temp\\test";
 //        String s= "All";
 //            runTests(input+s+"CombinedResults.csv",input+s+"Tests.csv");
-            runTests(input+".csv",input+"Tests.csv");
-findMeanDifferences(input+" MeanDiffs.csv");            
+//            runTests(input+".csv",input+"Tests.csv");
+            System.out.println(runTests(input).toString());
+            System.out.println("\n\n" + printCliques());
+//findMeanDifferences(input+" MeanDiffs.csv");            
     }
     
     
