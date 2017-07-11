@@ -196,7 +196,6 @@ public class TunedRotationForest extends RotationForest implements SaveParameter
                     t.setNumIterations(numTrees);
                     t.setSeed(rng.nextInt());
                     
-                //new
                     tempres = cv.crossValidateWithStats(t, data);
                     
                     if(debug)
@@ -211,25 +210,6 @@ public class TunedRotationForest extends RotationForest implements SaveParameter
                     else if(tempres.acc == res.acc){//Sort out ties
                         ties.add(new Pair(numFeatures,numTrees));
                     }
-                //endofnew
-                    
-                //old
-//                    Instances temp=new Instances(data);
-//                    Evaluation eval=new Evaluation(temp);
-//                    eval.crossValidateModel(t, temp, folds, rng);
-//                    double e=eval.errorRate();
-//                    if(debug)
-//                        System.out.println("\t numTrees ="+numTrees+" Acc = "+(1-e));
-//                    accuracy.add(1-e);
-//                    if(e<bestErr){
-//                        bestErr=e;
-//                        ties=new ArrayList<>();//Remove previous ties
-//                        ties.add(new Pair(numFeatures,numTrees));
-//                    }
-//                    else if(e==bestErr){//Sort out ties
-//                        ties.add(new Pair(numFeatures,numTrees));
-//                    }
-                //endofold
                 }
             }
             int bestNumTrees=0;
