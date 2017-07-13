@@ -211,7 +211,7 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
             System.out.println("Best C ="+bestC+" best Gamma = "+bestSigma+" best train acc = "+res.acc);
     }
     
-   public void tuneQuadratic(Instances train) throws Exception {
+   public void tunePolynomial(Instances train) throws Exception {
         paras=new double[1];
         int folds=MAX_FOLDS;
         if(folds>train.numInstances())
@@ -274,7 +274,7 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
                     p.setExponent(1);
 
                     temp.setKernel(p);
-                    temp.tuneQuadratic(train);
+                    temp.tunePolynomial(train);
                     linearCVAcc=temp.res.acc;
                     linearBestC=temp.getC();
                 break;
@@ -282,7 +282,7 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
                     PolyKernel p2=new PolyKernel();
                     p2.setExponent(2);
                     temp.setKernel(p2);
-                    temp.tuneQuadratic(train);
+                    temp.tunePolynomial(train);
                     quadraticCVAcc=temp.res.acc;
                     quadraticBestC=temp.getC();
                 break;
@@ -296,7 +296,7 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
                     break;
             }
         }
-//Choose best, ineligantly
+//Choose best, inelligantly
         if(linearCVAcc> rbfCVAcc && linearCVAcc> quadraticCVAcc){//Linear best
             PolyKernel p=new PolyKernel();
             p.setExponent(1);
@@ -336,7 +336,7 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
             if(this.getKernel() instanceof RBFKernel)
                 tuneRBF(train); //Does MORE CV 
             else
-                tuneQuadratic(train);
+                tunePolynomial(train);
         }
         
         super.buildClassifier(train);
