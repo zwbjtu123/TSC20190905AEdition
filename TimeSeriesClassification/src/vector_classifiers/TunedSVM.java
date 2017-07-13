@@ -54,6 +54,8 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
     private double[] paras;
     String trainPath="";
     boolean debug=false;
+    boolean randomSearch=false; //If set to true the parameter space is randomly sampled
+    int nosParamSettings=624;   //Randomly sampled this many times
     Random rng;
     ArrayList<Double> accuracy;
     private boolean kernelOptimise=false;   //Choose between linear, quadratic and RBF kernel

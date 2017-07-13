@@ -61,12 +61,13 @@ import vector_classifiers.TunedRandomForest;
 import weka.core.Instances;
 
 
-public class TrainTestExperiments{
+public class Experiments{
     public static int folds=30; 
     static boolean debug=true;
     static boolean generateTrainFiles=true;
-    public static Classifier setClassifier(String classifier){
+    public static Classifier setClassifier(String classifier, int fold){
         Classifier c=null;
+        TunedSVM svm=null;
         switch(classifier){
 //TIME DOMAIN CLASSIFIERS            
             case "ED":
@@ -102,6 +103,7 @@ public class TrainTestExperiments{
                 ((TunedRandomForest)c).tuneFeatures(false);
                 ((TunedRandomForest)c).tuneTree(false);
                 ((TunedRandomForest)c).setCrossValidate(false);
+                ((TunedRandomForest)c).setSeed(fold);
                 
                 break;
             case "RandF":
@@ -110,32 +112,69 @@ public class TrainTestExperiments{
                 ((TunedRandomForest)c).tuneFeatures(false);
                 ((TunedRandomForest)c).tuneTree(false);
                 ((TunedRandomForest)c).setCrossValidate(true);
+                ((TunedRandomForest)c).setSeed(fold);
                 break;
             case "RotF":
                 c= new TunedRotationForest();
                 ((RotationForest)c).setNumIterations(200);
                 ((TunedRotationForest)c).tuneFeatures(false);
                 ((TunedRotationForest)c).tuneTree(false);
+                ((TunedRotationForest)c).setSeed(fold);
                 break;
             case "TunedRandF":
                 c= new TunedRandomForest();
                 ((TunedRandomForest)c).tuneFeatures(true);
                 ((TunedRandomForest)c).tuneTree(true);
                 ((TunedRandomForest)c).setCrossValidate(true);
+                ((TunedRandomForest)c).setSeed(fold);
+                
                 break;
             case "TunedRandFOOB":
                 c= new TunedRandomForest();
                 ((TunedRandomForest)c).tuneFeatures(true);
                 ((TunedRandomForest)c).tuneTree(true);
                 ((TunedRandomForest)c).setCrossValidate(false);
+                ((TunedRotationForest)c).setSeed(fold);
                 break;
             case "TunedRotF":
                 c= new TunedRotationForest();
                 ((TunedRotationForest)c).tuneFeatures(true);
                 ((TunedRotationForest)c).tuneTree(true);
+                ((TunedRotationForest)c).setSeed(fold);
                 break;
-            case "TunedSVM":
-                c= new TunedSVM();
+            case "TunedSVMRBF":
+                svm=new TunedSVM();
+                svm.setKernelType(TunedSVM.KernelType.RBF);
+                svm.optimiseParas(true);
+                svm.optimiseKernel(false);
+                svm.setBuildLogisticModels(true);
+                svm.setSeed(fold);
+                c= svm;
+                break;
+            case "TunedSVMQuad":
+                svm=new TunedSVM();
+                svm.setKernelType(TunedSVM.KernelType.QUADRATIC);
+                svm.optimiseParas(true);
+                svm.optimiseKernel(false);
+                svm.setBuildLogisticModels(true);
+                svm.setSeed(fold);
+                c= svm;
+                break;
+            case "TunedSVMLinear":
+                svm=new TunedSVM();
+                svm.setKernelType(TunedSVM.KernelType.LINEAR);
+                svm.optimiseParas(true);
+                svm.optimiseKernel(false);
+                svm.setBuildLogisticModels(true);
+                svm.setSeed(fold);
+                c= svm;
+            case "TunedSVMKernel":
+                svm=new TunedSVM();
+                svm.optimiseParas(true);
+                svm.optimiseKernel(true);
+                svm.setBuildLogisticModels(true);
+                svm.setSeed(fold);
+                c= svm;
                 break;
             case "RandomRotationForest1":
                 c= new RandomRotationForest1();
@@ -252,7 +291,7 @@ public class TrainTestExperiments{
         String problem=args[1];
         int fold=Integer.parseInt(args[2])-1;
    
-        Classifier c=setClassifier(classifier);
+        Classifier c=setClassifier(classifier,fold);
         Instances train=ClassifierTools.loadData(DataSets.problemPath+problem+"/"+problem+"_TRAIN");
         Instances test=ClassifierTools.loadData(DataSets.problemPath+problem+"/"+problem+"_TEST");
         File f=new File(DataSets.resultsPath+classifier);
@@ -417,7 +456,7 @@ public class TrainTestExperiments{
             }
             generateTrainFiles=true;
             String[] newArgs={"RandF","ItalyPowerDemand","1"};
-            TrainTestExperiments.singleClassifierAndFoldTrainTestSplit(newArgs);
+            Experiments.singleClassifierAndFoldTrainTestSplit(newArgs);
             System.exit(0);
         }
         else{    
@@ -432,7 +471,7 @@ public class TrainTestExperiments{
             String[] newArgs=new String[args.length-3];
             for(int i=3;i<args.length;i++)
                 newArgs[i-3]=args[i];
-            TrainTestExperiments.singleClassifierAndFoldTrainTestSplit(newArgs);
+            Experiments.singleClassifierAndFoldTrainTestSplit(newArgs);
         }
     
     }

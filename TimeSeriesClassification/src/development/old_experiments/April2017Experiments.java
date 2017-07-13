@@ -5,8 +5,9 @@
 
 
 */
-package development;
+package development.old_experiments;
 
+import development.DataSets;
 import vector_classifiers.RandomRotationForest1;
 import fileIO.InFile;
 import fileIO.OutFile;
@@ -32,7 +33,7 @@ import vector_classifiers.TunedRandomForest;
 import weka.core.Instances;
 
 
-public class March2017Experiments{
+public class April2017Experiments{
     public static String[] classifiers={"SVM"};
     public static double propInTrain=0.5;
     public static int folds=100;
@@ -49,24 +50,73 @@ public class March2017Experiments{
 //Parameter ranges for trees for randF and rotF
     static int[] numTrees={10,50,100,200,300,400,500,600,700,800,900,1000,1250,1500,1750,2000};
 
-    public static void generateAllRepoFolds(){
-        for(String str:DataSets.fileNames){
-            
+    public static void generateAllRepoFolds(String source,String dest) throws IOException{
+        for(String problem:DataSets.fileNames){
+            File f=new File(source+problem+"/"+problem+"_TRAIN.arff"); 
+            File f2=new File(source+problem+"/"+problem+"_TEST.arff"); 
+            if(f.exists()&&f2.exists()){
+                Instances train=ClassifierTools.loadData(f);
+                Instances test=ClassifierTools.loadData(f2);
+                 for(int i=0;i<folds;i++){
+                    Instances[] data=InstanceTools.resampleTrainAndTestInstances(train, test, i);
+                    File of=new File(dest+problem);
+                    if(!of.isDirectory())
+                        of.mkdir();
+                    OutFile outTrain=new OutFile(dest+problem+"/"+problem+i+"_TRAIN.arff");
+                    OutFile outTest=new OutFile(dest+problem+"/"+problem+i+"_TEST.arff");
+                    outTrain.writeString(data[0].toString());
+                    outTest.writeString(data[1].toString());
+                    
+                }
+             }
+            else
+                System.out.println("MISSING "+source+problem+"/"+problem+"_TRAIN.arff");
         }
-    
         
     }
     public static void generateAllUCIFolds(String source, String dest) throws IOException{
-        for(String str:UCIContinuousFileNames){
+        for(String problem:UCIContinuousFileNames){
 //Load full file
-            File f=new File(source+str+"/"+str); 
+            File f=new File(source+problem+"/"+problem+".arff"); 
             if(f.exists()){
                 Instances data=ClassifierTools.loadData(f);
     //
                 for(int i=0;i<folds;i++){
-                    Instances[] d;
+                    Instances[]  split=InstanceTools.resampleInstances(data, i, propInTrain);
+                    File of=new File(dest+problem);
+                    if(!of.isDirectory())
+                        of.mkdir();
+                    OutFile outTrain=new OutFile(dest+problem+"/"+problem+i+"_TRAIN.arff");
+                    OutFile outTest=new OutFile(dest+problem+"/"+problem+i+"_TEST.arff");
+                    outTrain.writeString(split[0].toString());
+                    outTest.writeString(split[1].toString());
                 }
             }
+            else
+                System.out.println("MISSING "+source+problem+"/"+problem+".arff");
+        }
+        
+    }
+
+    
+    
+    public static void generateTestTRainUCIFolds(String source, String dest) throws IOException{
+        for(String problem:UCIContinuousFileNames){
+//Load full file
+            File f=new File(source+problem+"/"+problem+".arff"); 
+            if(f.exists()){
+                Instances data=ClassifierTools.loadData(f);
+                Instances[]  split=InstanceTools.resampleInstances(data, 0, propInTrain);
+                File of=new File(dest+problem);
+                if(!of.isDirectory())
+                    of.mkdir();
+                OutFile outTrain=new OutFile(dest+problem+"/"+problem+"_TRAIN.arff");
+                OutFile outTest=new OutFile(dest+problem+"/"+problem+"_TEST.arff");
+                outTrain.writeString(split[0].toString());
+                outTest.writeString(split[1].toString());
+            }
+            else
+                System.out.println("MISSING "+source+problem+"/"+problem+".arff");
         }
         
     }
@@ -539,9 +589,9 @@ public static boolean deleteDirectory(File directory) {
         String problem=args[1];
         int fold=Integer.parseInt(args[2])-1;
    
-        Classifier c=March2017Experiments.setClassifier(classifier,fold);
+        Classifier c=April2017Experiments.setClassifier(classifier,fold);
         Instances all=ClassifierTools.loadData(DataSets.problemPath+problem+"/"+problem);
-        all.randomize(rand);
+//        all.randomize(rand);
         
         Instances[] split=InstanceTools.resampleInstances(all, fold, propInTrain);
         File f=new File(DataSets.resultsPath+classifier);
@@ -889,7 +939,52 @@ public static boolean deleteDirectory(File directory) {
         
     }
     
+    public static void generateFileGroups(){
+        OutFile allUCI=new OutFile("C://Data/allUCI.txt");
+        OutFile allUEA=new OutFile("C://Data/allUEA.txt");
+        OutFile allUCIR=new OutFile("C://Data/allUCIReversed.txt");
+        OutFile allUEAR=new OutFile("C://Data/allUEAReversed.txt");
+        
+        OutFile smallUCI=new OutFile("C://Data/smallUCI.txt");
+        OutFile smallUEA=new OutFile("C://Data/smallUEA.txt");
+        OutFile mediumUCI=new OutFile("C://Data/mediumUCI.txt");
+        OutFile mediumUEA=new OutFile("C://Data/mediumUEA.txt");
+        OutFile largeUCI=new OutFile("C://Data/largeUCI.txt");
+        OutFile largeUEA=new OutFile("C://Data/largeUEA.txt");
+        for(String str: DataSets.fileNames)
+            allUEA.writeLine(str);
+        for(String str: DataSets.UCIContinuousFileNames)
+            allUCI.writeLine(str);
+        ArrayList<String> uea=new ArrayList<>();
+        for(String str: DataSets.fileNames)
+            uea.add(str);
+        Collections.reverse(uea);
+        for(String str: uea)
+            allUEAR.writeLine(str);
+        ArrayList<String> uci=new ArrayList<>();
+        for(String str: DataSets.UCIContinuousFileNames)
+            uci.add(str);
+        Collections.reverse(uci);
+        for(String str: uci)
+            allUCIR.writeLine(str);
+        
+}
     public static void main(String[] args) throws Exception{
+        
+//Generate all file names
+        generateFileGroups();
+        
+        System.exit(0);
+        String source="C://Data/UCIContinuous/";
+        String dest="//cmptscsvr.cmp.uea.ac.uk/ueatsc/UCITrainTestSplit/";
+        File f=new File(dest);
+        if(!f.isDirectory())
+            f.mkdirs();
+        generateTestTRainUCIFolds(source,dest);
+//        generateAllUCIFolds(source,dest);
+//        generateAllRepoFolds(source,dest);
+        System.exit(0);
+        
       boolean ucrData=true;
        files=DataSets.fileNames;
  //      collateResults(30,true,args);
@@ -927,7 +1022,7 @@ public static boolean deleteDirectory(File directory) {
             if(!f.isDirectory()){
                 f.mkdirs();
             }
-            March2017Experiments.singleClassifierAndFoldTrainTestSplit(args);
+            April2017Experiments.singleClassifierAndFoldTrainTestSplit(args);
         }
         else{
             DataSets.problemPath=DataSets.dropboxPath+"TSC Problems/";
@@ -940,19 +1035,19 @@ public static boolean deleteDirectory(File directory) {
             String[] paras={"RandFCV","ItalyPowerDemand","1"};
 //            paras[0]="RotFCV";
 //            paras[2]="1";
-            March2017Experiments.singleClassifierAndFoldTrainTestSplit(paras);            
+            April2017Experiments.singleClassifierAndFoldTrainTestSplit(paras);            
             long t1=System.currentTimeMillis();
             for(int i=2;i<=11;i++){
                 paras[2]=i+"";
-                March2017Experiments.singleClassifierAndFoldSingleDataSet(paras);            
+                April2017Experiments.singleClassifierAndFoldSingleDataSet(paras);            
             }
             long t2=System.currentTimeMillis();
             paras[0]="RandFOOB";
-            March2017Experiments.singleClassifierAndFoldSingleDataSet(paras);            
+            April2017Experiments.singleClassifierAndFoldSingleDataSet(paras);            
             long t3=System.currentTimeMillis();
             for(int i=2;i<=11;i++){
                 paras[2]=i+"";
-                March2017Experiments.singleClassifierAndFoldSingleDataSet(paras);            
+                April2017Experiments.singleClassifierAndFoldSingleDataSet(paras);            
             }
             long t4=System.currentTimeMillis();
             System.out.println("Standard = "+(t2-t1)+", Enhanced = "+(t4-t3));
@@ -970,7 +1065,7 @@ public static boolean deleteDirectory(File directory) {
             if(!f.isDirectory()){
                 f.mkdirs();
             }
-            March2017Experiments.singleClassifierAndFoldSingleDataSet(args);
+            April2017Experiments.singleClassifierAndFoldSingleDataSet(args);
         }
         else{
             DataSets.problemPath=DataSets.dropboxPath+"UCI Problems/";
@@ -986,19 +1081,19 @@ public static boolean deleteDirectory(File directory) {
             File file =new File("C:\\Users\\ajb\\Dropbox\\Results\\UCIResults");
             paras[0]="RotFCV";
             paras[2]="1";
-            March2017Experiments.singleClassifierAndFoldSingleDataSet(paras);            
+            April2017Experiments.singleClassifierAndFoldSingleDataSet(paras);            
             long t1=System.currentTimeMillis();
             for(int i=2;i<=11;i++){
                 paras[2]=i+"";
-                March2017Experiments.singleClassifierAndFoldSingleDataSet(paras);            
+                April2017Experiments.singleClassifierAndFoldSingleDataSet(paras);            
             }
             long t2=System.currentTimeMillis();
             paras[0]="EnhancedRotF";
-            March2017Experiments.singleClassifierAndFoldSingleDataSet(paras);            
+            April2017Experiments.singleClassifierAndFoldSingleDataSet(paras);            
             long t3=System.currentTimeMillis();
             for(int i=2;i<=11;i++){
                 paras[2]=i+"";
-                March2017Experiments.singleClassifierAndFoldSingleDataSet(paras);            
+                April2017Experiments.singleClassifierAndFoldSingleDataSet(paras);            
             }
             long t4=System.currentTimeMillis();
             System.out.println("Standard = "+(t2-t1)+", Enhanced = "+(t4-t3));
