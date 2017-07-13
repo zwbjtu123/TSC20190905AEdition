@@ -35,7 +35,8 @@ public class TunedRotationForest extends RotationForest implements SaveParameter
     boolean tuneFeatures=false;
     boolean debug=false;
     boolean findTrainAcc=true;
-    Random rng;
+    int seed; //need this to seed cver/the forests for consistency in meta-classification/ensembling purposes
+    Random rng; //legacy, 'seed' still (and always has) seeds this for any other rng purposes, e.g tie resolution
     ArrayList<Double> accuracy;
     private ClassifierResults res =new ClassifierResults();
     
@@ -44,14 +45,16 @@ public class TunedRotationForest extends RotationForest implements SaveParameter
         super();
         this.setNumIterations(200);
         rng=new Random();
+        seed=0;
         accuracy=new ArrayList<>();
         
     }   
     
     public void setSeed(int s){
         super.setSeed(s);
+        seed = s;
         rng=new Random();
-        rng.setSeed(s);
+        rng.setSeed(seed);
     }
      public void tuneFeatures(boolean b){
         tuneFeatures=b;
@@ -159,7 +162,7 @@ public class TunedRotationForest extends RotationForest implements SaveParameter
         // remove instances with missing class
         data = new Instances(data);
         data.deleteWithMissingClass();
-        super.setSeed(rng.nextInt());
+        super.setSeed(seed);
         if(tuneTree){
             if(numTreesRange==null)
                 setDefaultGridSearchRange(data.numAttributes()-1);
@@ -177,7 +180,7 @@ public class TunedRotationForest extends RotationForest implements SaveParameter
             }
             
             CrossValidator cv = new CrossValidator();
-            cv.setSeed(rng.nextInt()); 
+            cv.setSeed(seed); 
             cv.setNumFolds(folds);
             cv.buildFolds(data);
             ClassifierResults tempres = null;
@@ -194,7 +197,7 @@ public class TunedRotationForest extends RotationForest implements SaveParameter
                     t.setMaxGroup(numFeatures);
                     t.setMinGroup(numFeatures);
                     t.setNumIterations(numTrees);
-                    t.setSeed(rng.nextInt());
+                    t.setSeed(seed);
                     
                 //new
                     tempres = cv.crossValidateWithStats(t, data);
@@ -253,11 +256,11 @@ this gives the option of finding one. It is inefficient
             t.setMaxGroup(this.getMaxGroup());
             t.setMinGroup(this.getMinGroup());
             t.setNumIterations(this.getNumIterations());
-            t.setSeed(rng.nextInt());
+            t.setSeed(seed);
             
             //new (jamesl) 
             CrossValidator cv = new CrossValidator();
-            cv.setSeed(rng.nextInt()); //trying to mimick old seeding behaviour below
+            cv.setSeed(seed); //trying to mimick old seeding behaviour below
             cv.setNumFolds(folds);
             cv.buildFolds(data);
             

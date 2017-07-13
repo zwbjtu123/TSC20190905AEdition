@@ -48,7 +48,8 @@ public class TunedRandomForest extends RandomForest implements SaveParameterInfo
     int[] numTreesRange;
     int[] numFeaturesRange;
     String trainPath="";
-    Random rng;
+    int seed; //need this to seed cver/the forests for consistency in meta-classification/ensembling purposes
+    Random rng; //legacy, 'seed' still (and always has) seeds this for any other rng purposes, e.g tie resolution
     ArrayList<Double> accuracy;
     boolean crossValidate=true;
     boolean findTrainAcc=true;  //If there is no tuning, this will find the estimate with the fixed values
@@ -68,12 +69,14 @@ public class TunedRandomForest extends RandomForest implements SaveParameterInfo
         m_numExecutionSlots=1; 
         m_bagger=new EnhancedBagging();
         rng=new Random();
+        seed=0;
         accuracy=new ArrayList<>();
     }
     public void setSeed(int s){
         super.setSeed(s);
+        seed = s;
         rng=new Random();
-        rng.setSeed(s);
+        rng.setSeed(seed);
     }
     
     public void debug(boolean b){
@@ -171,7 +174,7 @@ public class TunedRandomForest extends RandomForest implements SaveParameterInfo
         int folds=10;
         if(folds>data.numInstances())
             folds=data.numInstances();
-        super.setSeed(rng.nextInt());
+        super.setSeed(seed);
         
 /******* 2. Tune parameters if required: 
  tunes number of features and number of trees  using either cross validation
@@ -199,20 +202,19 @@ public class TunedRandomForest extends RandomForest implements SaveParameterInfo
             res.acc = -1;//is initialised using default constructor above, left it there 
             CrossValidator cv = new CrossValidator();
             if(crossValidate){
-                cv.setSeed(rng.nextInt()); 
+                cv.setSeed(seed); 
                 cv.setNumFolds(folds);
                 cv.buildFolds(data);
             }
-            //to avoid any unforeseen clashes (jamesl) 
+            
             ArrayList<Pair> ties=new ArrayList<>();
             for(int numFeatures:numFeaturesRange){//Need to start from scratch for each
                 for(int numTrees:numTreesRange){//Need to start from scratch for each                   t= new RandomForest();
                     RandomForest t= new RandomForest();
-                    t.setSeed(rng.nextInt());
+                    t.setSeed(seed);
                     t.setNumFeatures(numFeatures);
                     t.setNumTrees(numTrees);
                     
-                //new (jamesl)
                     if(crossValidate){  
                         tempres = cv.crossValidateWithStats(t, data);
                     }else{
@@ -243,7 +245,6 @@ public class TunedRandomForest extends RandomForest implements SaveParameterInfo
             
             this.setNumTrees(bestNumTrees);
             this.setNumFeatures(bestNumAtts);
-//            res.acc=1-bestErr; //removed with cv change, saved from cver (jamesl) 
             if(debug)
                 System.out.println("Best num atts ="+bestNumAtts+" best num trees = "+bestNumTrees+" best train acc = "+res.acc);
         }
@@ -263,7 +264,7 @@ public class TunedRandomForest extends RandomForest implements SaveParameterInfo
         rTree.setMaxDepth(getMaxDepth());
         // set up the bagger and build the forest
         m_bagger.setClassifier(rTree);
-        m_bagger.setSeed(rng.nextInt());
+        m_bagger.setSeed(seed);
         m_bagger.setNumIterations(m_numTrees);
         m_bagger.setCalcOutOfBag(true);
         m_bagger.setNumExecutionSlots(m_numExecutionSlots);
@@ -281,11 +282,11 @@ public class TunedRandomForest extends RandomForest implements SaveParameterInfo
                 RandomForest t= new RandomForest();
                 t.setNumFeatures(this.getNumFeatures());
                 t.setNumTrees(this.getNumTrees());
-                t.setSeed(rng.nextInt());
+                t.setSeed(seed);
  
                 //new (jamesl) 
                 CrossValidator cv = new CrossValidator();
-                cv.setSeed(rng.nextInt()); //trying to mimick old seeding behaviour below
+                cv.setSeed(seed); 
                 cv.setNumFolds(folds);
                 cv.buildFolds(data);
                 res = cv.crossValidateWithStats(t, data);
