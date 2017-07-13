@@ -168,6 +168,7 @@ public class Experiments{
                 svm.setBuildLogisticModels(true);
                 svm.setSeed(fold);
                 c= svm;
+                break;
             case "TunedSVMKernel":
                 svm=new TunedSVM();
                 svm.optimiseParas(true);
@@ -455,7 +456,7 @@ public class Experiments{
                 f.mkdirs();
             }
             generateTrainFiles=true;
-            String[] newArgs={"RandF","ItalyPowerDemand","1"};
+            String[] newArgs={"TunedSVMLinear","ItalyPowerDemand","4"};
             Experiments.singleClassifierAndFoldTrainTestSplit(newArgs);
             System.exit(0);
         }

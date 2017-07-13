@@ -137,6 +137,8 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
             paraSpace[i-min]=Math.pow(2,i);
     }
     public void optimiseKernel(boolean b){kernelOptimise=b;}
+    
+    public boolean getOptimiseKernel(){ return kernelOptimise;}
     public void optimiseParas(boolean b){paraOptimise=b;}
     
     static class ResultsHolder{
@@ -228,8 +230,8 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
         
         
         ArrayList<ResultsHolder> ties=new ArrayList<>();
-        ClassifierResults tempResults;
-        
+        ClassifierResults tempResults;            
+
         for(double d: paraSpace){
             
             SMO model = new SMO();
@@ -272,7 +274,6 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
                 case LINEAR:                     
                     PolyKernel p=new PolyKernel();
                     p.setExponent(1);
-
                     temp.setKernel(p);
                     temp.tunePolynomial(train);
                     linearCVAcc=temp.res.acc;
@@ -329,7 +330,6 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
         res.buildTime=System.currentTimeMillis();
         if(paraSpace==null)
             setStandardParas();
-        
         if(kernelOptimise)
             selectKernel(train);
         else if(paraOptimise){
