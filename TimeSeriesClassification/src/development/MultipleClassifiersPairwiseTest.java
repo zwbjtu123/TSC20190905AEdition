@@ -3,6 +3,7 @@ package development;
 import fileIO.InFile;
 import fileIO.OutFile;
 import java.io.File;
+import java.io.OutputStream;
 import java.io.PrintStream;
 import java.text.DecimalFormat;
 import java.util.Scanner;
@@ -35,7 +36,7 @@ public class MultipleClassifiersPairwiseTest {
     static int nosProblems;
     static String[] names;
     
-    public static void loadData(String file){
+    public static void loadData(String file, PrintStream out){
         InFile data=new InFile(file);
         nosProblems=data.countLines()-1;
         data=new InFile(file);
@@ -50,11 +51,15 @@ public class MultipleClassifiersPairwiseTest {
             System.out.print("Problem ="+line[0]+",");
             for(int i=0;i<nosClassifiers;i++){
                 accs[i][j]=Double.parseDouble(line[i+1]);
-                System.out.print(accs[i][j]+",");
+                out.print(accs[i][j]+",");
             }
-                System.out.print("\n");
+                out.print("\n");
             
         }
+    }
+    
+    public static void loadData(String file){
+        loadData(file, System.out);
     }
     
     public static void findPVals(){
