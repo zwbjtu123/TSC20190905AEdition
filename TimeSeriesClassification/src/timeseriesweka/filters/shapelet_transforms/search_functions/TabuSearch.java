@@ -38,7 +38,7 @@ public class TabuSearch extends ImpRandomSearch{
     
     @Override
     public void init(Instances input){
-        inputData = input;
+        super.init(input);
         
         float subsampleSize = (float) inputData.numInstances() * proportion;
         
@@ -68,8 +68,6 @@ public class TabuSearch extends ImpRandomSearch{
         
         if(!seriesToConsider.get(currentSeries++)) return seriesShapelets;
         
-        double[] series = timeSeries.toDoubleArray();
-
         Queue<Pair<Integer, Integer>> tabuList = new LinkedList<>();
         
         Pair<Integer, Integer> shapelet;
@@ -90,7 +88,7 @@ public class TabuSearch extends ImpRandomSearch{
             
             ArrayList<Pair<Integer, Integer>> candidateList = new ArrayList<>();
             candidateList.add(shapelet);
-            candidateList.addAll(createNeighbourhood(shapelet, series.length));
+            candidateList.addAll(createNeighbourhood(shapelet, timeSeries.numAttributes()));
             boolean inList = false;
             for(Pair<Integer, Integer> neighbour : candidateList){
                 //i think if we collide with the tabuList we should abandon the neighbourhood.
@@ -108,7 +106,7 @@ public class TabuSearch extends ImpRandomSearch{
             Pair<Integer, Integer> bestLocal = null;
             Shapelet local_bsf_shapelet = null;
             for(Pair<Integer, Integer> shape : candidateList ){
-                Shapelet sh = checkCandidate.process(series, shape.var1, shape.var2);
+                Shapelet sh = checkCandidate.process(timeSeries, shape.var1, shape.var2);
                 numShapeletsEvaluated++;
 
                 //we've abandoned this shapelet, and therefore it is null.

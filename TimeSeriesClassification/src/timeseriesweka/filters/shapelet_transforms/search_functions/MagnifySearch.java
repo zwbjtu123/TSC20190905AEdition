@@ -61,12 +61,9 @@ public class MagnifySearch extends ImpRandomSearch{
     
     @Override
     public ArrayList<Shapelet> SearchForShapeletsInSeries(Instance timeSeries, ShapeletSearch.ProcessCandidate checkCandidate){
-        
         ArrayList<Shapelet> candidateList = new ArrayList<>();
         
         if(!seriesToConsider.get(currentSeries++)) return candidateList;
-        
-        double[] candidate = timeSeries.toDoubleArray();
         
         //we want to iteratively shrink our search area.
         int minLength = minShapeletLength;
@@ -84,8 +81,8 @@ public class MagnifySearch extends ImpRandomSearch{
             //we divide the numShapeletsPerSeries by maxDepth.
             for(int i=0; i<numShapeletsPerSeries; i++){
                 
-                Pair<Integer, Integer> sh = createRandomShapelet(timeSeries.numAttributes()-1, minLength, maxLength, minPos, maxPos);
-                Shapelet shape = checkCandidate.process(candidate, sh.var1, sh.var2);
+                Pair<Integer, Integer> sh = createRandomShapelet(seriesLength-1, minLength, maxLength, minPos, maxPos);
+                Shapelet shape = checkCandidate.process(timeSeries, sh.var1, sh.var2);
                 
                 
                 if(bsf == null) {

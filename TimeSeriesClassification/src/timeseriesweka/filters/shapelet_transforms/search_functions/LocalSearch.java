@@ -24,14 +24,10 @@ public class LocalSearch extends RandomTimedSearch{
         maxIterations = ops.getMaxIterations();
     }
     
-    
-    
     @Override
     public ArrayList<Shapelet> SearchForShapeletsInSeries(Instance timeSeries, ProcessCandidate checkCandidate){
         ArrayList<Shapelet> seriesShapelets = new ArrayList<>();
         
-        double[] series = timeSeries.toDoubleArray();
-
         int numLengths = maxShapeletLength - minShapeletLength /*+ 1*/; //want max value to be inclusive.
         
         visited = new boolean[numLengths][];
@@ -41,28 +37,26 @@ public class LocalSearch extends RandomTimedSearch{
             int lengthIndex = random.nextInt(numLengths);
             int length = lengthIndex + minShapeletLength; //offset the index by the min value.
             
-            int maxPositions = series.length - length ;
+            int maxPositions = seriesLength - length ;
             int start  = random.nextInt(maxPositions); // can only have valid start positions based on the length.
 
             //we haven't constructed the memory for this length yet.
-            initVisitedMemory(series, length);
+            initVisitedMemory(seriesLength, length);
 
 
             if(!visited[lengthIndex][start]){
-                Shapelet shape = evaluateShapelet(series, start, length, checkCandidate);
+                Shapelet shape = evaluateShapelet(timeSeries, start, length, checkCandidate);
                 //if the shapelet is null, it means it was poor quality. so we've abandoned this branch. 
                 if(shape != null)
                     seriesShapelets.add(shape);
             }
         }
-        
-        
         return seriesShapelets;
     }
 
     private static final int START_DEC = 0, START_INC = 1, LENGTH_DEC = 2, LENGTH_INC = 3;
     
-    private Shapelet evaluateShapelet(double[] series, int start, int length, ProcessCandidate checkCandidate) {
+    private Shapelet evaluateShapelet(Instance series, int start, int length, ProcessCandidate checkCandidate) {
         //we've not eval'd this shapelet; consider and put in list.
         Shapelet shapelet = visitCandidate(series, start, length, checkCandidate);
 
@@ -90,17 +84,17 @@ public class LocalSearch extends RandomTimedSearch{
             }
 
             //our start position won't make us over flow on length. the start position is in the last pos.
-            if(startInc < series.length - length){
+            if(startInc < seriesLength - length){
                 shapelets[START_INC] = visitCandidate(series, startInc, length, checkCandidate);
             }
 
             //don't want to be shorter than the min length && does our length reduction invalidate our start pos?
-            if(lengthDec > minShapeletLength && start < series.length - lengthDec){
+            if(lengthDec > minShapeletLength && start < seriesLength - lengthDec){
                 shapelets[LENGTH_DEC] = visitCandidate(series, start, lengthDec, checkCandidate);
             }
 
             //dont want to be longer than the max length && does our start position invalidate our new length. 
-            if(lengthInc < maxShapeletLength && start < series.length - lengthInc){
+            if(lengthInc < maxShapeletLength && start < seriesLength - lengthInc){
 
                 shapelets[LENGTH_INC] = visitCandidate(series, start, lengthInc, checkCandidate);
             }

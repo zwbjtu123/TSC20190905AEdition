@@ -34,7 +34,11 @@ public class Shapelet implements Comparable<Shapelet>, Serializable
     /*It is optional whether to store the whole shapelet or not. It is much more 
      memory efficient not to, but it does make life a little easier. 
      */
-    public double[] content;
+    public ShapeletCandidate content;
+    
+    public int numDimensions = 1;
+    
+    public int dimension = 0;
     public int length;
     public int seriesId;
     public int startPos;
@@ -49,9 +53,21 @@ public class Shapelet implements Comparable<Shapelet>, Serializable
         useSeparationGap = true;
     }
 
-    public double[] getContent()
+    public ShapeletCandidate getContent()
     {
         return content;
+    }
+    
+    public int getLength(){
+        return length;
+    }
+    
+    public int getNumDimensions(){
+        return numDimensions;
+    }
+    
+    public int getDimension(){
+        return dimension;
     }
 
     public double getQualityValue()
@@ -74,10 +90,11 @@ public class Shapelet implements Comparable<Shapelet>, Serializable
         seriesId = a;
     }
 
-    public Shapelet(double[] content)
+    public Shapelet(ShapeletCandidate content)
     {
         this.content = content;
-        length = content.length;
+        numDimensions = content.getNumChannels();
+        length = content.getLength();
     }
 
     public Shapelet(int seriesId, int startPos, ShapeletQualityMeasure qualityChoice)
@@ -90,37 +107,44 @@ public class Shapelet implements Comparable<Shapelet>, Serializable
         this.hasContent = false;
     }
 
-    public Shapelet(double[] content, double qualValue, int seriesId, int startPos)
+    public Shapelet(ShapeletCandidate content, double qualValue, int seriesId, int startPos)
     {
         this.content = content;
-        length = content.length;
+        numDimensions = content.getNumChannels();
+        length = content.getLength();
         this.seriesId = seriesId;
         this.startPos = startPos;
         this.qualityValue = qualValue;
     }
 
-    public Shapelet(double[] content, double qualValue, int seriesId, int startPos, double sepGap)
+    public Shapelet(ShapeletCandidate content, double qualValue, int seriesId, int startPos, double sepGap)
     {
         this.content = content;
-        length = content.length;
+        numDimensions = content.getNumChannels();
+        length = content.getLength();
         this.seriesId = seriesId;
         this.startPos = startPos;
         this.qualityValue = qualValue;
         this.separationGap = sepGap;
     }
 
-    public Shapelet(double[] content, int seriesId, int startPos, ShapeletQualityMeasure qualityChoice)
+    public Shapelet(ShapeletCandidate content, int seriesId, int startPos, ShapeletQualityMeasure qualityChoice)
     {
         this.content = content;
-        length = content.length;
+        length = content.getLength();
         this.seriesId = seriesId;
         this.startPos = startPos;
         this.qualityType = qualityChoice;
     }
+    
+    //this rertuns the first channel.
+    public double[] getUniveriateShapeletContent(){
+        return content.getShapeletContent(0);
+    }
 
     public void clearContent()
     {
-        this.length = content.length;
+        this.length = content.getLength();
         this.content = null;
         this.hasContent = false;
     }
@@ -139,14 +163,14 @@ public class Shapelet implements Comparable<Shapelet>, Serializable
     public int compareTo(Shapelet shapelet) {
         //compare by quality, if there quality is equal we sort by the shorter shapelets.
         int compare1 = Double.compare(qualityValue, shapelet.qualityValue);
-        int compare2 = Double.compare(content.length, shapelet.content.length);
+        int compare2 = Double.compare(content.getLength(), shapelet.getLength());
         return compare1 != 0 ? compare1 : compare2;
     }
 
     @Override
     public String toString()
     {
-        String str = seriesId + "," + startPos + "," + length +"," + qualityValue;
+        String str = seriesId + "," + startPos + "," + length + "," + dimension + "," + qualityValue;
 
         return str;
     }
@@ -157,7 +181,7 @@ public class Shapelet implements Comparable<Shapelet>, Serializable
         public int compare(Shapelet s1, Shapelet s2)
         {
             int compare1 = Double.compare(s2.qualityValue, s1.qualityValue); // prefer higher info gain
-            int compare2 = (s2.content.length - s1.content.length); //prefer the short ones.
+            int compare2 = (s2.getLength() - s1.getLength()); //prefer the short ones.
             return compare1 != 0 ? compare1 : compare2;
         }
     }
@@ -170,7 +194,7 @@ public class Shapelet implements Comparable<Shapelet>, Serializable
         public int compare(Shapelet s1, Shapelet s2)
         {
             int compare1 = Double.compare(s2.qualityValue, s1.qualityValue); //prefer higher info gain
-            int compare2 = (s1.content.length - s2.content.length); //prefer the long ones.
+            int compare2 = (s1.getLength() - s2.getLength()); //prefer the long ones.
             return compare1 != 0 ? compare1 : compare2;
         }
     }
@@ -196,10 +220,11 @@ public class Shapelet implements Comparable<Shapelet>, Serializable
             int compare2 = Double.compare(s1.separationGap, s2.separationGap);
             if(compare2 != 0) return compare2;
             
-            int compare3 = Double.compare(s1.length, s2.length);
+            int compare3 = Double.compare(s1.getLength(), s2.getLength());
             return compare3;
         }
 
     }
+
 
 }

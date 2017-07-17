@@ -21,6 +21,8 @@ import timeseriesweka.filters.shapelet_transforms.Shapelet;
  *
  * @author raj09hxu
  */
+
+//only for Univariate
 public class FastShapeletSearch extends ShapeletSearch implements Serializable{
     
     int R = 10;
@@ -44,7 +46,7 @@ public class FastShapeletSearch extends ShapeletSearch implements Serializable{
     }
     
     @Override
-        public ArrayList<Shapelet> SearchForShapeletsInSeries(Instance timeSeries, ProcessCandidate checkCandidate){
+    public ArrayList<Shapelet> SearchForShapeletsInSeries(Instance timeSeries, ProcessCandidate checkCandidate){
 
         int index = utilities.InstanceTools.indexOf(inputData, timeSeries);
         
@@ -80,7 +82,7 @@ public class FastShapeletSearch extends ShapeletSearch implements Serializable{
                 pos = usax.sax_id.get(kk).second;
                 len = usax.sax_id.get(kk).third;
                 //init the array list with 0s
-                Shapelet s =  checkCandidate.process(inputData.get(id).toDoubleArray(), pos, len);
+                Shapelet s =  checkCandidate.process(inputData.get(id), pos, len);
                 if(s != null){
                     //put the shapelet in the list from it's series.
                     seriesShapelets.add(s);
@@ -118,7 +120,7 @@ public class FastShapeletSearch extends ShapeletSearch implements Serializable{
         int series, j, j_st, k, slot;
         double d;
         int word, prev_word;
-        int numAttributes = inputData.numAttributes()-1;
+        int numAttributes = seriesLength-1;
         
         USAX_elm_type ptr;
 

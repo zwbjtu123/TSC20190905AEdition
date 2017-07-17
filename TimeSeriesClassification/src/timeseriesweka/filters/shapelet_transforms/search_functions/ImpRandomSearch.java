@@ -8,9 +8,7 @@ package timeseriesweka.filters.shapelet_transforms.search_functions;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Random;
 import utilities.generic_storage.Pair;
-import utilities.generic_storage.Triple;
 import weka.core.Instance;
 import weka.core.Instances;
 import timeseriesweka.filters.shapelet_transforms.Shapelet;
@@ -35,7 +33,7 @@ public class ImpRandomSearch extends RandomSearch{
     
     @Override
     public void init(Instances input){
-        inputData = input;
+        super.init(input);
         int numLengths = maxShapeletLength - minShapeletLength; //want max value to be inclusive.
         
         //generate the random shapelets we're going to visit.
@@ -43,7 +41,7 @@ public class ImpRandomSearch extends RandomSearch{
             //randomly generate values.
             int series = random.nextInt(input.numInstances());
             int length = random.nextInt(numLengths) + minShapeletLength; //offset the index by the min value.
-            int position  = random.nextInt(input.numAttributes() - length); // can only have valid start positions based on the length. (numAtts-1)-l+1
+            int position  = random.nextInt(seriesLength - length); // can only have valid start positions based on the length. (numAtts-1)-l+1
             
             //find the shapelets for that series.
             ArrayList<Pair<Integer,Integer>> shapeletList = shapeletsToFind.get(series);
@@ -63,9 +61,6 @@ public class ImpRandomSearch extends RandomSearch{
     public ArrayList<Shapelet> SearchForShapeletsInSeries(Instance timeSeries, ProcessCandidate checkCandidate){
         
         ArrayList<Shapelet> seriesShapelets = new ArrayList<>();
-        
-        double[] series = timeSeries.toDoubleArray();
-        
         ArrayList<Pair<Integer,Integer>> shapeletList = shapeletsToFind.get(currentSeries);
         currentSeries++;
         
@@ -77,7 +72,7 @@ public class ImpRandomSearch extends RandomSearch{
         //Only consider a fixed amount of shapelets.
         for(Pair<Integer,Integer> shapelet : shapeletList){
             //position is in var2, and length is in var1
-            Shapelet shape = checkCandidate.process(series, shapelet.var1, shapelet.var2);
+            Shapelet shape = checkCandidate.process(timeSeries, shapelet.var1, shapelet.var2);
             if(shape != null)
                 seriesShapelets.add(shape);           
         }

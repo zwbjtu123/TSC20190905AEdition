@@ -48,13 +48,10 @@ public class SkippingSearch extends ShapeletSearch{
         
         ArrayList<Shapelet> seriesShapelets = new ArrayList<>();
 
-        double[] series = timeSeries.toDoubleArray();
-
-        
         for (; length <= maxShapeletLength; length+=lengthIncrement) {
             //for all possible starting positions of that length. -1 to remove classValue
-            for (; start <= timeSeries.numAttributes() - length - 1; start+=positionIncrement) {
-                Shapelet shapelet = checkCandidate.process(series, start, length);
+            for (; start <= seriesLength - length - 1; start+=positionIncrement) {
+                Shapelet shapelet = checkCandidate.process(timeSeries, start, length);
                 if (shapelet != null) {
                     seriesShapelets.add(shapelet);
                 }

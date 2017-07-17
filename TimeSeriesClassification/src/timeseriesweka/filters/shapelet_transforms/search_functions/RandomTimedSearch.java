@@ -32,8 +32,6 @@ public class RandomTimedSearch extends RandomSearch{
         
         ArrayList<Shapelet> seriesShapelets = new ArrayList<>();
         
-        double[] series = timeSeries.toDoubleArray();
-
         int numLengths = maxShapeletLength - minShapeletLength /*+ 1*/; //want max value to be inclusive.
         
         visited = new boolean[numLengths][];
@@ -43,19 +41,19 @@ public class RandomTimedSearch extends RandomSearch{
             int lengthIndex = random.nextInt(numLengths);
             int length = lengthIndex + minShapeletLength; //offset the index by the min value.
             
-            int maxPositions = series.length - length ;
+            int maxPositions = seriesLength - length ;
             int start  = random.nextInt(maxPositions); // can only have valid start positions based on the length.
 
             //we haven't constructed the memory for this length yet.
-            initVisitedMemory(series, length);
+            initVisitedMemory(seriesLength, length);
             
-            Shapelet shape = visitCandidate(series, start, length, checkCandidate);
+            Shapelet shape = visitCandidate(timeSeries, start, length, checkCandidate);
             if(shape != null)
                 seriesShapelets.add(shape);
 
             
             //we add time, even if we've visited it, this is just incase we end up stuck in some improbable recursive loop.
-            currentTime += calculateTimeToRun(inputData.numInstances(), series.length-1, length); //n,m,l            
+            currentTime += calculateTimeToRun(inputData.numInstances(), seriesLength-1, length); //n,m,l            
         }
 
         for(int i=0; i<visited.length; i++){

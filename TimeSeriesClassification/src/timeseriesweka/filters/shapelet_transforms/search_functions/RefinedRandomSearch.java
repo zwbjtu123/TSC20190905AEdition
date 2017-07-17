@@ -25,8 +25,9 @@ public class RefinedRandomSearch extends ImpRandomSearch{
        
     @Override
     public void init(Instances input){
-         int numInstances = input.numInstances();
-         int numAttributes = input.numAttributes() - 1;
+        super.init(input); 
+        int numInstances = input.numInstances();
+        int numAttributes = seriesLength - 1;
         
          float currentRatio;
          do{
