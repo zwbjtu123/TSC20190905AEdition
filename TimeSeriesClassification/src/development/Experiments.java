@@ -55,6 +55,7 @@ import vector_classifiers.TunedRotationForest;
 import utilities.ClassifierResults;
 import vector_classifiers.HESCA;
 import timeseriesweka.classifiers.ensembles.SaveableEnsemble;
+import vector_classifiers.SaveEachParameter;
 import weka.classifiers.trees.J48;
 import weka.classifiers.trees.RandomForest;
 import vector_classifiers.TunedRandomForest;
@@ -383,6 +384,9 @@ public class Experiments{
 // Save internal info for ensembles
         if(c instanceof SaveableEnsemble)
            ((SaveableEnsemble)c).saveResults(resultsPath+"/internalCV_"+fold+".csv",resultsPath+"/internalTestPreds_"+fold+".csv");
+        if(c instanceof SaveEachParameter){  //May not want to do this on every run!      
+            ((SaveEachParameter) c).setPathToSaveParameters(resultsPath+"/fold"+fold+"_");
+        }
         try{              
             c.buildClassifier(data[0]);
             if(debug){
@@ -456,7 +460,7 @@ public class Experiments{
                 f.mkdirs();
             }
             generateTrainFiles=true;
-            String[] newArgs={"TunedSVMLinear","ItalyPowerDemand","4"};
+            String[] newArgs={"TunedSVMRBF","ItalyPowerDemand","1"};
             Experiments.singleClassifierAndFoldTrainTestSplit(newArgs);
             System.exit(0);
         }

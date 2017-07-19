@@ -54,8 +54,6 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
     private double[] paras;
     String trainPath="";
     boolean debug=false;
-    boolean randomSearch=false; //If set to true the parameter space is randomly sampled
-    int nosParamSettings=624;   //Randomly sampled this many times
     Random rng;
     ArrayList<Double> accuracy;
     private boolean kernelOptimise=false;   //Choose between linear, quadratic and RBF kernel
@@ -137,8 +135,6 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
             paraSpace[i-min]=Math.pow(2,i);
     }
     public void optimiseKernel(boolean b){kernelOptimise=b;}
-    
-    public boolean getOptimiseKernel(){ return kernelOptimise;}
     public void optimiseParas(boolean b){paraOptimise=b;}
     
     static class ResultsHolder{
@@ -159,15 +155,6 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
 
         double minErr=1;
         this.setSeed(rng.nextInt());
-        
-        Instances trainCopy=new Instances(train);
-        CrossValidator cv = new CrossValidator();
-        if (setSeed)
-            cv.setSeed(seed);
-        cv.setNumFolds(folds);
-        cv.buildFolds(trainCopy);
-        
-        
         ArrayList<ResultsHolder> ties=new ArrayList<>();
         ClassifierResults tempResults;
         for(double p1:paraSpace){
@@ -178,8 +165,12 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
                 model.setKernel(kern);
                 model.setC(p1);
                 model.setBuildLogisticModels(true);
-                
-                tempResults=cv.crossValidateWithStats(model,trainCopy);
+                CrossValidator cv = new CrossValidator();
+                if (setSeed)
+                  cv.setSeed(seed);
+                cv.setNumFolds(folds);
+                Instances temp=new Instances(train);//Just in case ...
+                tempResults=cv.crossValidateWithStats(model,temp);
 
 //                Evaluation eval=new Evaluation(temp);
 //                eval.crossValidateModel(model, temp, folds, rng);
@@ -213,33 +204,28 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
             System.out.println("Best C ="+bestC+" best Gamma = "+bestSigma+" best train acc = "+res.acc);
     }
     
-   public void tunePolynomial(Instances train) throws Exception {
+   public void tuneQuadratic(Instances train) throws Exception {
         paras=new double[1];
         int folds=MAX_FOLDS;
         if(folds>train.numInstances())
             folds=train.numInstances();
         double minErr=1;
         this.setSeed(rng.nextInt());
-        
-        Instances trainCopy=new Instances(train);
-        CrossValidator cv = new CrossValidator();
-        if (setSeed)
-            cv.setSeed(seed);
-        cv.setNumFolds(folds);
-        cv.buildFolds(trainCopy);
-        
-        
         ArrayList<ResultsHolder> ties=new ArrayList<>();
-        ClassifierResults tempResults;            
-
+        ClassifierResults tempResults;
+        
         for(double d: paraSpace){
-            
+            Instances temp=new Instances(train);
             SMO model = new SMO();
             model.setKernel(m_kernel);
             model.setC(d);
             model.setBuildLogisticModels(true);
-            
-            tempResults=cv.crossValidateWithStats(model,trainCopy);
+            CrossValidator cv = new CrossValidator();
+            if (setSeed)
+              cv.setSeed(seed);
+            cv.setNumFolds(folds);
+            tempResults=cv.crossValidateWithStats(model,temp);
+
 //                Evaluation eval=new Evaluation(temp);
 //                eval.crossValidateModel(model, temp, folds, rng);
             double e=1-tempResults.acc;
@@ -274,8 +260,9 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
                 case LINEAR:                     
                     PolyKernel p=new PolyKernel();
                     p.setExponent(1);
+
                     temp.setKernel(p);
-                    temp.tunePolynomial(train);
+                    temp.tuneQuadratic(train);
                     linearCVAcc=temp.res.acc;
                     linearBestC=temp.getC();
                 break;
@@ -283,7 +270,7 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
                     PolyKernel p2=new PolyKernel();
                     p2.setExponent(2);
                     temp.setKernel(p2);
-                    temp.tunePolynomial(train);
+                    temp.tuneQuadratic(train);
                     quadraticCVAcc=temp.res.acc;
                     quadraticBestC=temp.getC();
                 break;
@@ -297,7 +284,7 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
                     break;
             }
         }
-//Choose best, inelligantly
+//Choose best, ineligantly
         if(linearCVAcc> rbfCVAcc && linearCVAcc> quadraticCVAcc){//Linear best
             PolyKernel p=new PolyKernel();
             p.setExponent(1);
@@ -330,13 +317,14 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
         res.buildTime=System.currentTimeMillis();
         if(paraSpace==null)
             setStandardParas();
+        
         if(kernelOptimise)
             selectKernel(train);
         else if(paraOptimise){
             if(this.getKernel() instanceof RBFKernel)
                 tuneRBF(train); //Does MORE CV 
             else
-                tunePolynomial(train);
+                tuneQuadratic(train);
         }
         
         super.buildClassifier(train);
@@ -350,77 +338,7 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
             f.writeLine(res.writeInstancePredictions());
         }        
     }
-    
-    public static void jamesltest() {
-        try{ 
-
-            String dset = "zoo";
-//            int fold = 0;
-            Instances all=ClassifierTools.loadData("C:/UCI Problems/"+dset+"/"+dset);
-            
-            for (int fold = 0; fold < 30; fold++) {
-                
-            
-                Instances[] split=InstanceTools.resampleInstances(all,fold,0.5);
-                Instances train=split[0];
-                Instances test=split[1];
-
-                TunedSVM svml = new TunedSVM();
-                svml.optimiseParas(true);
-                svml.optimiseKernel(false);
-                svml.setBuildLogisticModels(true);
-                svml.setSeed(fold);                
-                svml.setKernelType(TunedSVM.KernelType.LINEAR);
-    //
-    //            TunedSVM svmq = new TunedSVM();
-    //            svmq.optimiseParas(true);
-    //            svmq.optimiseKernel(false);
-    //            svmq.setBuildLogisticModels(true);
-    //            svmq.setSeed(fold);                
-    //            svmq.setKernelType(TunedSVM.KernelType.QUADRATIC);
-    //
-    //            TunedSVM svmrbf = new TunedSVM();
-    //            svmrbf.optimiseParas(true);
-    //            svmrbf.optimiseKernel(false);
-    //            svmrbf.setBuildLogisticModels(true);
-    //            svmrbf.setSeed(fold);                
-    //            svmrbf.setKernelType(TunedSVM.KernelType.RBF);
-
-                System.out.println("\n\nTSVM_L:");
-                svml.buildClassifier(train);
-                System.out.println("C ="+svml.getC());
-                System.out.println("Train: " + svml.res.acc + " " + svml.res.stddev);
-                double accL=ClassifierTools.accuracy(test, svml);
-                System.out.println("Test: " + accL);
-    //
-    //
-    //            System.out.println("\n\nTSVM_Q:");
-    //            svmq.buildClassifier(train);
-    //            System.out.println("C ="+svmq.getC());
-    //            System.out.println("Train: " + svmq.res.acc + " " + svmq.res.stddev);
-    //            double accQ=ClassifierTools.accuracy(test, svmq);
-    //            System.out.println("Test: " + accQ);
-    //
-    //            System.out.println("\n\nTSVM_RBF:");
-    //            svmrbf.buildClassifier(train);
-    //            System.out.println("C ="+svmrbf.getC());
-    //            System.out.println("Train: " + svmrbf.res.acc + " " + svmrbf.res.stddev);
-    //            double accRBF=ClassifierTools.accuracy(test, svmrbf);
-    //            System.out.println("Test: " + accRBF);
-            }
-        }catch(Exception e){
-            System.out.println("ffsjava");
-            System.out.println(e);
-            e.printStackTrace();
-        }
-    }
-    
-    
     public static void main(String[] args) {
-        jamesltest();
-        System.exit(0);
-        
-        
         String sourcePath="C:\\Users\\ajb\\Dropbox\\UCI Problems\\";
         String problemFile="monks-1";
         DecimalFormat df = new DecimalFormat("###.###");
