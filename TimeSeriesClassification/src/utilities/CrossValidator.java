@@ -77,6 +77,7 @@ public class CrossValidator {
      * @return double[classifier][prediction]
      */
     public ClassifierResults[] crossValidateWithStats(Classifier[] classifiers, Instances train) throws Exception {
+        long time=System.currentTimeMillis();
         if (folds == null)
             buildFolds(train);
 
@@ -120,14 +121,13 @@ public class CrossValidator {
         //shove data into moduleresults objects 
         ClassifierResults[] results = new ClassifierResults[classifiers.length];
         double[] classVals = train.attributeToDoubleArray(train.classIndex());
-        
+        long t2=System.currentTimeMillis();
         for (int c = 0; c < classifiers.length; c++) {  
             classifierAccs[c] /= predictions[c].length;
             double stddevOverFolds = StatisticalUtilities.standardDeviation(foldaccs[c], false, classifierAccs[c]);
-            
             results[c] = new ClassifierResults(classifierAccs[c], classVals, predictions[c], distsForInsts[c], stddevOverFolds, train.numClasses());
+            results[c].buildTime=t2-time;
         }
-        
         return results;
     }
     
