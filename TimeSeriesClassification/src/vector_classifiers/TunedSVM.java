@@ -327,26 +327,27 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
         if(saveEachParaAcc){// Read them all from file, pick the best
             count=0;
             for(double p1:paraSpace){
-                for(double p2:paraSpace){
-                    count++;
-                    tempResults = new ClassifierResults();
-                    tempResults.loadFromFile(resultsPath+count+".csv");
-                    double e=1-tempResults.acc;
-                    if(e<minErr){
-                        minErr=e;
-                        ties=new ArrayList<>();//Remove previous ties
-                        ties.add(new ResultsHolder(p1,p2,tempResults));
-                    }
-                    else if(e==minErr){//Sort out ties
-                            ties.add(new ResultsHolder(p1,p2,tempResults));
-                    }
+                count++;
+                tempResults = new ClassifierResults();
+                tempResults.loadFromFile(resultsPath+count+".csv");
+                double e=1-tempResults.acc;
+                if(e<minErr){
+                    minErr=e;
+                    ties=new ArrayList<>();//Remove previous ties
+                    ties.add(new ResultsHolder(p1,0.0,tempResults));
+                }
+                else if(e==minErr){//Sort out ties
+                        ties.add(new ResultsHolder(p1,0.0,tempResults));
+                }
 //Delete the files here to clean up.
-                    
-                    File f= new File(resultsPath+count+".csv");
-                    if(!f.delete())
-                        System.out.println("DELETE FAILED "+resultsPath+count+".csv");
-                }            
-            }
+
+                File f= new File(resultsPath+count+".csv");
+                if (f.exists()) {
+                    System.out.println("SDAFHILGHLKAG");
+                }
+                if(!f.delete())
+                    System.out.println("DELETE FAILED "+resultsPath+count+".csv");
+            }  
         }        
         
         ResultsHolder best=ties.get(rng.nextInt(ties.size()));
