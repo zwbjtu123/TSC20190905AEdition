@@ -30,6 +30,7 @@ import statistics.simulators.SimulateIntervalData;
 import statistics.simulators.SimulateShapeletData;
 import statistics.simulators.SimulateWholeSeriesData;
 import statistics.simulators.SimulateElasticData;
+import statistics.simulators.SimulateMatrixProfileData;
 import utilities.InstanceTools;
 import utilities.SaveParameterInfo;
 import weka.classifiers.Classifier;
@@ -184,6 +185,7 @@ public class SimulationExperiments {
                 SimulateIntervalData.setNoiseToSignal(10);
                 break;
            case "WholeSeriesElastic":
+            case "WholeSeries":
                 seriesLength=100;
                 trainProp=0.1;
                 casesPerClass=new int[]{100,100};
@@ -192,8 +194,11 @@ public class SimulationExperiments {
                 ElasticModel.setWarpPercent(0.4);
  //               SimulateWholeSeriesElastic.
                 break;
-            case "WholeSeries":
-//                break;
+            case "MatrixProfile":
+                seriesLength=500;
+                trainProp=0.1;
+                casesPerClass=new int[]{50,50};
+                Model.setDefaultSigma(1);
         default:
                 throw new RuntimeException(" UNKNOWN SIMULATOR ");
             
@@ -227,7 +232,12 @@ public class SimulationExperiments {
            case "WholeSeriesElastic":
                 data=SimulateElasticData.generateElasticData(seriesLength,casesPerClass);
                 break;
-        default:
+           case "MatrixProfile":
+                data=SimulateMatrixProfileData.generateMatrixProfileData(seriesLength,casesPerClass);
+                break;
+
+           
+           default:
                 throw new RuntimeException(" UNKNOWN SIMULATOR "+str);
             
         }
