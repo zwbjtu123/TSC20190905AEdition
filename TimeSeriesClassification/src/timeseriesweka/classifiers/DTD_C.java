@@ -9,7 +9,7 @@ import utilities.ClassifierResults;
 import weka.core.Instance;
 import weka.core.Instances;
 import weka.core.TechnicalInformation;
-import weka.core.elastic_distance_measures.DTW_DistanceBasic;
+import timeseriesweka.elastic_distance_measures.DTW_DistanceBasic;
 import weka.filters.SimpleBatchFilter;
 import timeseriesweka.filters.Cosine;
 import timeseriesweka.filters.Sine;

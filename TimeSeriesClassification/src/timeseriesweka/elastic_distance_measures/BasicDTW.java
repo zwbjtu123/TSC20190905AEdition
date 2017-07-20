@@ -2,8 +2,10 @@
  * A simple DTW algorithm that computes the warped path with no constraints 
  * 
  */
-package weka.core.elastic_distance_measures;
+package timeseriesweka.elastic_distance_measures;
 
+import utilities.ClassifierTools;
+import weka.core.DenseInstance;
 import weka.core.EuclideanDistance;
 import weka.core.Instance;
 import weka.core.Instances;
@@ -11,47 +13,22 @@ import weka.core.neighboursearch.PerformanceStats;
 
 /**
  *
- * @author Jason Lines (adapted from BasicDTW)
+ * @author Chris Rimmer
  */
-public class WeightedDTW extends BasicDTW{
+public class BasicDTW extends EuclideanDistance{
     
     protected double[][] distances;
-    protected boolean isEarlyAbandon;
-
-    private static final double WEIGHT_MAX = 1;
-    private double g; // "empirical constant that controls the curvature (slope) of the function
-    private double[] weightVector; // initilised on first distance call
-
 //    private int distanceCount = 0;
-    
+   
         
     /**
      * BasicDTW Constructor 
      * 
      * Early Abandon Disabled
      */
-    public WeightedDTW(){
+    public BasicDTW(){
         super();
-        this.g = 0;
-        this.weightVector = null;
         this.m_DontNormalize = true;
-        this.isEarlyAbandon = false;
-    }
-
-    public WeightedDTW(double g){
-        super();
-        this.g = g;
-        this.weightVector = null;
-        this.m_DontNormalize = true;
-        this.isEarlyAbandon = false;
-    }
-
-    public WeightedDTW(double g, double[] weightVector){
-        super();
-        this.g = g;
-        this.weightVector = weightVector;
-        this.m_DontNormalize = true;
-        this.isEarlyAbandon = false;
     }
     
     /** 
@@ -59,22 +36,10 @@ public class WeightedDTW extends BasicDTW{
      * 
      * @param earlyAbandon boolean value setting if early abandon is enabled
      */
-    public WeightedDTW(boolean earlyAbandon) {	
-        super();
-        this.g = 0;
-        this.weightVector = null;
-        this.isEarlyAbandon = earlyAbandon;
+    public BasicDTW(Instances d) {	
+        super(d);
         this.m_DontNormalize = true;
-    }
-
-    public WeightedDTW(double g, boolean earlyAbandon) {
-        super();
-        this.g = g;
-        this.weightVector = null;
-        this.isEarlyAbandon = earlyAbandon;
-        this.m_DontNormalize = true;
-    }
-    
+    }    
     /**
      * Distance method 
      * 
@@ -89,22 +54,22 @@ public class WeightedDTW extends BasicDTW{
         //Get the double arrays
         return distance(first,second,cutOffValue);
     }
-    
+    @Override    
+    public double distance(Instance first, Instance second) {
+    return distance(first, second, Double.POSITIVE_INFINITY);
+  }
     /**
-     * distance method that converts instances to arrays of doubles
-     * 
-     * @param first instance 1
-     * @param second instance 2
-     * @param cutOffValue used for early abandon
-     * @return distance between instances
-     */
+   * Calculates the distance between two instances.
+   * 
+   * @param first 	the first instance
+   * @param second 	the second instance
+   * @return 		the distance between the two given instances
+   */
     @Override
     public double distance(Instance first, Instance second, double cutOffValue){
-//        if(this.distanceCount % 10000000 == 0){
-//            System.out.println("New Instance: "+this.distanceCount);
-//        }
-//        this.distanceCount++;
-        //remove class index from first instance if there is one
+
+        //remove class index from first instance if there iscutOffValue one
+        
         int firtClassIndex = first.classIndex();
         double[] arr1;
         if(firtClassIndex > 0){
@@ -146,89 +111,45 @@ public class WeightedDTW extends BasicDTW{
      * @return distance between instances
      */
     public double distance(double[] first, double[] second, double cutOffValue){
-
-        if(this.weightVector==null){
-            this.initWeights(first.length);
-        }
-
-
         //create empty array
         this.distances = new double[first.length][second.length];
         
         //first value
-        this.distances[0][0] = this.weightVector[0]*(first[0]-second[0])*(first[0]-second[0]);
+        this.distances[0][0] = (first[0]-second[0])*(first[0]-second[0]);
         
-        //early abandon if first values is larger than cut off
-        if(this.distances[0][0] > cutOffValue && this.isEarlyAbandon){
-            return Double.MAX_VALUE;
-        }
         
         //top row
         for(int i=1;i<second.length;i++){
-            this.distances[0][i] = this.distances[0][i-1]+this.weightVector[i]*(first[0]-second[i])*(first[0]-second[i]); //edited by Jay
+            this.distances[0][i] = this.distances[0][i-1]+((first[0]-second[i])*(first[0]-second[i]));
         }
 
         //first column
         for(int i=1;i<first.length;i++){
-            this.distances[i][0] = this.distances[i-1][0]+this.weightVector[i]*(first[i]-second[0])*(first[i]-second[0]); //edited by Jay
+            this.distances[i][0] = this.distances[i-1][0]+((first[i]-second[0])*(first[i]-second[0]));
         }
+        
+        
+        boolean overFlow = true;
         
         //warp rest
         double minDistance;
         for(int i = 1; i<first.length; i++){
-            boolean overflow = true;
-            
+            overFlow = true;
             for(int j = 1; j<second.length; j++){
                 //calculate distances
                 minDistance = Math.min(this.distances[i][j-1], Math.min(this.distances[i-1][j], this.distances[i-1][j-1]));
-                this.distances[i][j] = minDistance+this.weightVector[Math.abs(i-j)] *(first[i]-second[j])*(first[i]-second[j]); //edited by Jay
-                
-                if(overflow && this.distances[i][j] < cutOffValue){
-                    overflow = false; // because there's evidence that the path can continue
+                this.distances[i][j] = minDistance+((first[i]-second[j])*(first[i]-second[j]));
+                if(overFlow && this.distances[i][j] < cutOffValue){
+                    overFlow = false;
                 }
-//                    
-//                if(minDistance > cutOffValue && this.isEarlyAbandon){
-//                    this.distances[i][j] = Double.MAX_VALUE;
-//                }else{
-//                    this.distances[i][j] = minDistance+this.weightVector[Math.abs(i-j)] *(first[i]-second[j])*(first[i]-second[j]); //edited by Jay
-//                    overflow = false;
-//                }
             }
-            
-            //early abandon
-            if(overflow && this.isEarlyAbandon){
+            if(overFlow){ // i.e. none of the valid directions for the warping path are less than the passed cut-off
                 return Double.MAX_VALUE;
             }
         }
-        return this.distances[first.length-1][second.length-1];
+//        return Math.sqrt(this.distances[first.length-1][second.length-1]);
+        return (this.distances[first.length-1][second.length-1]);
     }
-
-//    // Added by Jay for weighted DTW
-//    private double getWeight(int seriesLength, int i, int j){
-//        return WEIGHT_MAX/(1+Math.exp(-g*(Math.abs(i-j)-(double)seriesLength/2)));
-//    }
-
-    private void initWeights(int seriesLength){
-        this.weightVector = new double[seriesLength];
-        double halfLength = (double)seriesLength/2;
-
-        for(int i = 0; i < seriesLength; i++){
-            weightVector[i] = WEIGHT_MAX/(1+Math.exp(-g*(i-halfLength)));
-        }
-    }
-
-    public static double[] calculateWeightVector(int seriesLength, double g){
-        double[] weights = new double[seriesLength];
-        double halfLength = (double)seriesLength/2;
-
-        for(int i = 0; i < seriesLength; i++){
-            weights[i] = WEIGHT_MAX/(1+Math.exp(-g*(i-halfLength)));
-        }
-        return weights;
-    }
-
-
-
 
     /**
      * Generates a string of the minimum cost warp path
@@ -317,26 +238,33 @@ public class WeightedDTW extends BasicDTW{
         System.out.println("------------------ End ------------------");
     }
 
-    /**
-     * Check if early abandon enabled
-     * 
-     * @return early abandon enabled
-     */
-    public boolean isEarlyAbandon() {
-        return isEarlyAbandon;
-    }
-
-    /**
-     * Set early abandon
-     * 
-     * @param isEarlyAbandon value for early abandon
-     */
-    public void setIsEarlyAbandon(boolean isEarlyAbandon) {
-        this.isEarlyAbandon = isEarlyAbandon;
-    }
 
     @Override
     public String toString() {
-        return "BasicDTW{ " + "earlyAbandon=" + this.isEarlyAbandon + " }";
+        return "BasicDTW";
     }
+    
+    public static void main(String[] args){
+//Test BasicDTW
+        Instances test = ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\test\\Beef");
+        BasicDTW dtw=new BasicDTW(test);
+        EuclideanDistance ed=new EuclideanDistance(test);
+        ed.setDontNormalize(true);
+        System.out.println(" DATA \n"+test.toString());
+        System.out.println(" ED ="+ed.distance(test.instance(0),test.instance(1)));
+        
+        
+        
+        System.out.println(" ED ="+ed.distance(test.instance(0),test.instance(1),2));
+        System.out.println(" DTW ="+dtw.distance(test.instance(0),test.instance(1)));
+        System.out.println(" DTW ="+dtw.distance(test.instance(0),test.instance(1),1));
+
+
+
+//Test Early abandon
+        
+        
+        
+    }
+    
 }

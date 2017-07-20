@@ -1,9 +1,10 @@
-package weka.classifiers.lazy;
+package timeseriesweka.classifiers;
+import timeseriesweka.elastic_distance_measures.DTW;
+import timeseriesweka.elastic_distance_measures.DTW_DistanceBasic;
 import java.util.HashMap;
 import utilities.ClassifierTools;
 import weka.classifiers.Classifier;
 import weka.core.*;
-import weka.core.elastic_distance_measures.*;
 
 /* This class is a specialisation of kNN that can only be used with the efficient DTW distance
  * 

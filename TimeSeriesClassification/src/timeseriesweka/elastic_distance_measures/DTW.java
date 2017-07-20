@@ -1,7 +1,7 @@
 /*
 DTW with early abandon
  */
-package weka.core.elastic_distance_measures;
+package timeseriesweka.elastic_distance_measures;
 
 /**
  *

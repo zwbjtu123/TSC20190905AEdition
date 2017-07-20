@@ -1,10 +1,11 @@
-package weka.classifiers.lazy;
+package timeseriesweka.classifiers;
 import java.io.FileReader;
+import weka.classifiers.lazy.kNN;
 
 import weka.core.*;
 
 import weka.core.EuclideanDistance;
-import weka.core.elastic_distance_measures.DTW;
+import timeseriesweka.elastic_distance_measures.DTW;
 
 /* This class is a specialisation of kNN that can only be used with the efficient DTW distance
  * 

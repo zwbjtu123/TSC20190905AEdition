@@ -38,7 +38,7 @@ import statistics.simulators.SimulateWholeSeriesData;
 import utilities.InstanceTools;
 import utilities.SaveParameterInfo;
 import weka.classifiers.Classifier;
-import weka.classifiers.lazy.DTW_1NN;
+import timeseriesweka.classifiers.DTW_1NN;
 import weka.classifiers.meta.RotationForest;
 import vector_classifiers.HESCA;
 import timeseriesweka.classifiers.ensembles.SaveableEnsemble;

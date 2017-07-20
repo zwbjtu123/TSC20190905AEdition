@@ -286,8 +286,20 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
         
         ArrayList<ResultsHolder> ties=new ArrayList<>();
         ClassifierResults tempResults;            
-
+        int count=0;
+        OutFile temp=null;
+        
         for(double d: paraSpace){
+            count++;
+            if(saveEachParaAcc){// check if para value already done
+                File f=new File(resultsPath+count+".csv");
+                if(f.exists() && f.length()>0)
+                    continue;//If done, ignore skip this iteration
+                else
+                    temp=new OutFile(resultsPath+count+".csv");
+               if(debug)
+                   System.out.println("PARA COUNT ="+count);
+            }
             
             SMO model = new SMO();
             model.setKernel(m_kernel);
@@ -299,7 +311,10 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
 //                eval.crossValidateModel(model, temp, folds, rng);
             double e=1-tempResults.acc;
             accuracy.add(tempResults.acc);
-
+            if(saveEachParaAcc){// Save to file and close
+                temp.writeLine(tempResults.writeResultsFileToString());
+                temp.closeFile();
+            }                
             if(e<minErr){
                 minErr=e;
                ties=new ArrayList<>();//Remove previous ties
@@ -309,6 +324,31 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
                 ties.add(new ResultsHolder(d,0.0,tempResults));
             }
         }
+        if(saveEachParaAcc){// Read them all from file, pick the best
+            count=0;
+            for(double p1:paraSpace){
+                for(double p2:paraSpace){
+                    count++;
+                    tempResults = new ClassifierResults();
+                    tempResults.loadFromFile(resultsPath+count+".csv");
+                    double e=1-tempResults.acc;
+                    if(e<minErr){
+                        minErr=e;
+                        ties=new ArrayList<>();//Remove previous ties
+                        ties.add(new ResultsHolder(p1,p2,tempResults));
+                    }
+                    else if(e==minErr){//Sort out ties
+                            ties.add(new ResultsHolder(p1,p2,tempResults));
+                    }
+//Delete the files here to clean up.
+                    
+                    File f= new File(resultsPath+count+".csv");
+                    if(!f.delete())
+                        System.out.println("DELETE FAILED "+resultsPath+count+".csv");
+                }            
+            }
+        }        
+        
         ResultsHolder best=ties.get(rng.nextInt(ties.size()));
         setC(best.x);
         res=best.res;

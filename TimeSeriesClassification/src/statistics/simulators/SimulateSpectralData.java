@@ -15,7 +15,7 @@ import weka.core.*;
 import fileIO.*;
 import utilities.ClassifierTools;
 import weka.classifiers.Classifier;
-import weka.classifiers.lazy.DTW_1NN;
+import timeseriesweka.classifiers.DTW_1NN;
 import weka.filters.*;
 
 

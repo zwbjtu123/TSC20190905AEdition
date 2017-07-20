@@ -11,7 +11,7 @@ import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import utilities.ClassifierTools;
-import weka.classifiers.lazy.DTW_1NN;
+import timeseriesweka.classifiers.DTW_1NN;
 import weka.classifiers.lazy.kNN;
 import weka.core.*;
 import weka.filters.SimpleBatchFilter;

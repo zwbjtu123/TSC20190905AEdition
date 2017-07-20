@@ -36,7 +36,7 @@ Matching},
 */
 
 
-package weka.core.elastic_distance_measures;
+package timeseriesweka.elastic_distance_measures;
 
 import weka.core.EuclideanDistance;
 import weka.core.Instance;

@@ -23,10 +23,10 @@ import statistics.simulators.ShapeletModel.Shape;
 public class MatrixProfileModel extends Model {
     private int nosLocations=2; //
     private int shapeLength=29;
-    public static double MINBASE=-10;
-    public static double MINAMP=1;
-    public static double MAXBASE=10;
-    public static double MAXAMP=5;
+    public static double MINBASE=-2;
+    public static double MINAMP=.1;
+    public static double MAXBASE=2;
+    public static double MAXAMP=2;
     DictionaryModel.Shape shape;//Will change for each series
     private static int GLOBALSERIESLENGTH=500;
     private int seriesLength; // Need to set intervals, maybe allow different lengths? 
@@ -55,21 +55,21 @@ public class MatrixProfileModel extends Model {
             while(!ok){
                 ok=true;
 //Search mid points to level the distribution up somewhat
-                System.out.println("Series length ="+seriesLength);
+//                System.out.println("Series length ="+seriesLength);
                 l=rand.nextInt(seriesLength-shapeLength)+shapeLength/2;
-          System.out.println("trying   "+l);
+//          System.out.println("trying   "+l);
                 
                 for(int in:locations){
 //I think this is setting them too big                    
                     if((l>=in-shapeLength && l<in+shapeLength) //l inside ins
                       ||(l<in-shapeLength && l+shapeLength>in)      ){ //ins inside l
                         ok=false;
-                       System.out.println(l+"  overlaps with "+in);
+//                       System.out.println(l+"  overlaps with "+in);
                         break;
                     }
                 }
             }
-           System.out.println("Adding "+l);
+//           System.out.println("Adding "+l);
             locations.add(l);
         }
 //Revert to start points            
@@ -98,7 +98,7 @@ public class MatrixProfileModel extends Model {
         ShapeType[] all=ShapeType.values();
             ShapeType st=all[(shapeCount++)%all.length];
             shape=new DictionaryModel.Shape(st,shapeLength,b,a);
-            System.out.println("Shape is "+shape);
+ //           System.out.println("Shape is "+shape);
  //        shape.nextShape();
 //        shape
     }
@@ -119,6 +119,7 @@ public class MatrixProfileModel extends Model {
     @Override
     public double generate(){
 //Noise
+//        System.out.println("Error var ="+error.getVariance());
         double value=error.simulate();
         int insertionPoint=0;
         while(insertionPoint<locations.size() && locations.get(insertionPoint)+shapeLength<t)
@@ -139,7 +140,7 @@ public class MatrixProfileModel extends Model {
         int length=500;
         GLOBALSERIESLENGTH=length;
         Model.setGlobalRandomSeed(3);
-        Model.setDefaultSigma(2);
+        Model.setDefaultSigma(1);
         MatrixProfileModel m1=new MatrixProfileModel();
         MatrixProfileModel m2=new MatrixProfileModel();
         
