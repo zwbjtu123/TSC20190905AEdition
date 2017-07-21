@@ -70,6 +70,29 @@ public class ShapeletTransformFactory {
         return st;
     }    
     
+    //time, number of cases, and length of series
+    public static ShapeletTransform createDefaultTimedTransform(long numShapeletsToEvaluate, int n, int m, long seed){
+        ShapeletSearchOptions sOp = new ShapeletSearchOptions.Builder()
+                                        .setMin(3)
+                                        .setMax(m)
+                                        .setSearchType(ShapeletSearch.SearchType.IMP_RANDOM)
+                                        .setNumShapelets(numShapeletsToEvaluate)
+                                        .setSeed(seed)
+                                        .build();
+        
+        
+        ShapeletTransformFactoryOptions options = new ShapeletTransformFactoryOptions.Builder()
+                                            .useClassBalancing()
+                                            .useBinaryClassValue()
+                                            .useCandidatePruning()
+                                            .setKShapelets(n)
+                                            .setDistanceType(DistanceType.IMP_ONLINE)
+                                            .setSearchOptions(sOp)
+                                            .build();
+        
+        return new ShapeletTransformFactory(options).getTransform();
+    }
+    
     private ShapeletSearch createSearch(ShapeletSearchOptions sOp){
         return new ShapeletSearchFactory(sOp).getShapeletSearch();
     }

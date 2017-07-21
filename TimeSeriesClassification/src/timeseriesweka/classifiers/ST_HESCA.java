@@ -33,9 +33,7 @@ import utilities.TrainAccuracyEstimate;
  *
  * @author raj09hxu
  */
-public class ST_HESCA  extends AbstractClassifier implements HiveCoteModule, SaveParameterInfo, TrainAccuracyEstimate{
-
-    public enum ST_TimeLimit {MINUTE, HOUR, DAY};
+public class ST_HESCA  extends AbstractClassifier implements HiveCoteModule, SaveParameterInfo, TrainAccuracyEstimate, ContractClassifier{
 
     //Minimum number of instances per class in the train set
     public static final int minimumRepresentation = 25;
@@ -113,28 +111,18 @@ public class ST_HESCA  extends AbstractClassifier implements HiveCoteModule, Sav
     }
     
     //set any value in nanoseconds you like.
+    @Override
     public void setTimeLimit(long time){
         timeLimit = time;
     }
     
     //pass in an enum of hour, minut, day, and the amount of them. 
-    public void setTimeLimit(ST_TimeLimit time, int amount){
+    @Override
+    public void setTimeLimit(TimeLimit time, int amount){
         //min,hour,day in longs.
         long[] times = {ShapeletTransformTimingUtilities.dayNano/24/60, ShapeletTransformTimingUtilities.dayNano/24, ShapeletTransformTimingUtilities.dayNano};
         
         timeLimit = times[time.ordinal()] * amount;
-    }
-    
-    public void setOneDayLimit(){
-        setTimeLimit(ST_TimeLimit.DAY, 1);
-    }
-    
-    public void setOneHourLimit(){
-        setTimeLimit(ST_TimeLimit.HOUR, 1);
-    }
-    
-    public void setOneMinuteLimit(){
-        setTimeLimit(ST_TimeLimit.MINUTE, 1);
     }
     
     public void setNumberOfShapelets(long numS){
