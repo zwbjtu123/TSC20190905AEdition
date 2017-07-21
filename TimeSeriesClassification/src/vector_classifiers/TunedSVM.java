@@ -342,9 +342,6 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
 //Delete the files here to clean up.
 
                 File f= new File(resultsPath+count+".csv");
-                if (f.exists()) {
-                    System.out.println("SDAFHILGHLKAG");
-                }
                 if(!f.delete())
                     System.out.println("DELETE FAILED "+resultsPath+count+".csv");
             }  
