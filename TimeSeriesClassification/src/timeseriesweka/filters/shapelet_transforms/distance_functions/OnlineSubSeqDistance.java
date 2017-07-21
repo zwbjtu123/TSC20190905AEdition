@@ -200,8 +200,8 @@ public class OnlineSubSeqDistance extends SubSeqDistance {
 
         
         //this is the lamda expression.
-        //Arrays.sort(sortedSeries (double[] o1, double[] o2) -> Double.compare(o1[1],o2[1]));
-        Arrays.sort(sortedSeries, (double[] o1, double[] o2) -> Double.compare(o1[1], o2[1]));
+        //Arrays.sort(sortedSeries, (double[] o1, double[] o2) -> Double.compare(o1[1],o2[1]));
+        Arrays.sort(sortedSeries, (double[] o1, double[] o2) -> Double.compare(o2[1], o1[1]));
 
         return sortedSeries;
     }
