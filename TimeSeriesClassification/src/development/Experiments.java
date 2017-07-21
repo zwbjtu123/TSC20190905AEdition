@@ -55,6 +55,7 @@ import vector_classifiers.TunedRotationForest;
 import utilities.ClassifierResults;
 import vector_classifiers.HESCA;
 import timeseriesweka.classifiers.ensembles.SaveableEnsemble;
+import vector_classifiers.SaveEachParameter;
 import weka.classifiers.trees.J48;
 import weka.classifiers.trees.RandomForest;
 import vector_classifiers.TunedRandomForest;
@@ -64,6 +65,7 @@ import weka.core.Instances;
 public class Experiments{
     public static int folds=30; 
     static boolean debug=true;
+    static boolean checkpoint=false;
     static boolean generateTrainFiles=true;
     public static Classifier setClassifier(String classifier, int fold){
         Classifier c=null;
@@ -383,6 +385,9 @@ public class Experiments{
 // Save internal info for ensembles
         if(c instanceof SaveableEnsemble)
            ((SaveableEnsemble)c).saveResults(resultsPath+"/internalCV_"+fold+".csv",resultsPath+"/internalTestPreds_"+fold+".csv");
+        if(checkpoint && c instanceof SaveEachParameter){     
+            ((SaveEachParameter) c).setPathToSaveParameters(resultsPath+"/fold"+fold+"_");
+        }
         try{              
             c.buildClassifier(data[0]);
             if(debug){
@@ -443,12 +448,13 @@ public class Experiments{
     3. Classifier =args[2];
     4.    String problem=args[3];
     5.    int fold=Integer.parseInt(args[4])-1;
+    6.  boolean whether to checkpoint parameter search
     */  
        
     public static void main(String[] args) throws Exception{
         for(String str:args)
             System.out.println(str);
-        if(args.length!=6){//Local run
+        if(args.length!=7){//Local run
             DataSets.problemPath="C:\\Users\\ajb\\Dropbox\\TSC Problems\\";
             DataSets.resultsPath="c:\\Temp\\";
             File f=new File(DataSets.resultsPath);
@@ -456,7 +462,7 @@ public class Experiments{
                 f.mkdirs();
             }
             generateTrainFiles=true;
-            String[] newArgs={"TunedSVMLinear","ItalyPowerDemand","4"};
+            String[] newArgs={"TunedSVMRBF","ItalyPowerDemand","1"};
             Experiments.singleClassifierAndFoldTrainTestSplit(newArgs);
             System.exit(0);
         }
@@ -469,9 +475,15 @@ public class Experiments{
             if(!f.isDirectory()){
                 f.mkdirs();
             }
-            String[] newArgs=new String[args.length-3];
-            for(int i=3;i<args.length;i++)
-                newArgs[i-3]=args[i];
+            String[] newArgs=new String[args.length-4];
+            for(int i=4;i<args.length-1;i++)
+                newArgs[i-4]=args[i];
+            String s=args[args.length-1].toLowerCase();
+            if(s.equals("true"))
+                checkpoint=true;
+            else
+                checkpoint=false;
+            
             Experiments.singleClassifierAndFoldTrainTestSplit(newArgs);
         }
     

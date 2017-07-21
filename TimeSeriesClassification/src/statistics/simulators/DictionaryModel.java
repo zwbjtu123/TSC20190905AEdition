@@ -350,15 +350,15 @@ public class DictionaryModel extends Model {
         private double amp;
         //The position in the series at which the shape1 begins.
 //        private int location;
-        
+        public void setBase(double b){ base=b;}
+        public void setAmp(double a){amp=a;}
         public static double DEFAULTBASE=-2;
         public static double DEFAULTAMP=4;
         
         //Default constructor, call randomise shape1 to get a random instance
         // The default length is 29, the shape1 extends from -2 to +2, is of 
         // type head and shoulders, and is located at index 0.
-        public Shape()
-        {
+        public Shape(){
             this(ShapeType.HEADSHOULDERS,DEFAULTSHAPELETLENGTH,DEFAULTBASE,DEFAULTAMP); 
             if(type==ShapeType.HEADSHOULDERS)
                 base=base/2;
@@ -370,6 +370,12 @@ public class DictionaryModel extends Model {
             if(type==ShapeType.HEADSHOULDERS)
                 base=base/2;
          }       
+        public Shape(int l, double b, double a){
+            randomiseShape();
+            length=l;
+            base=b;
+            amp=a;
+        }
         // This constructor produces a completely specified shape1
         public Shape(ShapeType t,int l, double b, double a){
             type=t;

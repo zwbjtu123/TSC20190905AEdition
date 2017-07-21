@@ -38,30 +38,51 @@ import utilities.TrainAccuracyEstimate;
 import utilities.ClassifierResults;
 import timeseriesweka.classifiers.ensembles.EnsembleFromFile;
 import timeseriesweka.classifiers.ensembles.EnsembleModule;
+import timeseriesweka.classifiers.ensembles.voting.MajorityConfidence;
 import timeseriesweka.filters.SAX;
 import utilities.Timer;
+import weka.classifiers.functions.Logistic;
+import weka.classifiers.functions.MultilayerPerceptron;
 
 /**
+ * CLASSIFICATION SETTINGS:
+ * Default setup is defined by setDefaultHESCASettings(), i.e:
+ *   Comps: SVML, MLP, NN, Logistic, C4.5
+ *   Weight: TrainAcc(4) (train accuracies to the power 4)
+ *   Vote: MajorityConfidence (summing probability distributions)  
+ * 
+ * For the original settings used in an older version of cote, call setOriginalHESCASettings(), i.e:
+ *   Comps: NN, SVML, SVMQ, C4.5, NB, BN, RotF, RandF
+ *   Weight: TrainAcc
+ *   Vote: MajorityVote
  *
- * In it's current form, can either build ensemble and classify from results files 
- * of its members, (call setResultsFileLocationParameters(...)) else by default
- * will build/train the ensemble members normally. It will not do any file writing
- (e.g trainFold# files of its members) aside from the overall ensemble train file as 
- defined by/related to SaveParameterInfo, if that has been set up (setCVPath(...))
+ * EXPERIMENTAL USAGE:
+ * By default will build/cv members normally, and perform no file reading/writing. 
+ * To turn on file handling of any kind, call
+ *          setResultsFileLocationParameters(...) 
+ * 1) Can build ensemble and classify from results files of its members, call 
+ *          setBuildIndividualsFromResultsFiles(true)
+ * 2) If members built from scratch, can write the results files of the individuals with 
+ *          setWriteIndividualsResultsFiles(true)
+ *          and
+ *          writeIndividualTestFiles(...) after testing is complete
+ * 3) And can write the ensemble train/testing files with 
+ *          writeEnsembleTrainTestFiles(...) after testing is complete
  * 
+ * There are a bunch of little intricacies if you want to do stuff other than a bog standard run  
  * 
- * @author James Large (james.large@uea.ac.uk) , Jason Lines (j.lines@uea.ac.uk)
+ * @author James Large (james.large@uea.ac.uk)
  *      
  */
 
 public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveParameterInfo, DebugPrinting, TrainAccuracyEstimate {
     
-    protected ModuleWeightingScheme weightingScheme = new TrainAcc();
-    protected ModuleVotingScheme votingScheme = new MajorityVote();
+    protected ModuleWeightingScheme weightingScheme;
+    protected ModuleVotingScheme votingScheme;
     protected EnsembleModule[] modules;
     
-    protected boolean setSeed = false;
-    protected int seed;
+    protected boolean setSeed = true;
+    protected int seed = 0;
     
     protected Classifier[] classifiers; //todo classifiers essentially stored in the modules
     //can get rid of this reference at some point 
@@ -77,7 +98,7 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveParam
     protected boolean writeEnsembleTrainingFile = false;
     protected String outputEnsembleTrainingPathAndFile;
     
-    protected boolean performEnsembleCV = false;
+    protected boolean performEnsembleCV = true;
     protected CrossValidator cv = null;
     //private ArrayList<ArrayList<Integer>> cvfoldsInfo; //populated if doing ensemble cv
     private ClassifierResults ensembleTrainResults = null;//data generated during buildclassifier if above = true 
@@ -118,14 +139,14 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveParam
         this.ensembleIdentifier = "HESCA";
         
         this.transform = null;
-        this.setDefaultClassifiers();
+        this.setDefaultHESCASettings();
     }
     
     public HESCA(SimpleBatchFilter transform) {
         this.ensembleIdentifier = "HESCA";
         
         this.transform = transform;
-        this.setDefaultClassifiers();
+        this.setDefaultHESCASettings();
     }
     
     public HESCA(Classifier[] classifiers, String[] classifierNames) {
@@ -165,10 +186,18 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveParam
     protected final void setDefaultClassifierParameters(){
         classifierParameters = new String[classifiers.length];
         for (String s : classifierParameters)
-            s = "internalHESCA";
+            s = "HESCAmember";
     }
     
-    public final void setDefaultClassifiers(){
+    /**
+     * Comps: NN, SVML, SVMQ, C4.5, NB, BN, RotF, RandF
+     * Weight: TrainAcc
+     * Vote: MajorityVote
+     */
+    public final void setOriginalHESCASettings(){
+        this.weightingScheme = new TrainAcc();
+        this.votingScheme = new MajorityVote();
+        
         this.classifiers = new Classifier[8];
         this.classifierNames = new String[8];
         
@@ -224,6 +253,49 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveParam
         classifiers[7] = new BayesNet();
         classifierNames[7] = "bayesNet";   
         
+        
+        setDefaultClassifierParameters();
+    }
+    
+    /**
+     * Uses the 'basic UCI' set up: 
+     * Comps: SVML, MLP, NN, Logistic, C4.5
+     * Weight: TrainAcc(4) (train accuracies to the power 4)
+     * Vote: MajorityConfidence (summing probability distributions)
+     */
+    public final void setDefaultHESCASettings(){
+        this.weightingScheme = new TrainAcc(4);
+        this.votingScheme = new MajorityConfidence();
+        
+        this.classifiers = new Classifier[5];
+        this.classifierNames = new String[5];
+        
+        SMO smo = new SMO();
+        smo.turnChecksOff();
+        smo.setBuildLogisticModels(true);
+        PolyKernel kl = new PolyKernel();
+        kl.setExponent(1);
+        smo.setKernel(kl);
+        if (setSeed)
+            smo.setRandomSeed(seed);
+        classifiers[0] = smo;
+        classifierNames[0] = "SVML";
+
+        kNN k=new kNN(100);
+        k.setCrossValidate(true);
+        k.normalise(false);
+        k.setDistanceFunction(new EuclideanDistance());
+        classifiers[1] = k;
+        classifierNames[1] = "NN";
+        
+        classifiers[2] = new J48();
+        classifierNames[2] = "C4.5";
+        
+        classifiers[3] = new Logistic();
+        classifierNames[3] = "Logistic";
+        
+        classifiers[4] = new MultilayerPerceptron();
+        classifierNames[4] = "MLP";
         
         setDefaultClassifierParameters();
     }
@@ -1063,7 +1135,7 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveParam
         hesca.setClassifiers(classifiers, names, params); //can also pass parameter strings for each if wanted, defaults to "internalHESCA" otherwise
         //does not check for \n characters or anything (which would break file format), just dont pass them
         
-        hesca.setDefaultClassifiers();//default ones still old/untuned, for old results recreation/correctness testing purposes
+        hesca.setDefaultHESCASettings();//default ones still old/untuned, for old results recreation/correctness testing purposes
         
         //default uses train acc weighting and majority voting (as before) 
         hesca.setWeightingScheme(new TrainAccByClass()); //or set new methods
@@ -1099,56 +1171,120 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveParam
         hesca.writeIndividualTestFiles(test.attributeToDoubleArray(test.classIndex()), throwExceptionOnFileParamsNotSetProperly);
     }
     
+    public static void test2() throws Exception {
+        System.out.println("test2()");
+        
+        for (int fold = 0; fold < 30; fold++) {
+            String dataset = "hayes-roth";
+    //        String dataset = "ItalyPowerDemand";
+
+            Instances all = ClassifierTools.loadData("C:/UCI Problems/"+dataset+"/"+dataset);
+    //        Instances train = ClassifierTools.loadData("C:/tsc problems/"+dataset+"/"+dataset+"_TRAIN");
+    //        Instances test = ClassifierTools.loadData("C:/tsc problems/"+dataset+"/"+dataset+"_TEST");
+
+            Instances[] insts = InstanceTools.resampleInstances(all, fold, 0.5);
+            Instances train = insts[0];
+            Instances test = insts[1];
+
+            HESCA hesca = new HESCA();
+            hesca.setRandSeed(fold);
+            
+            hesca.buildClassifier(train);
+            ClassifierTools.accuracy(test, hesca);
+
+            hesca.finaliseEnsembleTestResults(test.attributeToDoubleArray(test.classIndex()));
+            System.out.println(hesca.getTrainResults().acc);
+            System.out.println(hesca.getTestResults().acc);
+        }
+    }
     public static void test() throws Exception {
         System.out.println("test()");
         
-        String dataset = "ItalyPowerDemand";
-        
-        Instances train = ClassifierTools.loadData("C:/tsc problems/"+dataset+"/"+dataset+"_TRAIN");
-        Instances test = ClassifierTools.loadData("C:/tsc problems/"+dataset+"/"+dataset+"_TEST");
-        
-//        String[] classifierNames = new String[] {
-//            "bayesNet",
-//            "C4.5",
-//            "NB",
-//            "NN",
-//            "RandF",
-//            "RotF",
-//            "SVML",
-//            "SVMQ"
-//        };
-//  
-//        Classifier[] classifiers = new Classifier[] {
-//            null, null, null, null, null, null, null, null
-//        };
-        
-//        HESCA hesca = new HESCA(classifiers, classifierNames);
-        HESCA hesca = new HESCA();
-        hesca.setResultsFileLocationParameters("C:/Users/xmw13bzu/Documents/Code/PHDCode/PHDCode/buildTimetests/", dataset, 0);
-//        hesca.setResultsFileLocationParameters("buildTimetests/", dataset, -1);
-        hesca.setBuildIndividualsFromResultsFiles(true);
-        hesca.setPerformCV(true);
-//        hesca.setWeightingScheme(new MCCWeighting());
-//        hesca.setVotingScheme(new StackingOnPreds(new SMO())); 
-//        hesca.setVotingScheme(new NaiveBayesCombiner());
-        
-        hesca.buildClassifier(train);
-//        System.out.println(ClassifierTools.accuracy(test, hesca));
+        int fold = 18;
+        for (fold = 0; fold < 30; fold++) {
+            String dataset = "hayes-roth";
+    //        String dataset = "ItalyPowerDemand";
 
-        double acc = .0;
-        for (Instance instance : test) {
-            if (instance.classValue() == hesca.classifyInstance(instance))
-                acc++;
+            Instances all = ClassifierTools.loadData("C:/UCI Problems/"+dataset+"/"+dataset);
+    //        Instances train = ClassifierTools.loadData("C:/tsc problems/"+dataset+"/"+dataset+"_TRAIN");
+    //        Instances test = ClassifierTools.loadData("C:/tsc problems/"+dataset+"/"+dataset+"_TEST");
+
+            Instances[] insts = InstanceTools.resampleInstances(all, fold, 0.5);
+            Instances train = insts[0];
+            Instances test = insts[1];
+
+    //        String[] classifierNames = new String[] {
+    //            "bayesNet",
+    //            "C4.5",
+    //            "NB",
+    //            "NN",
+    //            "RandF",
+    //            "RotF",
+    //            "SVML",
+    //            "SVMQ"
+    //        };
+    //  
+    //        Classifier[] classifiers = new Classifier[] {
+    //            null, null, null, null, null, null, null, null
+    //        };
+
+
+
+            SMO smo = new SMO();
+            smo.turnChecksOff();
+            smo.setBuildLogisticModels(true);
+            PolyKernel kl = new PolyKernel();
+            kl.setExponent(1);
+            smo.setKernel(kl);
+            smo.setRandomSeed(fold);
+
+            kNN k=new kNN(100);
+            k.setCrossValidate(true);
+            k.normalise(false);
+            k.setDistanceFunction(new EuclideanDistance());
+
+            Classifier[] classifiers = new Classifier[] {
+                k, smo, new J48(), new Logistic(), new MultilayerPerceptron()
+            };
+
+            String[] classifierNames = new String[] { 
+                "NN_Random",
+                "SVML_Random",
+                "C4.5_Random",
+                "Logistic_Random",
+                "MLP_Random"
+            };
+
+            HESCA hesca = new HESCA(classifiers, classifierNames);
+    //        HESCA hesca = new HESCA();
+            hesca.setResultsFileLocationParameters("C:/JamesLPHD/test3/", dataset, fold);
+    //        hesca.setResultsFileLocationParameters("buildTimetests/", dataset, -1);
+            hesca.setBuildIndividualsFromResultsFiles(false);
+            hesca.setWriteIndividualsResultsFiles(true);
+//            hesca.setPerformCV(true); //now defaults to true
+            hesca.setWeightingScheme(new TrainAcc(4));
+            hesca.setVotingScheme(new MajorityConfidence()); 
+    //        hesca.setVotingScheme(new NaiveBayesCombiner());
+            hesca.setRandSeed(fold);
+            hesca.buildClassifier(train);
+    //        System.out.println(ClassifierTools.accuracy(test, hesca));
+
+
+            double acc = .0;
+            for (Instance instance : test) {
+                if (instance.classValue() == hesca.classifyInstance(instance))
+                    acc++;
+            }
+            acc/=test.numInstances();
+    //        System.out.println("acc = " + acc);
+
+            hesca.finaliseEnsembleTestResults(test.attributeToDoubleArray(test.classIndex()));
+            System.out.println(hesca.getTrainResults().acc);
+            System.out.println(hesca.getTestResults().acc);
+
+            hesca.writeIndividualTestFiles(test.attributeToDoubleArray(test.classIndex()), true);
+            hesca.writeEnsembleTrainTestFiles(test.attributeToDoubleArray(test.classIndex()), true);
         }
-        acc/=test.numInstances();
-        System.out.println("acc = " + acc);
-        
-        hesca.finaliseEnsembleTestResults(test.attributeToDoubleArray(test.classIndex()));
-        System.out.println(hesca.getTestResults().acc);
-        
-        hesca.writeEnsembleTrainTestFiles(test.attributeToDoubleArray(test.classIndex()), true);
-        
-//        hesca.writeIndividualTestFiles(test.attributeToDoubleArray(test.classIndex()), false);
     }
     
     public static void main(String[] args) throws Exception {
@@ -1168,7 +1304,8 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveParam
 //        
 //        buildBulkResultsFiles("bulkFilesTest/", new Classifier[] { new kNN(), new NaiveBayes() }, new String[] { "NN", "nbayes" });
 
-        test();
+//        test();
+        test2();
 //        debugTest();
 //        ensembleVariationTests(true, completeUCIDatasets, "E:/JamesLPHD/HESCA/UCI/UCIResults/", "test");
 //        ensembleVariationTests(true, completeUCIDatasets, "E:/20170301transfer/UCIResults/", "test");
@@ -1209,330 +1346,6 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveParam
         System.out.println(h.buildEnsembleReport(true, true));
     }       
      
-    private static int numResamples = 25;
-    
-    private static final String[] smallishUCRdatasets  = { 
-//        "Adiac",
-//        "ArrowHead",
-//        "CBF",
-//        "ChlorineConcentration",
-//        "Coffee",
-//        "CricketX",
-//        "CricketY",
-//        "CricketZ",
-//        "DiatomSizeReduction",
-//        "DistalPhalanxOutlineAgeGroup",
-//        "DistalPhalanxOutlineCorrect",
-//        "DistalPhalanxTW",
-//        "ECG200",
-        "ItalyPowerDemand",
-//        "MiddlePhalanxOutlineAgeGroup",
-//        "MiddlePhalanxOutlineCorrect",
-//        "MiddlePhalanxTW",
-//        "MoteStrain",
-//        "ProximalPhalanxOutlineAgeGroup",
-//        "ProximalPhalanxOutlineCorrect",
-//        "ProximalPhalanxTW",
-//        "SonyAIBORobotSurface1",
-//        "SonyAIBORobotSurface2",
-//        "SyntheticControl",
-//        "TwoLeadECG"
-    };
-    
-    private static final String[] completeUCIDatasets = { 
-        "acute-inflammation","acute-nephritis","annealing","arrhythmia","balloons","blood","breast-cancer","breast-cancer-wisc",
-"breast-cancer-wisc-diag","breast-cancer-wisc-prog","breast-tissue","car","cardiotocography-10clases","cardiotocography-3clases","chess-krvkp","congressional-voting",
-"conn-bench-sonar-mines-rocks","conn-bench-vowel-deterding","credit-approval","cylinder-bands","dermatology","echocardiogram","ecoli","energy-y1",
-"energy-y2","fertility","flags","glass","haberman-survival","hayes-roth","heart-cleveland","heart-hungarian",
-"heart-switzerland","heart-va","hepatitis","hill-valley","horse-colic","ilpd-indian-liver","image-segmentation","ionosphere",
-"iris","led-display","lenses","libras","low-res-spect","lung-cancer","lymphography","molec-biol-promoter",
-"molec-biol-splice","monks-1","monks-2","monks-3","musk-1","ozone","parkinsons","pima",
-"pittsburg-bridges-MATERIAL","pittsburg-bridges-REL-L","pittsburg-bridges-SPAN","pittsburg-bridges-T-OR-D","pittsburg-bridges-TYPE","planning","post-operative","primary-tumor",
-"seeds","semeion","soybean","spect","spectf","statlog-australian-credit","statlog-german-credit","statlog-heart",
-"statlog-image","statlog-landsat","statlog-vehicle","steel-plates","synthetic-control","teaching","thyroid","tic-tac-toe",
-"titanic","trains","twonorm","vertebral-column-2clases","vertebral-column-3clases","waveform","waveform-noise","wine",
-"wine-quality-red","yeast","zoo",
-    };
-    
-    private static void buildBulkResultsFiles(String outpath, Classifier[] cs, String[] cn) throws Exception {
-        System.out.println("buildBulkResultsFiles()");
-        
-        double done = 0;
-        for (String dset : smallishUCRdatasets) {
-            Instances train = ClassifierTools.loadData("c:/tsc problems/"+dset+"/"+dset+"_TRAIN");
-            Instances test = ClassifierTools.loadData("c:/tsc problems/"+dset+"/"+dset+"_TEST");
-            
-            for (int r = 0; r < numResamples; ++r) 
-                HESCA.buildAndWriteFullIndividualTrainTestResults(train, test, outpath, dset, "", r, cs, cn, null, true, true, true); 
-            
-            System.out.println(((++done)/smallishUCRdatasets.length));
-        }
-    }
-    
-    
-    private static void ensembleVariationTests(boolean uci, String[] dsets, String individualResultsDirectory, String fileSuffix) throws Exception {
-        System.out.println("schemeTests()");
-        
-        Classifier[] classifiers = null;
-        String[] classifierNames = new String[] { "Default" };
-//        classifiers = new Classifier[] { null,null,null };
-//        classifierNames = new String[] {
-//           "SVM", "RotFCV", "RandFCV" // 
-//        };
-        
-        ModuleWeightingScheme[] weightSchemes = new ModuleWeightingScheme[] { 
-//            new ConfusionEntropyByClass(), //broke
-//            new ConfusionEntropy(),
-//            new EqualWeighting(),
-//            new MCCWeighting(),
-            new TrainAcc(),
-//            new TrainAccOrMCC(2.0),
-//            new TrainAccOrMCC(3.0),
-//            new TrainAccOrMCC(),
-//            new TrainAccOrMCC(10.0),
-//            new TrainAccByClass(),
-//            new FScore(),//1.0 default 
-//            new FScore(0.5),
-//            new FScore(2.0),
-        };
-        
-        ModuleVotingScheme[] voteSchemes = new ModuleVotingScheme[] { 
-//            new MajorityVote(),
-//            new MajorityVoteByCorrectedConfidence(),
-//            new MajorityVoteByConfidence(),
-//            new MajorityConfidence(),
-//            new NP_MAX(),
-//            new AverageOfConfidences(),
-//            new AverageVoteByConfidence(),
-//            new ProductOfConfidences(),
-//            new ProductOfVotesByConfidence()
-//            new BestIndividualOracle(),
-//            new BestIndividualTrain()
-//            new AbstractStacking(new NaiveBayes()),
-//            new AbstractStacking(new J48()),
-//            new AbstractStacking(new RandomForest()),
-//            new AbstractStacking(new kNN()),
-//            new AbstractStacking(new BayesNet()),
-        };
-        
-        
-        double[][][] accs = new double[voteSchemes.length][weightSchemes.length][dsets.length];
-        
-        for (int v = 0; v < voteSchemes.length; ++v) {
-            ModuleVotingScheme vscheme = voteSchemes[v];
-            
-            for (int i = 0; i < weightSchemes.length; i++) {
-                ModuleWeightingScheme wscheme = weightSchemes[i];
-
-                for (int j = 0; j < dsets.length; j++) {
-                    String dataset = dsets[j];
-
-                    Instances train=null, test=null, all=null;
-                    if (uci) {
-                        all = ClassifierTools.loadData("C:/UCI Problems/"+dataset+"/"+dataset);
-                    }else {//ucr
-                        train = ClassifierTools.loadData("C:/TSC Problems/"+dataset+"/"+dataset+"_TRAIN");
-                        test = ClassifierTools.loadData("C:/TSC Problems/"+dataset+"/"+dataset+"_TEST");
-                    } 
-                        
-                    
-                    double acc = .0;
-                    for (int r = 0; r < numResamples; ++r)  {
-
-                        Instances[] data=null;
-                        if (uci)
-                            data = InstanceTools.resampleInstances(all, r, 0.5);
-                        else //ucr
-                            data = InstanceTools.resampleTrainAndTestInstances(train, test, r);
-
-                        HESCA h;
-                        if (classifiers==null)
-                            h = new HESCA();
-                        else  
-                            h = new HESCA(classifiers,classifierNames);
-//                        h.setDebugPrinting(true);
-                        h.setWeightingScheme(wscheme);
-                        h.setVotingScheme(vscheme);
-//                        h.getVotingScheme().setDebugPrinting(true);
-
-                        h.setResultsFileLocationParameters(individualResultsDirectory, dataset, r);
-                        h.setBuildIndividualsFromResultsFiles(true);
-                        h.buildClassifier(data[0]);
-
-                        double a = ClassifierTools.accuracy(data[1], h);
-                        acc += a;
-                        
-//                        System.out.println(h.buildEnsembleReport(true, true));
-                    }
-
-                    acc /= numResamples;
-                    accs[v][i][j] = acc;
-                }
-
-                System.out.println("\t" + wscheme.getClass().getName() + " done");
-            }
-            
-            System.out.println(vscheme.getClass().getName() + " done");
-        }
-        
-        OutFile out = new OutFile(arrayToStringNoSpace(classifierNames)+"_BYVOTE"+fileSuffix+".csv");
-        for (int v = 0; v < voteSchemes.length; v++) {
-            out.writeLine("" + voteSchemes[v]);
-        
-            for (int w = 0; w < weightSchemes.length; w++) 
-                out.writeString("," + weightSchemes[w]);
-            out.writeLine("");
-
-            for (int d = 0; d < dsets.length; ++d) {
-                out.writeString(dsets[d]);
-
-                for (int w = 0; w < weightSchemes.length; w++)
-                    out.writeString("," + accs[v][w][d]);
-                out.writeLine("");
-            }
-            
-            out.writeLine("\n\n");
-        }
-        out.closeFile();
-        
-        OutFile out2 = new OutFile(arrayToStringNoSpace(classifierNames)+"_BYWEIGHT"+fileSuffix+".csv");
-         for (int w = 0; w < weightSchemes.length; w++) {
-            out2.writeLine("" + weightSchemes[w]);
-        
-            for (int v = 0; v < voteSchemes.length; v++)
-                out2.writeString("," + voteSchemes[v]);
-            out2.writeLine("");
-
-            for (int d = 0; d < dsets.length; ++d) {
-                out2.writeString(dsets[d]);
-
-                for (int v = 0; v < voteSchemes.length; v++)
-                    out2.writeString("," + accs[v][w][d]);
-                out2.writeLine("");
-            }
-            
-            out2.writeLine("\n\n");
-        }
-        out2.closeFile();
-        
-        OutFile out3 = new OutFile(arrayToStringNoSpace(classifierNames)+"_COMBINED"+fileSuffix+".csv");
-        for (int v = 0; v < voteSchemes.length; v++)
-            for (int w = 0; w < weightSchemes.length; w++) 
-                out3.writeString("," + voteSchemes[v] + "+" + weightSchemes[w]);
-        out3.writeLine("");
-
-        for (int d = 0; d < dsets.length; ++d) {
-            out3.writeString(dsets[d]);
-
-            for (int v = 0; v < voteSchemes.length; v++)
-                for (int w = 0; w < weightSchemes.length; w++)
-                    out3.writeString("," + accs[v][w][d]);
-            out3.writeLine("");
-        }
-        out3.closeFile();
-        
-//////////   SUMMARY FILE,     below is all hacks to get old code to work, look away
-        double[][] accscombined = new double[weightSchemes.length*voteSchemes.length][dsets.length];
-        String[] combinedNames = new String[weightSchemes.length*voteSchemes.length];
-        for (int v = 0; v < voteSchemes.length; v++)
-            for (int w = 0; w < weightSchemes.length; w++) {
-                accscombined[v*weightSchemes.length + w] = accs[v][w];
-                combinedNames[v*weightSchemes.length + w] =  voteSchemes[v] + "+" + weightSchemes[w];
-            }
-      
-        //avg ranks
-        double[][] ranks = findRanks(accscombined);
-        
-        double[] rankmeans = new double[ranks.length];
-        for (int c = 0; c < ranks.length; c++)
-            rankmeans[c] = StatisticalUtilities.mean(ranks[c], false);
-            
-        //summary
-        OutFile summ=new OutFile(arrayToStringNoSpace(classifierNames)+"_SUMMARY"+fileSuffix+".csv");
-        for (int c = 0; c < combinedNames.length; c++)
-            summ.writeString("," + combinedNames[c]);
-        summ.writeLine("");
-        
-        summ.writeString("ranks:");
-        for (int c = 0; c < rankmeans.length; c++)
-            summ.writeString("," + rankmeans[c]);
-        summ.writeString("\n");
-        
-        summ.writeString("accs:");
-        for (int c = 0; c < accscombined.length; c++)
-            summ.writeString("," + StatisticalUtilities.mean(accscombined[c], false));
-        summ.writeString("\n\n");
-        
-        for (int c = 0; c < accscombined.length; c++)
-            summ.writeString("," + combinedNames[c]);
-        summ.writeLine("");
-        
-        for (int c1 = 0; c1 < accscombined.length; c1++) {
-            summ.writeString(combinedNames[c1]);
-            for (int c2 = 0; c2 < accscombined.length; c2++) {
-                int wins=0, draws=0, losses=0;
-                for (int d = 0; d < dsets.length; d++) {
-                    
-                    if (accscombined[c1][d] > accscombined[c2][d])
-                        wins++;
-                    else if ((accscombined[c1][d] == accscombined[c2][d]))
-                        draws++;
-                    else 
-                        losses++;
-                }
-                summ.writeString(","+wins+"|"+draws+"|"+losses);
-            }
-            summ.writeLine("");
-        }
-        
-        summ.writeString("\n\nPairwise tests:\n");
-        summ.writeString(MultipleClassifiersPairwiseTest.runTests(arrayToStringNoSpace(classifierNames)+"_COMBINED"+fileSuffix+".csv").toString());
-        
-        summ.closeFile();
-        
-        
-    }
-    
-    private static String arrayToStringNoSpace(String[] arr) {
-        StringBuilder sb = new StringBuilder(arr[0]);
-        
-        for (int i = 1; i < arr.length; i++)
-            sb.append(",").append(arr[i]);
-        
-        return sb.toString();
-    }
-    
-    private static String[] stringToArray(String str, String delim) {
-        String[] arr = str.trim().split(delim);
-        return arr;
-    }
-    
-    /**
-     * @param accs [classifiers][acc on datasets]
-     * @return [classifiers][rank on dataset]
-     */
-    private static double[][] findRanks(double[][] accs) {
-        double[][] ranks = new double[accs.length][accs[0].length];
-        
-        for (int d = 0; d < accs[0].length; d++) {
-            Double[] a = new Double[accs.length];
-            for (int c = 0; c < accs.length; c++) 
-                a[c] = accs[c][d];
-            
-            Arrays.sort(a, Collections.reverseOrder());
-            
-            for (int c1 = 0; c1 < accs.length; c1++) {
-                for (int c2 = 0; c2 < accs.length; c2++) {
-                    if (a[c1] == accs[c2][d]) {
-                        ranks[c2][d] = c1+1; //count from one
-                    }
-                }
-            }
-        }
-        
-        return ranks;
-    }
-    
     public static void debugTest() throws Exception {
         
         kNN k=new kNN(100);

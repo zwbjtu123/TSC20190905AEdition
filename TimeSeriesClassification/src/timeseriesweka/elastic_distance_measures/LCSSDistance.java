@@ -3,7 +3,7 @@
  * and open the template in the editor.
  */
 
-package weka.core.elastic_distance_measures;
+package timeseriesweka.elastic_distance_measures;
 
 import weka.core.EuclideanDistance;
 import weka.core.Instance;

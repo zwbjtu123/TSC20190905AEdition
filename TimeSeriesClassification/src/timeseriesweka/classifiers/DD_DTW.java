@@ -11,7 +11,7 @@ import weka.core.EuclideanDistance;
 import weka.core.Instance;
 import weka.core.Instances;
 import weka.core.TechnicalInformation;
-import weka.core.elastic_distance_measures.DTW_DistanceBasic;
+import timeseriesweka.elastic_distance_measures.DTW_DistanceBasic;
 import weka.core.neighboursearch.PerformanceStats;
 
 /**

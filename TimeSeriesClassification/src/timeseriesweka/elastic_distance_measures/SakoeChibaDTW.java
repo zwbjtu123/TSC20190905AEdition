@@ -1,7 +1,7 @@
 /*
  * Sakoe Chiba DTW distance metric
  */
-package weka.core.elastic_distance_measures;
+package timeseriesweka.elastic_distance_measures;
 
 import weka.core.Instances;
 

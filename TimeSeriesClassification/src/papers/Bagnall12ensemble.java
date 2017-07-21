@@ -26,7 +26,7 @@ import weka.classifiers.bayes.NaiveBayes;
 import weka.classifiers.functions.SMO;
 import weka.classifiers.functions.supportVector.PolyKernel;
 import weka.classifiers.functions.supportVector.RBFKernel;
-import weka.classifiers.lazy.DTW_1NN;
+import timeseriesweka.classifiers.DTW_1NN;
 import weka.classifiers.lazy.kNN;
 import weka.classifiers.meta.AdaBoostM1;
 import weka.classifiers.meta.Bagging;

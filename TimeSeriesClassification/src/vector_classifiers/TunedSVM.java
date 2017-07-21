@@ -10,6 +10,7 @@ m_C
  */
 package vector_classifiers;
 
+import fileIO.InFile;
 import fileIO.OutFile;
 import java.io.File;
 import java.text.DecimalFormat;
@@ -17,6 +18,7 @@ import java.util.ArrayList;
 import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import timeseriesweka.classifiers.ParameterSplittable;
 import utilities.ClassifierTools;
 import utilities.CrossValidator;
 import utilities.InstanceTools;
@@ -44,7 +46,7 @@ import weka.core.*;
  2. Could use libSVM instead
  * 
  */
-public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEstimate {
+public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEstimate,SaveEachParameter{
     boolean setSeed=false;
     int seed;
     int min=-16;
@@ -61,6 +63,21 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
     private boolean kernelOptimise=false;   //Choose between linear, quadratic and RBF kernel
     private boolean paraOptimise=true;
     private ClassifierResults res =new ClassifierResults();
+    
+    
+    protected String resultsPath;
+    protected boolean saveEachParaAcc=false;
+    @Override
+    public void setPathToSaveParameters(String r){
+            resultsPath=r;
+            setSaveEachParaAcc(true);
+    }
+    @Override
+    public void setSaveEachParaAcc(boolean b){
+        saveEachParaAcc=b;
+    }
+    
+    
     public TunedSVM(){
         kernelOptimise=false;
         kernel=KernelType.RBF;
@@ -101,8 +118,6 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
         
         return result;
     }
-    
-    
     public enum KernelType {LINEAR,QUADRATIC,RBF};
     KernelType kernel;
     public void debug(boolean b){
@@ -170,8 +185,20 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
         
         ArrayList<ResultsHolder> ties=new ArrayList<>();
         ClassifierResults tempResults;
+        int count=0;
+        OutFile temp=null;
         for(double p1:paraSpace){
             for(double p2:paraSpace){
+                count++;
+                if(saveEachParaAcc){// check if para value already done
+                    File f=new File(resultsPath+count+".csv");
+                    if(f.exists() && f.length()>0)
+                        continue;//If done, ignore skip this iteration
+                    else
+                        temp=new OutFile(resultsPath+count+".csv");
+                   if(debug)
+                       System.out.println("PARA COUNT ="+count);
+                }
                 SMO model = new SMO();
                 RBFKernel kern = new RBFKernel();
                 kern.setGamma(p2);
@@ -188,27 +215,55 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
 
                 if(debug)
                     System.out.println(" C= "+p1+" Gamma = "+p2+" Acc = "+(1-e));
+                if(saveEachParaAcc){// Save to file and close
+                    temp.writeLine(tempResults.writeResultsFileToString());
+                    temp.closeFile();
+                }                
                 if(e<minErr){
                     minErr=e;
                     ties=new ArrayList<>();//Remove previous ties
                     ties.add(new ResultsHolder(p1,p2,tempResults));
                 }
                 else if(e==minErr){//Sort out ties
-                        ties.add(new ResultsHolder(p1,p2,tempResults));
+                    ties.add(new ResultsHolder(p1,p2,tempResults));
                 }
             }
         }
-        
         double bestC;
         double bestSigma;
+        minErr=1;
+        if(saveEachParaAcc){// Read them all from file, pick the best
+            count=0;
+            for(double p1:paraSpace){
+                for(double p2:paraSpace){
+                    count++;
+                    tempResults = new ClassifierResults();
+                    tempResults.loadFromFile(resultsPath+count+".csv");
+                    double e=1-tempResults.acc;
+                    if(e<minErr){
+                        minErr=e;
+                        ties=new ArrayList<>();//Remove previous ties
+                        ties.add(new ResultsHolder(p1,p2,tempResults));
+                    }
+                    else if(e==minErr){//Sort out ties
+                            ties.add(new ResultsHolder(p1,p2,tempResults));
+                    }
+//Delete the files here to clean up.
+                    
+                    File f= new File(resultsPath+count+".csv");
+                    if(!f.delete())
+                        System.out.println("DELETE FAILED "+resultsPath+count+".csv");
+                }            
+            }
+        }
         ResultsHolder best=ties.get(rng.nextInt(ties.size()));
         bestC=best.x;
         bestSigma=best.y;
-        res=best.res;
         paras[0]=bestC;
         setC(bestC);
         ((RBFKernel)m_kernel).setGamma(bestSigma);
         paras[1]=bestSigma;
+        res=best.res;
         if(debug)
             System.out.println("Best C ="+bestC+" best Gamma = "+bestSigma+" best train acc = "+res.acc);
     }
@@ -231,8 +286,20 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
         
         ArrayList<ResultsHolder> ties=new ArrayList<>();
         ClassifierResults tempResults;            
-
+        int count=0;
+        OutFile temp=null;
+        
         for(double d: paraSpace){
+            count++;
+            if(saveEachParaAcc){// check if para value already done
+                File f=new File(resultsPath+count+".csv");
+                if(f.exists() && f.length()>0)
+                    continue;//If done, ignore skip this iteration
+                else
+                    temp=new OutFile(resultsPath+count+".csv");
+               if(debug)
+                   System.out.println("PARA COUNT ="+count);
+            }
             
             SMO model = new SMO();
             model.setKernel(m_kernel);
@@ -244,7 +311,10 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
 //                eval.crossValidateModel(model, temp, folds, rng);
             double e=1-tempResults.acc;
             accuracy.add(tempResults.acc);
-
+            if(saveEachParaAcc){// Save to file and close
+                temp.writeLine(tempResults.writeResultsFileToString());
+                temp.closeFile();
+            }                
             if(e<minErr){
                 minErr=e;
                ties=new ArrayList<>();//Remove previous ties
@@ -254,6 +324,29 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
                 ties.add(new ResultsHolder(d,0.0,tempResults));
             }
         }
+        if(saveEachParaAcc){// Read them all from file, pick the best
+            count=0;
+            for(double p1:paraSpace){
+                count++;
+                tempResults = new ClassifierResults();
+                tempResults.loadFromFile(resultsPath+count+".csv");
+                double e=1-tempResults.acc;
+                if(e<minErr){
+                    minErr=e;
+                    ties=new ArrayList<>();//Remove previous ties
+                    ties.add(new ResultsHolder(p1,0.0,tempResults));
+                }
+                else if(e==minErr){//Sort out ties
+                        ties.add(new ResultsHolder(p1,0.0,tempResults));
+                }
+//Delete the files here to clean up.
+
+                File f= new File(resultsPath+count+".csv");
+                if(!f.delete())
+                    System.out.println("DELETE FAILED "+resultsPath+count+".csv");
+            }  
+        }        
+        
         ResultsHolder best=ties.get(rng.nextInt(ties.size()));
         setC(best.x);
         res=best.res;
@@ -275,6 +368,7 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
                     PolyKernel p=new PolyKernel();
                     p.setExponent(1);
                     temp.setKernel(p);
+                    temp.setStandardParas();
                     temp.tunePolynomial(train);
                     linearCVAcc=temp.res.acc;
                     linearBestC=temp.getC();
@@ -283,6 +377,7 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
                     PolyKernel p2=new PolyKernel();
                     p2.setExponent(2);
                     temp.setKernel(p2);
+                    temp.setStandardParas();
                     temp.tunePolynomial(train);
                     quadraticCVAcc=temp.res.acc;
                     quadraticBestC=temp.getC();
@@ -290,6 +385,7 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
                 case RBF:
                     RBFKernel kernel2 = new RBFKernel();
                     temp.setKernel(kernel2);
+                    temp.setStandardParas();
                     temp.tuneRBF(train);
                     rbfCVAcc=temp.res.acc;
                     rbfParas[0]=temp.getC();
@@ -417,23 +513,27 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
     
     
     public static void main(String[] args) {
-        jamesltest();
-        System.exit(0);
+//        jamesltest();
+ //       System.exit(0);
         
         
-        String sourcePath="C:\\Users\\ajb\\Dropbox\\UCI Problems\\";
-        String problemFile="monks-1";
+        String sourcePath="C:\\Users\\ajb\\Dropbox\\TSC Problems\\";
+        String problemFile="ItalyPowerDemand";
         DecimalFormat df = new DecimalFormat("###.###");
-        Instances all=ClassifierTools.loadData(sourcePath+problemFile+"/"+problemFile);
+        Instances all=ClassifierTools.loadData(sourcePath+problemFile+"/"+problemFile+"_TRAIN");
         Instances[] split=InstanceTools.resampleInstances(all,0,0.5);
         Instances train=split[0];
         Instances test=split[1];
         try{
             TunedSVM svml=new TunedSVM();
-            PolyKernel kernel = new PolyKernel();
-            kernel.setExponent(1);
-            svml.setKernel(kernel);
-            TunedSVM svmq=new TunedSVM();
+                svml.setPathToSaveParameters("C:\\Temp\\fold1_");
+                svml.optimiseParas(true);
+                svml.optimiseKernel(false);
+                svml.setBuildLogisticModels(true);
+                svml.setSeed(0);                
+                svml.setKernelType(TunedSVM.KernelType.RBF);
+                svml.debug=true;
+/*            TunedSVM svmq=new TunedSVM();
             kernel = new PolyKernel();
             kernel.setExponent(2);
             svmq.setKernel(kernel);
@@ -441,10 +541,6 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
             RBFKernel kernel2 = new RBFKernel();
             kernel2.setGamma(1/(double)(all.numAttributes()-1));
             svmrbf.setKernel(kernel2);
-           svml.buildClassifier(train);
-            System.out.println("BUILT LINEAR = "+svml);
-            System.out.println(" Optimal C ="+svml.getC());
-             
             svmq.buildClassifier(train);
             System.out.println("BUILT QUAD");
             System.out.println(" Optimal C ="+svmq.getC());
@@ -452,14 +548,22 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
             System.out.println("BUILT RBF");
             System.out.println(" Optimal C ="+svmrbf.getC());
             double accL=0,accQ=0,accRBF=0;
-            accL=ClassifierTools.accuracy(test, svml);
            accQ=ClassifierTools.accuracy(test, svmq);
            accRBF=ClassifierTools.accuracy(test,svmrbf);
 
-            System.out.println("ACC on "+problemFile+": Linear = "+df.format(accL)+", Quadratic = "+df.format(accQ)+", RBF = "+df.format(accRBF));
+        
+*/        
+           svml.buildClassifier(train);
+            System.out.println("BUILT LINEAR = "+svml);
+            System.out.println(" Optimal C ="+svml.getC());
+             
+            double accL=ClassifierTools.accuracy(test, svml);
+
+            System.out.println("ACC on "+problemFile+": Linear = "+df.format(accL)); //+", Quadratic = "+df.format(accQ)+", RBF = "+df.format(accRBF));
                 
          }catch(Exception e){
-            System.out.println(" Exception builing a classifier = "+e);
+            System.out.println(" Exception building a classifier = "+e);
+            e.printStackTrace();
             System.exit(0);
         }
     }

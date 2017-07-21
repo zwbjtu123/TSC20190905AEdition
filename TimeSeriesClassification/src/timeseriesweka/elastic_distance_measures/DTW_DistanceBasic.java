@@ -1,4 +1,4 @@
-package weka.core.elastic_distance_measures;
+package timeseriesweka.elastic_distance_measures;
 /**
 
 Basic DTW implementation for Weka. /Each instance is assumed to be a time series. Basically we

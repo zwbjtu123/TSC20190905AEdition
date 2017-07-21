@@ -9,8 +9,8 @@ import weka.classifiers.lazy.kNN;
 import weka.core.Capabilities;
 import weka.core.Instance;
 import weka.core.Instances;
-import weka.core.elastic_distance_measures.DTW;
-import weka.core.elastic_distance_measures.WeightedDTW;
+import timeseriesweka.elastic_distance_measures.DTW;
+import timeseriesweka.elastic_distance_measures.WeightedDTW;
 //import efficient_standalone_classifiers.Eff
 /**
  *
