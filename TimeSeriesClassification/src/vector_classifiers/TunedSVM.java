@@ -46,7 +46,7 @@ import weka.core.*;
  2. Could use libSVM instead
  * 
  */
-public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEstimate,SaveEachParameter{
+public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEstimate,SaveEachParameter,ParameterSplittable{
     boolean setSeed=false;
     int seed;
     int min=-16;
@@ -110,13 +110,57 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
     }     
     @Override
     public String getParameters() {
-        String result="BuildTime,"+res.buildTime+",CVAcc,"+res.acc+",C,"+paras[0];
+        String result="BuildTime,"+res.buildTime+",CVAcc,"+res.acc;
+        result+=",C,"+paras[0];
         if(paras.length>1)
             result+=",Gamma,"+paras[1];
        for(double d:accuracy)
             result+=","+d;
         
         return result;
+    }
+
+    @Override
+    public void setParamSearch(boolean b) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public void setParametersFromIndex(int x) {
+        kernelOptimise=false;   //Choose between linear, quadratic and RBF kernel
+        paraOptimise=false;
+        int numParas=max-min;
+        if(max*min<0)
+            numParas++;
+        if(kernel==KernelType.LINEAR || kernel==KernelType.QUADRATIC){//Single parameter between 1 and 33
+            if(x<1 || x>numParas)//Error, invalid range
+                throw new UnsupportedOperationException("ERROR parameter index "+x+" out of range "+min+" to "+ "max"); //To change body of generated methods, choose Tools | Templates.
+            paras=new double[1];
+            paras[0]=Math.pow(2,min+(x-1));
+            setC(paras[0]);
+        }
+        else if(kernel==KernelType.RBF){//Two parameters
+            if(x<1 || x>numParas*numParas)//Error, invalid range
+                throw new UnsupportedOperationException("ERROR parameter index "+x+" out of range "+min+" to "+ "max"); //To change body of generated methods, choose Tools | Templates.
+            paras=new double[2];
+            int temp=min+(x-1)/numParas;
+            paras[0]=Math.pow(2,temp);
+            temp=min+(x-1)%numParas;
+            paras[1]=Math.pow(2,temp);
+            setC(paras[0]);
+            ((RBFKernel)m_kernel).setGamma(paras[1]);
+            System.out.println("");
+        }
+    }
+
+    @Override
+    public String getParas() {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public double getAcc() {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
     public enum KernelType {LINEAR,QUADRATIC,RBF};
     KernelType kernel;
@@ -424,6 +468,8 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
     @Override
     public void buildClassifier(Instances train) throws Exception {
         res.buildTime=System.currentTimeMillis();
+        
+        
         if(paraSpace==null)
             setStandardParas();
         if(kernelOptimise)
@@ -434,7 +480,8 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
             else
                 tunePolynomial(train);
         }
-        
+//If both kernelOptimise and paraOptimise are false, it just builds and SVM        
+//With whatever the parameters are set to        
         super.buildClassifier(train);
         
         res.buildTime=System.currentTimeMillis()-res.buildTime;
@@ -513,8 +560,23 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
     
     
     public static void main(String[] args) {
+        int min=-16, max=16;
+        int numParas=max-min;
+        if(max*min<0)
+            numParas++;
+        
+        for(int x=1;x<=1089;x++){
+                    int temp=min+(x-1)/numParas;
+            double c=Math.pow(2,temp);
+            int temp2=min+(x-1)%numParas;
+            double gamma=Math.pow(2,temp2);
+            System.out.println("c count ="+temp+" gamma count = "+ temp2+" c="+c+"  gamma ="+gamma);
+        }
+
+       System.exit(0);
+        
+        
 //        jamesltest();
- //       System.exit(0);
         
         
         String sourcePath="C:\\Users\\ajb\\Dropbox\\TSC Problems\\";

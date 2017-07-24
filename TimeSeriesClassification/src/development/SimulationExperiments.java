@@ -38,6 +38,7 @@ import timeseriesweka.classifiers.DTW_1NN;
 import weka.classifiers.meta.RotationForest;
 import vector_classifiers.HESCA;
 import timeseriesweka.classifiers.ensembles.SaveableEnsemble;
+import timeseriesweka.classifiers.ensembles.elastic_ensemble.DTW1NN;
 import vector_classifiers.TunedRandomForest;
 import weka.core.Instances;
 import utilities.ClassifierTools;
@@ -72,7 +73,7 @@ public class SimulationExperiments {
     static String[] allSimulators={"WholeSeriesElastic","Interval","Shapelet","Dictionary","ARMA"};
     
     
-    public static Classifier createClassifier(String str) throws RuntimeException{
+    public static Classifier setClassifier(String str) throws RuntimeException{
         
         Classifier c;
         switch(str){
@@ -89,7 +90,7 @@ public class SimulationExperiments {
                 c=new RotationForest();
                 break;
             case "DTW":
-                c=new DTW_1NN();
+                c=new DTW1NN();
                 break;
              case "DD_DTW":
                 c=new DD_DTW();
@@ -197,8 +198,9 @@ public class SimulationExperiments {
             case "MatrixProfile":
                 seriesLength=500;
                 trainProp=0.1;
-                casesPerClass=new int[]{50,50};
+                casesPerClass=new int[]{100,100};
                 Model.setDefaultSigma(1);
+                break;
         default:
                 throw new RuntimeException(" UNKNOWN SIMULATOR ");
             
@@ -254,7 +256,7 @@ public class SimulationExperiments {
         if(useStandard)
             setStandardGlobalParameters(simulator);
         String classifier=args[1];
-        Classifier c=createClassifier(classifier);
+        Classifier c=setClassifier(classifier);
         int fold=Integer.parseInt(args[2])-1;
         Instances data=simulateData(args[0],fold);
         Instances[] split=InstanceTools.resampleInstances(data, fold,trainProp);
@@ -320,8 +322,8 @@ public class SimulationExperiments {
         OutFile p=new OutFile(preds+"/testFold"+sample+".csv");
 
 // hack here to save internal CV for further ensembling   
-        if(c instanceof TrainAccuracyEstimate)
-            ((TrainAccuracyEstimate)c).writeCVTrainToFile(preds+"/trainFold"+sample+".csv");
+//        if(c instanceof TrainAccuracyEstimate)
+//            ((TrainAccuracyEstimate)c).writeCVTrainToFile(preds+"/trainFold"+sample+".csv");
         if(c instanceof SaveableEnsemble)
            ((SaveableEnsemble)c).saveResults(preds+"/internalCV_"+sample+".csv",preds+"/internalTestPreds_"+sample+".csv");
         try{              
@@ -513,7 +515,7 @@ public class SimulationExperiments {
             setStandardGlobalParameters(simulator);            
             Model.setDefaultSigma(error);
             Instances data=simulateData(simulator,50*(e+1)*fold);
-            Classifier c=createClassifier(classifier);
+            Classifier c=setClassifier(classifier);
             Instances[] split=InstanceTools.resampleInstances(data, fold,trainProp);
             double a=ClassifierTools.singleTrainTestSplitAccuracy(c,split[0],split[1]);
             OutFile out=new OutFile(predictions+"/testAcc"+e+"_"+fold+".csv");
@@ -550,7 +552,7 @@ public class SimulationExperiments {
             double var=0;
             for(int fold=0;fold<100;fold++){
                 Instances data=simulateData(simulator,seriesLength);
-                Classifier c=createClassifier(classifier);
+                Classifier c=setClassifier(classifier);
                 Instances[] split=InstanceTools.resampleInstances(data, fold,0.5);
                 double a=ClassifierTools.singleTrainTestSplitAccuracy(c,split[0],split[1]);
                 acc+=a;
@@ -585,7 +587,7 @@ public class SimulationExperiments {
             double var=0;
             for(int fold=0;fold<100;fold++){
                 Instances data=simulateData(simulator,50*(l+1)*fold);
-                Classifier c=createClassifier(classifier);
+                Classifier c=setClassifier(classifier);
                 Instances[] split=InstanceTools.resampleInstances(data, fold,0.5);
                 double a=ClassifierTools.singleTrainTestSplitAccuracy(c,split[0],split[1]);
                 acc+=a;
@@ -813,7 +815,7 @@ public class SimulationExperiments {
     public static void main(String[] args) throws Exception{
 
 InFile inf=new InFile("C:\\Users\\ajb\\Dropbox\\Results\\SimulationExperiments\\BasicExperiments\\Interval//FLATCOTE.csv");
-       generateAllProblemFiles();
+//       generateAllProblemFiles();
  //       createBaseExperimentScripts(false);
  //      createBaseExperimentScripts(true);
 //        deleteThisMethod();
@@ -833,7 +835,7 @@ InFile inf=new InFile("C:\\Users\\ajb\\Dropbox\\Results\\SimulationExperiments\\
 //generateProblemFile();
 // collateAllResults();
   //     collateErrorResults();     
-  System.exit(0);
+//  System.exit(0);
         if(args.length>0){
             DataSets.resultsPath=DataSets.clusterPath+"Results/SimulationExperiments/";
             if(args.length==3){//Base experiment
@@ -847,38 +849,16 @@ InFile inf=new InFile("C:\\Users\\ajb\\Dropbox\\Results\\SimulationExperiments\\
         }
         else{
 //            DataSets.resultsPath="C:\\Users\\ajb\\Dropbox\\Results\\SimulationExperiments\\";
-            DataSets.resultsPath="C:\\temp\\";
-            String[] para={"Interval","BOSS","4","1"};
-                runErrorExperiment(para);
-            
             local=true;
-            String simulator="Interval";
-            setStandardGlobalParameters(simulator);
-            Model.setDefaultSigma(1);
-//            seriesLength=500;
-            System.out.println(" Error ="+Model.defaultSigma+" Series Length ="+seriesLength+" training prop ="+trainProp+" nos classes ="+casesPerClass.length);
-            for(int i:casesPerClass)
-                System.out.print(" "+i);
-            String classifier;
-            for(int e=1;e<101;e++){
-                classifier="TSF";
-               String[] arg={simulator,classifier,e+""};
-               double b=runSimulationExperiment(arg,false);
-                System.out.println(" TSF Acc ="+b);
-                classifier="ST";
-                String[] arg2={simulator,classifier,e+""};
-                double c=runSimulationExperiment(arg2,false);
-                System.out.println(" ST Acc ="+c);
-                classifier="BOSS";
-                String[] arg3={simulator,classifier,e+""};
-                double d=runSimulationExperiment(arg3,false);
-                System.out.println(" BOSS Acc ="+d);
-
-//                classifier="ST";
-//                String[] arg4={simulator,classifier,e+""};
-//               double a=runSimulationExperiment(arg4,false);
-//                System.out.println(arg[0]+","+arg[1]+","+","+arg[2]+"ST acc="+a+" TSF acc ="+b+" DTW acc ="+c+" BOSS Acc ="+d);
-            }
+            DataSets.resultsPath="C:\\temp\\";
+            for(int i=1;i<=100;i++){
+                String[] algos={"ED","RotF","DTW","TSF","BOSS","ST","EE","HIVECOTE"};
+                for(String s:algos){
+                    String[] para={"MatrixProfile",s,i+""};
+                    double b=runSimulationExperiment(para,true);
+                    System.out.println(para[0]+","+para[1]+","+","+para[2]+" Acc ="+b);
+                }
+            } 
         }
     }
 }

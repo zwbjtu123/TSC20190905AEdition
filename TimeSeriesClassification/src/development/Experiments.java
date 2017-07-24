@@ -27,6 +27,7 @@ import timeseriesweka.classifiers.HiveCote;
 import timeseriesweka.classifiers.LPS;
 import timeseriesweka.classifiers.LearnShapelets;
 import timeseriesweka.classifiers.NN_CID;
+import timeseriesweka.classifiers.ParameterSplittable;
 import timeseriesweka.classifiers.RISE;
 import timeseriesweka.classifiers.SAXVSM;
 import timeseriesweka.classifiers.ST_HESCA;
@@ -67,6 +68,7 @@ public class Experiments{
     static boolean debug=true;
     static boolean checkpoint=false;
     static boolean generateTrainFiles=true;
+    static Integer parameterNum=0;
     public static Classifier setClassifier(String classifier, int fold){
         Classifier c=null;
         TunedSVM svm=null;
@@ -312,44 +314,55 @@ public class Experiments{
         f=new File(predictions+"/testFold"+fold+".csv");
         if(!f.exists() || f.length()==0){
       //      of.writeString(problem+","); );
-            if(generateTrainFiles){
-                if(c instanceof TrainAccuracyEstimate){
-                    ((TrainAccuracyEstimate)c).writeCVTrainToFile(predictions+"/trainFold"+fold+".csv");
+            if(parameterNum>0 && c instanceof ParameterSplittable)//Single parameter fold
+            {
+                checkpoint=false;
+//Check if it already exists, if it does, exit
+                f=new File(predictions+"/fold"+fold+"_"+parameterNum+".csv");
+                if(f.exists() && f.length()>0){ //Exit
+                    return; //Aready done
                 }
-                else{ // Need to cross validate
-                    int numFolds=train.numInstances()>=10?10:train.numInstances();
-                    CrossValidator cv = new CrossValidator();
-                    cv.setSeed(fold);
-                    cv.setNumFolds(numFolds);
-        //Estimate train accuracy HERE
-                    ClassifierResults res=cv.crossValidateWithStats(c,train);
-        //Write to file
-                    OutFile of=new OutFile(predictions+"/trainFold"+fold+".csv");
-                    of.writeLine(train.relationName()+","+c.getClass().getName()+",train");
-                    if(c instanceof SaveParameterInfo )
-                        of.writeLine(((SaveParameterInfo)c).getParameters());
-                    else
-                        of.writeLine("No Parameter Info");
-                   of.writeLine(res.acc+"");
-                   if(res.numInstances()>0){
-                    double[] trueClassVals=res.getTrueClassVals();
-                    double[] predClassVals=res.getPredClassVals();
-                    DecimalFormat df=new DecimalFormat("###.###");
-
-                    for(int i=0;i<train.numInstances();i++){
-                        //Basic sanity check
-                        if(train.instance(i).classValue()!=trueClassVals[i]){
-                            throw new Exception("ERROR in TSF cross validation, class mismatch!");
-                        }
-                        of.writeString((int)trueClassVals[i]+","+(int)predClassVals[i]+",");
-                        double[] distForInst=res.getDistributionForInstance(i);
-                        for(double d:distForInst)
-                            of.writeString(","+df.format(d));
-                        if(i<train.numInstances()-1)
-                            of.writeString("\n");
+            }
+            else{
+                if(generateTrainFiles){
+                    if(c instanceof TrainAccuracyEstimate){
+                        ((TrainAccuracyEstimate)c).writeCVTrainToFile(predictions+"/trainFold"+fold+".csv");
                     }
-                   }
-                    
+                    else{ // Need to cross validate
+                        int numFolds=train.numInstances()>=10?10:train.numInstances();
+                        CrossValidator cv = new CrossValidator();
+                        cv.setSeed(fold);
+                        cv.setNumFolds(numFolds);
+            //Estimate train accuracy HERE
+                        ClassifierResults res=cv.crossValidateWithStats(c,train);
+            //Write to file
+                        OutFile of=new OutFile(predictions+"/trainFold"+fold+".csv");
+                        of.writeLine(train.relationName()+","+c.getClass().getName()+",train");
+                        if(c instanceof SaveParameterInfo )
+                            of.writeLine(((SaveParameterInfo)c).getParameters());
+                        else
+                            of.writeLine("No Parameter Info");
+                       of.writeLine(res.acc+"");
+                       if(res.numInstances()>0){
+                        double[] trueClassVals=res.getTrueClassVals();
+                        double[] predClassVals=res.getPredClassVals();
+                        DecimalFormat df=new DecimalFormat("###.###");
+
+                        for(int i=0;i<train.numInstances();i++){
+                            //Basic sanity check
+                            if(train.instance(i).classValue()!=trueClassVals[i]){
+                                throw new Exception("ERROR in TSF cross validation, class mismatch!");
+                            }
+                            of.writeString((int)trueClassVals[i]+","+(int)predClassVals[i]+",");
+                            double[] distForInst=res.getDistributionForInstance(i);
+                            for(double d:distForInst)
+                                of.writeString(","+df.format(d));
+                            if(i<train.numInstances()-1)
+                                of.writeString("\n");
+                        }
+                       }
+
+                    }
                 }
             }
             double acc =singleClassifierAndFoldTrainTestSplit(train,test,c,fold,predictions);
@@ -382,11 +395,22 @@ public class Experiments{
         double acc=0;
         int act;
         int pred;
-// Save internal info for ensembles
-        if(c instanceof SaveableEnsemble)
-           ((SaveableEnsemble)c).saveResults(resultsPath+"/internalCV_"+fold+".csv",resultsPath+"/internalTestPreds_"+fold+".csv");
-        if(checkpoint && c instanceof SaveEachParameter){     
-            ((SaveEachParameter) c).setPathToSaveParameters(resultsPath+"/fold"+fold+"_");
+        String testFoldPath="/testFold"+fold+".csv";
+        if(parameterNum>0 && c instanceof ParameterSplittable)//Single parameter fold
+        {
+            checkpoint=false;
+            ((ParameterSplittable)c).setParametersFromIndex(parameterNum);
+//            System.out.println("classifier paras =");
+            testFoldPath="/fold"+fold+"_"+parameterNum+".csv";
+        }
+        else{
+//Only do all this if not an internal fold
+    // Save internal info for ensembles
+            if(c instanceof SaveableEnsemble)
+               ((SaveableEnsemble)c).saveResults(resultsPath+"/internalCV_"+fold+".csv",resultsPath+"/internalTestPreds_"+fold+".csv");
+            if(checkpoint && c instanceof SaveEachParameter){     
+                ((SaveEachParameter) c).setPathToSaveParameters(resultsPath+"/fold"+fold+"_");
+            }
         }
         try{              
             c.buildClassifier(data[0]);
@@ -420,7 +444,7 @@ public class Experiments{
                     str.append("\n");
             }
             acc/=data[1].numInstances();
-            OutFile p=new OutFile(resultsPath+"/testFold"+fold+".csv");
+            OutFile p=new OutFile(resultsPath+testFoldPath);
             p.writeLine(train.relationName()+","+c.getClass().getName()+",test");
             if(c instanceof SaveParameterInfo){
               p.writeLine(((SaveParameterInfo)c).getParameters());
@@ -442,48 +466,70 @@ public class Experiments{
 
 
     
-/* MUST BE FIVE ARGUMENTSArguments:
+/* MUST BE at least Arguments:
     1: Problem path args[0]
     2. Results path args[1]
-    3. Classifier =args[2];
-    4.    String problem=args[3];
-    5.    int fold=Integer.parseInt(args[4])-1;
-    6.  boolean whether to checkpoint parameter search
+    3. booleanwWhether to CV to generate train files (true/false)
+    4. Classifier =args[3];
+    5. String problem=args[4];
+    6. int fold=Integer.parseInt(args[5])-1;
+Optional    
+    7. boolean whether to checkpoint parameter search (true/false)
+    8. integer for specific parameter search (0 indicates ignore this) 
     */  
        
     public static void main(String[] args) throws Exception{
         for(String str:args)
             System.out.println(str);
-        if(args.length!=7){//Local run
+        if(args.length<6){//Local run
+            if(args!=null){
+                System.out.println("Num args passed ="+args.length);
+                for(String str:args)
+                    System.out.println(str);
+            }
+            else
+                System.out.println("No args passed");
+                
             DataSets.problemPath="C:\\Users\\ajb\\Dropbox\\TSC Problems\\";
             DataSets.resultsPath="c:\\Temp\\";
             File f=new File(DataSets.resultsPath);
             if(!f.isDirectory()){
                 f.mkdirs();
             }
-            generateTrainFiles=true;
-            String[] newArgs={"TunedSVMRBF","ItalyPowerDemand","1"};
+            generateTrainFiles=false;
+            checkpoint=false;
+            parameterNum=1089;
+            String[] newArgs={"TunedSVMRBF","ItalyPowerDemand","2"};
             Experiments.singleClassifierAndFoldTrainTestSplit(newArgs);
             System.exit(0);
         }
         else{    
             DataSets.problemPath=args[0];
             DataSets.resultsPath=args[1];
-    //Third argument is whether to cross validate or not
+//Arg 3 argument is whether to cross validate or not and produce train files
             generateTrainFiles=Boolean.parseBoolean(args[2]);
             File f=new File(DataSets.resultsPath);
             if(!f.isDirectory()){
                 f.mkdirs();
             }
-            String[] newArgs=new String[args.length-4];
-            for(int i=4;i<args.length-1;i++)
-                newArgs[i-4]=args[i];
-            String s=args[args.length-1].toLowerCase();
-            if(s.equals("true"))
-                checkpoint=true;
-            else
-                checkpoint=false;
-            
+// Arg 4,5,6 Classifier, Problem, Fold             
+            String[] newArgs=new String[3];
+            for(int i=0;i<3;i++)
+                newArgs[i]=args[i+3];
+//OPTIONAL
+//  Arg 7:  whether to checkpoint        
+            checkpoint=false;
+            if(args.length>=7){
+                String s=args[args.length-1].toLowerCase();
+                if(s.equals("true"))
+                    checkpoint=true;
+            }
+//Arg 8: if present, do a single parameter split
+            parameterNum=0;
+            if(args.length>=8){
+                parameterNum=Integer.parseInt(args[7]);
+            }
+            System.out.println("Checkpoint ="+checkpoint+" param number ="+parameterNum);
             Experiments.singleClassifierAndFoldTrainTestSplit(newArgs);
         }
     

@@ -6,6 +6,7 @@ package statistics.simulators;
 import development.DataSets;
 import fileIO.OutFile;
 import timeseriesweka.classifiers.DTW_1NN;
+import timeseriesweka.classifiers.ensembles.elastic_ensemble.DTW1NN;
 import utilities.ClassifierTools;
 import utilities.InstanceTools;
 import weka.classifiers.lazy.kNN;
@@ -56,7 +57,7 @@ public class SimulateMatrixProfileData {
                 kNN knn= new kNN();
                 knn.setKNN(1);
                 double acc=ClassifierTools.singleTrainTestSplitAccuracy(knn, split[0], split[1]);
-                DTW_1NN dtw=new DTW_1NN();
+                DTW1NN dtw=new DTW1NN();
                 double acc2=ClassifierTools.singleTrainTestSplitAccuracy(dtw, split[0], split[1]);
                 meanAcc+=acc;
                 meanAcc2+=acc2;

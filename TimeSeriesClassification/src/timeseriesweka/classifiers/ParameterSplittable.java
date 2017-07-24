@@ -11,7 +11,7 @@ public interface ParameterSplittable extends Serializable{
 /* The actual parameter values should be set internally. This integer
   is just a key to maintain different parameter sets. The range starts at 1
     */
-    public void setPara(int x);
+    public void setParametersFromIndex(int x);
     public String getParas();
     double getAcc();    
 }
