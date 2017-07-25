@@ -4,7 +4,7 @@ Code to run EpilepsyX data using a leave one person out sampling
 package applications;
 
 import development.DataSets;
-import development.SimulationExperiments;
+import development.MatrixProfileExperiments;
 import fileIO.InFile;
 import fileIO.OutFile;
 import java.io.File;
@@ -78,7 +78,7 @@ Instances all=ClassifierTools.loadData(DataSets.problemPath+"/EpilepsyX/Epilepsy
 //first gives the problem file      
         String classifier=args[0];
         int fold=Integer.parseInt(args[1])-1;
-        Classifier c=SimulationExperiments.createClassifier(classifier);
+        Classifier c=MatrixProfileExperiments.setClassifier(classifier);
         Instances[] split=sample(fold); 
         File f=new File(DataSets.resultsPath+classifier);
         if(!f.exists())

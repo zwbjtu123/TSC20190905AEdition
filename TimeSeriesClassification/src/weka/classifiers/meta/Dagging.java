@@ -39,8 +39,12 @@ import java.util.Vector;
 
 /**
  <!-- globalinfo-start -->
- * This meta classifier creates a number of disjoint, stratified folds out of the data and feeds each chunk of data to a copy of the supplied base classifier. Predictions are made via majority vote, since all the generated base classifiers are put into the Vote meta classifier. <br/>
- * Useful for base classifiers that are quadratic or worse in time behavior, regarding number of instances in the training data. <br/>
+ * This meta classifier creates a number of disjoint, stratified folds out of 
+ * the data and feeds each chunk of data to a copy of the supplied base classifier. 
+ * Predictions are made via majority vote, since all the generated base 
+ * classifiers are put into the Vote meta classifier. <br/>
+ * Useful for base classifiers that are quadratic or worse in time behavior, 
+ * regarding number of instances in the training data. <br/>
  * <br/>
  * For more information, see: <br/>
  * Ting, K. M., Witten, I. H.: Stacking Bagged and Dagged Models. In: Fourteenth international Conference on Machine Learning, San Francisco, CA, 367-375, 1997.
