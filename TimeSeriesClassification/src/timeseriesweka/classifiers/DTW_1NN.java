@@ -6,7 +6,7 @@ import utilities.ClassifierTools;
 import weka.classifiers.Classifier;
 import weka.core.*;
 
-/* This class is a specialisation of kNN that can only be used with the efficient DTW distance
+/* DO NOT USE: Not properly debugged. This class is a specialisation of kNN that can only be used with the efficient DTW distance
  * 
  * The reason for specialising is this class has the option of searching for the optimal window length
  * through a grid search of values.

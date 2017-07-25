@@ -17,8 +17,8 @@ import utilities.ClassifierTools;
 import utilities.InstanceTools;
 import weka.classifiers.Classifier;
 import weka.core.Instances;
-import development.SimulationExperiments;
-import static development.SimulationExperiments.createClassifier;
+import development.MatrixProfileExperiments;
+import static development.MatrixProfileExperiments.setClassifier;
 
 /**
  *
@@ -29,8 +29,8 @@ public class RISESimulatedDataExperiments {
     static int []casesPerClass={500,500};
     static int seriesLength=500;
     public static double simulatorExperiment(String dataSimulator, String classifier, int fold){
-        Classifier c=SimulationExperiments.createClassifier(classifier);
-        Instances test= SimulationExperiments.simulateData(dataSimulator,fold);
+        Classifier c=MatrixProfileExperiments.setClassifier(classifier);
+        Instances test= MatrixProfileExperiments.simulateData(dataSimulator,fold);
         System.out.println("Classifier ="+classifier+" Simulator ="+dataSimulator);
         System.out.println("Fold "+fold+" DATA nos atts ="+test.numAttributes()+" noscases ="+test.numInstances());
         double acc=ClassifierTools.stratifiedCrossValidation(test, c, 2, fold);
@@ -54,14 +54,14 @@ public class RISESimulatedDataExperiments {
         for(int i=0;i<100;i++){
             nosClassifiers=0;
             
-            cls[nosClassifiers++]=createClassifier("RotF");
-            cls[nosClassifiers++]=createClassifier("DTW");
-            cls[nosClassifiers++]=createClassifier("AR");
-            cls[nosClassifiers++]=createClassifier("PS");
-            cls[nosClassifiers++]=createClassifier("PSACF");
-           cls[nosClassifiers++]=createClassifier("RISE");
+            cls[nosClassifiers++]=setClassifier("RotF");
+            cls[nosClassifiers++]=setClassifier("DTW");
+            cls[nosClassifiers++]=setClassifier("AR");
+            cls[nosClassifiers++]=setClassifier("PS");
+            cls[nosClassifiers++]=setClassifier("PSACF");
+           cls[nosClassifiers++]=setClassifier("RISE");
            if(hesca)
-               cls[nosClassifiers++]=createClassifier("RISE_HESCA");
+               cls[nosClassifiers++]=setClassifier("RISE_HESCA");
             DataSimulator ds=new SimulateSpectralData();
             ds.setCasesPerClass(new int[]{20,20});
             int arLength=100,fullLength=200;
@@ -119,14 +119,14 @@ public class RISESimulatedDataExperiments {
         for(int i=0;i<100;i++){
             nosClassifiers=0;
             
-            cls[nosClassifiers++]=createClassifier("RotF");
-            cls[nosClassifiers++]=createClassifier("DTW");
-            cls[nosClassifiers++]=createClassifier("AR");
-            cls[nosClassifiers++]=createClassifier("PS");
-            cls[nosClassifiers++]=createClassifier("PSACF");
-           cls[nosClassifiers++]=createClassifier("RISE");
+            cls[nosClassifiers++]=setClassifier("RotF");
+            cls[nosClassifiers++]=setClassifier("DTW");
+            cls[nosClassifiers++]=setClassifier("AR");
+            cls[nosClassifiers++]=setClassifier("PS");
+            cls[nosClassifiers++]=setClassifier("PSACF");
+           cls[nosClassifiers++]=setClassifier("RISE");
            if(hesca)
-               cls[nosClassifiers++]=createClassifier("RISE_HESCA");
+               cls[nosClassifiers++]=setClassifier("RISE_HESCA");
             DataSimulator ds=new SimulateSpectralData();
             ds.setCasesPerClass(new int[]{20,20});
             ds.setLength(100);
@@ -159,12 +159,12 @@ public class RISESimulatedDataExperiments {
         int nosClassifiers=6;
         Classifier[] cls=new Classifier[nosClassifiers];
         nosClassifiers=0;
-        cls[nosClassifiers++]=createClassifier("RotF");
-        cls[nosClassifiers++]=createClassifier("DTW");
-        cls[nosClassifiers++]=createClassifier("AR");
-        cls[nosClassifiers++]=createClassifier("PS");
-        cls[nosClassifiers++]=createClassifier("PSACF");
-        cls[nosClassifiers++]=createClassifier("RISE");
+        cls[nosClassifiers++]=setClassifier("RotF");
+        cls[nosClassifiers++]=setClassifier("DTW");
+        cls[nosClassifiers++]=setClassifier("AR");
+        cls[nosClassifiers++]=setClassifier("PS");
+        cls[nosClassifiers++]=setClassifier("PSACF");
+        cls[nosClassifiers++]=setClassifier("RISE");
         DataSimulator ds=new SimulateSpectralData();
         Distribution.setDistributionSeed(fold);
         ds.setCasesPerClass(new int[]{trainSize/2,trainSize/2});

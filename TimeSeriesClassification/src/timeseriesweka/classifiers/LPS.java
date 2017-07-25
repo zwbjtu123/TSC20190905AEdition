@@ -294,7 +294,7 @@ public class LPS extends AbstractClassifierWithTrainingData implements Parameter
     }
 
     @Override
-    public void setPara(int x) {
+    public void setParametersFromIndex(int x) {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 

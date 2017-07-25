@@ -461,7 +461,7 @@ public class ClassifierTools {
     
  /* Returns probability distribution for each instance with no randomisation  
     */
-    public static double[][] crossValidate(Instances data, Classifier c, int numFolds)
+    public static double[][] crossValidate(Classifier c,Instances data,  int numFolds)
     {
         double[][] results=new double[data.numInstances()][data.numClasses()];
         Instances train;

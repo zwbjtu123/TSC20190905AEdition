@@ -247,7 +247,7 @@ public TechnicalInformation getTechnicalInformation() {
         paramSearch=b;
     }
     public void setZLevel(double zLevel){ z=zLevel;}
-    public void setPara(int x){z=zLevels[x-1];}
+    public void setParametersFromIndex(int x){z=zLevels[x-1];}
     public String getParas(){ return z+"";}
     public double getAcc(){ return trainAcc;}
     @Override
@@ -490,7 +490,7 @@ public TechnicalInformation getTechnicalInformation() {
                 else{
                     subseriesRandomForest=new RandomForest();
                     subseriesRandomForest.setNumTrees(500);
-                    probs=ClassifierTools.crossValidate(features,subseriesRandomForest,folds); 
+                    probs=ClassifierTools.crossValidate(subseriesRandomForest,features,folds); 
                     subseriesRandomForest.buildClassifier(features);
                 }
 
