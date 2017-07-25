@@ -169,6 +169,7 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
     }
 
     public void setKernelType(KernelType type) {
+        kernel = type;
         switch (type) {
             case LINEAR:                     
                 PolyKernel p=new PolyKernel();

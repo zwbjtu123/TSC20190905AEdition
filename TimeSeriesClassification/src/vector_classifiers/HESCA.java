@@ -52,7 +52,7 @@ import weka.classifiers.functions.MultilayerPerceptron;
  *   Vote: MajorityConfidence (summing probability distributions)  
  * 
  * For the original settings used in an older version of cote, call setOriginalHESCASettings(), i.e:
- *   Comps: NN, SVML, SVMQ, C4.5, NB, BN, RotF, RandF
+ *   Comps: NN, SVML, SVMQ, C4.5, NB, bayesNet, RotF, RandF
  *   Weight: TrainAcc
  *   Vote: MajorityVote
  *
@@ -77,8 +77,8 @@ import weka.classifiers.functions.MultilayerPerceptron;
 
 public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveParameterInfo, DebugPrinting, TrainAccuracyEstimate {
     
-    protected ModuleWeightingScheme weightingScheme;
-    protected ModuleVotingScheme votingScheme;
+    protected ModuleWeightingScheme weightingScheme = new TrainAcc(4);
+    protected ModuleVotingScheme votingScheme = new MajorityConfidence();
     protected EnsembleModule[] modules;
     
     protected boolean setSeed = true;
