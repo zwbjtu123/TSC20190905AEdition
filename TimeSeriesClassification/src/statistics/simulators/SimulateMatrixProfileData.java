@@ -7,10 +7,12 @@ import development.DataSets;
 import fileIO.OutFile;
 import timeseriesweka.classifiers.DTW_1NN;
 import timeseriesweka.classifiers.ensembles.elastic_ensemble.DTW1NN;
+import timeseriesweka.filters.MatrixProfile;
 import utilities.ClassifierTools;
 import utilities.InstanceTools;
 import weka.classifiers.lazy.kNN;
 import weka.core.Instances;
+import weka.filters.NormalizeCase;
 
 /**
  *
@@ -67,22 +69,31 @@ public class SimulateMatrixProfileData {
         }
         
     }
-    public static void main(String[] args) {
-        test1NNClassifiers();
-        System.exit(0);
+    public static void main(String[] args) throws Exception {
+//        test1NNClassifiers();
+//        System.exit(0);
         
-        Model.setDefaultSigma(0);
+        Model.setDefaultSigma(0.1);
         Model.setGlobalRandomSeed(0);
         int seriesLength=500;
-        int[] casesPerClass=new int[]{2,2};        
+        int[] casesPerClass=new int[]{10,10};        
+        NormalizeCase nc=new NormalizeCase();
         Instances d=generateMatrixProfileData(seriesLength,casesPerClass);
         Instances[] split=InstanceTools.resampleInstances(d, 0,0.5);
-        System.out.println(" DATA "+d);
-        OutFile of = new OutFile("C:\\Temp\\intervalSimulationTest.csv");
+        MatrixProfile mp=new MatrixProfile(29);
+        Instances m1=mp.process(split[0]);
+//        m1=nc.process(m1);
+        OutFile of = new OutFile("C:\\Temp\\MPSimulationTrain.csv");
 //        of.writeLine(""+sim.generateHeader());
-        of.writeString(split[0].toString());
-        of = new OutFile("C:\\Temp\\intervalSimulationTrain.csv");
-        of.writeString(split[1].toString());
+        of.writeString(split[0].toString()+"\n\n");
+        of.writeString(m1.toString());
+        of = new OutFile("C:\\Temp\\MPSimulationTrain.arff");
+        of.writeString(split[0]+"");
+        Instances m2=mp.process(split[1]);
+ //       m2=nc.process(m2);
+        of = new OutFile("C:\\Temp\\MPSimulationTest.csv");
+        of.writeString(split[1].toString()+"\n\n");
+        of.writeString(m2.toString());
     }
     
 }

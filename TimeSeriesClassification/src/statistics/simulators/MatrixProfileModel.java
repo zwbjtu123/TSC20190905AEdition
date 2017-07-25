@@ -24,7 +24,7 @@ public class MatrixProfileModel extends Model {
     private int nosLocations=2; //
     private int shapeLength=29;
     public static double MINBASE=-2;
-    public static double MINAMP=.1;
+    public static double MINAMP=2;
     public static double MAXBASE=2;
     public static double MAXAMP=2;
     DictionaryModel.Shape shape;//Will change for each series
@@ -33,7 +33,9 @@ public class MatrixProfileModel extends Model {
     private int base=-1;
     private int amplitude=2;
     private int shapeCount=0;
+    private boolean invert=false;
     ArrayList<Integer>  locations;
+    public static int getGlobalLength(){ return GLOBALSERIESLENGTH;}
     public MatrixProfileModel(){
         shapeCount=rand.nextInt(ShapeType.values().length);
         seriesLength=GLOBALSERIESLENGTH;
@@ -48,6 +50,17 @@ public class MatrixProfileModel extends Model {
         GLOBALSERIESLENGTH=n;
     }
    public void setNonOverlappingIntervals(){
+//Use Aarons way
+       ArrayList<Integer> startPoints=new ArrayList<>();
+       for(int i=shapeLength+1;i<seriesLength-shapeLength;i++)
+           startPoints.add(i);
+        for(int i=0;i<nosLocations;i++){
+            int pos=rand.nextInt(startPoints.size());
+            int l=startPoints.get(pos);
+            locations.add(l);
+            for(int j=0;startPoints.size()<pos && j<shapeLength;j++)
+                startPoints.remove(pos);
+/*       
 //Me giving up and just randomly placing the shapes until they are all non overlapping
         for(int i=0;i<nosLocations;i++){
             boolean ok=false;
@@ -56,8 +69,10 @@ public class MatrixProfileModel extends Model {
                 ok=true;
 //Search mid points to level the distribution up somewhat
 //                System.out.println("Series length ="+seriesLength);
-                l=rand.nextInt(seriesLength-shapeLength)+shapeLength/2;
-//          System.out.println("trying   "+l);
+                do{    
+                    l=rand.nextInt(seriesLength-shapeLength)+shapeLength/2;
+                }
+                while((l+shapeLength/2)>=seriesLength-shapeLength);
                 
                 for(int in:locations){
 //I think this is setting them too big                    
@@ -69,15 +84,15 @@ public class MatrixProfileModel extends Model {
                     }
                 }
             }
+*/        
 //           System.out.println("Adding "+l);
-            locations.add(l);
         }
-//Revert to start points            
+/*//Revert to start points            
         for(int i=0;i<locations.size();i++){
             int val=locations.get(i);
             locations.set(i, val-shapeLength/2);
         }
-        Collections.sort(locations);
+*/        Collections.sort(locations);
     }
 
     @Override
@@ -98,7 +113,7 @@ public class MatrixProfileModel extends Model {
         ShapeType[] all=ShapeType.values();
             ShapeType st=all[(shapeCount++)%all.length];
             shape=new DictionaryModel.Shape(st,shapeLength,b,a);
- //           System.out.println("Shape is "+shape);
+            System.out.println("Shape is "+shape);
  //        shape.nextShape();
 //        shape
     }
@@ -107,11 +122,21 @@ public class MatrixProfileModel extends Model {
 	public	double[] generateSeries(int n)
 	{
            t=0;
+           double[] d;
 //Resets the starting locations each time this is called          
-           generateBaseShape();
-           double[] d = new double[n];
-           for(int i=0;i<n;i++)
-              d[i]=generate();
+           if(invert){
+                d= new double[n];
+                for(int i=0;i<n;i++)
+                   d[i]=-generate();
+                invert=false;
+           }
+           else{
+            generateBaseShape();
+            d = new double[n];
+            for(int i=0;i<n;i++)
+               d[i]=generate();
+                invert=true;
+           }
            return d;
         }
     
@@ -140,7 +165,7 @@ public class MatrixProfileModel extends Model {
         int length=500;
         GLOBALSERIESLENGTH=length;
         Model.setGlobalRandomSeed(3);
-        Model.setDefaultSigma(1);
+        Model.setDefaultSigma(0);
         MatrixProfileModel m1=new MatrixProfileModel();
         MatrixProfileModel m2=new MatrixProfileModel();
         
@@ -151,7 +176,7 @@ public class MatrixProfileModel extends Model {
         for(int i=5;i<10;i++){
             d[i]=m2.generateSeries(length);
         }
-        OutFile of=new OutFile("C:\\temp\\MP_ExampleSeriesNoise.csv");
+        OutFile of=new OutFile("C:\\temp\\MP_ExampleSeries.csv");
         for(int i=0;i<length;i++){
             for(int j=0;j<10;j++)
                 of.writeString(d[j][i]+",");

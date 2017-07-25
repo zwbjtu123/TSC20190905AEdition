@@ -147,7 +147,7 @@ public class LearnShapelets extends AbstractClassifierWithTrainingData implement
 /* The actual parameter values should be set internally. This integer
   is just a key to maintain different parameter sets 
     */
-    public void setPara(int x){
+    public void setParametersFromIndex(int x){
 //Map integer: filthy hack,could be done better. Range is 1-8
         if(x<=4)
             lambdaW=lambdaWRange[0];

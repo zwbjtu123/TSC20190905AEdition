@@ -27,6 +27,7 @@ import weka.classifiers.meta.RotationForest;
 import vector_classifiers.TunedRotationForest;
 import vector_classifiers.HESCA;
 import timeseriesweka.classifiers.ensembles.SaveableEnsemble;
+import timeseriesweka.classifiers.ensembles.elastic_ensemble.ED1NN;
 import weka.classifiers.trees.RandomForest;
 import vector_classifiers.TunedRandomForest;
 import weka.classifiers.functions.Logistic;
@@ -372,6 +373,9 @@ public class July2017Experiments{
     }    
 
   public static void main(String[] args) throws Exception{
+      sanityCheckBones();
+      System.exit(0);
+              
         for(String str:args)
             System.out.println(str);
         if(args.length!=6){//Local run
@@ -442,7 +446,25 @@ public class July2017Experiments{
             
        }        
     }
+
     
+    public static void sanityCheckBones(){
+        String[] files={"MiddlePhalanxOutlineAgeGroup","MiddlePhalanxTW","MiddlePhalanxOutlineCorrect","DistalPhalanxOutlineCorrect","DistalPhalanxOutlineAgeGroup","DistalPhalanxTW"};
+        
+        for(String str:files){
+            Instances train = ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\TSC Problems\\"+str+"\\"+str+"_TRAIN");
+            Instances test = ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\TSC Problems\\"+str+"\\"+str+"_TEST");
+            Classifier c=new ED1NN();
+            double a=ClassifierTools.singleTrainTestSplitAccuracy(c, train, test);
+            System.out.println(str+" correct ACC = "+a);
+            Instances train2 = ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\TSC Problems\\"+str+"\\"+str+"_TEST");
+            Instances test2 = ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\TSC Problems\\"+str+"\\"+str+"_TRAIN");
+            Classifier c2=new ED1NN();
+            double a2=ClassifierTools.singleTrainTestSplitAccuracy(c2, train2, test2);
+            System.out.println(str+" inverted ACC = "+a2);
+        }
+        
+    }
     public static void runUCIDataSet(String[] args) {
         if(args.length>0){//Cluster run
             DataSets.problemPath=DataSets.clusterPath+"UCIContinuous/";

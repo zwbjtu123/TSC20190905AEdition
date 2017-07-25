@@ -21,6 +21,8 @@ import fileIO.InFile;
 import fileIO.OutFile;
 import java.io.File;
 import java.text.DecimalFormat;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import statistics.simulators.DataSimulator;
 import statistics.simulators.ElasticModel;
 import statistics.simulators.Model;
@@ -39,16 +41,18 @@ import weka.classifiers.meta.RotationForest;
 import vector_classifiers.HESCA;
 import timeseriesweka.classifiers.ensembles.SaveableEnsemble;
 import timeseriesweka.classifiers.ensembles.elastic_ensemble.DTW1NN;
+import timeseriesweka.filters.MatrixProfile;
 import vector_classifiers.TunedRandomForest;
 import weka.core.Instances;
 import utilities.ClassifierTools;
 import utilities.TrainAccuracyEstimate;
 import weka.classifiers.lazy.kNN;
+import weka.filters.NormalizeCase;
 /**
  *
  * @author ajb
  */
-public class SimulationExperiments {
+public class MatrixProfileExperiments {
     static boolean local=false;
     static int []casesPerClass={50,50};
     static int seriesLength=300;
@@ -77,19 +81,19 @@ public class SimulationExperiments {
         
         Classifier c;
         switch(str){
-            case "ED":
+            case "ED": case "MP_ED":
                 c=new kNN(1);
                 break;
             case "HESCA":
                 c=new HESCA();
                 break;
-            case "RandF":
+            case "RandF": case "MP_RotF":
                 c=new TunedRandomForest();
                 break;
             case "RotF":
                 c=new RotationForest();
                 break;
-            case "DTW":
+            case "DTW": case "MP_DTW":
                 c=new DTW1NN();
                 break;
              case "DD_DTW":
@@ -198,7 +202,7 @@ public class SimulationExperiments {
             case "MatrixProfile":
                 seriesLength=500;
                 trainProp=0.1;
-                casesPerClass=new int[]{100,100};
+                casesPerClass=new int[]{50,50};
                 Model.setDefaultSigma(1);
                 break;
         default:
@@ -251,7 +255,7 @@ public class SimulationExperiments {
 //arg[1]: classifier
 //arg[2]: fold number    
     public static double runSimulationExperiment(String[] args,boolean useStandard){
-   
+        NormalizeCase nc=new NormalizeCase();
         String simulator=args[0];
         if(useStandard)
             setStandardGlobalParameters(simulator);
@@ -261,6 +265,25 @@ public class SimulationExperiments {
         Instances data=simulateData(args[0],fold);
         Instances[] split=InstanceTools.resampleInstances(data, fold,trainProp);
         System.out.println(" Train size ="+split[0].numInstances()+" test size ="+split[1].numInstances());
+        try{
+            split[0]=nc.process(split[0]);
+            split[1]=nc.process(split[1]);
+        }catch(Exception e){
+            
+        }
+//Check if it is MP or not
+        if(classifier.contains("MP_")){
+            try {
+                MatrixProfile mp=new MatrixProfile(29);
+                split[0]=mp.process(split[0]);
+                split[1]=mp.process(split[1]);
+            } catch (Exception ex) {
+                Logger.getLogger(MatrixProfileExperiments.class.getName()).log(Level.SEVERE, null, ex);
+            }
+            
+        }
+
+
 //Set up the train and test files
         File f=new File(DataSets.resultsPath+simulator);
         if(!f.exists())
@@ -776,7 +799,7 @@ public class SimulationExperiments {
                     of.writeLine(folds+","+x);
                 }
             }
-/*            OutFile of2=new OutFile("C:\\Users\\ajb\\Dropbox\\Results\\SimulationExperiments\\Dictionary.csv");
+/*            OutFile of2=new OutFile("C:\\Users\\ajb\\Dropbox\\Results\\MatrixProfileExperiments\\Dictionary.csv");
             InFile[] all=new InFile[4];
             for(String str:classifiers){
                 
@@ -814,28 +837,6 @@ public class SimulationExperiments {
 
     public static void main(String[] args) throws Exception{
 
-InFile inf=new InFile("C:\\Users\\ajb\\Dropbox\\Results\\SimulationExperiments\\BasicExperiments\\Interval//FLATCOTE.csv");
-//       generateAllProblemFiles();
- //       createBaseExperimentScripts(false);
- //      createBaseExperimentScripts(true);
-//        deleteThisMethod();
-//        collateLengthResults();
-//        collateErrorExperiments();
-//      collateErrorResults();
-//      createErrorScripts(true);
-//     createErrorScripts(true,"Interval");
-//     createErrorScripts(false,"ARMA");
-//     createErrorScripts(false,"Dictionary");
-//     createErrorScripts(true,"WholeSeriesElastic");
-//     createErrorScripts(false,"Shapelet");
-//          shapeletParameterTest();
-//        runShapeletSimulatorExperiment();
- //     createBaseExperimentScripts();
-//      collateSomeStuff();
-//generateProblemFile();
-// collateAllResults();
-  //     collateErrorResults();     
-//  System.exit(0);
         if(args.length>0){
             DataSets.resultsPath=DataSets.clusterPath+"Results/SimulationExperiments/";
             if(args.length==3){//Base experiment
@@ -848,17 +849,22 @@ InFile inf=new InFile("C:\\Users\\ajb\\Dropbox\\Results\\SimulationExperiments\\
 //              runLengthExperiment(paras);
         }
         else{
-//            DataSets.resultsPath="C:\\Users\\ajb\\Dropbox\\Results\\SimulationExperiments\\";
+//            DataSets.resultsPath="C:\\Users\\ajb\\Dropbox\\Results\\MatrixProfileExperiments\\";
             local=true;
             DataSets.resultsPath="C:\\temp\\";
-            for(int i=1;i<=100;i++){
-                String[] algos={"ED","RotF","DTW","TSF","BOSS","ST","EE","HIVECOTE"};
-                for(String s:algos){
-                    String[] para={"MatrixProfile",s,i+""};
+                String[] algos={"ED","MP_ED"}; //"RotF","DTW","MP_RotF","MP_DTW"};
+                double[] meanAcc=new double[algos.length];
+            for(int i=1;i<=10;i++){
+                for(int j=0;j<algos.length;j++){
+                    String[] para={"MatrixProfile",algos[j],i+""};
                     double b=runSimulationExperiment(para,true);
+                    meanAcc[j]+=b;
                     System.out.println(para[0]+","+para[1]+","+","+para[2]+" Acc ="+b);
+                    
                 }
             } 
+            for(int j=0;j<algos.length;j++)
+                System.out.println(algos[j]+" mean acc ="+meanAcc[j]/10);
         }
     }
 }
