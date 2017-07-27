@@ -5,6 +5,7 @@
  */
 package utilities;
 
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Formatter;
@@ -18,6 +19,8 @@ import java.util.Random;
  * @author raj09hxu
  */
 public class GenericTools {
+    
+    public static final DecimalFormat RESULTS_DECIMAL_FORMAT = new DecimalFormat("#.######");
     
     public static double indexOfMax(double[] dist) {
         double max = dist[0];

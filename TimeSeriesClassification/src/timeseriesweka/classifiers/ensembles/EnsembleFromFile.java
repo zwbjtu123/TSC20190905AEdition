@@ -58,7 +58,7 @@ public abstract class EnsembleFromFile extends AbstractClassifier implements Deb
             writeIndividualsResults = false;
     }
     
-    public void setWriteIndividualsResultsFiles(boolean b) {
+    public void setWriteIndividualsTrainResultsFiles(boolean b) {
         writeIndividualsResults = b;
         if (b)
             readIndividualsResults = false;
@@ -191,21 +191,21 @@ public abstract class EnsembleFromFile extends AbstractClassifier implements Deb
         st.append(this.datasetName).append(",").append(this.ensembleIdentifier).append(classifierName).append(","+trainOrTest+"\n");
         st.append(parameters + "\n"); //st.append("internalHesca\n");
         st.append(results.acc).append("\n");
-        
-        double[] trueClassVals=results.getTrueClassVals();
-        double[] predClassVals=results.getPredClassVals();
-         if (predClassVals != null) {
-            for(int i = 0; i < predClassVals.length;i++) {
-                st.append(trueClassVals[i]).append(",").append(predClassVals[i]).append(","); //pred
-                       double[] distForInst=results.getDistributionForInstance(i);
-
-                if (distForInst != null)
-                    for (int j = 0; j < distForInst.length; j++)
-                        st.append("," + distForInst[j]);
-
-                st.append("\n");
-            }
-        }
+        st.append(results.writeInstancePredictions());
+//        double[] trueClassVals=results.getTrueClassVals();
+//        double[] predClassVals=results.getPredClassVals();
+//         if (predClassVals != null) {
+//            for(int i = 0; i < predClassVals.length;i++) {
+//                st.append(trueClassVals[i]).append(",").append(predClassVals[i]).append(","); //pred
+//                       double[] distForInst=results.getDistributionForInstance(i);
+//
+//                if (distForInst != null)
+//                    for (int j = 0; j < distForInst.length; j++)
+//                        st.append("," + distForInst[j]);
+//
+//                st.append("\n");
+//            }
+//        }
         
         String fullPath = this.resultsFilesDirectory+classifierName+"/Predictions/"+datasetName;
         new File(fullPath).mkdirs();

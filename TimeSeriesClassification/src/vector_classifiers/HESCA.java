@@ -59,17 +59,17 @@ import weka.classifiers.functions.MultilayerPerceptron;
  * EXPERIMENTAL USAGE:
  * By default will build/cv members normally, and perform no file reading/writing. 
  * To turn on file handling of any kind, call
- *          setResultsFileLocationParameters(...) 
- * 1) Can build ensemble and classify from results files of its members, call 
- *          setBuildIndividualsFromResultsFiles(true)
- * 2) If members built from scratch, can write the results files of the individuals with 
- *          setWriteIndividualsResultsFiles(true)
- *          and
- *          writeIndividualTestFiles(...) after testing is complete
- * 3) And can write the ensemble train/testing files with 
- *          writeEnsembleTrainTestFiles(...) after testing is complete
- * 
- * There are a bunch of little intricacies if you want to do stuff other than a bog standard run  
+          setResultsFileLocationParameters(...) 
+ 1) Can build ensemble and classify from results files of its members, call 
+          setBuildIndividualsFromResultsFiles(true)
+ 2) If members built from scratch, can write the results files of the individuals with 
+          setWriteIndividualsTrainResultsFiles(true)
+          and
+          writeIndividualTestFiles(...) after testing is complete
+ 3) And can write the ensemble train/testing files with 
+          writeEnsembleTrainTestFiles(...) after testing is complete
+ 
+ There are a bunch of little intricacies if you want to do stuff other than a bog standard run  
  * 
  * @author James Large (james.large@uea.ac.uk)
  *      
@@ -1099,7 +1099,7 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveParam
         
         h.setWeightingScheme(new EqualWeighting());
         h.setResultsFileLocationParameters(resultOutputDir, datasetIdentifier, resampleIdentifier); //dat hack... set after building/testing
-        h.setWriteIndividualsResultsFiles(true);
+        h.setWriteIndividualsTrainResultsFiles(true);
         
         if (writeEnsembleResults)
             h.setPerformCV(true);
@@ -1152,7 +1152,7 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveParam
         hesca.setResultsFileLocationParameters("hescaTest/", datasetName, resampleID);
         
         //include this to turn on file reading, will read from location provided in setResultsFileLocationParameters(...)
-        hesca.setWriteIndividualsResultsFiles(true);
+        hesca.setWriteIndividualsTrainResultsFiles(true);
         //include this to turn on file writing for individuals trainFold# files 
         hesca.setBuildIndividualsFromResultsFiles(true);
         //can only have one of these (or neither) set to true at any one time (internally, setting one to true 
@@ -1260,7 +1260,7 @@ public class HESCA extends EnsembleFromFile implements HiveCoteModule, SaveParam
             hesca.setResultsFileLocationParameters("C:/JamesLPHD/test3/", dataset, fold);
     //        hesca.setResultsFileLocationParameters("buildTimetests/", dataset, -1);
             hesca.setBuildIndividualsFromResultsFiles(false);
-            hesca.setWriteIndividualsResultsFiles(true);
+            hesca.setWriteIndividualsTrainResultsFiles(true);
 //            hesca.setPerformCV(true); //now defaults to true
             hesca.setWeightingScheme(new TrainAcc(4));
             hesca.setVotingScheme(new MajorityConfidence()); 

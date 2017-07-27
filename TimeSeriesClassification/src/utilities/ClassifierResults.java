@@ -234,7 +234,6 @@ public class ClassifierResults {
        return null;
    }
    public String writeInstancePredictions(){
-       DecimalFormat df=new DecimalFormat("#.######");
        if(numInstances()>0 &&(predictedClassProbabilities.size()==actualClassValues.size()&& predictedClassProbabilities.size()==predictedClassValues.size())){
            StringBuilder sb=new StringBuilder("");
            for(int i=0;i<numInstances();i++){
@@ -242,7 +241,7 @@ public class ClassifierResults {
                sb.append(predictedClassValues.get(i).intValue()).append(",");
                double[] probs=predictedClassProbabilities.get(i);
                for(double d:probs)
-                   sb.append(",").append(df.format(d));
+                   sb.append(",").append(GenericTools.RESULTS_DECIMAL_FORMAT.format(d));
                if(i<numInstances()-1)
                    sb.append("\n");
            }
@@ -258,19 +257,20 @@ public class ClassifierResults {
         st.append(name).append("\n");
         st.append("BuildTime,").append(buildTime).append(",").append(paras).append("\n");
         st.append(acc).append("\n");
-        
-        if (predictedClassValues != null) {
-            for(int i = 0; i < predictedClassValues.size();i++) {
-                st.append(actualClassValues.get(i)).append(",").append(predictedClassValues.get(i)).append(","); //pred
-                
-                double[] distForInst=getDistributionForInstance(i);
-                if (distForInst != null)
-                    for (int j = 0; j < distForInst.length; j++)
-                        st.append("," + distForInst[j]);
-
-                st.append("\n");
-            }
-        }
+  
+        st.append(writeInstancePredictions());
+//        if (predictedClassValues != null) {
+//            for(int i = 0; i < predictedClassValues.size();i++) {
+//                st.append(actualClassValues.get(i)).append(",").append(predictedClassValues.get(i)).append(","); //pred
+//                
+//                double[] distForInst=getDistributionForInstance(i);
+//                if (distForInst != null)
+//                    for (int j = 0; j < distForInst.length; j++)
+//                        st.append("," + distForInst[j]);
+//
+//                st.append("\n");
+//            }
+//        }
         
         return st.toString();
     }
