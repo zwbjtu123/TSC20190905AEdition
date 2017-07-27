@@ -73,25 +73,25 @@ public class SimulateMatrixProfileData {
 //        test1NNClassifiers();
 //        System.exit(0);
         
-        Model.setDefaultSigma(0.1);
+        Model.setDefaultSigma(1);
         Model.setGlobalRandomSeed(0);
         int seriesLength=500;
-        int[] casesPerClass=new int[]{10,10};        
+        int[] casesPerClass=new int[]{100,100};        
         NormalizeCase nc=new NormalizeCase();
         Instances d=generateMatrixProfileData(seriesLength,casesPerClass);
-        Instances[] split=InstanceTools.resampleInstances(d, 0,0.5);
+        Instances[] split=InstanceTools.resampleInstances(d, 0,0.1);
+        OutFile of = new OutFile("C:\\Temp\\train.arff");
+        of.writeString(split[0].toString()+"");
+        of = new OutFile("C:\\Temp\\test.arff");
+        of.writeString(split[1].toString()+"");
         MatrixProfile mp=new MatrixProfile(29);
         Instances m1=mp.process(split[0]);
 //        m1=nc.process(m1);
-        OutFile of = new OutFile("C:\\Temp\\MPSimulationTrain.csv");
-//        of.writeLine(""+sim.generateHeader());
-        of.writeString(split[0].toString()+"\n\n");
-        of.writeString(m1.toString());
-        of = new OutFile("C:\\Temp\\MPSimulationTrain.arff");
+        of = new OutFile("C:\\Temp\\MPTrain.arff");
         of.writeString(split[0]+"");
         Instances m2=mp.process(split[1]);
  //       m2=nc.process(m2);
-        of = new OutFile("C:\\Temp\\MPSimulationTest.csv");
+        of = new OutFile("C:\\Temp\\MPTest.arff");
         of.writeString(split[1].toString()+"\n\n");
         of.writeString(m2.toString());
     }

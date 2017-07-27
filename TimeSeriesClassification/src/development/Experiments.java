@@ -69,6 +69,7 @@ public class Experiments{
     static boolean checkpoint=false;
     static boolean generateTrainFiles=true;
     static Integer parameterNum=0;
+    static boolean UCIData=false;
     public static Classifier setClassifier(String classifier, int fold){
         Classifier c=null;
         TunedSVM svm=null;
@@ -296,9 +297,6 @@ public class Experiments{
         String problem=args[1];
         int fold=Integer.parseInt(args[2])-1;
    
-        Classifier c=setClassifier(classifier,fold);
-        Instances train=ClassifierTools.loadData(DataSets.problemPath+problem+"/"+problem+"_TRAIN");
-        Instances test=ClassifierTools.loadData(DataSets.problemPath+problem+"/"+problem+"_TEST");
         File f=new File(DataSets.resultsPath+classifier);
         if(!f.exists())
             f.mkdir();
@@ -313,6 +311,25 @@ public class Experiments{
 //Check whether fold already exists, if so, dont do it, just quit
         f=new File(predictions+"/testFold"+fold+".csv");
         if(!f.exists() || f.length()==0){
+        Classifier c=setClassifier(classifier,fold);
+//DO ALL THE SAMPLING HERE NOW        
+        Instances train,test;
+        Instances[] data;
+        String uciTest=DataSets.problemPath.toUpperCase();
+        if(uciTest.contains("UCI"))
+            UCIData=true;
+        if(UCIData){
+            Instances all = ClassifierTools.loadData(DataSets.problemPath+problem+"/"+problem);
+            data = InstanceTools.resampleInstances(all, fold, .5);            
+        }else{
+            train=ClassifierTools.loadData(DataSets.problemPath+problem+"/"+problem+"_TRAIN");
+            test=ClassifierTools.loadData(DataSets.problemPath+problem+"/"+problem+"_TEST");
+            data=InstanceTools.resampleTrainAndTestInstances(train, test, fold);
+            
+        }
+            
+            
+            
       //      of.writeString(problem+","); );
             if(parameterNum>0 && c instanceof ParameterSplittable)//Single parameter fold
             {
@@ -329,15 +346,16 @@ public class Experiments{
                         ((TrainAccuracyEstimate)c).writeCVTrainToFile(predictions+"/trainFold"+fold+".csv");
                     }
                     else{ // Need to cross validate
-                        int numFolds=train.numInstances()>=10?10:train.numInstances();
+                        int numFolds=data[0].numInstances()>=10?10:data[0].numInstances();
                         CrossValidator cv = new CrossValidator();
                         cv.setSeed(fold);
                         cv.setNumFolds(numFolds);
             //Estimate train accuracy HERE
-                        ClassifierResults res=cv.crossValidateWithStats(c,train);
+//Perform the split here                        
+                        ClassifierResults res=cv.crossValidateWithStats(c,data[0]);
             //Write to file
                         OutFile of=new OutFile(predictions+"/trainFold"+fold+".csv");
-                        of.writeLine(train.relationName()+","+c.getClass().getName()+",train");
+                        of.writeLine(data[0].relationName()+","+c.getClass().getName()+",train");
                         if(c instanceof SaveParameterInfo )
                             of.writeLine(((SaveParameterInfo)c).getParameters());
                         else
@@ -348,16 +366,16 @@ public class Experiments{
                         double[] predClassVals=res.getPredClassVals();
                         DecimalFormat df=new DecimalFormat("###.###");
 
-                        for(int i=0;i<train.numInstances();i++){
+                        for(int i=0;i<data[0].numInstances();i++){
                             //Basic sanity check
-                            if(train.instance(i).classValue()!=trueClassVals[i]){
+                            if(data[0].instance(i).classValue()!=trueClassVals[i]){
                                 throw new Exception("ERROR in TSF cross validation, class mismatch!");
                             }
                             of.writeString((int)trueClassVals[i]+","+(int)predClassVals[i]+",");
                             double[] distForInst=res.getDistributionForInstance(i);
                             for(double d:distForInst)
                                 of.writeString(","+df.format(d));
-                            if(i<train.numInstances()-1)
+                            if(i<data[0].numInstances()-1)
                                 of.writeString("\n");
                         }
                        }
@@ -365,7 +383,7 @@ public class Experiments{
                     }
                 }
             }
-            double acc =singleClassifierAndFoldTrainTestSplit(train,test,c,fold,predictions);
+            double acc =singleClassifierAndFoldTrainTestSplit(data[0],data[1],c,fold,predictions);
             System.out.println(classifier+","+problem+","+fold+","+acc);
         }
     }
@@ -391,7 +409,6 @@ public class Experiments{
  * 
  */    
     public static double singleClassifierAndFoldTrainTestSplit(Instances train, Instances test, Classifier c, int fold,String resultsPath){
-        Instances[] data=InstanceTools.resampleTrainAndTestInstances(train, test, fold);
         double acc=0;
         int act;
         int pred;
@@ -413,18 +430,18 @@ public class Experiments{
             }
         }
         try{              
-            c.buildClassifier(data[0]);
+            c.buildClassifier(train);
             if(debug){
                 if(c instanceof RandomForest)
                     System.out.println(" Number of features in MAIN="+((RandomForest)c).getNumFeatures());
             }
             StringBuilder str = new StringBuilder();
             DecimalFormat df=new DecimalFormat("##.######");
-            for(int j=0;j<data[1].numInstances();j++)
+            for(int j=0;j<test.numInstances();j++)
             {
-                act=(int)data[1].instance(j).classValue();
-                data[1].instance(j).setClassMissing();//Just in case ....
-                double[] probs=c.distributionForInstance(data[1].instance(j));
+                act=(int)test.instance(j).classValue();
+                test.instance(j).setClassMissing();//Just in case ....
+                double[] probs=c.distributionForInstance(test.instance(j));
                 pred=0;
                 for(int i=1;i<probs.length;i++){
                     if(probs[i]>probs[pred])
@@ -440,10 +457,10 @@ public class Experiments{
                     str.append(",");
                     str.append(df.format(d));
                 }
-                if(j<data[1].numInstances()-1)
+                if(j<test.numInstances()-1)
                     str.append("\n");
             }
-            acc/=data[1].numInstances();
+            acc/=test.numInstances();
             OutFile p=new OutFile(resultsPath+testFoldPath);
             p.writeLine(train.relationName()+","+c.getClass().getName()+",test");
             if(c instanceof SaveParameterInfo){

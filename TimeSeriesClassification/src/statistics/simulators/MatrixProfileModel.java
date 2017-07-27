@@ -37,7 +37,7 @@ public class MatrixProfileModel extends Model {
     ArrayList<Integer>  locations;
     public static int getGlobalLength(){ return GLOBALSERIESLENGTH;}
     public MatrixProfileModel(){
-        shapeCount=rand.nextInt(ShapeType.values().length);
+        shapeCount=0;//rand.nextInt(ShapeType.values().length);
         seriesLength=GLOBALSERIESLENGTH;
         locations=new ArrayList<>();    
         setNonOverlappingIntervals();
@@ -113,7 +113,7 @@ public class MatrixProfileModel extends Model {
         ShapeType[] all=ShapeType.values();
             ShapeType st=all[(shapeCount++)%all.length];
             shape=new DictionaryModel.Shape(st,shapeLength,b,a);
-            System.out.println("Shape is "+shape);
+//            System.out.println("Shape is "+shape);
  //        shape.nextShape();
 //        shape
     }
@@ -140,19 +140,28 @@ public class MatrixProfileModel extends Model {
            return d;
         }
     
-    
+    //Generate point t
     @Override
     public double generate(){
 //Noise
 //        System.out.println("Error var ="+error.getVariance());
         double value=error.simulate();
+//Find the next shape        
         int insertionPoint=0;
         while(insertionPoint<locations.size() && locations.get(insertionPoint)+shapeLength<t)
             insertionPoint++;    
-        if(insertionPoint>=locations.size()){ //Bigger than all the start points, set to last
+//Bigger than all the start points, set to last
+        if(insertionPoint>=locations.size()){ 
             insertionPoint=locations.size()-1;
         }
         int point=locations.get(insertionPoint);
+        if(insertionPoint>0 && point==t){//New shape, randomise scale
+            double b=MINBASE+(MAXBASE-MINBASE)*Model.rand.nextDouble();
+            double a=MINAMP+(MAXAMP-MINAMP)*Model.rand.nextDouble();
+            shape.setAmp(a);
+            shape.setBase(b);
+//            System.out.println("changing second shape");
+        }
         if(point<=t && point+shapeLength>t){//in shape1
             value+=shape.generateWithinShapelet((int)(t-point));
 //                System.out.println(" IN SHAPE 1 occurence "+insertionPoint+" Time "+t);
@@ -169,12 +178,12 @@ public class MatrixProfileModel extends Model {
         MatrixProfileModel m1=new MatrixProfileModel();
         MatrixProfileModel m2=new MatrixProfileModel();
         
-        double[][] d=new double[10][];
-        for(int i=0;i<5;i++){
+        double[][] d=new double[20][];
+        for(int i=0;i<10;i++){
             d[i]=m1.generateSeries(length);
         }
-        for(int i=5;i<10;i++){
-            d[i]=m2.generateSeries(length);
+        for(int i=10;i<20;i++){
+            d[i]=m1.generateSeries(length);
         }
         OutFile of=new OutFile("C:\\temp\\MP_ExampleSeries.csv");
         for(int i=0;i<length;i++){

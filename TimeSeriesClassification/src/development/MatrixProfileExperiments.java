@@ -203,7 +203,7 @@ public class MatrixProfileExperiments {
                 seriesLength=500;
                 trainProp=0.1;
                 casesPerClass=new int[]{50,50};
-                Model.setDefaultSigma(1);
+                Model.setDefaultSigma(0.1);
                 break;
         default:
                 throw new RuntimeException(" UNKNOWN SIMULATOR ");
@@ -254,34 +254,13 @@ public class MatrixProfileExperiments {
 //arg[0]: simulator
 //arg[1]: classifier
 //arg[2]: fold number    
-    public static double runSimulationExperiment(String[] args,boolean useStandard){
-        NormalizeCase nc=new NormalizeCase();
+    public static double runSimulationExperiment(String[] args,boolean useStandard) throws Exception{
         String simulator=args[0];
         if(useStandard)
             setStandardGlobalParameters(simulator);
         String classifier=args[1];
         Classifier c=setClassifier(classifier);
         int fold=Integer.parseInt(args[2])-1;
-        Instances data=simulateData(args[0],fold);
-        Instances[] split=InstanceTools.resampleInstances(data, fold,trainProp);
-        System.out.println(" Train size ="+split[0].numInstances()+" test size ="+split[1].numInstances());
-        try{
-            split[0]=nc.process(split[0]);
-            split[1]=nc.process(split[1]);
-        }catch(Exception e){
-            
-        }
-//Check if it is MP or not
-        if(classifier.contains("MP_")){
-            try {
-                MatrixProfile mp=new MatrixProfile(29);
-                split[0]=mp.process(split[0]);
-                split[1]=mp.process(split[1]);
-            } catch (Exception ex) {
-                Logger.getLogger(MatrixProfileExperiments.class.getName()).log(Level.SEVERE, null, ex);
-            }
-            
-        }
 
 
 //Set up the train and test files
@@ -297,6 +276,26 @@ public class MatrixProfileExperiments {
         if(!f.exists() || f.length()==0){
 //Do the experiment: find train preds through cross validation
 //Then generate all test predictions            
+            Instances data=simulateData(args[0],fold);
+            Instances[] split=InstanceTools.resampleInstances(data, fold,trainProp);
+            System.out.println(" Train size ="+split[0].numInstances()+" test size ="+split[1].numInstances());
+    //Check if it is MP or not
+            if(classifier.contains("MP_")){
+                try {
+                    System.out.println("MAtrix profile run ....");
+                    MatrixProfile mp=new MatrixProfile(29);
+                    split[0]=mp.process(split[0]);
+                    split[1]=mp.process(split[1]);
+                } catch (Exception ex) {
+                    Logger.getLogger(MatrixProfileExperiments.class.getName()).log(Level.SEVERE, null, ex);
+                }
+
+            }else{
+                NormalizeCase nc= new NormalizeCase();
+                split[0]=nc.process(split[0]);
+                split[0]=nc.process(split[1]);
+            }
+
             double acc=singleSampleExperiment(split[0],split[1],c,fold,predictions);
 //            System.out.println("simulator ="+simulator+" Classifier ="+classifier+" Fold "+fold+" Acc ="+acc);
             return acc;
@@ -852,7 +851,7 @@ public class MatrixProfileExperiments {
 //            DataSets.resultsPath="C:\\Users\\ajb\\Dropbox\\Results\\MatrixProfileExperiments\\";
             local=true;
             DataSets.resultsPath="C:\\temp\\";
-                String[] algos={"ED","MP_ED"}; //"RotF","DTW","MP_RotF","MP_DTW"};
+                String[] algos={"ED","MP_ED","DTW","RotF","ST","TSF","BOSS"};//,,"MP_RotF","MP_DTW"};
                 double[] meanAcc=new double[algos.length];
             for(int i=1;i<=10;i++){
                 for(int j=0;j<algos.length;j++){
