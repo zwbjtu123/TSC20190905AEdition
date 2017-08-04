@@ -63,7 +63,7 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
     private boolean kernelOptimise=false;   //Choose between linear, quadratic and RBF kernel
     private boolean paraOptimise=true;
     private ClassifierResults res =new ClassifierResults();
-    
+    private long combinedBuildTime;
     
     protected String resultsPath;
     protected boolean saveEachParaAcc=false;
@@ -290,8 +290,10 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
                         missing++;
                 }
               }
+            
             if(missing==0)//All present
             {
+                combinedBuildTime=0;
     //            If so, read them all from file, pick the best
                 count=0;
                 for(double p1:paraSpace){
@@ -299,6 +301,7 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
                         count++;
                         tempResults = new ClassifierResults();
                         tempResults.loadFromFile(resultsPath+count+".csv");
+                        combinedBuildTime+=tempResults.buildTime;
                         double e=1-tempResults.acc;
                         if(e<minErr){
                             minErr=e;
@@ -405,11 +408,13 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
             }
             if(missing==0)//All present
             {
+                combinedBuildTime=0;
                 count=0;
                 for(double p1:paraSpace){
                     count++;
                     tempResults = new ClassifierResults();
                     tempResults.loadFromFile(resultsPath+count+".csv");
+                    combinedBuildTime+=tempResults.buildTime;
                     double e=1-tempResults.acc;
                     if(e<minErr){
                         minErr=e;
@@ -512,7 +517,7 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
     
     @Override
     public void buildClassifier(Instances train) throws Exception {
-        res.buildTime=System.currentTimeMillis();
+        long t=System.currentTimeMillis();
         
         
         if(paraSpace==null)
@@ -529,7 +534,10 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
 //With whatever the parameters are set to        
         super.buildClassifier(train);
         
-        res.buildTime=System.currentTimeMillis()-res.buildTime;
+        if(saveEachParaAcc)
+            res.buildTime=combinedBuildTime;
+        else
+            res.buildTime=System.currentTimeMillis()-t;
         if(trainPath!=null && trainPath!=""){  //Save basic train results
             OutFile f= new OutFile(trainPath);
             f.writeLine(train.relationName()+",TunedSVM,Train");
