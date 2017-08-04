@@ -81,7 +81,7 @@ public class HESCADevelopment {
         for(int s=250;s<=5000;s+=250){
             MatrixProfileExperiments.casesPerClass=new int[]{s/2,s/2};
             MatrixProfileExperiments.trainProp=0.2;
-            Instances d= MatrixProfileExperiments.simulateData("Interval",0);
+            Instances d= SimulationExperiments.simulateData("Interval",0);
             out.writeString("\n"+s+",");
             System.out.println(" s ="+s+"   ");
             hesca=new HESCA();
@@ -114,7 +114,7 @@ public class HESCADevelopment {
         out.writeString(", HESCA\n");
         for(int s=100;s<=1000;s+=100){
             MatrixProfileExperiments.seriesLength=s;
-            Instances d= MatrixProfileExperiments.simulateData("Interval",0);
+            Instances d= SimulationExperiments.simulateData("Interval",0);
             out.writeString("\n"+s+",");
             System.out.println(" s ="+s+"   ");
             hesca=new HESCA();
@@ -149,7 +149,7 @@ public class HESCADevelopment {
         out.writeString(", CV,OOB\n");
         for(int s=100;s<=1000;s+=100){
             MatrixProfileExperiments.seriesLength=s;
-            Instances d= MatrixProfileExperiments.simulateData("Interval",0);
+            Instances d= SimulationExperiments.simulateData("Interval",0);
             out.writeString("\n"+s+",");
             System.out.println(" s ="+s+"   ");
             RandomForest rf=new RandomForest();
@@ -195,7 +195,7 @@ public class HESCADevelopment {
         out.writeString(", 10,20,30,40,50\n");
         for(int s=1000;s<=3000;s+=200){
             MatrixProfileExperiments.seriesLength=s;
-            Instances d= MatrixProfileExperiments.simulateData("Interval",0);
+            Instances d= SimulationExperiments.simulateData("Interval",0);
             Instances[] split=InstanceTools.resampleInstances(d, 0,0.2);
             out.writeString("\n"+s+",");
             System.out.println(" s ="+s+"   ");
@@ -248,7 +248,7 @@ public class HESCADevelopment {
         out.writeString(", 10,20,30,40,50\n");
         for(int s=100;s<=1000;s+=100){
             MatrixProfileExperiments.seriesLength=s;
-            Instances d= MatrixProfileExperiments.simulateData("Interval",0);
+            Instances d= SimulationExperiments.simulateData("Interval",0);
             Instances[] split=InstanceTools.resampleInstances(d, 0,0.5);
             out.writeString("\n"+s+",");
             System.out.println(" s ="+s+"   ");
@@ -267,7 +267,7 @@ public class HESCADevelopment {
         for(int s=250;s<=2500;s+=250){
              MatrixProfileExperiments.casesPerClass=new int[]{s/2,s/2};
             MatrixProfileExperiments.trainProp=0.2;
-            Instances d= MatrixProfileExperiments.simulateData("Interval",0);
+            Instances d= SimulationExperiments.simulateData("Interval",0);
             Instances[] split=InstanceTools.resampleInstances(d, 0,0.5);
             out.writeString("\n"+s+",");
             System.out.println(" s ="+s+"   ");

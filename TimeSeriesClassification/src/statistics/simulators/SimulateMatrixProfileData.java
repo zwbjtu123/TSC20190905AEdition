@@ -1,10 +1,9 @@
-/*
 
- */
 package statistics.simulators;
 
 import development.DataSets;
 import fileIO.OutFile;
+import java.text.DecimalFormat;
 import timeseriesweka.classifiers.DTW_1NN;
 import timeseriesweka.classifiers.ensembles.elastic_ensemble.DTW1NN;
 import timeseriesweka.filters.MatrixProfile;
@@ -20,11 +19,12 @@ import weka.filters.NormalizeCase;
  */
 public class SimulateMatrixProfileData {
     static DataSimulator sim;
+    static boolean debug=true;
     public static Instances generateMatrixProfileData(int seriesLength, int []casesPerClass)
     {
-        MatrixProfileModel.setGlobalSeriesLength(seriesLength);
+        MatrixProfileModelVersion1.setGlobalSeriesLength(seriesLength);
        
-        MatrixProfileModel[] MP_Mod = new MatrixProfileModel[casesPerClass.length];
+        MatrixProfileModelVersion1[] MP_Mod = new MatrixProfileModelVersion1[casesPerClass.length];
         populateMatrixProfileModels(MP_Mod); 
         sim = new DataSimulator(MP_Mod);
         sim.setSeriesLength(seriesLength);
@@ -32,46 +32,84 @@ public class SimulateMatrixProfileData {
         Instances d=sim.generateDataSet();
         return d;
     }
-    private static void populateMatrixProfileModels(MatrixProfileModel[] m){
+    private static void populateMatrixProfileModels(MatrixProfileModelVersion1[] m){
         if(m.length!=2)
             System.out.println("ONLY IMPLEMENTED FOR TWO CLASSES");
 //Create two models with same interval but different shape. 
-        MatrixProfileModel m1=new MatrixProfileModel();
-        MatrixProfileModel m2=new MatrixProfileModel();
-
+        MatrixProfileModelVersion1 m1=new MatrixProfileModelVersion1();
+        MatrixProfileModelVersion1 m2=new MatrixProfileModelVersion1();
+        
         m[0]=m1;
         m[1]=m2;
+        if(debug){
+            System.out.println(" Model 1 = "+m[0]);
+            System.out.println(" Model 2 = "+m[1]);
+            
+        }
+            
         
     }
     
-    private static void test1NNClassifiers(){
-        for(double sig=0;sig<=1;sig+=1){
+    private static void test1NNClassifiers() throws Exception{
+        for(double sig=0;sig<=1;sig+=0.5){
             Model.setDefaultSigma(sig);
             double meanAcc=0;
             double meanAcc2=0;
-            int r=20;
+            double meanAcc3=0;
+            int r=100;
+            DecimalFormat df= new DecimalFormat("###.#####");
             for(int i=0;i<r;i++){
                 Model.setGlobalRandomSeed(i);
-                int seriesLength=200;
-                int[] casesPerClass=new int[]{100,100};        
+                int seriesLength=150;
+                int[] casesPerClass=new int[]{50,50};        
                 Instances d=generateMatrixProfileData(seriesLength,casesPerClass);
-                Instances[] split=InstanceTools.resampleInstances(d, 0,0.1);
+                if(i==1){
+                    OutFile out=new OutFile("C:\\temp\\mpRand"+sig+".csv");
+                    out.writeString(d.toString());
+                }
+                Instances[] split=InstanceTools.resampleInstances(d,i,0.1);
                 kNN knn= new kNN();
                 knn.setKNN(1);
                 double acc=ClassifierTools.singleTrainTestSplitAccuracy(knn, split[0], split[1]);
-                DTW1NN dtw=new DTW1NN();
-                double acc2=ClassifierTools.singleTrainTestSplitAccuracy(dtw, split[0], split[1]);
+
+                NormalizeCase nc=new NormalizeCase();
+                split[0]=nc.process(split[0]);
+                split[1]=nc.process(split[1]);
+                double acc2=ClassifierTools.singleTrainTestSplitAccuracy(knn, split[0], split[1]);
+                MatrixProfile mp=new MatrixProfile(29);
+                Instances[] mpSplit=new Instances[2];
+                mpSplit[0]=mp.process(split[0]);
+                mpSplit[1]=mp.process(split[1]);
+                double acc3=ClassifierTools.singleTrainTestSplitAccuracy(knn, mpSplit[0], mpSplit[1]);
                 meanAcc+=acc;
                 meanAcc2+=acc2;
-                System.out.println("Train Size ="+split[0].numInstances()+" 1NN acc = "+acc+" DTW acc ="+acc2);
+                meanAcc3+=acc3;
+                System.out.println("Train Size ="+split[0].numInstances()+" 1NN acc = "+df.format(acc)+" 1NN acc normed="+df.format(acc2)+" 1NN MP acc ="+df.format(acc3));
             }
-            System.out.println(" Sig ="+sig+" Mean 1NN Acc ="+meanAcc/r+" Mean 1NN Acc ="+meanAcc2/r);
+            System.out.println(" Sig ="+sig+" Mean 1NN Acc ="+df.format(meanAcc/r)+" Mean 1NN Norm Acc ="+df.format(meanAcc2/r)+" Mean 1NN MP Acc = "+df.format(meanAcc3/r));
         }
         
     }
+ 
+    public static void createExampleData() throws Exception{
+        OutFile raw=new OutFile("C:\\Temp\\raw.csv");
+        OutFile mpFile=new OutFile("C:\\Temp\\mp.csv");
+        Model.setDefaultSigma(1.0);
+        DecimalFormat df= new DecimalFormat("###.#####");
+        Model.setGlobalRandomSeed(1);
+        int seriesLength=150;
+        int[] casesPerClass=new int[]{50,50};        
+        Instances d=generateMatrixProfileData(seriesLength,casesPerClass);
+        MatrixProfile mp=new MatrixProfile(29);
+        Instances md;
+        md=mp.process(d);
+        raw.writeLine(d.toString());
+        mpFile.writeLine(md.toString());
+    }
     public static void main(String[] args) throws Exception {
-//        test1NNClassifiers();
-//        System.exit(0);
+        createExampleData();
+        System.exit(0);
+        test1NNClassifiers();
         
         Model.setDefaultSigma(1);
         Model.setGlobalRandomSeed(0);
@@ -95,5 +133,7 @@ public class SimulateMatrixProfileData {
         of.writeString(split[1].toString()+"\n\n");
         of.writeString(m2.toString());
     }
+    
+    
     
 }

@@ -94,7 +94,7 @@ public class Experiments{
                 ((SMO)c).setRandomSeed(fold);
                 ((SMO)c).setBuildLogisticModels(true);
                 break;
-            case "SVMQ":
+            case "SVMQ": case "SVMQuad":
                 c=new SMO();
                 PolyKernel p2=new PolyKernel();
                 p2.setExponent(2);
@@ -303,14 +303,14 @@ Optional
                 System.out.println("No args passed");
                 
             DataSets.problemPath="C:\\Users\\ajb\\Dropbox\\TSC Problems\\";
-            DataSets.resultsPath="c:\\Temp\\";
+            DataSets.resultsPath="C:\\Temp\\";
             File f=new File(DataSets.resultsPath);
             if(!f.isDirectory()){
                 f.mkdirs();
             }
-            generateTrainFiles=false;
-            checkpoint=false;
-            parameterNum=1089;
+            generateTrainFiles=true;
+            checkpoint=true;
+            parameterNum=0;
             String[] newArgs={"TunedSVMRBF","ItalyPowerDemand","2"};
             Experiments.singleClassifierAndFoldTrainTestSplit(newArgs);
             System.exit(0);

@@ -122,7 +122,7 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
 
     @Override
     public void setParamSearch(boolean b) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        paraOptimise=b;
     }
 
     @Override
@@ -237,10 +237,10 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
                 count++;
                 if(saveEachParaAcc){// check if para value already done
                     File f=new File(resultsPath+count+".csv");
-                    if(f.exists() && f.length()>0)
+                    if(f.exists() && f.length()>0){
                         continue;//If done, ignore skip this iteration
-                    else
-                        temp=new OutFile(resultsPath+count+".csv");
+                        
+                    }
                    if(debug)
                        System.out.println("PARA COUNT ="+count);
                 }
@@ -261,56 +261,84 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
                 if(debug)
                     System.out.println(" C= "+p1+" Gamma = "+p2+" Acc = "+(1-e));
                 if(saveEachParaAcc){// Save to file and close
+                    temp=new OutFile(resultsPath+count+".csv");
                     temp.writeLine(tempResults.writeResultsFileToString());
                     temp.closeFile();
                 }                
-                if(e<minErr){
+                else{
+                    if(e<minErr){
                     minErr=e;
                     ties=new ArrayList<>();//Remove previous ties
                     ties.add(new ResultsHolder(p1,p2,tempResults));
-                }
-                else if(e==minErr){//Sort out ties
-                    ties.add(new ResultsHolder(p1,p2,tempResults));
+                    }
+                    else if(e==minErr){//Sort out ties
+                        ties.add(new ResultsHolder(p1,p2,tempResults));
+                    }
                 }
             }
         }
         double bestC;
         double bestSigma;
         minErr=1;
-        if(saveEachParaAcc){// Read them all from file, pick the best
-            count=0;
+        if(saveEachParaAcc){
+// Check they are all there first. 
+            int missing=0;
             for(double p1:paraSpace){
                 for(double p2:paraSpace){
-                    count++;
-                    tempResults = new ClassifierResults();
-                    tempResults.loadFromFile(resultsPath+count+".csv");
-                    double e=1-tempResults.acc;
-                    if(e<minErr){
-                        minErr=e;
-                        ties=new ArrayList<>();//Remove previous ties
-                        ties.add(new ResultsHolder(p1,p2,tempResults));
-                    }
-                    else if(e==minErr){//Sort out ties
+                    File f=new File(resultsPath+count+".csv");
+                    if(!(f.exists() && f.length()>0))
+                        missing++;
+                }
+              }
+            if(missing==0)//All present
+            {
+    //            If so, read them all from file, pick the best
+                count=0;
+                for(double p1:paraSpace){
+                    for(double p2:paraSpace){
+                        count++;
+                        tempResults = new ClassifierResults();
+                        tempResults.loadFromFile(resultsPath+count+".csv");
+                        double e=1-tempResults.acc;
+                        if(e<minErr){
+                            minErr=e;
+                            ties=new ArrayList<>();//Remove previous ties
                             ties.add(new ResultsHolder(p1,p2,tempResults));
-                    }
-//Delete the files here to clean up.
-                    
-                    File f= new File(resultsPath+count+".csv");
-                    if(!f.delete())
-                        System.out.println("DELETE FAILED "+resultsPath+count+".csv");
-                }            
-            }
+                        }
+                        else if(e==minErr){//Sort out ties
+                                ties.add(new ResultsHolder(p1,p2,tempResults));
+                        }
+    //Delete the files here to clean up.
+
+                        File f= new File(resultsPath+count+".csv");
+                        if(!f.delete())
+                            System.out.println("DELETE FAILED "+resultsPath+count+".csv");
+                    }            
+                }
+                ResultsHolder best=ties.get(rng.nextInt(ties.size()));
+                bestC=best.x;
+                bestSigma=best.y;
+                paras[0]=bestC;
+                setC(bestC);
+                ((RBFKernel)m_kernel).setGamma(bestSigma);
+                paras[1]=bestSigma;
+                res=best.res;
+                if(debug)
+                    System.out.println("Best C ="+bestC+" best Gamma = "+bestSigma+" best train acc = "+res.acc);
+            }else//Not all present, just ditch
+                System.out.println(resultsPath+" error: missing  ="+missing+" parameter values");
         }
-        ResultsHolder best=ties.get(rng.nextInt(ties.size()));
-        bestC=best.x;
-        bestSigma=best.y;
-        paras[0]=bestC;
-        setC(bestC);
-        ((RBFKernel)m_kernel).setGamma(bestSigma);
-        paras[1]=bestSigma;
-        res=best.res;
-        if(debug)
-            System.out.println("Best C ="+bestC+" best Gamma = "+bestSigma+" best train acc = "+res.acc);
+        else{
+            ResultsHolder best=ties.get(rng.nextInt(ties.size()));
+            bestC=best.x;
+            bestSigma=best.y;
+            paras[0]=bestC;
+            setC(bestC);
+            ((RBFKernel)m_kernel).setGamma(bestSigma);
+            paras[1]=bestSigma;
+            res=best.res;
+         }
+        
     }
     
    public void tunePolynomial(Instances train) throws Exception {
@@ -340,8 +368,6 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
                 File f=new File(resultsPath+count+".csv");
                 if(f.exists() && f.length()>0)
                     continue;//If done, ignore skip this iteration
-                else
-                    temp=new OutFile(resultsPath+count+".csv");
                if(debug)
                    System.out.println("PARA COUNT ="+count);
             }
@@ -357,6 +383,7 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
             double e=1-tempResults.acc;
             accuracy.add(tempResults.acc);
             if(saveEachParaAcc){// Save to file and close
+                temp=new OutFile(resultsPath+count+".csv");
                 temp.writeLine(tempResults.writeResultsFileToString());
                 temp.closeFile();
             }                
@@ -369,32 +396,49 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
                 ties.add(new ResultsHolder(d,0.0,tempResults));
             }
         }
-        if(saveEachParaAcc){// Read them all from file, pick the best
-            count=0;
+        if(saveEachParaAcc){// Read them all from file, if all donepick the best
+            int missing=0;
             for(double p1:paraSpace){
-                count++;
-                tempResults = new ClassifierResults();
-                tempResults.loadFromFile(resultsPath+count+".csv");
-                double e=1-tempResults.acc;
-                if(e<minErr){
-                    minErr=e;
-                    ties=new ArrayList<>();//Remove previous ties
-                    ties.add(new ResultsHolder(p1,0.0,tempResults));
-                }
-                else if(e==minErr){//Sort out ties
+                File f=new File(resultsPath+count+".csv");
+                if(!(f.exists() && f.length()>0))
+                    missing++;
+            }
+            if(missing==0)//All present
+            {
+                count=0;
+                for(double p1:paraSpace){
+                    count++;
+                    tempResults = new ClassifierResults();
+                    tempResults.loadFromFile(resultsPath+count+".csv");
+                    double e=1-tempResults.acc;
+                    if(e<minErr){
+                        minErr=e;
+                        ties=new ArrayList<>();//Remove previous ties
                         ties.add(new ResultsHolder(p1,0.0,tempResults));
-                }
-//Delete the files here to clean up.
-
-                File f= new File(resultsPath+count+".csv");
-                if(!f.delete())
-                    System.out.println("DELETE FAILED "+resultsPath+count+".csv");
-            }  
-        }        
-        
-        ResultsHolder best=ties.get(rng.nextInt(ties.size()));
-        setC(best.x);
-        res=best.res;
+                    }
+                    else if(e==minErr){//Sort out ties
+                            ties.add(new ResultsHolder(p1,0.0,tempResults));
+                    }
+    //Delete the files here to clean up.
+                    File f= new File(resultsPath+count+".csv");
+                    if(!f.delete())
+                        System.out.println("DELETE FAILED "+resultsPath+count+".csv");
+                }  
+                ResultsHolder best=ties.get(rng.nextInt(ties.size()));
+                setC(best.x);
+                res=best.res;
+                paras[0]=best.x;
+            }
+            else{
+                 System.out.println(resultsPath+" error: missing  ="+missing+" parameter values");
+            }
+        }
+        else{
+            ResultsHolder best=ties.get(rng.nextInt(ties.size()));
+            setC(best.x);
+            res=best.res;
+            paras[0]=best.x;
+        }
     }
      
     public void selectKernel(Instances train) throws Exception {

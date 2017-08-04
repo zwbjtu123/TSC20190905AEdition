@@ -19,6 +19,7 @@ import weka.classifiers.Classifier;
 import weka.core.Instances;
 import development.MatrixProfileExperiments;
 import static development.MatrixProfileExperiments.setClassifier;
+import development.SimulationExperiments;
 
 /**
  *
@@ -29,8 +30,8 @@ public class RISESimulatedDataExperiments {
     static int []casesPerClass={500,500};
     static int seriesLength=500;
     public static double simulatorExperiment(String dataSimulator, String classifier, int fold){
-        Classifier c=MatrixProfileExperiments.setClassifier(classifier);
-        Instances test= MatrixProfileExperiments.simulateData(dataSimulator,fold);
+        Classifier c=SimulationExperiments.setClassifier(classifier);
+        Instances test= SimulationExperiments.simulateData(dataSimulator,fold);
         System.out.println("Classifier ="+classifier+" Simulator ="+dataSimulator);
         System.out.println("Fold "+fold+" DATA nos atts ="+test.numAttributes()+" noscases ="+test.numInstances());
         double acc=ClassifierTools.stratifiedCrossValidation(test, c, 2, fold);

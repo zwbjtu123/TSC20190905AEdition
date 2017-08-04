@@ -352,6 +352,8 @@ public class DictionaryModel extends Model {
 //        private int location;
         public void setBase(double b){ base=b;}
         public void setAmp(double a){amp=a;}
+        public double getBase(){ return base;}
+        public double getAmp(){return amp;}
         public static double DEFAULTBASE=-2;
         public static double DEFAULTAMP=4;
         

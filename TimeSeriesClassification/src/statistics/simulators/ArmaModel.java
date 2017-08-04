@@ -4,6 +4,7 @@ package statistics.simulators;
 
 // Note really need infinite AR representation
 
+import fileIO.OutFile;
 import statistics.distributions.NormalDistribution;
 
 public class ArmaModel extends Model{
@@ -155,34 +156,33 @@ public class ArmaModel extends Model{
 	}
 	public	double generate()
 	{
-		double x=0,e;
-		int t =(int) (this.t);
-		if(t<p)
-		{
-			this.t++;
-			return xRecord[t];
-		}
-		for(int i=0;i<p;i++)
-			x+=ar[p-i-1]*xRecord[(t+i)%p];
+            double x=0,e;
+            int t =(int) (this.t);
+            if(t<p)
+            {
+                    this.t++;
+                    return xRecord[t];
+            }
+            for(int i=0;i<p;i++)
+                    x+=ar[p-i-1]*xRecord[(t+i)%p];
 
-		for(int i=0;i<q;i++)
-			x+=ma[(t+i)%q]*eRecord[(t+i)%q];
-		e=error.simulate();
-		x+=e;
-		if(p>0)
-			xRecord[t%p]=x;
-		if(q>0)
-			eRecord[t%q]=e;
-		this.t++;
-		return x;
+            for(int i=0;i<q;i++)
+                    x+=ma[(t+i)%q]*eRecord[(t+i)%q];
+            e=error.simulate();
+            x+=e;
+            if(p>0)
+                    xRecord[t%p]=x;
+            if(q>0)
+                    eRecord[t%q]=e;
+            this.t++;
+            return x;
 	}
-
 
 	public String toString()
 	{
-		String str="";
-		return str;
-	}
+            String str="";
+            return str;
+    }
 
 	public static double[] differenceData(double[] d)
 	{
@@ -226,12 +226,23 @@ public class ArmaModel extends Model{
 	}
 
         static public void main(String[] args){
+            simulateDataForForecastingWithMP();
+            System.exit(0);
+            System.out.println("Testing Arma Models");
 
-		System.out.println("Testing Arma Models");
-
-		System.out.println("Generating Data");
-		simulateData(0,1,30);
+            System.out.println("Generating Data");
+            simulateData(0,1,30);
 
 	}
+        public static void simulateDataForForecastingWithMP(){
+            OutFile ex= new OutFile("C:\\Temp\\ARSeries.csv");
+            double[][] p={{0.5},{-0.5}};
+            ArmaModel ar1= new ArmaModel(p[0]);
+            ArmaModel ar2= new ArmaModel(p[1]);
+            for(int i=0;i<10000;i++)
+                ex.writeLine(ar1.generate()+"");
+            for(int i=0;i<10000;i++)
+                ex.writeLine(ar2.generate()+"");
+        }
          
 }
