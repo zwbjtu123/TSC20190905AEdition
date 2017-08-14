@@ -19,7 +19,7 @@ import java.util.Collections;
  * 
  * @author James Large
  */
-public class ClassifierResults {
+public class ClassifierResults implements DebugPrinting {
     public long buildTime;
     private int numClasses;
     private int numInstances;
@@ -46,6 +46,8 @@ public class ClassifierResults {
     public ArrayList<Double> predictedClassValues;
     public ArrayList<double[]> predictedClassProbabilities;
     
+    private boolean finalised = false;
+    
     /**
      * for building results one by one while testing, call finaliseResults
  to populate the ClassifierResults object once testing is finished
@@ -54,6 +56,8 @@ public class ClassifierResults {
         actualClassValues= new ArrayList<>();
         predictedClassValues = new ArrayList<>();
         predictedClassProbabilities = new ArrayList<>();
+        
+        finalised = false;
     }
     
     /**
@@ -66,6 +70,7 @@ public class ClassifierResults {
         predictedClassProbabilities = new ArrayList<>();
         
         this.numClasses = numClasses;
+        finalised = false;
     }
     
     
@@ -74,6 +79,7 @@ public class ClassifierResults {
         this();
         this.acc = cvacc;
         this.numClasses = numClasses;
+        finalised = false;
     }
     
     public ClassifierResults(double acc, double[] classVals, double[] preds, double[][] distsForInsts, int numClasses) {        
@@ -90,11 +96,15 @@ public class ClassifierResults {
         this.confusionMatrix = buildConfusionMatrix();
         
         this.stddev = -1; //not defined 
+        
+        finalised = true;
     }
     
     public ClassifierResults(double acc, double[] classVals, double[] preds, double[][] distsForInsts, double stddev, int numClasses) { 
         this(acc,classVals,preds,distsForInsts,numClasses);
         this.stddev = stddev; 
+        
+        finalised = true;
     }
 
     public int getNumClasses() {
@@ -189,6 +199,11 @@ public class ClassifierResults {
     
     
     public void finaliseResults(double[] testClassVals) throws Exception {
+        if (finalised) {
+            printlnDebug("Results already finalised, skipping re-finalisation");
+            return;
+        }
+        
         if (predictedClassProbabilities == null || predictedClassValues == null ||
                 predictedClassProbabilities.isEmpty() || predictedClassValues.isEmpty())
             throw new Exception("finaliseTestResults(): no test predictions stored for this module");
@@ -206,6 +221,8 @@ public class ClassifierResults {
                     ++correct;
         }
         acc = correct/testClassVals.length;
+        
+        finalised = true;
     }
     public int numInstances(){ return predictedClassValues.size();}
     public double[] getTrueClassVals(){
@@ -323,6 +340,8 @@ public class ClassifierResults {
                line=inf.readLine();
            }
            acc/=numInstances;
+           
+           finalised = true;
        }
        else
            throw new FileNotFoundException("File "+path+" NOT FOUND");
