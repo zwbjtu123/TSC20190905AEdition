@@ -20,6 +20,7 @@ import timeseriesweka.classifiers.BOSS;
 import timeseriesweka.classifiers.BagOfPatterns;
 import timeseriesweka.classifiers.DD_DTW;
 import timeseriesweka.classifiers.DTD_C;
+import timeseriesweka.classifiers.FastDTW_1NN;
 import timeseriesweka.classifiers.ElasticEnsemble;
 import timeseriesweka.classifiers.FastShapelets;
 import timeseriesweka.classifiers.FlatCote;
@@ -209,7 +210,10 @@ public class Experiments{
                 ((DTW1NN )c).setWindow(1);
                 break;
             case "DTWCV":
-                c=new DTW1NN();
+//                c=new DTW1NN();
+                c=new FastDTW_1NN();
+                ((FastDTW_1NN)c).optimiseWindow(true);
+                
                 break;
             case "DD_DTW":
                 c=new DD_DTW();

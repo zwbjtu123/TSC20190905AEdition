@@ -79,12 +79,15 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
     
     
     public TunedSVM(){
+        super();
         kernelOptimise=false;
         kernel=KernelType.RBF;
         paraOptimise=true;
         setKernel(new RBFKernel());
         rng=new Random();
-       accuracy=new ArrayList<>();
+        accuracy=new ArrayList<>();
+        setBuildLogisticModels(true);
+       
          
     }
 

@@ -4,7 +4,7 @@ package statistics.simulators;
 import development.DataSets;
 import fileIO.OutFile;
 import java.text.DecimalFormat;
-import timeseriesweka.classifiers.DTW_1NN;
+import timeseriesweka.classifiers.FastDTW_1NN;
 import timeseriesweka.classifiers.ensembles.elastic_ensemble.DTW1NN;
 import timeseriesweka.filters.MatrixProfile;
 import utilities.ClassifierTools;

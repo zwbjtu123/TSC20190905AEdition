@@ -6,32 +6,46 @@ import utilities.ClassifierTools;
 import weka.classifiers.Classifier;
 import weka.core.*;
 
-/* DO NOT USE: Not properly debugged. This class is a specialisation of kNN that can only be used with the efficient DTW distance
+/* DO NOT USE: Not properly debugged. This class is a specialisation of kNN that
+can only be used with the efficient DTW distance
  * 
- * The reason for specialising is this class has the option of searching for the optimal window length
+ * The reason for specialising is this class has the option of searching for 
+the optimal window length
  * through a grid search of values.
  * 
- * By default this class does a search. 
+ * By default this class does not do a search of window size.  
  * To search for the window size call
  * optimiseWindow(true);
- * By default, this does a leave one out cross validation on every possible window size, then sets the 
- * proportion to the one with the largest accuracy. This will be slow. Speed it up by
- * 
- * 1. Set the max window size to consider by calling
- * setMaxWindowSize(double r) where r is on range 0..1, with 1 being a full warp, 0 being Euclidean distance.
- * 
- * 2. Set the increment size 
- * setIncrementSize(int s) where s is on range 1...trainSetSize 
- * 
- * This is a basic brute force implementation, not optimised! There are probably ways of 
- * incrementally doing this. It could further be speeded up by using PAA to reduce the dimensionality first.
- * 
+ * By default, this does a leave one out cross validation on every possible 
+window size, then sets the proportion to the one with the largest accuracy,
+ties taking the smallest window (slow)
+. This will be slow, and not how the Keogh group do it. They do a stepwise increase
+of window by 1% until there is no improvement for three steps. 
+
+This has two possible speedups
+
+1. Optimize window. This starts at full window, w=100%, and records the maximum warp 
+ made over the data set, say k. Rather than move to w=w-1 it moves to w=k if k<w-1,
+thus saving many evaluations
+
+2. Early abandon on a window. If, during the accuracy calculation for a single window size,
+the accuracy cannot be better than the best so far, we can quit. 
+
+3. Early abandon on the nearest neighbour calculation. One obvious speed up is 
+to store the distance matrix for a given window size. This requires O(n^2) extra
+memory and means you cannot early abandon individual distances. 
+
+The problem with this is it means you cannot 
+
+
+CHECK THIS: For implementation reasons, a window size of 1 
+is equivalent to Euclidean distance (rather than a window size of 0
  */
 
-public class DTW_1NN implements Classifier {
+public class FastDTW_1NN implements Classifier {
     private boolean optimiseWindow=false;
     private double windowSize=1;
-    private int maxNosWindows=100;
+    private int maxPercentageWarp=100;
     private Instances train;
     private int trainSize;
     private int bestWarp;
@@ -40,16 +54,16 @@ public class DTW_1NN implements Classifier {
     HashMap<Integer,Double> distances;
     double maxR=1;
 
-    public DTW_1NN(){
+    public FastDTW_1NN(){
         dtw=new DTW();
     }
-    public DTW_1NN(DTW_DistanceBasic d){
+    public FastDTW_1NN(DTW_DistanceBasic d){
         dtw=d;
     }
     
     
     public double getMaxR(){ return maxR;}
-    public void setMaxNosWindows(int a){maxNosWindows=a;}
+    public void setMaxPercentageWarp(int a){maxPercentageWarp=a;}
     public void optimiseWindow(boolean b){ optimiseWindow=b;}
     public void setR(double r){dtw.setR(r);}
     public double getR(){ return dtw.getR();}
@@ -63,21 +77,21 @@ public class DTW_1NN implements Classifier {
         if(optimiseWindow){
             maxR=0;
             double maxAcc=0;
-/*Set the maximum warping window: The window size in the r value is range 0..1, 
-so the window size= r*(length of series). For implementation reasons, a window size of 1 
-is equivalent to Euclidean distance (rather than a window size of 0            
-            */
             int dataLength=train.numAttributes()-1;
+/*  If the data length < 100 then there will be some repetition
+            should skip some values I reckon
             if(dataLength<maxNosWindows)
-                maxNosWindows=dataLength;
+                maxPercentageWarp=dataLength;
+        */
 
-            for(int i=maxNosWindows;i>0;i-=1){
-                //Set r for current value sa the precentage of series length.
+            for(int i=maxPercentageWarp;i>=0;i-=1){
+        //Set r for current value as the precentage of series length.
 //                dtw=new DTW();
+               
                 dtw.setR(i/100.0);
 
-/*Can do an early abandon inside cross validate? If it cannot be more accurate 
- than maxR even with some left to evaluate then yes
+/*Can do an early abandon inside cross validate. If it cannot be more accurate 
+ than maxR even with some left to evaluate then stop evaluation
 */                
                 double acc=crossValidateAccuracy(maxAcc);
                 if(acc>=maxAcc){
@@ -85,6 +99,9 @@ is equivalent to Euclidean distance (rather than a window size of 0
                     maxAcc=acc;
                }
 //                System.out.println(" r="+i+" warpsize ="+x+" train acc= "+acc+" best acc ="+maxR);
+/* Can ignore all window sizes bigger than the max used on the previous iteration
+*/                
+                
                if(maxWindowSize<(i-1)*dataLength/100){
                    System.out.println("WINDOW SIZE ="+dtw.getWindowSize()+" Can reset downwards at "+i+"% to ="+((int)(100*(maxWindowSize/(double)dataLength))));
                    i=(int)(100*(maxWindowSize/(double)dataLength));
@@ -190,7 +207,7 @@ answer is to store those without the abandon in a hash table indexed by i and j,
         return a/(double)trainSize;
     }
     public static void main(String[] args){
-            DTW_1NN c = new DTW_1NN();
+            FastDTW_1NN c = new FastDTW_1NN();
             String path="C:\\Research\\Data\\Time Series Data\\Time Series Classification\\";
 
             Instances test=ClassifierTools.loadData(path+"Coffee\\Coffee_TEST.arff");

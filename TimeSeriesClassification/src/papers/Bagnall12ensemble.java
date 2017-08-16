@@ -26,7 +26,7 @@ import weka.classifiers.bayes.NaiveBayes;
 import weka.classifiers.functions.SMO;
 import weka.classifiers.functions.supportVector.PolyKernel;
 import weka.classifiers.functions.supportVector.RBFKernel;
-import timeseriesweka.classifiers.DTW_1NN;
+import timeseriesweka.classifiers.FastDTW_1NN;
 import weka.classifiers.lazy.kNN;
 import weka.classifiers.meta.AdaBoostM1;
 import weka.classifiers.meta.Bagging;
@@ -105,8 +105,8 @@ public class Bagnall12ensemble {
 		sc2.add(new kNN(1));
 		names.add("NN");
 		Classifier c;
-		c=new DTW_1NN();
-		((DTW_1NN)c).optimiseWindow(false);
+		c=new FastDTW_1NN();
+		((FastDTW_1NN)c).optimiseWindow(false);
 		
 		sc2.add(c);
 		names.add("NNDTW");
@@ -304,7 +304,7 @@ public class Bagnall12ensemble {
 		if(baseClassifier.equals("1NN"))
 			base=new kNN(1);
 		else if(baseClassifier.equals("DTW"))
-			base=new DTW_1NN();
+			base=new FastDTW_1NN();
 		else if(baseClassifier.equals("RotationForest"))
 			base=new RotationForest();
 		else if(baseClassifier.equals("RandomForest")){
@@ -344,7 +344,7 @@ public class Bagnall12ensemble {
 				System.out.println("******************Time Domain******************");
   
 				sc[0]=AbstractClassifier.makeCopy(base);
-//				sc[1]=new DTW_1NN(1);
+//				sc[1]=new FastDTW_1NN(1);
 				stats=ClassifierTools.evalClassifiers(timeTest,timeTrain,folds,sc);
 				for(int j=0;j<stats.length;j++){
 					of.writeString(stats[j].accuracy+",");
@@ -422,7 +422,7 @@ public class Bagnall12ensemble {
 		if(baseClassifier.equals("1NN"))
 			base=new kNN(1);
 		else if(baseClassifier.equals("DTW"))
-			base=new DTW_1NN();
+			base=new FastDTW_1NN();
 		else if(baseClassifier.equals("RotationForest"))
 			base=new RotationForest();
 		else if(baseClassifier.equals("RandomForest")){
@@ -696,7 +696,7 @@ public class Bagnall12ensemble {
 //Table 2: Compare alternative 1-NN Euclid classifiers on the raw data	
 //		timeDomain("NN_EuclidClassifiers", new kNN(1));
 		//Table 2: Compare alternative 1-NN DTW classifiers on the raw data	
-//		timeDomain("NN_EuclidClassifiers", new DTW_1NN(1));
+//		timeDomain("NN_EuclidClassifiers", new FastDTW_1NN(1));
 //		dataTransforms("DTW");
 //		basicDataTransforms("1NN");		
 //		ensembleTransforms("1NN");

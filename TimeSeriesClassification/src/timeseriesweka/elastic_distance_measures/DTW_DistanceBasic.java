@@ -3,10 +3,6 @@ package timeseriesweka.elastic_distance_measures;
 
 Basic DTW implementation for Weka. /Each instance is assumed to be a time series. Basically we
 pull all the data out and proceed as usual!
-  NOTE: Need to implement the early abandon, no point doing all the sums. 
-  * Also need to implement a pre calculated version
-  
-  Needs black box debug.
   
  **/
 

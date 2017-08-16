@@ -38,7 +38,7 @@ import statistics.simulators.SimulateWholeSeriesData;
 import utilities.InstanceTools;
 import utilities.SaveParameterInfo;
 import weka.classifiers.Classifier;
-import timeseriesweka.classifiers.DTW_1NN;
+import timeseriesweka.classifiers.FastDTW_1NN;
 import weka.classifiers.meta.RotationForest;
 import vector_classifiers.HESCA;
 import timeseriesweka.classifiers.ensembles.SaveableEnsemble;
@@ -90,7 +90,7 @@ public class SimulationExperiments {
                 c=new RotationForest();
                 break;
             case "DTW":
-                c=new DTW_1NN();
+                c=new FastDTW_1NN();
                 break;
              case "DD_DTW":
                 c=new DD_DTW();
@@ -330,7 +330,7 @@ public class SimulationExperiments {
                         c=new RotationForest();
                         break;
                     case "DTW":
-                        c=new DTW_1NN();
+                        c=new FastDTW_1NN();
                         break;
                     case "EE":    
                         c=new ElasticEnsemble();

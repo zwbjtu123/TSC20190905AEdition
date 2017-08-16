@@ -11,7 +11,7 @@ import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import utilities.ClassifierTools;
-import timeseriesweka.classifiers.DTW_1NN;
+import timeseriesweka.classifiers.FastDTW_1NN;
 import weka.classifiers.lazy.kNN;
 import weka.core.*;
 import weka.filters.SimpleBatchFilter;
@@ -97,7 +97,7 @@ public class Cosine extends SimpleBatchFilter {
                 of1.writeString(cosTrain+"");
                 of2.writeString(cosTest+"");
                 System.out.println(" Cosine trans complete");
-                DTW_1NN a=new DTW_1NN();
+                FastDTW_1NN a=new FastDTW_1NN();
 //                a.normalise(false);
                 a.buildClassifier(cosTrain);
                 double acc=ClassifierTools.accuracy(cosTest, a);

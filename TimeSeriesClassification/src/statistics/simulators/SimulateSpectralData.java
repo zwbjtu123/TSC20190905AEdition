@@ -15,7 +15,7 @@ import weka.core.*;
 import fileIO.*;
 import utilities.ClassifierTools;
 import weka.classifiers.Classifier;
-import timeseriesweka.classifiers.DTW_1NN;
+import timeseriesweka.classifiers.FastDTW_1NN;
 import weka.filters.*;
 
 
@@ -53,7 +53,7 @@ public class SimulateSpectralData extends DataSimulator{
             setLength(100);
             try{
             Instances[] data=this.generateTrainTest();
-            Classifier c =new DTW_1NN();
+            Classifier c =new FastDTW_1NN();
             double acc=ClassifierTools.singleTrainTestSplitAccuracy(c, data[0], data[1]);
             if(acc<THRESH)
                 validated=true;
