@@ -48,7 +48,7 @@ public class ShapeletSearch implements Serializable{
     
     protected Instances inputData;
     
-    protected ShapeletSearchOptions options;
+    transient protected ShapeletSearchOptions options;
     
     protected ShapeletSearch(ShapeletSearchOptions ops){
         options = ops;

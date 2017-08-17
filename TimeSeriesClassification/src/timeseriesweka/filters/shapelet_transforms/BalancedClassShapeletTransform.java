@@ -5,6 +5,7 @@
  */
 package timeseriesweka.filters.shapelet_transforms;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -15,7 +16,7 @@ import weka.core.Instances;
  *
  * @author raj09hxu
  */
-public class BalancedClassShapeletTransform extends ShapeletTransform
+public class BalancedClassShapeletTransform extends ShapeletTransform implements Serializable
 {
     protected Map<Double, ArrayList<Shapelet>> kShapeletsMap;
     

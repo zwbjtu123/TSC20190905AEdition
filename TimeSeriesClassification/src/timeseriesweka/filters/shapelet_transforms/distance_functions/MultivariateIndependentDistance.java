@@ -5,6 +5,7 @@
  */
 package timeseriesweka.filters.shapelet_transforms.distance_functions;
 
+import java.io.Serializable;
 import java.util.Arrays;
 import weka.core.Instance;
 
@@ -12,7 +13,7 @@ import weka.core.Instance;
  *
  * @author raj09hxu
  */
-public class MultivariateIndependentDistance extends MultivariateDistance{   
+public class MultivariateIndependentDistance extends MultivariateDistance implements Serializable{   
     
     //calculate the minimum distance for each channel, and then average.
     @Override

@@ -5,6 +5,7 @@
  */
 package timeseriesweka.filters.shapelet_transforms.distance_functions;
 
+import java.io.Serializable;
 import java.util.Arrays;
 import timeseriesweka.filters.shapelet_transforms.ShapeletCandidate;
 import static utilities.MultivariateInstanceTools.convertMultiInstanceToArrays;
@@ -15,7 +16,7 @@ import weka.core.Instance;
  *
  * @author raj09hxu
  */
-public class MultivariateDependentDistance extends MultivariateDistance{
+public class MultivariateDependentDistance extends MultivariateDistance implements Serializable{
     
     @Override
     public double calculate(Instance inst, int timeSeriesId){

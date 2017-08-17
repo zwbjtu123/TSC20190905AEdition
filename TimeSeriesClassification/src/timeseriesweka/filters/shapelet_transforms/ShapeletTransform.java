@@ -17,6 +17,7 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -54,7 +55,7 @@ import timeseriesweka.filters.shapelet_transforms.search_functions.ShapeletSearc
  *
  * @author Aaron Bostrom
  */
-public class ShapeletTransform extends SimpleBatchFilter implements SaveParameterInfo{
+public class ShapeletTransform extends SimpleBatchFilter implements SaveParameterInfo, Serializable{
 
     //Variables for experiments
     protected static long subseqDistOpCount;

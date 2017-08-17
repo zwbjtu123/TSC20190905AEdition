@@ -5,8 +5,10 @@
 
 package timeseriesweka.filters.shapelet_transforms;
 
+import java.io.Serializable;
 
-    public final class OrderLineObj implements Comparable<OrderLineObj> {
+
+    public final class OrderLineObj implements Comparable<OrderLineObj>, Serializable {
 
         private double distance;
         private double classVal;

@@ -5,13 +5,15 @@
  */
 package timeseriesweka.filters.shapelet_transforms.distance_functions;
 
+import java.io.Serializable;
+import java.util.Arrays;
 import weka.core.Instance;
 
 /**
  *
  * @author raj09hxu
  */
-public class DimensionDistance extends ImprovedOnlineSubSeqDistance{
+public class DimensionDistance extends ImprovedOnlineSubSeqDistance implements Serializable{
     
     @Override
     public double calculate(Instance timeSeries, int timeSeriesId){

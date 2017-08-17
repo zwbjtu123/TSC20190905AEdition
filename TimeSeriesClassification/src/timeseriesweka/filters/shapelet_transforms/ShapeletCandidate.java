@@ -5,13 +5,13 @@
  */
 package timeseriesweka.filters.shapelet_transforms;
 
-import java.util.Arrays;
+import java.io.Serializable;
 
 /**
  *
  * @author raj09hxu
  */
-public class ShapeletCandidate{
+public class ShapeletCandidate implements Serializable{
     double[][] content;
     int numChannels;
     

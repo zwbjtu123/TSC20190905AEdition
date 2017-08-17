@@ -5,6 +5,7 @@
  */
 package timeseriesweka.filters.shapelet_transforms.search_functions;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import timeseriesweka.filters.shapelet_transforms.Shapelet;
 import weka.core.Instance;
@@ -14,7 +15,7 @@ import weka.core.Instances;
  *
  * @author raj09hxu
  */
-public class MultivariatIndepdentShapeletSearch extends ShapeletSearch {
+public class MultivariatIndepdentShapeletSearch extends ShapeletSearch implements Serializable {
     
     
     
@@ -44,7 +45,7 @@ public class MultivariatIndepdentShapeletSearch extends ShapeletSearch {
             for (int length = minShapeletLength; length <= maxShapeletLength; length+=lengthIncrement) {
                 //for all possible starting positions of that length. -1 to remove classValue but would be +1 (m-l+1) so cancel.
                 for (int start = 0; start < seriesLength - length; start+=positionIncrement) {
-                    Shapelet shapelet = checkCandidate.process(series, start, length);
+                    Shapelet shapelet = checkCandidate.process(series, start, length, dim);
                     
                     if (shapelet != null) {
                         seriesShapelets.add(shapelet);

@@ -35,7 +35,8 @@ public class ImprovedOnlineSubSeqDistance extends OnlineSubSeqDistance{
             bestDist = bestDist + (temp * temp);
             incrementCount();
         }
-
+       
+        
         int i=1;
         double currentDist;
         
@@ -73,10 +74,13 @@ public class ImprovedOnlineSubSeqDistance extends OnlineSubSeqDistance{
                 if (currentDist < bestDist)
                 {
                     bestDist = currentDist;
+                    System.out.println(pos[j]);
                 }
             }
             i++;
         }
+        
+        
 
         bestDist = (bestDist == 0.0) ? 0.0 : (1.0 / length * bestDist);
         

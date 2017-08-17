@@ -5,6 +5,7 @@
  */
 package timeseriesweka.filters.shapelet_transforms.distance_functions;
 
+import java.io.Serializable;
 import timeseriesweka.filters.shapelet_transforms.ShapeletCandidate;
 import static utilities.MultivariateInstanceTools.convertMultiInstanceToArrays;
 import static utilities.MultivariateInstanceTools.splitMultivariateInstance;
@@ -15,7 +16,7 @@ import weka.core.Instances;
  *
  * @author raj09hxu
  */
-public class MultivariateDistance extends SubSeqDistance{
+public class MultivariateDistance extends SubSeqDistance implements Serializable{
     protected int numChannels;
     protected int seriesLength;
     
