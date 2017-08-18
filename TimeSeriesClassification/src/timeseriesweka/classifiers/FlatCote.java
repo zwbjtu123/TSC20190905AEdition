@@ -85,13 +85,16 @@ public class FlatCote extends AbstractClassifierWithTrainingData{
         //ShapeletTransform shapeletTransform = ShapeletTransformFactory.createTransform(train);
         ShapeletTransform shapeletTransform = ShapeletTransformTimingUtilities.createTransformWithTimeLimit(train, 24); // now defaults to max of 24 hours
         shapeletTransform.supressOutput();
-        st = new HESCA(shapeletTransform);
+        st = new HESCA();
+        st.setTransform(shapeletTransform);
         st.buildClassifier(train);
         
-        acf = new HESCA(new ACF());
+        acf = new HESCA();
+        acf.setTransform(new ACF());
         acf.buildClassifier(train);
 
-        ps = new HESCA(new PowerSpectrum());
+        ps = new HESCA();
+        ps.setTransform(new PowerSpectrum());
         ps.buildClassifier(train);
         
         cvAccs = new double[4][];

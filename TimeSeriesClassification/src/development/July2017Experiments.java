@@ -77,7 +77,8 @@ public class July2017Experiments{
                 c[0]=new IBk();
                 c[1]=new IBk();
                 c[2]=new IBk();
-                HESCA h = new HESCA(c,names);
+                HESCA h = new HESCA();
+                h.setClassifiers(c, names, null);
                 h.setDebug(true);
                 return h;    
             case "RotFCV":

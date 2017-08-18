@@ -60,6 +60,10 @@ public class ClassifierResults implements DebugPrinting {
         finalised = false;
     }
     
+    public ClassifierResults(String filePathAndName) throws FileNotFoundException {
+        loadFromFile(filePathAndName);
+    }
+    
     /**
      * for building results one by one while testing, call finaliseResults
  to populate the ClassifierResults object once testing is finished

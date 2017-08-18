@@ -79,7 +79,7 @@ public class PLSNominalClassifier extends PLSClassifier {
     }
     
     public double[] distributionForInstance(Instance instance) throws Exception {
-        double regpred = super.classifyInstance(instance);
+        double regpred = regressInstance(instance);
         
         double[] dist = new double[numericClassVals.length];
         

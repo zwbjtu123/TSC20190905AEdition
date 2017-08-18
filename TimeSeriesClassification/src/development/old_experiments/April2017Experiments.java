@@ -546,7 +546,8 @@ public static boolean deleteDirectory(File directory) {
                 c[0]=new IBk();
                 c[1]=new IBk();
                 c[2]=new IBk();
-                HESCA h = new HESCA(c,names);
+                HESCA h = new HESCA();
+                h.setClassifiers(c, names, null);
                 h.setDebug(true);
                 
                 

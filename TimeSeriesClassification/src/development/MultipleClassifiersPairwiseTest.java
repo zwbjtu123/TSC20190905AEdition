@@ -401,7 +401,7 @@ public class MultipleClassifiersPairwiseTest {
 //        String output="C:\\Users\\ajb\\Dropbox\\Results\\SimulationExperiments\\BasicExperiments\\";
 //        String[] allSimulators={"WholeSeriesElastic","Interval","Shapelet","Dictionary","ARMA","All"};
 //        for(String s:allSimulators)
-        String input="C:/JamesLPHD/allinds_bigger_UCI_TESTACCS.csv";
+        String input="C:/JamesLPHD/All18VsHESCA.csv";
 //        String input="C:\\Research\\Results\\RepoResults\\HIVE Results";
 ////
 //        input="C:\\Research\\Papers\\2017\\PKDD BOP to BOSS\\Results\\vsCNN";

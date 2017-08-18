@@ -58,7 +58,9 @@ public class HiveCote extends AbstractClassifierWithTrainingData{
         names = new ArrayList<>();
         
         classifiers.add(new ElasticEnsemble());
-        classifiers.add(new HESCA(new DefaultShapeletTransformPlaceholder())); // to get around the issue of needinf training data 
+        HESCA h = new HESCA();
+        h.setTransform(new DefaultShapeletTransformPlaceholder());
+        classifiers.add(h); // to get around the issue of needinf training data 
         RISE rise = new RISE();
         rise.setTransformType(RISE.Filter.PS_ACF);
         classifiers.add(rise);
@@ -104,7 +106,10 @@ public class HiveCote extends AbstractClassifierWithTrainingData{
                     classifiers.remove(i);
                     ShapeletTransform shoutyThing = ShapeletTransformTimingUtilities.createTransformWithTimeLimit(train, 24);
                     shoutyThing.supressOutput();
-                    classifiers.add(i, new HESCA(shoutyThing));
+                    
+                    HESCA h = new HESCA();
+                    h.setTransform(shoutyThing);
+                    classifiers.add(i, h);
                 }
             }
             
