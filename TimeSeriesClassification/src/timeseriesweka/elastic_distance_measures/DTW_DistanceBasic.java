@@ -140,7 +140,15 @@ generalised for variable window size
         return matrixD[n-1][m-1];
     }
 
-    
+    static public int findWindowSize(double rr,int n){
+        int w=(int)(rr*n);   //Rounded down.
+                //No Warp, windowSize=1
+        if(w<1) w=1;
+                //Full Warp : windowSize=n, otherwise scale between		
+        else if(w<n)    
+                w++;
+        return w;	
+    }    
      
     final public int getWindowSize(int n){
         int w=(int)(r*n);   //Rounded down.
