@@ -3,7 +3,7 @@ Tony's attempt to see the effect of parameter setting on SVM.
 
 Two parameters: 
 kernel para: for polynomial this is the weighting given to lower order terms
-    k(x,x')=(<x'.x>+a)^d
+    k(x,x')=(<x'.x>+b)^d
 regularisation parameter, used in the SMO 
 
 m_C
@@ -13,6 +13,8 @@ package vector_classifiers;
 import fileIO.InFile;
 import fileIO.OutFile;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.Serializable;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Random;
@@ -37,7 +39,7 @@ import weka.core.*;
  *
  * @author ajb
  
- TunedSVM sets the margin c through a ten fold cross validation.
+ TunedSVM sets the margin c through b ten fold cross validation.
  
  If the kernel type is RBF, also set sigma through CV, same values as c
  
@@ -49,21 +51,27 @@ import weka.core.*;
 public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEstimate,SaveEachParameter,ParameterSplittable{
     boolean setSeed=false;
     int seed;
-    int min=-16;
-    int max=16;
-    double[] paraSpace;
+    int minC=-16;//These search values are used for all kernels with C. It is also used for Gamma in RBF, but not for the Polynomial exponent search
+    int maxC=16;
+    int minExponent=1;//These values are also used for Gamma in RBF, but not for the Polynomial exponent search
+    int maxExponent=6;
+    int minB=0;//These are for the constant value in the Polynomial Kernel
+    int maxB=5;
+    double IncrementB=1;
+    double[] paraSpace1;//For fixed polynomial (LINEAR and QUADRATIC) there is just one range of parameters 
+    double[] paraSpace2;//For RBF this is gamma, for POLYNOMIAL it is exponent. 
+    double[] paraSpace3;//For POLYNOMIAL this is the constant term b in the kernel.
     private static int MAX_FOLDS=10;
-    private double[] paras;
+    private double[] paras;//Stored final parameter values after search
     String trainPath="";
     boolean debug=false;
-    boolean randomSearch=false; //If set to true the parameter space is randomly sampled
-    int nosParamSettings=624;   //Randomly sampled this many times
     Random rng;
     ArrayList<Double> accuracy;
     private boolean kernelOptimise=false;   //Choose between linear, quadratic and RBF kernel
     private boolean paraOptimise=true;
     private ClassifierResults res =new ClassifierResults();
     private long combinedBuildTime;
+    private boolean buildFromFile=false;
     
     protected String resultsPath;
     protected boolean saveEachParaAcc=false;
@@ -76,8 +84,6 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
     public void setSaveEachParaAcc(boolean b){
         saveEachParaAcc=b;
     }
-    
-    
     public TunedSVM(){
         super();
         kernelOptimise=false;
@@ -87,10 +93,9 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
         rng=new Random();
         accuracy=new ArrayList<>();
         setBuildLogisticModels(true);
-       
-         
     }
 
+    
     public void setSeed(int s){
         this.setSeed=true;
         seed=s;
@@ -115,8 +120,12 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
     public String getParameters() {
         String result="BuildTime,"+res.buildTime+",CVAcc,"+res.acc;
         result+=",C,"+paras[0];
-        if(paras.length>1)
-            result+=",Gamma,"+paras[1];
+        if(paras.length>1){
+            if(kernel==KernelType.RBF)
+                result+=",Gamma,"+paras[1];
+            else if (paras.length>2 && kernel==KernelType.POLYNOMIAL)
+                result+=",Power,"+paras[1]+",b,"+paras[2];
+        }
        for(double d:accuracy)
             result+=","+d;
         
@@ -132,40 +141,60 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
     public void setParametersFromIndex(int x) {
         kernelOptimise=false;   //Choose between linear, quadratic and RBF kernel
         paraOptimise=false;
-        int numParas=max-min;
-        if(max*min<0)
-            numParas++;
-        if(kernel==KernelType.LINEAR || kernel==KernelType.QUADRATIC){//Single parameter between 1 and 33
-            if(x<1 || x>numParas)//Error, invalid range
-                throw new UnsupportedOperationException("ERROR parameter index "+x+" out of range "+min+" to "+ "max"); //To change body of generated methods, choose Tools | Templates.
+        int numCParas=maxC-minC+1;
+        
+        
+        if(kernel==KernelType.LINEAR || kernel==KernelType.QUADRATIC){//Single parameter for C between 1 and 33
+            if(x<1 || x>numCParas)//Error, invalid range
+                throw new UnsupportedOperationException("ERROR parameter index "+x+" out of range "+minC+" to "+ "max"); //To change body of generated methods, choose Tools | Templates.
             paras=new double[1];
-            paras[0]=Math.pow(2,min+(x-1));
+            paras[0]=Math.pow(2,minC+(x-1));
             setC(paras[0]);
         }
-        else if(kernel==KernelType.RBF){//Two parameters
-            if(x<1 || x>numParas*numParas)//Error, invalid range
-                throw new UnsupportedOperationException("ERROR parameter index "+x+" out of range "+min+" to "+ "max"); //To change body of generated methods, choose Tools | Templates.
+        else if(kernel==KernelType.RBF){//Two parameters, same range for both
+            if(x<1 || x>numCParas*numCParas)//Error, invalid range
+                throw new UnsupportedOperationException("ERROR parameter index "+x+" out of range "+minC+" to "+ "max"); //To change body of generated methods, choose Tools | Templates.
             paras=new double[2];
-            int temp=min+(x-1)/numParas;
+            int temp=minC+(x-1)/numCParas;
             paras[0]=Math.pow(2,temp);
-            temp=min+(x-1)%numParas;
+            temp=minC+(x-1)%numCParas;
             paras[1]=Math.pow(2,temp);
             setC(paras[0]);
             ((RBFKernel)m_kernel).setGamma(paras[1]);
             System.out.println("");
         }
+        else if(kernel==KernelType.POLYNOMIAL){
+//Three paras, not evenly distributed. C [1  to 33] exponent =[1 to 6], b=[0 to 5] 
+            paras=new double[3];
+            int numExpParas=maxExponent-minExponent+1;
+            int numBParas=maxB-minB+1;
+            if(x<1 || x>numCParas*numExpParas*numBParas)//Error, invalid range
+                throw new UnsupportedOperationException("ERROR parameter index "+x+" out of range for PolyNomialKernel"); //To change body of generated methods, choose Tools | Templates.
+            int cPara=minC+(x-1)%numCParas;
+            int expPara=minExponent+(x-1)/(numBParas*numCParas);
+            int bPara=minB+((x-1)/numCParas)%numBParas;
+            paras[0]=Math.pow(2,cPara);
+            paras[1]=expPara;
+            paras[2]=bPara;
+              PolynomialKernel kern = new PolynomialKernel();
+            kern.setExponent(paras[1]);
+            kern.setB(paras[2]);
+            setKernel(kern);
+            setC(paras[0]);
+            System.out.println("Index "+x+" maps to "+cPara+","+expPara+","+bPara);
+         }
     }
 
     @Override
-    public String getParas() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    public String getParas() { //This is redundant really.
+        return getParameters();
     }
 
     @Override
     public double getAcc() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        return res.acc;
     }
-    public enum KernelType {LINEAR,QUADRATIC,RBF};
+    public enum KernelType {LINEAR,QUADRATIC,POLYNOMIAL,RBF};
     KernelType kernel;
     public void debug(boolean b){
         this.debug=b;
@@ -175,14 +204,19 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
         kernel = type;
         switch (type) {
             case LINEAR:                     
-                PolyKernel p=new PolyKernel();
+                PolyKernel p=new PolynomialKernel();
                 p.setExponent(1);
                 setKernel(p);
             break;
             case QUADRATIC:
-                PolyKernel p2=new PolyKernel();
+                PolyKernel p2=new PolynomialKernel();
                 p2.setExponent(2);
                 setKernel(p2);
+            break;
+            case POLYNOMIAL:
+                PolyKernel p3=new PolynomialKernel();
+                p3.setExponent(1);
+                setKernel(p3);
             break;
             case RBF:
                 RBFKernel kernel2 = new RBFKernel();
@@ -192,24 +226,60 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
     }
     
     public void setParaSpace(double[] p){
-        paraSpace=p;
+        paraSpace1=p;
     }
     public void setStandardParas(){
-        paraSpace=new double[max-min+1];
-        for(int i=min;i<=max;i++)
-            paraSpace[i-min]=Math.pow(2,i);
+        paraSpace1=new double[maxC-minC+1];
+        for(int i=minC;i<=maxC;i++)
+            paraSpace1[i-minC]=Math.pow(2,i);
+        if(kernel==KernelType.RBF){
+            paraSpace2=new double[maxC-minC+1];
+            for(int i=minC;i<=maxC;i++)
+                paraSpace2[i-minC]=Math.pow(2,i);
+        }
+        else if(kernel==KernelType.POLYNOMIAL){
+            paraSpace2=new double[maxExponent-minExponent+1];
+            paraSpace3=new double[maxB-minB+1];
+            for(int i=minExponent;i<=maxExponent;i++)
+                    paraSpace2[i-minExponent]=i;
+            for(int i=minB;i<=maxB;i++)
+                    paraSpace3[i-minB]=i;
+        }
     }
+/**
+ * 
+ * @param n number of parameter values to try, spread across 2^minC and 2^maxC
+ on an exponential scale
+ */
+    public void setLargePolynomialParameterSpace(int n){
+        paraSpace1=new double[n];
+        double interval=(maxC-minC)/(n-1);
+        double exp=minC;
+        for(int i=0;i<n;i++){
+          paraSpace1[i]=  Math.pow(2,exp); 
+          exp+=interval;
+        }
+    }
+
+    
     public void optimiseKernel(boolean b){kernelOptimise=b;}
     
     public boolean getOptimiseKernel(){ return kernelOptimise;}
     public void optimiseParas(boolean b){paraOptimise=b;}
     
     static class ResultsHolder{
-        double x,y;
+        double x,y,z;
         ClassifierResults res;
         ResultsHolder(double a, double b,ClassifierResults r){
             x=a;
             y=b;
+            z=0;
+            res=r;
+        }
+        ResultsHolder(double a, double b,double c,ClassifierResults r){
+            x=a;
+            y=b;
+            z=c;
             res=r;
         }
     }
@@ -235,17 +305,14 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
         ClassifierResults tempResults;
         int count=0;
         OutFile temp=null;
-        for(double p1:paraSpace){
-            for(double p2:paraSpace){
+        for(double p1:paraSpace1){
+            for(double p2:paraSpace2){
                 count++;
                 if(saveEachParaAcc){// check if para value already done
                     File f=new File(resultsPath+count+".csv");
                     if(f.exists() && f.length()>0){
-                        continue;//If done, ignore skip this iteration
-                        
+                        continue;//If done, ignore skip this iteration                        
                     }
-                   if(debug)
-                       System.out.println("PARA COUNT ="+count);
                 }
                 SMO model = new SMO();
                 RBFKernel kern = new RBFKernel();
@@ -253,14 +320,12 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
                 model.setKernel(kern);
                 model.setC(p1);
                 model.setBuildLogisticModels(true);
-                
                 tempResults=cv.crossValidateWithStats(model,trainCopy);
 
 //                Evaluation eval=new Evaluation(temp);
 //                eval.crossValidateModel(model, temp, folds, rng);
                 double e=1-tempResults.acc;
                 accuracy.add(tempResults.acc);
-
                 if(debug)
                     System.out.println(" C= "+p1+" Gamma = "+p2+" Acc = "+(1-e));
                 if(saveEachParaAcc){// Save to file and close
@@ -286,8 +351,8 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
         if(saveEachParaAcc){
 // Check they are all there first. 
             int missing=0;
-            for(double p1:paraSpace){
-                for(double p2:paraSpace){
+            for(double p1:paraSpace1){
+                for(double p2:paraSpace1){
                     File f=new File(resultsPath+count+".csv");
                     if(!(f.exists() && f.length()>0))
                         missing++;
@@ -299,8 +364,8 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
                 combinedBuildTime=0;
     //            If so, read them all from file, pick the best
                 count=0;
-                for(double p1:paraSpace){
-                    for(double p2:paraSpace){
+                for(double p1:paraSpace1){
+                    for(double p2:paraSpace1){
                         count++;
                         tempResults = new ClassifierResults();
                         tempResults.loadFromFile(resultsPath+count+".csv");
@@ -346,8 +411,168 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
          }
         
     }
+/**
+ * Searches the polynomial exponent and the C value
+ * @param train
+ * @throws Exception 
+ */    
+    public void tunePolynomial(Instances train) throws Exception {
+
+        paras=new double[3];
+        int folds=MAX_FOLDS;
+        if(folds>train.numInstances())
+            folds=train.numInstances();
+
+        double minErr=1;
+        this.setSeed(rng.nextInt());
+        
+        Instances trainCopy=new Instances(train);
+        CrossValidator cv = new CrossValidator();
+        if (setSeed)
+            cv.setSeed(seed);
+        cv.setNumFolds(folds);
+        cv.buildFolds(trainCopy);
+        
+        
+        ArrayList<ResultsHolder> ties=new ArrayList<>();
+        ClassifierResults tempResults;
+        int count=0;
+        OutFile temp=null;
+        for(double p1:paraSpace1){//C
+            for(double p2:paraSpace2){//Exponent
+                for(double p3:paraSpace3){//B
+                
+                    count++;
+                    if(saveEachParaAcc){// check if para value already done
+                        File f=new File(resultsPath+count+".csv");
+                        if(f.exists() && f.length()>0){
+                            continue;//If done, ignore skip this iteration                        
+                        }
+                    }
+                    SMO model = new SMO();
+                    PolynomialKernel kern = new PolynomialKernel();
+                    kern.setExponent(p2);
+                    kern.setB(p3);
+                    model.setKernel(kern);
+                    model.setC(p1);
+                    model.setBuildLogisticModels(true);
+                    tempResults=cv.crossValidateWithStats(model,trainCopy);
+
+    //                Evaluation eval=new Evaluation(temp);
+    //                eval.crossValidateModel(model, temp, folds, rng);
+                    double e=1-tempResults.acc;
+                    accuracy.add(tempResults.acc);
+                    if(debug)
+                        System.out.println(" C= "+p1+" Gamma = "+p2+" Acc = "+(1-e));
+                    if(saveEachParaAcc){// Save to file and close
+                        temp=new OutFile(resultsPath+count+".csv");
+                        temp.writeLine(tempResults.writeResultsFileToString());
+                        temp.closeFile();
+                    }                
+                    else{
+                        if(e<minErr){
+                        minErr=e;
+                        ties=new ArrayList<>();//Remove previous ties
+                        ties.add(new ResultsHolder(p1,p2,p3,tempResults));
+                        }
+                        else if(e==minErr){//Sort out ties
+                            ties.add(new ResultsHolder(p1,p2,p3,tempResults));
+                        }
+                    }
+                }
+            }
+        }
+        double bestC;
+        double bestExponent;
+        double bestB;
+        
+        minErr=1;
+        if(saveEachParaAcc){
+// Check they are all there first. 
+            int missing=0;
+            for(double p1:paraSpace1){
+                for(double p2:paraSpace2){
+                    for(double p3:paraSpace3){
+                        File f=new File(resultsPath+count+".csv");
+                        if(!(f.exists() && f.length()>0))
+                            missing++;
+                    }
+                }
+              }
+            
+            if(missing==0)//All present
+            {
+                combinedBuildTime=0;
+    //            If so, read them all from file, pick the best
+                count=0;
+                for(double p1:paraSpace1){//C
+                    for(double p2:paraSpace2){//Exponent
+                        for(double p3:paraSpace3){//B
+                            count++;
+                            tempResults = new ClassifierResults();
+                            tempResults.loadFromFile(resultsPath+count+".csv");
+                            combinedBuildTime+=tempResults.buildTime;
+                            double e=1-tempResults.acc;
+                            if(e<minErr){
+                                minErr=e;
+                                ties=new ArrayList<>();//Remove previous ties
+                                ties.add(new ResultsHolder(p1,p2,p3,tempResults));
+                            }
+                            else if(e==minErr){//Sort out ties
+                                    ties.add(new ResultsHolder(p1,p2,p3,tempResults));
+                            }
+        //Delete the files here to clean up.
+
+                            File f= new File(resultsPath+count+".csv");
+                            if(!f.delete())
+                                System.out.println("DELETE FAILED "+resultsPath+count+".csv");
+                        }
+                    }            
+                }
+                ResultsHolder best=ties.get(rng.nextInt(ties.size()));
+                bestC=best.x;
+                bestExponent=best.y;
+                bestB=best.z;
+                paras[0]=bestC;
+                paras[1]=bestExponent;
+                paras[2]=bestB;
+                PolynomialKernel kern = new PolynomialKernel();
+                kern.setExponent(bestExponent);
+                kern.setB(bestB);
+                setKernel(kern);
+                setC(bestC);
+                
+                res=best.res;
+                if(debug)
+                    System.out.println("Best C ="+bestC+" best Gamma = "+bestExponent+" best train acc = "+res.acc);
+            }else//Not all present, just ditch
+                System.out.println(resultsPath+" error: missing  ="+missing+" parameter values");
+        }
+        else{
+            ResultsHolder best=ties.get(rng.nextInt(ties.size()));
+            bestC=best.x;
+            bestExponent=best.y;
+            bestB=best.z;
+            paras[0]=bestC;
+            paras[1]=bestExponent;
+            paras[2]=bestB;
+            PolynomialKernel kern = new PolynomialKernel();
+            kern.setExponent(bestExponent);
+            kern.setB(bestB);
+            setKernel(kern);
+            setC(bestC);
+            res=best.res;
+         }
+    }    
     
-   public void tunePolynomial(Instances train) throws Exception {
+/**
+ * This function assumes the Polynomial exponent is fixed and just searches 
+ * for C values. I could generalise this to use with the exponent search, but
+ * the risk of introducing bugs is too large
+ * @param train
+ * @throws Exception 
+ */    
+   public void tuneCForFixedPolynomial(Instances train) throws Exception {
         paras=new double[1];
         int folds=MAX_FOLDS;
         if(folds>train.numInstances())
@@ -368,7 +593,7 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
         int count=0;
         OutFile temp=null;
         
-        for(double d: paraSpace){
+        for(double d: paraSpace1){
             count++;
             if(saveEachParaAcc){// check if para value already done
                 File f=new File(resultsPath+count+".csv");
@@ -404,7 +629,7 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
         }
         if(saveEachParaAcc){// Read them all from file, if all donepick the best
             int missing=0;
-            for(double p1:paraSpace){
+            for(double p1:paraSpace1){
                 File f=new File(resultsPath+count+".csv");
                 if(!(f.exists() && f.length()>0))
                     missing++;
@@ -413,7 +638,7 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
             {
                 combinedBuildTime=0;
                 count=0;
-                for(double p1:paraSpace){
+                for(double p1:paraSpace1){
                     count++;
                     tempResults = new ClassifierResults();
                     tempResults.loadFromFile(resultsPath+count+".csv");
@@ -466,7 +691,7 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
                     p.setExponent(1);
                     temp.setKernel(p);
                     temp.setStandardParas();
-                    temp.tunePolynomial(train);
+                    temp.tuneCForFixedPolynomial(train);
                     linearCVAcc=temp.res.acc;
                     linearBestC=temp.getC();
                 break;
@@ -475,7 +700,7 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
                     p2.setExponent(2);
                     temp.setKernel(p2);
                     temp.setStandardParas();
-                    temp.tunePolynomial(train);
+                    temp.tuneCForFixedPolynomial(train);
                     quadraticCVAcc=temp.res.acc;
                     quadraticBestC=temp.getC();
                 break;
@@ -516,22 +741,112 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
             res.acc=rbfCVAcc;
         }
     }
-    
-    
+
+//TO DO: add the option to build from an incomplete parameter set, 
+//    without deleting
+    public void buildFromFile() throws FileNotFoundException{
+        combinedBuildTime=0;
+        int count=0;
+        ArrayList<ResultsHolder> ties=new ArrayList<>();
+        ClassifierResults tempResults;            
+        double minErr=1;
+        if(kernel==KernelType.LINEAR || kernel==KernelType.QUADRATIC){
+            for(double p1:paraSpace1){
+                count++;
+                tempResults = new ClassifierResults();
+                File f= new File(resultsPath+count+".csv");
+                if(f.exists() && f.length()>0){
+                    tempResults.loadFromFile(resultsPath+count+".csv");
+                    combinedBuildTime+=tempResults.buildTime;
+                    double e=1-tempResults.acc;
+                    if(e<minErr){
+                        minErr=e;
+                        ties=new ArrayList<>();//Remove previous ties
+                        ties.add(new ResultsHolder(p1,0.0,tempResults));
+                    }
+                    else if(e==minErr){//Sort out ties
+                            ties.add(new ResultsHolder(p1,0.0,tempResults));
+                    }
+                }
+            }  
+        }else if(kernel==KernelType.RBF){
+            for(double p1:paraSpace1){
+                for(double p2:paraSpace2){
+                    count++;
+                    tempResults = new ClassifierResults();
+                    File f= new File(resultsPath+count+".csv");
+                    if(f.exists() && f.length()>0){
+                        tempResults.loadFromFile(resultsPath+count+".csv");
+                        combinedBuildTime+=tempResults.buildTime;
+                        double e=1-tempResults.acc;
+                        if(e<minErr){
+                            minErr=e;
+                            ties=new ArrayList<>();//Remove previous ties
+                            ties.add(new ResultsHolder(p1,p2,tempResults));
+                        }
+                        else if(e==minErr){//Sort out ties
+                                ties.add(new ResultsHolder(p1,p2,tempResults));
+                        }
+                    }
+                }  
+            }            
+        }else if(kernel==KernelType.POLYNOMIAL){
+             for(double p1:paraSpace1){
+                for(double p2:paraSpace2){
+                    for(double p3:paraSpace3){
+                        count++;
+                        tempResults = new ClassifierResults();
+                        File f= new File(resultsPath+count+".csv");
+                        if(f.exists() && f.length()>0){
+                            tempResults.loadFromFile(resultsPath+count+".csv");
+                            combinedBuildTime+=tempResults.buildTime;
+                            double e=1-tempResults.acc;
+                            if(e<minErr){
+                                minErr=e;
+                                ties=new ArrayList<>();//Remove previous ties
+                                ties.add(new ResultsHolder(p1,p2,p3,tempResults));
+                            }
+                            else if(e==minErr){//Sort out ties
+                                    ties.add(new ResultsHolder(p1,p2,p3,tempResults));
+                            }
+                        }
+                    }
+                }  
+             } 
+        }
+        ResultsHolder best=ties.get(rng.nextInt(ties.size()));
+        setC(best.x);
+        res=best.res;
+        paras[0]=best.x;
+        if(kernel==KernelType.RBF){
+            paras[1]=best.y;
+//Set Gamma            
+        }else if(kernel==KernelType.POLYNOMIAL){
+            paras[1]=best.y;
+            paras[2]=best.z;           
+        }
+        
+    }
+//    private void 
     @Override
     public void buildClassifier(Instances train) throws Exception {
+        res =new ClassifierResults();
         long t=System.currentTimeMillis();
-        
-        
-        if(paraSpace==null)
-            setStandardParas();
-        if(kernelOptimise)
-            selectKernel(train);
-        else if(paraOptimise){
-            if(this.getKernel() instanceof RBFKernel)
-                tuneRBF(train); //Does MORE CV 
-            else
-                tunePolynomial(train);
+//        if(kernelOptimise)
+//            selectKernel(train);
+        if(paraOptimise){
+            if(paraSpace1==null)
+                setStandardParas();
+            if(buildFromFile){
+                throw new Exception("Build from file in TunedSVM Not implemented yet");
+            }else{
+                if(kernel==KernelType.RBF)
+                    tuneRBF(train); //Tunes two parameters
+                else if(kernel==KernelType.LINEAR || kernel==KernelType.QUADRATIC)
+                    tuneCForFixedPolynomial(train);//Tunes one parameter
+                else if(kernel==KernelType.POLYNOMIAL)
+                    tunePolynomial(train);
+            }
         }
 //If both kernelOptimise and paraOptimise are false, it just builds and SVM        
 //With whatever the parameters are set to        
@@ -614,8 +929,27 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
         }
     }
     
+    public static void testKernel() throws Exception{
+        TunedSVM svm= new TunedSVM();
+        svm.setKernelType(KernelType.POLYNOMIAL);
+        svm.setParamSearch(false);
+        svm.setBuildLogisticModels(true);
+
+        String dset = "balloons";             
+        svm.setSeed(0);
+       Instances all=ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\UCI Problems\\"+dset+"\\"+dset);        
+        Instances[] split=InstanceTools.resampleInstances(all,1,0.5);
+        svm.buildClassifier(split[0]);
+    }
     
-    public static void main(String[] args) {
+    
+    public static void main(String[] args){
+        try {
+            testKernel();
+        } catch (Exception ex) {
+            Logger.getLogger(TunedSVM.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        System.exit(0);
         int min=-16, max=16;
         int numParas=max-min;
         if(max*min<0)
@@ -687,27 +1021,33 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
     }
 
     
-    protected class PolynomialKernel extends PolyKernel{
-        double a=0; //Parameter
-    @Override   
-    protected double evaluate(int id1, int id2, Instance inst1)
-        throws Exception {
+    protected static class PolynomialKernel extends PolyKernel {
+//Constant parameter to allow for (x.x+b)^m_exponent. The reason this wraps the 
+//Weka kernel is I dont think it possible to include this parameter in Weka        
+        double b=0; 
+        public void setB(double x){b=x;}
+        protected void setConstantTerm(double x){ b=x;}
+        @Override   
+        protected double evaluate(int id1, int id2, Instance inst1)
+            throws Exception {
+            double result;
+            if (id1 == id2) {
+              result = dotProd(inst1, inst1);
+            } else {
+              result = dotProd(inst1, m_data.instance(id2));
+            }
+    //    // Replacing this
+    //    if (m_lowerOrder) {
+    //      result += 1.0;
+    //    }            
+    //Only change from base class to allow for b constant term, rather than 0/1       
+            result += b;
 
-        double result;
-        if (id1 == id2) {
-          result = dotProd(inst1, inst1);
-        } else {
-          result = dotProd(inst1, m_data.instance(id2));
-        }
-//Only change from base class        
-        result += a;
-        if (m_exponent != 1.0) {
-          result = Math.pow(result, m_exponent);
-        }
-        return result;
-      }
-
-    
-}
+            if (m_exponent != 1.0) {
+              result = Math.pow(result, m_exponent);
+            }
+            return result;
+          }
+    }
     
 }

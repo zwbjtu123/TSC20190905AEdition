@@ -170,11 +170,22 @@ public class Experiments{
                 svm.optimiseKernel(false);
                 svm.setBuildLogisticModels(true);
                 svm.setSeed(fold);
+                svm.setLargePolynomialParameterSpace(1089);                
                 c= svm;
                 break;
             case "TunedSVMLinear":
                 svm=new TunedSVM();
                 svm.setKernelType(TunedSVM.KernelType.LINEAR);
+                svm.optimiseParas(true);
+                svm.optimiseKernel(false);
+                svm.setBuildLogisticModels(true);
+                svm.setSeed(fold);
+                svm.setLargePolynomialParameterSpace(1089);
+                c= svm;
+                break;
+            case "TunedSVMPolynomial":
+                svm=new TunedSVM();
+                svm.setKernelType(TunedSVM.KernelType.POLYNOMIAL);
                 svm.optimiseParas(true);
                 svm.optimiseKernel(false);
                 svm.setBuildLogisticModels(true);
@@ -406,6 +417,7 @@ Optional
 //Check if it already exists, if it does, exit
                 f=new File(predictions+"/fold"+fold+"_"+parameterNum+".csv");
                 if(f.exists() && f.length()>0){ //Exit
+                    System.out.println("Fold "+predictions+"/fold"+fold+"_"+parameterNum+".csv  already exists");
                     return; //Aready done
                 }
             }
@@ -448,6 +460,7 @@ Optional
             ((ParameterSplittable)c).setParametersFromIndex(parameterNum);
 //            System.out.println("classifier paras =");
             testFoldPath="/fold"+fold+"_"+parameterNum+".csv";
+            generateTrainFiles=false;
         }
         else{
 //Only do all this if not an internal fold

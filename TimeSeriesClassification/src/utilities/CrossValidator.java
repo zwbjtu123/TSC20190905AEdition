@@ -1,6 +1,7 @@
 
 package utilities;
 
+import fileIO.OutFile;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -88,7 +89,6 @@ public class CrossValidator {
         
         double pred;
         double[] dist;
-        
         //for each fold as test
         for(int testFold = 0; testFold < numFolds; testFold++){
             Instances[] trainTest = buildTrainTestSet(testFold);

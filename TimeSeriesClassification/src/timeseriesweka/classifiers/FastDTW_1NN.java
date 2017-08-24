@@ -1,14 +1,19 @@
 package timeseriesweka.classifiers;
+import fileIO.OutFile;
+import java.util.ArrayList;
 import timeseriesweka.elastic_distance_measures.DTW;
 import timeseriesweka.elastic_distance_measures.DTW_DistanceBasic;
 import java.util.HashMap;
+import utilities.ClassifierResults;
 import utilities.ClassifierTools;
+import utilities.SaveParameterInfo;
+import utilities.TrainAccuracyEstimate;
+import vector_classifiers.SaveEachParameter;
+import weka.classifiers.AbstractClassifier;
 import weka.classifiers.Classifier;
 import weka.core.*;
 
-/* DO NOT USE: Not properly debugged. This class is a specialisation of kNN that
-can only be used with the efficient DTW distance
- * 
+/* 
  * The reason for specialising is this class has the option of searching for 
 the optimal window length
  * through a grid search of values.
@@ -35,14 +40,16 @@ the accuracy cannot be better than the best so far, we can quit.
 to store the distance matrix for a given window size. This requires O(n^2) extra
 memory and means you cannot early abandon individual distances. 
 
-The problem with this is it means you cannot 
+O DO: 
+DONE: avoid repeated evaluations for short series. Needs a debug
+2. Set up check pointing
 
 
 CHECK THIS: For implementation reasons, a window size of 1 
 is equivalent to Euclidean distance (rather than a window size of 0
  */
 
-public class FastDTW_1NN implements Classifier {
+public class FastDTW_1NN extends AbstractClassifier  implements SaveParameterInfo, TrainAccuracyEstimate,SaveEachParameter,ParameterSplittable{
     private boolean optimiseWindow=false;
     private double windowSize=1;
     private int maxPercentageWarp=100;
@@ -53,14 +60,62 @@ public class FastDTW_1NN implements Classifier {
     DTW_DistanceBasic dtw;
     HashMap<Integer,Double> distances;
     double maxR=1;
+    ArrayList<Double> accuracy=new ArrayList<>();
+    String trainPath;
+    protected String resultsPath;
+    protected boolean saveEachParaAcc=false;
+    @Override
+    public void setPathToSaveParameters(String r){
+            resultsPath=r;
+            setSaveEachParaAcc(true);
+    }
+    @Override
+    public void setSaveEachParaAcc(boolean b){
+        saveEachParaAcc=b;
+    }
+ @Override
+    public void writeCVTrainToFile(String train) {
+        trainPath=train;
+    }    
+//Think this always does para search?
+//    @Override
+//    public boolean findsTrainAccuracyEstimate(){ return findTrainAcc;}
+    
+    @Override
+    public ClassifierResults getTrainResults(){
+//Temporary : copy stuff into res.acc here
+        return res;
+    }      
+      @Override
+    public String getParas() { //This is redundant really.
+        return getParameters();
+    }
+
+    @Override
+    public double getAcc() {
+        return res.acc;
+    }  
+    private ClassifierResults res =new ClassifierResults();
 
     public FastDTW_1NN(){
         dtw=new DTW();
+        accuracy=new ArrayList<>();
     }
     public FastDTW_1NN(DTW_DistanceBasic d){
         dtw=d;
+        accuracy=new ArrayList<>();
     }
-    
+    @Override
+    public String getParameters() {
+        String result="BuildTime,"+res.buildTime+",CVAcc,"+res.acc;
+        result+=",BestWarpPercent,"+bestWarp+",AllAccs,";
+       for(double d:accuracy)
+            result+=","+d;
+        
+        return result;
+    }
+     
+   
     
     public double getMaxR(){ return maxR;}
     public void setMaxPercentageWarp(int a){maxPercentageWarp=a;}
@@ -72,6 +127,9 @@ public class FastDTW_1NN implements Classifier {
 
     @Override
     public void buildClassifier(Instances d){
+        res =new ClassifierResults();
+        long t=System.currentTimeMillis();
+        
         train=d;
         trainSize=d.numInstances();
         if(optimiseWindow){
@@ -83,18 +141,25 @@ public class FastDTW_1NN implements Classifier {
             if(dataLength<maxNosWindows)
                 maxPercentageWarp=dataLength;
         */
-
+            double previousPercentage=0;
             for(int i=maxPercentageWarp;i>=0;i-=1){
         //Set r for current value as the precentage of series length.
 //                dtw=new DTW();
                
+                int previousWindowSize=dtw.findWindowSize(previousPercentage,d.numAttributes()-1);
+                int newWindowSize=dtw.findWindowSize(i/100.0,d.numAttributes()-1);
+                if(previousWindowSize==newWindowSize)// no point doing this one
+                    continue;
+                previousWindowSize=newWindowSize;
                 dtw.setR(i/100.0);
-
+                        
+                        
 /*Can do an early abandon inside cross validate. If it cannot be more accurate 
  than maxR even with some left to evaluate then stop evaluation
 */                
                 double acc=crossValidateAccuracy(maxAcc);
-                if(acc>=maxAcc){
+                accuracy.add(acc);
+                if(acc>maxAcc){
                     maxR=i;
                     maxAcc=acc;
                }
@@ -114,7 +179,32 @@ public class FastDTW_1NN implements Classifier {
             System.out.println("OPTIMAL WINDOW ="+maxR+" % which gives a warp of"+bestWarp+" data");
   //          dtw=new DTW();
             dtw.setR(maxR/100.0);
+            res.acc=maxAcc;
         }
+        res.buildTime=System.currentTimeMillis()-t;
+        
+        if(trainPath!=null && trainPath!=""){  //Save basic train results
+//            
+//NEED TO FIND THE TRAIN ESTIMATES FOR EACH TEST HERE            
+            OutFile f= new OutFile(trainPath);
+            f.writeLine(train.relationName()+",FastDTW_1NN,Train");
+            f.writeLine(getParameters());
+            f.writeLine(res.acc+"");
+            for(int i=0;i<train.numInstances();i++){
+                Instance test=train.remove(i);
+                int pred=(int)classifyInstance(test);
+                f.writeString((int)test.classValue()+","+pred+",");
+                for(int j=0;j<train.numClasses();j++){
+                    if(j==pred)
+                        f.writeString(",1");
+                    else
+                        f.writeString(",0");
+                }
+                f.writeString("\n");
+                train.add(i,test);
+            }
+        }        
+        
     }
     @Override
     public double classifyInstance(Instance d){
@@ -219,6 +309,16 @@ answer is to store those without the abandon in a hash table indexed by i and j,
 
     @Override
     public Capabilities getCapabilities() {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public void setParamSearch(boolean b) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public void setParametersFromIndex(int x) {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 

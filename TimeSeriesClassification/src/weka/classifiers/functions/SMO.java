@@ -402,6 +402,11 @@ public class SMO
 
       // Build logistic regression model
       m_logistic = new Logistic();
+//Tony cheekily inserts a limit on the Iterations, because it is fucking up
+//his experiments, 1000 iterations seems a reasonable limit, given r defaults to 25 and this
+//is only to work out the probability estimates, doesnt effect accuracy,so may set it 
+//lower      
+      m_logistic.setMaxIts(1000);
       m_logistic.buildClassifier(data);
     }
     
