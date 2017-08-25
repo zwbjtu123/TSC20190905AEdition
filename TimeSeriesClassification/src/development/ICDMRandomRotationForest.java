@@ -112,7 +112,7 @@ this way for ease of comprehension, but in reality we distributed each resample
             case "RandFCV":
                 randF = new TunedRandomForest();
                 randF.tuneTree(false);
-                randF.tuneFeatures(false);
+                randF.tuneParameters(false);
                 randF.setNumTrees(500);
                 randF.debug(debug);
                 randF.setSeed(fold);
@@ -122,7 +122,7 @@ this way for ease of comprehension, but in reality we distributed each resample
             case "RandFOOB":
                 randF = new TunedRandomForest();
                 randF.tuneTree(false);
-                randF.tuneFeatures(false);
+                randF.tuneParameters(false);
                 randF.setNumTrees(500);
                 randF.debug(debug);
                 randF.setSeed(fold);

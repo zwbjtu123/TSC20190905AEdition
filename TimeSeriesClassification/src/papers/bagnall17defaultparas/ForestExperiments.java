@@ -398,7 +398,7 @@ public class ForestExperiments{
         if(classifier.equals("TunedRandF")){
             TunedRandomForest c = new TunedRandomForest();
             c.tuneTree(true);
-            c.tuneFeatures(false);  // just testing whether tuning the number of trees helps
+            c.tuneParameters(false);  // just testing whether tuning the number of trees helps
 //            c.setNumFeaturesRange(new double[]{3});
            return c; 
         }

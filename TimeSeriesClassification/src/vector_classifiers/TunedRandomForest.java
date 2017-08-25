@@ -1,8 +1,16 @@
 /*
 This classifier is enhanced so that classifier builds a random forest with the 
-facility to build by forward selection addition of trees to minimize OOB error.    
+facility to build by forward selection addition of trees to minimize OOB error, 
+by far the fastest way.    
 
-Further enhanced to include OOB error estimates and predictions
+As far as tuning are concerned, RandomForest has three parameters
+
+m_MaxDepth: defaults to 0 (no limit on depth)
+m_numFeatures: defaults to log(m)+1 (not sqrt(m) as most implementations do
+m_numTrees: defaults to 10 
+
+
+Further enhanced to allow for selection through OOB error estimates and predictions
 
 Further changes: 
 1. set number of trees (m_numTrees) via grid search on a range (using OOB) that
@@ -18,12 +26,14 @@ grid search is then just 55 values and because it uses OOB no CV is required
 package vector_classifiers;
 
 import fileIO.OutFile;
+import java.io.File;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import timeseriesweka.classifiers.ParameterSplittable;
 import utilities.ClassifierTools;
 import utilities.CrossValidator;
 import utilities.InstanceTools;
@@ -31,6 +41,7 @@ import utilities.SaveParameterInfo;
 import utilities.TrainAccuracyEstimate;
 import weka.classifiers.meta.Bagging;
 import utilities.ClassifierResults;
+import weka.classifiers.functions.SMO;
 import weka.classifiers.trees.RandomForest;
 import weka.classifiers.trees.RandomTree;
 import weka.core.Instance;
@@ -39,20 +50,27 @@ import weka.core.Utils;
 
 /**
  *
- * @author ajb
+ * @author aj
  */
-public class TunedRandomForest extends RandomForest implements SaveParameterInfo, TrainAccuracyEstimate{
-    boolean tune=true;
-    boolean tuneFeatures=true;
+public class TunedRandomForest extends RandomForest implements SaveParameterInfo, TrainAccuracyEstimate,SaveEachParameter,ParameterSplittable{
+    boolean tuneParameters=true;
     boolean debug=false;
-    int[] numTreesRange;
-    int[] numFeaturesRange;
+    int[] paraSpace1;//Maximum tree depth, m_MaxDepth
+    int[] paraSpace2;//Number of features per tree,m_numFeatures
+    int[] paraSpace3;//Number of trees, m_numTrees
+    int[] paras;
+    int maxPerPara=10;
     String trainPath="";
     int seed; //need this to seed cver/the forests for consistency in meta-classification/ensembling purposes
     Random rng; //legacy, 'seed' still (and always has) seeds this for any other rng purposes, e.g tie resolution
     ArrayList<Double> accuracy;
     boolean crossValidate=true;
     boolean findTrainAcc=true;  //If there is no tuning, this will find the estimate with the fixed values
+    private long combinedBuildTime;
+    
+    
+    private static int MAX_FOLDS=10;
+    
      private ClassifierResults res =new ClassifierResults();
    
     public void setCrossValidate(boolean b){
@@ -61,7 +79,66 @@ public class TunedRandomForest extends RandomForest implements SaveParameterInfo
     public void setTrainAcc(boolean b){
         findTrainAcc=b;
     }
+    protected String resultsPath;
+    protected boolean saveEachParaAcc=false;
+    
+//methods from SaveEachParameter    
+    @Override
+    public void setPathToSaveParameters(String r){
+            resultsPath=r;
+            setSaveEachParaAcc(true);
+    }
+    @Override
+    public void setSaveEachParaAcc(boolean b){
+        saveEachParaAcc=b;
+    }
+//MEthods from ParameterSplittable    
+    @Override
+    public String getParas() { //This is redundant really.
+        return getParameters();
+    }
+    @Override
+    public double getAcc() {
+        return res.acc;
+    }
+    @Override
+    public void setParametersFromIndex(int x) {
+        tuneParameters=false;
+//Three paras, evenly distributed, 1 to maxPerPara.
+//Note that if maxPerPara > numFeatures, we have a problem, so it will throw an exception later        
+        paras=new int[3];
+        if(x<1 || x>maxPerPara*maxPerPara*maxPerPara)//Error, invalid range
+            throw new UnsupportedOperationException("ERROR parameter index "+x+" out of range for PolyNomialKernel"); //To change body of generated methods, choose Tools | Templates.
+        int numLevels=(x-1)/(maxPerPara*maxPerPara);
+        int numFeatures=((x-1)/(maxPerPara))%maxPerPara;
+        int numTrees=x%maxPerPara;
+        paras[0]=numLevels;//NOT CORRECT
+        paras[1]=numFeatures;//NOT CORRECT
+        paras[2]=numTrees;//NOT CORRECT
+        setMaxDepth(paras[0]);
+        setNumFeatures(paras[1]);
+        setNumTrees(paras[2]);
+    }
 
+   
+   @Override
+    public ClassifierResults getTrainResults(){
+//Temporary : copy stuff into res.acc here
+        return res;
+    }  
+//SaveParameterInfo    
+    @Override
+    public String getParameters() {
+        String result="BuildTime,"+res.buildTime+",CVAcc,"+res.acc+",";
+        result+="NumLevels,"+paras[0]+",NumFeatures,"+paras[1]+",NumTrees,"+paras[2];
+        return result;
+    }
+
+    @Override
+    public void setParamSearch(boolean b) {
+        tuneParameters=b;
+    }
+    
     
     public TunedRandomForest(){
         super();
@@ -84,16 +161,16 @@ public class TunedRandomForest extends RandomForest implements SaveParameterInfo
     }
     
     public void tuneTree(boolean b){
-        tune=b;
+        tuneParameters=b;
     }
-    public void tuneFeatures(boolean b){
-        tuneFeatures=b;
+    public void tuneParameters(boolean b){
+        tuneParameters=b;
     }
     public void setNumTreesRange(int[] d){
-        numTreesRange=d;
+        paraSpace1=d;
     }
     public void setNumFeaturesRange(int[] d){
-        numFeaturesRange=d;
+        paraSpace2=d;
     }
  @Override
     public void writeCVTrainToFile(String train) {
@@ -102,64 +179,176 @@ public class TunedRandomForest extends RandomForest implements SaveParameterInfo
     }    
     @Override
     public boolean findsTrainAccuracyEstimate(){ return findTrainAcc;}
-    
-    @Override
-    public ClassifierResults getTrainResults(){
-//Temporary : copy stuff into res.acc here
-//        res.acc=ensembleCvAcc;
-//TO DO: Write the other stats        
-        return res;
-    }        
-
-    @Override
-    public String getParameters() {
-        String result="BuildTime,"+res.buildTime+",TrainAcc,"+res.acc+",numTrees,"+this.getNumTrees()+",NumFeatures,"+this.getNumFeatures();
-        for(double d:accuracy)
-            result+=","+d;
-        return result;
-    }
-    protected final void setDefaultGridSearchRange(int m){
-//This only involves 100 parameter searches.   
-        if(debug)
+    protected final void setStandardParaSearchSpace(int m){
+//Need to know the number  of features to do this
+//Does 1000 parameter searches on a 10x10x10 grid    
+       if(m<maxPerPara)
+           maxPerPara=m;
+        if(debug){
+            System.out.println("Number of features ="+m+" max para values ="+maxPerPara);
             System.out.println("Setting defaults ....");
-        numTreesRange=new int[10];
-        numTreesRange[0]=10; //Weka default
-        for(int i=1;i<numTreesRange.length;i++)
-            numTreesRange[i]=100*i;
-        if(tuneFeatures){
-            if(m>10){// Space evenly possible values
-                numFeaturesRange=new int[10];
-                numFeaturesRange[0]=(int)Math.sqrt(m);
-                numFeaturesRange[1]=(int) Utils.log2(m)+1;
-                for(int i=2;i<10;i++)
-                    numFeaturesRange[i]=((i-1)*m)/10;
-            }
-            else{
-                numFeaturesRange=new int[m];
-                for(int i=0;i<m;i++)
-                    numFeaturesRange[i]=i+1;
+        }
+//Para 1. Maximum tree depth, m_MaxDepth
+        paraSpace1=new int[maxPerPara];
+        paraSpace1[0]=0; // No limit
+        for(int i=1;i<paraSpace1.length;i++)
+            paraSpace1[i]=paraSpace1[i-1]+m/(paraSpace1.length-1);
+//Para 2. Num features
+        paraSpace2=new int[maxPerPara];
+        paraSpace2[0]=(int)Math.sqrt(m);
+        paraSpace2[1]=(int) Utils.log2(m)+1;
+        
+        for(int i=2;i<maxPerPara;i++)
+            paraSpace2[i]=((i-1)*m)/maxPerPara;
+        
+        paraSpace3=new int[10];//Num trees
+        paraSpace3[0]=10; //Weka default
+        for(int i=1;i<paraSpace3.length;i++)
+            paraSpace3[i]=100*i;
+        if(debug){
+            System.out.print("Para 1 (Num levels) : ");
+            for(int i:paraSpace1)
+                System.out.print(i+", ");
+            System.out.print("\nPara 2 (Num features) : ");
+            for(int i:paraSpace2)
+                System.out.print(i+", ");
+            System.out.print("\nPara 3 (Num trees) : ");
+            for(int i:paraSpace3)
+                System.out.print(i+", ");
+        }
+  }
+    public void tuneRandomForest(Instances train) throws Exception {
+         paras=new int[3];
+        int folds=MAX_FOLDS;
+        if(folds>train.numInstances())
+            folds=train.numInstances();
+        double minErr=1;
+        this.setSeed(rng.nextInt());
+        Instances trainCopy=new Instances(train);
+        CrossValidator cv = new CrossValidator();
+        cv.setSeed(seed);
+        cv.setNumFolds(folds);
+        cv.buildFolds(trainCopy);
+        ArrayList<TunedSVM.ResultsHolder> ties=new ArrayList<>();
+        ClassifierResults tempResults;
+        int count=0;
+        OutFile temp=null;
+        for(int p1:paraSpace1){//Maximum tree depth, m_MaxDepth
+            for(int p2:paraSpace2){//Num features
+                for(int p3:paraSpace3){//Num trees
+                    count++;
+                    if(saveEachParaAcc){// check if para value already done
+                        File f=new File(resultsPath+count+".csv");
+                        if(f.exists() && f.length()>0){
+                            continue;//If done, ignore skip this iteration                        
+                        }
+                    }
+                    TunedRandomForest model = new TunedRandomForest();
+                    model.setMaxDepth(p1);
+                    model.setNumFeatures(p2);
+                    model.setNumTrees(p3);
+                    model.tuneParameters=false;
+                    tempResults=cv.crossValidateWithStats(model,trainCopy);
+                    double e=1-tempResults.acc;
+                    if(debug)
+                        System.out.println("Depth="+p1+",Features"+p2+",Trees="+p3+" Acc = "+(1-e));
+                    accuracy.add(tempResults.acc);
+                    if(saveEachParaAcc){// Save to file and close
+                        temp=new OutFile(resultsPath+count+".csv");
+                        temp.writeLine(tempResults.writeResultsFileToString());
+                        temp.closeFile();
+                    }                
+                    else{
+                        if(e<minErr){
+                        minErr=e;
+                        ties=new ArrayList<>();//Remove previous ties
+                        ties.add(new TunedSVM.ResultsHolder(p1,p2,p3,tempResults));
+                        }
+                        else if(e==minErr){//Sort out ties
+                            ties.add(new TunedSVM.ResultsHolder(p1,p2,p3,tempResults));
+                        }
+                    }
+                }
             }
         }
-        else
-            numFeaturesRange=new int[]{(int)Math.sqrt(m)};
+        int bestNumLevels;
+        int bestNumFeatures;
+        int bestNumTrees;
+        
+        minErr=1;
+        if(saveEachParaAcc){
+// Check they are all there first. 
+            int missing=0;
+            for(int p1:paraSpace1){
+                for(int p2:paraSpace2){
+                    for(int p3:paraSpace3){
+                        File f=new File(resultsPath+count+".csv");
+                        if(!(f.exists() && f.length()>0))
+                            missing++;
+                    }
+                }
+              }
             
-  }
+            if(missing==0)//All present
+            {
+                combinedBuildTime=0;
+    //            If so, read them all from file, pick the best
+                count=0;
+                for(int p1:paraSpace1){//C
+                    for(int p2:paraSpace2){//Exponent
+                        for(int p3:paraSpace3){//B
+                            count++;
+                            tempResults = new ClassifierResults();
+                            tempResults.loadFromFile(resultsPath+count+".csv");
+                            combinedBuildTime+=tempResults.buildTime;
+                            double e=1-tempResults.acc;
+                            if(e<minErr){
+                                minErr=e;
+                                ties=new ArrayList<>();//Remove previous ties
+                                ties.add(new TunedSVM.ResultsHolder(p1,p2,p3,tempResults));
+                            }
+                            else if(e==minErr){//Sort out ties
+                                    ties.add(new TunedSVM.ResultsHolder(p1,p2,p3,tempResults));
+                            }
+        //Delete the files here to clean up.
 
-    protected final void setDefaultFeatureRange(int m){
-//This only involves 55 or 44 parameter searches, unlike RBF that uses 625 by default.   
-        if(debug)
-            System.out.println("Setting default features....");
-
-        if(tuneFeatures){
-            if(m>10)//Include defaults for Weka (Utils.log2(m)+1) and R version  (int)Math.sqrt(m)
-                numFeaturesRange=new int[]{1,10,(int)Math.sqrt(m),(int) Utils.log2(m)+1,m-1};
-            else
-                numFeaturesRange=new int[]{1,(int)Math.sqrt(m),(int) Utils.log2(m)+1,m-1};
+                            File f= new File(resultsPath+count+".csv");
+                            if(!f.delete())
+                                System.out.println("DELETE FAILED "+resultsPath+count+".csv");
+                        }
+                    }            
+                }
+                TunedSVM.ResultsHolder best=ties.get(rng.nextInt(ties.size()));
+                bestNumLevels=(int)best.x;
+                bestNumFeatures=(int)best.y;
+                bestNumTrees=(int)best.z;
+                paras[0]=bestNumLevels;
+                paras[1]=bestNumFeatures;
+                paras[2]=bestNumTrees;
+                this.setMaxDepth(bestNumLevels);
+                this.setNumFeatures(bestNumFeatures);
+                this.setNumTrees(bestNumTrees);
+               
+                res=best.res;
+                if(debug)
+                    System.out.println("Bestnum levels ="+bestNumLevels+" best num features = "+bestNumFeatures+" best num trees ="+bestNumTrees+" best train acc = "+res.acc);
+            }else//Not all present, just ditch
+                System.out.println(resultsPath+" error: missing  ="+missing+" parameter values");
         }
-        else
-            numFeaturesRange=new int[]{(int)Math.sqrt(m)};
-            
-  }
+        else{
+            TunedSVM.ResultsHolder best=ties.get(rng.nextInt(ties.size()));
+            bestNumLevels=(int)best.x;
+            bestNumFeatures=(int)best.y;
+            bestNumTrees=(int)best.z;
+            paras[0]=bestNumLevels;
+            paras[1]=bestNumFeatures;
+            paras[2]=bestNumTrees;
+            this.setMaxDepth(bestNumLevels);
+            this.setNumFeatures(bestNumFeatures);
+            this.setNumTrees(bestNumTrees);
+            res=best.res;
+         }     
+    }
     
     @Override
     public void buildClassifier(Instances data) throws Exception{
@@ -177,76 +366,16 @@ public class TunedRandomForest extends RandomForest implements SaveParameterInfo
         super.setSeed(seed);
         
 /******* 2. Tune parameters if required: 
- tunes number of features and number of trees  using either cross validation
- if crossValidate==true or out of bag error otherwise
  * 
  * NOTE: the number of trees could be found incrementally, just start with the smallest
  * number and add in each time rather than rebuild. It would massively speed up the search
  * this has been implemented for the EnhancedBagger,but is not yet used. 
  * Obviously cannot do this for the number of attributes
  */
-        if(tune){
-            if(numTreesRange==null)
-                setDefaultGridSearchRange(data.numAttributes()-1);
-            else if(numFeaturesRange==null)
-                setDefaultFeatureRange(data.numAttributes()-1);
-  //Its a local nested class! urggg            
-            class Pair{
-                int x,y;
-                Pair(int a, int b){
-                    x=a;
-                    y=b;
-                }
-            }
-            ClassifierResults tempres = null;
-            res.acc = -1;//is initialised using default constructor above, left it there 
-            CrossValidator cv = new CrossValidator();
-            if(crossValidate){
-                cv.setSeed(seed); 
-                cv.setNumFolds(folds);
-                cv.buildFolds(data);
-            }
-            
-            ArrayList<Pair> ties=new ArrayList<>();
-            for(int numFeatures:numFeaturesRange){//Need to start from scratch for each
-                for(int numTrees:numTreesRange){//Need to start from scratch for each                   t= new RandomForest();
-                    RandomForest t= new RandomForest();
-                    t.setSeed(seed);
-                    t.setNumFeatures(numFeatures);
-                    t.setNumTrees(numTrees);
-                    
-                    if(crossValidate){  
-                        tempres = cv.crossValidateWithStats(t, data);
-                    }else{
-                        Instances temp=new Instances(data);
-                        t.buildClassifier(temp);
-                        tempres = new ClassifierResults();
-                        tempres.acc = 1 - t.measureOutOfBagError();   
-                    }
-                    if(debug)
-                        System.out.println(" numTrees ="+numTrees+" Acc = "+tempres.acc);
-                    
-                    accuracy.add(tempres.acc);
-                    if (tempres.acc > res.acc) {
-                        res = tempres;
-                        ties=new ArrayList<>();//Remove previous ties
-                        ties.add(new Pair(numFeatures,numTrees));
-                    }
-                    else if(tempres.acc == res.acc){//Sort out ties
-                        ties.add(new Pair(numFeatures,numTrees));
-                    }
-                }
-            }
-            int bestNumTrees;
-            int bestNumAtts;
-            Pair best=ties.get(rng.nextInt(ties.size()));
-            bestNumAtts=best.x;
-            bestNumTrees=best.y;
-            
-            this.setNumTrees(bestNumTrees);
-            this.setNumFeatures(bestNumAtts);
-            if(debug)
-                System.out.println("Best num atts ="+bestNumAtts+" best num trees = "+bestNumTrees+" best train acc = "+res.acc);
+        if(tuneParameters){
+            if(paraSpace1==null)
+                setStandardParaSearchSpace(data.numAttributes()-1);
+            tuneRandomForest(data);
         }
         else //Override WEKA's default which is worse than sqrt(m)
             setNumFeatures(Math.max(1,(int)Math.sqrt(data.numAttributes()-1)));
@@ -259,6 +388,10 @@ public class TunedRandomForest extends RandomForest implements SaveParameterInfo
         m_bagger = new EnhancedBagging();
         RandomTree rTree = new RandomTree();
         // set up the random tree options
+        if(m_numFeatures>data.numAttributes()-1)
+            m_numFeatures=data.numAttributes()-1;
+        if(m_MaxDepth>data.numAttributes()-1)
+            m_MaxDepth=0;
         m_KValue = m_numFeatures;//Who knows why this is duplicated? From RandomForest
         rTree.setKValue(m_KValue);
         rTree.setMaxDepth(getMaxDepth());
@@ -535,12 +668,13 @@ public class TunedRandomForest extends RandomForest implements SaveParameterInfo
  //       System.exit(0);
         DecimalFormat df = new DecimalFormat("##.###");
         try{
-                String s="ItalyPowerDemand";
-                System.out.println(" PROBLEM ="+s);
-                Instances train=ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\TSC Problems\\"+s+"\\"+s+"_TRAIN");
-                Instances test=ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\TSC Problems\\"+s+"\\"+s+"_TEST");
+            String dset = "balloons";             
+           Instances all=ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\UCI Problems\\"+dset+"\\"+dset);        
+            Instances[] split=InstanceTools.resampleInstances(all,1,0.5);
                 TunedRandomForest rf=new TunedRandomForest();
-               rf.buildClassifier(train);
+                rf.debug(true);
+                rf.tuneParameters(true);
+               rf.buildClassifier(split[0]);
                 System.out.println(" bag percent ="+rf.getBaggingPercent()+" OOB error "+rf.measureOutOfBagError());
 /*                
                 for(int i=0;i<5;i++){

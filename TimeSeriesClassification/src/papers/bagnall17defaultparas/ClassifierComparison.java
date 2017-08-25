@@ -425,7 +425,7 @@ public class ClassifierComparison{
             TunedRandomForest randF = new TunedRandomForest();
             randF.tuneTree(true);
             randF.setNumTreesRange(numTrees);
-            randF.tuneFeatures(false);  // just testing whether tuning the number of trees helps
+            randF.tuneParameters(false);  // just testing whether tuning the number of trees helps
             randF.debug(debug);
             randF.setSeed(fold);
             return randF;

@@ -68,7 +68,7 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
     Random rng;
     ArrayList<Double> accuracy;
     private boolean kernelOptimise=false;   //Choose between linear, quadratic and RBF kernel
-    private boolean paraOptimise=true;
+    private boolean tuneParameters=true;
     private ClassifierResults res =new ClassifierResults();
     private long combinedBuildTime;
     private boolean buildFromFile=false;
@@ -88,7 +88,7 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
         super();
         kernelOptimise=false;
         kernel=KernelType.RBF;
-        paraOptimise=true;
+        tuneParameters=true;
         setKernel(new RBFKernel());
         rng=new Random();
         accuracy=new ArrayList<>();
@@ -134,13 +134,13 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
 
     @Override
     public void setParamSearch(boolean b) {
-        paraOptimise=b;
+        tuneParameters=b;
     }
 
     @Override
     public void setParametersFromIndex(int x) {
         kernelOptimise=false;   //Choose between linear, quadratic and RBF kernel
-        paraOptimise=false;
+        tuneParameters=false;
         int numCParas=maxC-minC+1;
         
         
@@ -228,7 +228,7 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
     public void setParaSpace(double[] p){
         paraSpace1=p;
     }
-    public void setStandardParas(){
+    public void setStandardParaSearchSpace(){
         paraSpace1=new double[maxC-minC+1];
         for(int i=minC;i<=maxC;i++)
             paraSpace1[i-minC]=Math.pow(2,i);
@@ -265,7 +265,7 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
     public void optimiseKernel(boolean b){kernelOptimise=b;}
     
     public boolean getOptimiseKernel(){ return kernelOptimise;}
-    public void optimiseParas(boolean b){paraOptimise=b;}
+    public void optimiseParas(boolean b){tuneParameters=b;}
     
     static class ResultsHolder{
         double x,y,z;
@@ -463,7 +463,7 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
                     double e=1-tempResults.acc;
                     accuracy.add(tempResults.acc);
                     if(debug)
-                        System.out.println(" C= "+p1+" Gamma = "+p2+" Acc = "+(1-e));
+                        System.out.println("C="+p1+",Exp="+p2+",B="+p3+", Acc = "+(1-e));
                     if(saveEachParaAcc){// Save to file and close
                         temp=new OutFile(resultsPath+count+".csv");
                         temp.writeLine(tempResults.writeResultsFileToString());
@@ -690,7 +690,7 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
                     PolyKernel p=new PolyKernel();
                     p.setExponent(1);
                     temp.setKernel(p);
-                    temp.setStandardParas();
+                    temp.setStandardParaSearchSpace();
                     temp.tuneCForFixedPolynomial(train);
                     linearCVAcc=temp.res.acc;
                     linearBestC=temp.getC();
@@ -699,7 +699,7 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
                     PolyKernel p2=new PolyKernel();
                     p2.setExponent(2);
                     temp.setKernel(p2);
-                    temp.setStandardParas();
+                    temp.setStandardParaSearchSpace();
                     temp.tuneCForFixedPolynomial(train);
                     quadraticCVAcc=temp.res.acc;
                     quadraticBestC=temp.getC();
@@ -707,7 +707,7 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
                 case RBF:
                     RBFKernel kernel2 = new RBFKernel();
                     temp.setKernel(kernel2);
-                    temp.setStandardParas();
+                    temp.setStandardParaSearchSpace();
                     temp.tuneRBF(train);
                     rbfCVAcc=temp.res.acc;
                     rbfParas[0]=temp.getC();
@@ -834,9 +834,9 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
         long t=System.currentTimeMillis();
 //        if(kernelOptimise)
 //            selectKernel(train);
-        if(paraOptimise){
+        if(tuneParameters){
             if(paraSpace1==null)
-                setStandardParas();
+                setStandardParaSearchSpace();
             if(buildFromFile){
                 throw new Exception("Build from file in TunedSVM Not implemented yet");
             }else{
@@ -848,7 +848,7 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
                     tunePolynomial(train);
             }
         }
-//If both kernelOptimise and paraOptimise are false, it just builds and SVM        
+//If both kernelOptimise and tuneParameters are false, it just builds and SVM        
 //With whatever the parameters are set to        
         super.buildClassifier(train);
         

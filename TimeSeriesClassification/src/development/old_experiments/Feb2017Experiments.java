@@ -480,7 +480,7 @@ public static boolean deleteDirectory(File directory) {
             case "RandFCV":
                 randF = new TunedRandomForest();
                 randF.tuneTree(false);
-                randF.tuneFeatures(false);
+                randF.tuneParameters(false);
                 randF.setNumTrees(500);
                 randF.debug(debug);
                 randF.setSeed(fold);
@@ -490,7 +490,7 @@ public static boolean deleteDirectory(File directory) {
             case "RandFOOB":
                 randF = new TunedRandomForest();
                 randF.tuneTree(false);
-                randF.tuneFeatures(false);
+                randF.tuneParameters(false);
                 randF.setNumTrees(500);
                 randF.debug(debug);
                 randF.setSeed(fold);

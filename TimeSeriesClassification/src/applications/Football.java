@@ -106,7 +106,7 @@ public class Football{
             case "RandFOOB":
                 c= new TunedRandomForest();
                 ((RandomForest)c).setNumTrees(500);
-                ((TunedRandomForest)c).tuneFeatures(false);
+                ((TunedRandomForest)c).tuneParameters(false);
                 ((TunedRandomForest)c).tuneTree(false);
                 ((TunedRandomForest)c).setCrossValidate(false);
                 ((TunedRandomForest)c).setSeed(fold);
@@ -115,7 +115,7 @@ public class Football{
             case "RandF":
                 c= new TunedRandomForest();
                 ((RandomForest)c).setNumTrees(500);
-                ((TunedRandomForest)c).tuneFeatures(false);
+                ((TunedRandomForest)c).tuneParameters(false);
                 ((TunedRandomForest)c).tuneTree(false);
                 ((TunedRandomForest)c).setCrossValidate(true);
                 ((TunedRandomForest)c).setSeed(fold);
@@ -129,7 +129,7 @@ public class Football{
                 break;
             case "TunedRandF":
                 c= new TunedRandomForest();
-                ((TunedRandomForest)c).tuneFeatures(true);
+                ((TunedRandomForest)c).tuneParameters(true);
                 ((TunedRandomForest)c).tuneTree(true);
                 ((TunedRandomForest)c).setCrossValidate(true);
                 ((TunedRandomForest)c).setSeed(fold);
@@ -137,7 +137,7 @@ public class Football{
                 break;
             case "TunedRandFOOB":
                 c= new TunedRandomForest();
-                ((TunedRandomForest)c).tuneFeatures(true);
+                ((TunedRandomForest)c).tuneParameters(true);
                 ((TunedRandomForest)c).tuneTree(true);
                 ((TunedRandomForest)c).setCrossValidate(false);
                 ((TunedRotationForest)c).setSeed(fold);

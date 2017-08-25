@@ -91,7 +91,7 @@ public class July2017Experiments{
             case "RandFCV":
                 randF = new TunedRandomForest();
                 randF.tuneTree(false);
-                randF.tuneFeatures(false);
+                randF.tuneParameters(false);
                 randF.setNumTrees(500);
                 randF.debug(debug);
                 randF.setSeed(fold);
@@ -101,7 +101,7 @@ public class July2017Experiments{
             case "RandFOOB":
                 randF = new TunedRandomForest();
                 randF.tuneTree(false);
-                randF.tuneFeatures(false);
+                randF.tuneParameters(false);
                 randF.setNumTrees(500);
                 randF.debug(debug);
                 randF.setSeed(fold);
@@ -113,7 +113,7 @@ public class July2017Experiments{
                 numTrees=new int[]{10,50,100,200,300,400,500,600,700,800,900};
                 randF = new TunedRandomForest();
                 randF.tuneTree(true);
-                randF.tuneFeatures(true);
+                randF.tuneParameters(true);
                 randF.setSeed(fold);
                 randF.setTrainAcc(true);
                 randF.setCrossValidate(true);
@@ -123,7 +123,7 @@ public class July2017Experiments{
                 numTrees=new int[]{10,50,100,200,300,400,500,600,700,800,900};
                randF = new TunedRandomForest();
                 randF.tuneTree(true);
-                randF.tuneFeatures(true);
+                randF.tuneParameters(true);
                 randF.setSeed(fold);
                 randF.setTrainAcc(true);
                 randF.setCrossValidate(false);//Use OOB
