@@ -28,8 +28,7 @@ public class RandomRotationForest1 extends TunedRotationForest{
     private int maxNumAttributes=100;
     public RandomRotationForest1(){
         this.estimateAccFromTrain(false);
-        this.tuneFeatures(false);
-        this.tuneTree(false);
+        this.tuneParameters(false);
         this.setNumIterations(200);
     }
     public void setMaxNumAttributes(int m){

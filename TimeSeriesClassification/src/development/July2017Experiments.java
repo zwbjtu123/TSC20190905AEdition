@@ -84,13 +84,11 @@ public class July2017Experiments{
             case "RotFCV":
                 r = new TunedRotationForest();
                 r.setNumIterations(200);
-                r.tuneFeatures(false);
-                r.tuneTree(false);
+                r.tuneParameters(false);
                 r.estimateAccFromTrain(true);
                 return r;
             case "RandFCV":
                 randF = new TunedRandomForest();
-                randF.tuneTree(false);
                 randF.tuneParameters(false);
                 randF.setNumTrees(500);
                 randF.debug(debug);
@@ -100,7 +98,6 @@ public class July2017Experiments{
                 return randF;
             case "RandFOOB":
                 randF = new TunedRandomForest();
-                randF.tuneTree(false);
                 randF.tuneParameters(false);
                 randF.setNumTrees(500);
                 randF.debug(debug);
@@ -112,7 +109,6 @@ public class July2017Experiments{
 //These are the built in defaults, here for clarity only                
                 numTrees=new int[]{10,50,100,200,300,400,500,600,700,800,900};
                 randF = new TunedRandomForest();
-                randF.tuneTree(true);
                 randF.tuneParameters(true);
                 randF.setSeed(fold);
                 randF.setTrainAcc(true);
@@ -122,7 +118,6 @@ public class July2017Experiments{
             case "TunedRandFOOB":
                 numTrees=new int[]{10,50,100,200,300,400,500,600,700,800,900};
                randF = new TunedRandomForest();
-                randF.tuneTree(true);
                 randF.tuneParameters(true);
                 randF.setSeed(fold);
                 randF.setTrainAcc(true);
@@ -133,8 +128,7 @@ public class July2017Experiments{
 //These are the built in defaults, here for clarity only                
                 numTrees=new int[]{10,50,100,200,300,400,500,600,700,800,900};
                 r = new TunedRotationForest();
-                r.tuneTree(true);
-                r.tuneFeatures(true);
+                r.tuneParameters(true);
                 r.setSeed(fold);
                 r.setNumTreesRange(numTrees);
                 return r;

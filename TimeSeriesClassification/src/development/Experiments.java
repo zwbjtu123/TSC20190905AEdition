@@ -113,7 +113,6 @@ public class Experiments{
                 c= new TunedRandomForest();
                 ((RandomForest)c).setNumTrees(500);
                 ((TunedRandomForest)c).tuneParameters(false);
-                ((TunedRandomForest)c).tuneTree(false);
                 ((TunedRandomForest)c).setCrossValidate(false);
                 ((TunedRandomForest)c).setSeed(fold);
                 
@@ -122,36 +121,30 @@ public class Experiments{
                 c= new TunedRandomForest();
                 ((RandomForest)c).setNumTrees(500);
                 ((TunedRandomForest)c).tuneParameters(false);
-                ((TunedRandomForest)c).tuneTree(false);
                 ((TunedRandomForest)c).setCrossValidate(true);
                 ((TunedRandomForest)c).setSeed(fold);
                 break;
             case "RotF":
                 c= new TunedRotationForest();
                 ((RotationForest)c).setNumIterations(200);
-                ((TunedRotationForest)c).tuneFeatures(false);
-                ((TunedRotationForest)c).tuneTree(false);
+                ((TunedRotationForest)c).tuneParameters(false);
                 ((TunedRotationForest)c).setSeed(fold);
                 break;
             case "TunedRandF":
                 c= new TunedRandomForest();
                 ((TunedRandomForest)c).tuneParameters(true);
-                ((TunedRandomForest)c).tuneTree(true);
                 ((TunedRandomForest)c).setCrossValidate(true);
-                ((TunedRandomForest)c).setSeed(fold);
-                
+                ((TunedRandomForest)c).setSeed(fold);             
                 break;
             case "TunedRandFOOB":
                 c= new TunedRandomForest();
                 ((TunedRandomForest)c).tuneParameters(true);
-                ((TunedRandomForest)c).tuneTree(true);
                 ((TunedRandomForest)c).setCrossValidate(false);
                 ((TunedRotationForest)c).setSeed(fold);
                 break;
             case "TunedRotF":
                 c= new TunedRotationForest();
-                ((TunedRotationForest)c).tuneFeatures(true);
-                ((TunedRotationForest)c).tuneTree(true);
+                ((TunedRotationForest)c).tuneParameters(true);
                 ((TunedRotationForest)c).setSeed(fold);
                 break;
             case "TunedSVMRBF":
@@ -309,14 +302,9 @@ Optional
         for(String str:args)
             System.out.println(str);
         if(args.length<6){//Local run
-            if(args!=null){
-                System.out.println("Num args passed ="+args.length);
-                for(String str:args)
-                    System.out.println(str);
-            }
-            else
-                System.out.println("No args passed");
-                
+            System.out.println("Num args passed ="+args.length);
+            for(String str:args)
+                System.out.println(str);
             DataSets.problemPath="C:\\Users\\ajb\\Dropbox\\TSC Problems\\";
             DataSets.resultsPath="C:\\Temp\\";
             File f=new File(DataSets.resultsPath);

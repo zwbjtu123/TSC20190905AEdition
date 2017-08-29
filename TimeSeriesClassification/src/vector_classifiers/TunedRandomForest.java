@@ -67,6 +67,8 @@ public class TunedRandomForest extends RandomForest implements SaveParameterInfo
     boolean crossValidate=true;
     boolean findTrainAcc=true;  //If there is no tuning, this will find the estimate with the fixed values
     private long combinedBuildTime;
+    protected String resultsPath;
+    protected boolean saveEachParaAcc=false;
     
     
     private static int MAX_FOLDS=10;
@@ -79,8 +81,6 @@ public class TunedRandomForest extends RandomForest implements SaveParameterInfo
     public void setTrainAcc(boolean b){
         findTrainAcc=b;
     }
-    protected String resultsPath;
-    protected boolean saveEachParaAcc=false;
     
 //methods from SaveEachParameter    
     @Override
@@ -158,10 +158,6 @@ public class TunedRandomForest extends RandomForest implements SaveParameterInfo
     
     public void debug(boolean b){
         this.debug=b;
-    }
-    
-    public void tuneTree(boolean b){
-        tuneParameters=b;
     }
     public void tuneParameters(boolean b){
         tuneParameters=b;

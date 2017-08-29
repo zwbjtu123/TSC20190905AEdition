@@ -423,7 +423,6 @@ public class ClassifierComparison{
         switch(classifier){
             case "TunedRandF":
             TunedRandomForest randF = new TunedRandomForest();
-            randF.tuneTree(true);
             randF.setNumTreesRange(numTrees);
             randF.tuneParameters(false);  // just testing whether tuning the number of trees helps
             randF.debug(debug);
@@ -431,9 +430,8 @@ public class ClassifierComparison{
             return randF;
             case "TunedRotF":
             TunedRotationForest rotF = new TunedRotationForest();
-            rotF.tuneTree(true);
+            rotF.tuneParameters(true);
             rotF.setNumTreesRange(numTrees);
-            rotF.tuneFeatures(false);  // just testing whether tuning the number of trees helps
             rotF.debug(debug);
             rotF.setSeed(fold);
            return rotF; 

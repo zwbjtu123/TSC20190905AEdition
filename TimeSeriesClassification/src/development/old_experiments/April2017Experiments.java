@@ -555,13 +555,11 @@ public static boolean deleteDirectory(File directory) {
             case "RotFCV":
                 r = new TunedRotationForest();
                 r.setNumIterations(200);
-                r.tuneFeatures(false);
-                r.tuneTree(false);
+                r.tuneParameters(false);
                 r.estimateAccFromTrain(true);
                 return r;
             case "RandFCV":
                 randF = new TunedRandomForest();
-                randF.tuneTree(false);
                 randF.tuneParameters(false);
                 randF.setNumTrees(500);
                 randF.debug(debug);
@@ -571,7 +569,6 @@ public static boolean deleteDirectory(File directory) {
                 return randF;
             case "RandFOOB":
                 randF = new TunedRandomForest();
-                randF.tuneTree(false);
                 randF.tuneParameters(false);
                 randF.setNumTrees(500);
                 randF.debug(debug);
@@ -1120,8 +1117,7 @@ public static boolean deleteDirectory(File directory) {
                 rot1.setNumIterations(200);
                 RandomRotationForest1 rot2=new RandomRotationForest1();
                 rot2.setNumIterations(200);
-                rot2.tuneFeatures(false);
-                rot2.tuneTree(false);
+                rot2.tuneParameters(false);
                 rot2.estimateAccFromTrain(false);
 //Identical apart from this            
                 rot2.setMaxNumAttributes(40);
@@ -1161,8 +1157,7 @@ public static boolean deleteDirectory(File directory) {
                 rot1.setNumIterations(200);
                 RandomRotationForest1 rot2=new RandomRotationForest1();
                 rot2.setNumIterations(200);
-                rot2.tuneFeatures(false);
-                rot2.tuneTree(false);
+                rot2.tuneParameters(false);
                 rot2.estimateAccFromTrain(false);
 //Identical apart from this            
                 rot2.setMaxNumAttributes(100);

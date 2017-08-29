@@ -397,14 +397,13 @@ public class ForestExperiments{
 //RandF or RotF        
         if(classifier.equals("TunedRandF")){
             TunedRandomForest c = new TunedRandomForest();
-            c.tuneTree(true);
             c.tuneParameters(false);  // just testing whether tuning the number of trees helps
 //            c.setNumFeaturesRange(new double[]{3});
            return c; 
         }
         else if(classifier.equals("TunedRotF")){
             TunedRotationForest c = new TunedRotationForest();
-            c.tuneTree(true);
+            c.tuneParameters(true);
            return c; 
         }
         else{
@@ -412,7 +411,6 @@ public class ForestExperiments{
             System.out.println("Class Type ="+clsType);
             if(clsType.equals("RandF")){
                 TunedRandomForest c = new TunedRandomForest();
-                c.tuneTree(false);
 
 // just testing whether tuning the number of trees helps
     //            RandomForest c=new RandomForest();

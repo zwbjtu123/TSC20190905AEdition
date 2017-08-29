@@ -1,4 +1,23 @@
 /*
+
+Rotation forest parameters
+
+feature partition size. This can be randomized, but we just keep it as fixed
+t.setMaxGroup(numFeatures);
+t.setMinGroup(numFeatures);
+Default is 3. Search range of
+3,4,...,12 (or m, whichever is bigger)
+
+m_RemovedPercentage. note percentage removed, not kept
+default is 50%. Search range is
+0,10,20,30,40,50,60,70,80,90
+
+m_NumIterations. Number of iterations.
+default is 10. Search range is
+100,200,300,400,500,600,700,800,900,1000
+
+PLUS: all the tree parameters
+minimum per leaf, pruning, confidence etc.
  */
 package vector_classifiers;
 
@@ -11,6 +30,7 @@ import java.util.Arrays;
 import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import timeseriesweka.classifiers.ParameterSplittable;
 import utilities.ClassifierTools;
 import utilities.CrossValidator;
 import utilities.InstanceTools;
@@ -27,18 +47,24 @@ import weka.core.Utils;
  *
  * @author ajb
  */
-public class TunedRotationForest extends RotationForest implements SaveParameterInfo,TrainAccuracyEstimate{
-    boolean tuneTree=true;
-    int[] numTreesRange;
-    int[] numFeaturesRange;
+public class TunedRotationForest extends RotationForest implements SaveParameterInfo,TrainAccuracyEstimate,SaveEachParameter,ParameterSplittable{
+    boolean tuneParameters=true;
+    int[] paraSpace1;//Number of features parameter
+    int[] paraSpace2;//Percentage to remove
+    int[] paraSpace3;//Number of trees parameter
+    int[] paras;
     String trainPath="";
-    boolean tuneFeatures=false;
     boolean debug=false;
     boolean findTrainAcc=true;
     int seed; //need this to seed cver/the forests for consistency in meta-classification/ensembling purposes
     Random rng; //legacy, 'seed' still (and always has) seeds this for any other rng purposes, e.g tie resolution
     ArrayList<Double> accuracy;
+    ArrayList<Double> buildTimes;
     private ClassifierResults res =new ClassifierResults();
+    private long combinedBuildTime;
+    private static int MAX_FOLDS=10;
+    protected String resultsPath;
+    protected boolean saveEachParaAcc=false;
     
     
     public TunedRotationForest(){
@@ -49,23 +75,57 @@ public class TunedRotationForest extends RotationForest implements SaveParameter
         accuracy=new ArrayList<>();
         
     }   
-    
+//SaveParameterInfo    
+    @Override
+    public String getParameters() {
+        String result="BuildTime,"+res.buildTime+",CVAcc,"+res.acc+",numTrees,"+this.getNumIterations()+",NumFeatures,"+this.getMaxGroup();
+        for(double d:accuracy)
+            result+=","+d;       
+        return result;
+    }
+
+    @Override
+    public void setParamSearch(boolean b) {
+        tuneParameters=b;
+    }
+ //methods from SaveEachParameter    
+    @Override
+    public void setPathToSaveParameters(String r){
+            resultsPath=r;
+            setSaveEachParaAcc(true);
+    }
+    @Override
+    public void setSaveEachParaAcc(boolean b){
+        saveEachParaAcc=b;
+    }   
+//MEthods from ParameterSplittable    
+    @Override
+    public String getParas() { //This is redundant really.
+        return getParameters();
+    }
+    @Override
+    public double getAcc() {
+        return res.acc;
+    }
+    @Override
+    public void setParametersFromIndex(int x) {
+        tuneParameters=false;
+//setParametersFromIndex        
+//setStandardParaSearchSpace      
+//Write the tuning method        
+    }
     public void setSeed(int s){
         super.setSeed(s);
         seed = s;
         rng=new Random();
         rng.setSeed(seed);
     }
-     public void tuneFeatures(boolean b){
-        tuneFeatures=b;
-    }
      public void debug(boolean b){
         this.debug=b;
     }
      public void justBuildTheClassifier(){
         estimateAccFromTrain(false);
-        tuneFeatures(false);
-        tuneTree(false);
+        tuneParameters(false);
         debug=false;
     }
 
@@ -73,14 +133,14 @@ public class TunedRotationForest extends RotationForest implements SaveParameter
         this.findTrainAcc=b;
     }
   
-    public void tuneTree(boolean b){
-        tuneTree=b;
+    public void tuneParameters(boolean b){
+        tuneParameters=b;
     }
     public void setNumTreesRange(int[] d){
-        numTreesRange=d;
+        paraSpace2=d;
     }
     public void setNumFeaturesRange(int[] d){
-        numFeaturesRange=d;
+        paraSpace1=d;
     }
  @Override
     public void writeCVTrainToFile(String train) {
@@ -97,64 +157,152 @@ public class TunedRotationForest extends RotationForest implements SaveParameter
 //TO DO: Write the other stats        
         return res;
     }        
-
-    @Override
-    public String getParameters() {
-        String result="BuildTime,"+res.buildTime+",TrainAcc,"+res.acc+",numTrees,"+this.getNumIterations()+",NumFeatures,"+this.getMaxGroup();
-        for(double d:accuracy)
-            result+=","+d;
-        
-        return result;
-    }
-    protected final void setDefaultGridSearchRange(int m){
-        numTreesRange=new int[11];
-        numTreesRange[0]=10;
-        for(int i=1;i<numTreesRange.length;i++)
-            numTreesRange[i]=(50)*i;  //This may be slow!
-        
-        if(tuneFeatures){
-            if(m>10){// Space evenly possible values
-                numFeaturesRange=new int[10];
-                numFeaturesRange[0]=3;
-                for(int i=1;i<10;i++)
-                    numFeaturesRange[i]=3+i;
-            }
-            else{
-                numFeaturesRange=new int[m-3];
-                for(int i=0;i<m-3;i++)
-                    numFeaturesRange[i]=m+i;
-            }
-        }
-        else
-            numFeaturesRange=new int[]{3};
+//TO DO
+    protected final void setStandardParaSearchSpace(int m){
+        paraSpace3=new int[10];
+        for(int i=0;i<paraSpace3.length;i++)
+            paraSpace3[i]=(50)*(i+1);  //This may be slow!
+        paraSpace2=new int[10];
+        paraSpace2[0]=0;
+        for(int i=1;i<10;i++)
+        paraSpace2[i]=10*i;
+        int numParas=10;
+        if(m<10)
+            numParas=m;
+        paraSpace1=new int[numParas];
+        paraSpace1[0]=3;
+        for(int i=1;i<10;i++)
+            paraSpace1[i]=3+i;
             
     }
-
-    protected final void setDefaultFeatureRange(int m){
-//This only involves 55 or 44 parameter searches, unlike RBF that uses 625 by default.   
-        if(debug)
-            System.out.println("Setting default features....");
-
-        if(tuneFeatures){
-            if(m>10)//Include defaults for Weka (Utils.log2(m)+1) and R version  (int)Math.sqrt(m)
-                numFeaturesRange=new int[]{3,10,(int)Math.sqrt(m),(int) Utils.log2(m)+1,m-1};
-            else
-                numFeaturesRange=new int[]{3,(int)Math.sqrt(m),(int) Utils.log2(m)+1,m-1};
+    public void tuneRotationForest(Instances train) throws Exception {
+         paras=new int[2];
+        int folds=MAX_FOLDS;
+        if(folds>train.numInstances())
+            folds=train.numInstances();
+        double minErr=1;
+        this.setSeed(rng.nextInt());
+        Instances trainCopy=new Instances(train);
+        CrossValidator cv = new CrossValidator();
+        cv.setSeed(seed);
+        cv.setNumFolds(folds);
+        cv.buildFolds(trainCopy);
+        ArrayList<TunedSVM.ResultsHolder> ties=new ArrayList<>();
+        ClassifierResults tempResults;
+        int count=0;
+        OutFile temp=null;
+        for(int p1:paraSpace1){//Num atts in group
+            for(int p2:paraSpace2){//Num trees
+                count++;
+                if(saveEachParaAcc){// check if para value already done
+                    File f=new File(resultsPath+count+".csv");
+                    if(f.exists() && f.length()>0){
+                        continue;//If done, ignore skip this iteration                        
+                    }
+                }
+                RotationForest model = new RotationForest();
+                model.setMaxGroup(p1);
+                model.setMinGroup(p1);
+                model.setNumIterations(p2);
+                tempResults=cv.crossValidateWithStats(model,trainCopy);
+                double e=1-tempResults.acc;
+                if(debug)
+                    System.out.println("Group size="+p1+",Trees="+p2+" Acc = "+(1-e));
+                accuracy.add(tempResults.acc);
+                if(saveEachParaAcc){// Save to file and close
+                    temp=new OutFile(resultsPath+count+".csv");
+                    temp.writeLine(tempResults.writeResultsFileToString());
+                    temp.closeFile();
+                }                
+                else{
+                    if(e<minErr){
+                    minErr=e;
+                    ties=new ArrayList<>();//Remove previous ties
+                    ties.add(new TunedSVM.ResultsHolder(p1,p2,tempResults));
+                    }
+                    else if(e==minErr){//Sort out ties
+                        ties.add(new TunedSVM.ResultsHolder(p1,p2,tempResults));
+                    }
+                }
+            }
         }
-        else
-            numFeaturesRange=new int[]{3};
-  }
+        int bestNumAtts;
+        int bestNumTrees;
+        minErr=1;
+        if(saveEachParaAcc){
+// Check they are all there first. 
+            int missing=0;
+            for(int p1:paraSpace1){
+                for(int p2:paraSpace2){
+                    File f=new File(resultsPath+count+".csv");
+                    if(!(f.exists() && f.length()>0))
+                        missing++;
+                }
+            }
+            if(missing==0)//All present
+            {
+                combinedBuildTime=0;
+    //            If so, read them all from file, pick the best
+                count=0;
+                for(int p1:paraSpace1){//C
+                    for(int p2:paraSpace2){//Exponent
+                        count++;
+                        tempResults = new ClassifierResults();
+                        tempResults.loadFromFile(resultsPath+count+".csv");
+                        combinedBuildTime+=tempResults.buildTime;
+                        double e=1-tempResults.acc;
+                        if(e<minErr){
+                            minErr=e;
+                            ties=new ArrayList<>();//Remove previous ties
+                            ties.add(new TunedSVM.ResultsHolder(p1,p2,tempResults));
+                        }
+                        else if(e==minErr){//Sort out ties
+                                ties.add(new TunedSVM.ResultsHolder(p1,p2,tempResults));
+                        }
+    //Delete the files here to clean up.
+                        File f= new File(resultsPath+count+".csv");
+                        if(!f.delete())
+                            System.out.println("DELETE FAILED "+resultsPath+count+".csv");
+                    }            
+                }
+                TunedSVM.ResultsHolder best=ties.get(rng.nextInt(ties.size()));
+                bestNumAtts=(int)best.x;
+                bestNumTrees=(int)best.y;
+                paras[0]=bestNumAtts;
+                paras[1]=bestNumTrees;
+                this.setNumIterations(bestNumTrees);
+                this.setMaxGroup(bestNumAtts);
+                this.setMinGroup(bestNumAtts);
+//                this.setMaxDepth(bestNumLevels);
+//                this.setNumFeatures(bestNumFeatures);
+               
+                res=best.res;
+                if(debug)
+                    System.out.println("Bestnum in group ="+bestNumAtts+"  best num trees ="+bestNumTrees+" best train acc = "+res.acc);
+            }else//Not all present, just ditch
+                System.out.println(resultsPath+" error: missing  ="+missing+" parameter values");
+        }
+        else{
+            TunedSVM.ResultsHolder best=ties.get(rng.nextInt(ties.size()));
+            bestNumAtts=(int)best.x;
+            bestNumTrees=(int)best.y;
+            paras[0]=bestNumAtts;
+            paras[1]=bestNumTrees;
+            this.setNumIterations(bestNumTrees);
+            this.setMaxGroup(bestNumAtts);
+            this.setMinGroup(bestNumAtts);
+            res=best.res;
+         }     
+    }
     
-    
-    
-    @Override
+
+     @Override
     public void buildClassifier(Instances data) throws Exception{
 //        res.buildTime=System.currentTimeMillis(); //removed with cv changes  (jamesl) 
         long startTime=System.currentTimeMillis(); 
         //now calced separately from any instance on ClassifierResults, and added on at the end
                 
-                
-        int folds=10;
+        int folds=MAX_FOLDS;
         if(folds>data.numInstances())
             folds=data.numInstances();
     // can classifier handle the data?
@@ -163,70 +311,10 @@ public class TunedRotationForest extends RotationForest implements SaveParameter
         data = new Instances(data);
         data.deleteWithMissingClass();
         super.setSeed(seed);
-        if(tuneTree){
-            if(numTreesRange==null)
-                setDefaultGridSearchRange(data.numAttributes()-1);
-            else if(numFeaturesRange==null)
-                setDefaultFeatureRange(data.numAttributes()-1);
-
-            double bestErr=1.0;
-  //Its a local nested class! urggg            
-            class Pair{
-                int x,y;
-                Pair(int a, int b){
-                    x=a;
-                    y=b;
-                }
-            }
-            
-            CrossValidator cv = new CrossValidator();
-            cv.setSeed(seed); 
-            cv.setNumFolds(folds);
-            cv.buildFolds(data);
-            ClassifierResults tempres = null;
-            res.acc = -1;//is initialised using default constructor above, left it there 
-            //to avoid any unforeseen clashes (jamesl) 
-            
-            ArrayList<Pair> ties=new ArrayList<>();
-            for(int numFeatures:numFeaturesRange){//Need to start from scratch for each
-                if(debug)
-                    System.out.println(" numFeatures ="+numFeatures);
-                for(int numTrees:numTreesRange){//Need to start from scratch for each
-                
-                    RotationForest t= new RotationForest();
-                    t.setMaxGroup(numFeatures);
-                    t.setMinGroup(numFeatures);
-                    t.setNumIterations(numTrees);
-                    t.setSeed(seed);
-                    
-                    tempres = cv.crossValidateWithStats(t, data);
-                    
-                    if(debug)
-                        System.out.println("\t numTrees ="+numTrees+" Acc = "+tempres.acc);
-                    
-                    accuracy.add(tempres.acc);
-                    if (tempres.acc > res.acc) {
-                        res = tempres;
-                        ties=new ArrayList<>();//Remove previous ties
-                        ties.add(new Pair(numFeatures,numTrees));
-                    }
-                    else if(tempres.acc == res.acc){//Sort out ties
-                        ties.add(new Pair(numFeatures,numTrees));
-                    }
-                }
-            }
-            int bestNumTrees=0;
-            int bestNumAtts=0;
- 
-            Pair best=ties.get(rng.nextInt(ties.size()));
-            bestNumAtts=best.x;
-            bestNumTrees=best.y;
-            this.setNumIterations(bestNumTrees);
-            this.setMaxGroup(bestNumAtts);
-            this.setMinGroup(bestNumAtts);
-//            res.acc=1-bestErr; //removed with cv change, saved from cver (jamesl) 
-            if(debug)
-                System.out.println("Best num atts ="+bestNumAtts+" best num trees="+bestNumTrees+" "+bestNumTrees+" best Acc ="+res.acc);
+        if(tuneParameters){
+            if(paraSpace1==null)
+                setStandardParaSearchSpace(data.numAttributes()-1);
+            tuneRotationForest(data);
         }
 /*If there is no parameter search, then there is no train CV available.        
 this gives the option of finding one. It is inefficient
@@ -243,19 +331,8 @@ this gives the option of finding one. It is inefficient
             cv.setSeed(seed); //trying to mimick old seeding behaviour below
             cv.setNumFolds(folds);
             cv.buildFolds(data);
-            
             res = cv.crossValidateWithStats(t, data);
-            //endofnew
-            
-            //old
-//            Instances temp=new Instances(data);
-//            Evaluation eval=new Evaluation(temp);
-//            t.setSeed(rng.nextInt());
-//            eval.crossValidateModel(t, temp, folds, rng);
-//            res.acc=1-eval.errorRate();
-            //endofold
         }
-        
         super.buildClassifier(data);
         res.buildTime=System.currentTimeMillis()-startTime;
         if(trainPath!=""){  //Save basic train results
@@ -264,7 +341,6 @@ this gives the option of finding one. It is inefficient
             f.writeLine(getParameters());
             f.writeLine(res.acc+"");
             f.writeString(res.writeInstancePredictions());
-            
         }
     }
   
@@ -374,7 +450,22 @@ this gives the option of finding one. It is inefficient
     }
     
     public static void main(String[] args) {
-        jamesltests();
+//        jamesltests();
+        DecimalFormat df = new DecimalFormat("##.###");
+        try{
+            String dset = "balloons";             
+           Instances all=ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\UCI Problems\\"+dset+"\\"+dset);        
+            Instances[] split=InstanceTools.resampleInstances(all,1,0.5);
+                TunedRotationForest rf=new TunedRotationForest();
+                rf.debug(true);
+                rf.tuneParameters(true);
+               rf.buildClassifier(split[0]);
+         }catch(Exception e){
+            System.out.println("Exception "+e);
+            e.printStackTrace();
+            System.exit(0);
+        }
+       
     }
   
 }

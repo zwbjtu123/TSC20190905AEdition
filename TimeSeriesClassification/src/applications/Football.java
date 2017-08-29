@@ -107,7 +107,6 @@ public class Football{
                 c= new TunedRandomForest();
                 ((RandomForest)c).setNumTrees(500);
                 ((TunedRandomForest)c).tuneParameters(false);
-                ((TunedRandomForest)c).tuneTree(false);
                 ((TunedRandomForest)c).setCrossValidate(false);
                 ((TunedRandomForest)c).setSeed(fold);
                 
@@ -116,21 +115,18 @@ public class Football{
                 c= new TunedRandomForest();
                 ((RandomForest)c).setNumTrees(500);
                 ((TunedRandomForest)c).tuneParameters(false);
-                ((TunedRandomForest)c).tuneTree(false);
                 ((TunedRandomForest)c).setCrossValidate(true);
                 ((TunedRandomForest)c).setSeed(fold);
                 break;
             case "RotF":
                 c= new TunedRotationForest();
                 ((RotationForest)c).setNumIterations(200);
-                ((TunedRotationForest)c).tuneFeatures(false);
-                ((TunedRotationForest)c).tuneTree(false);
+                ((TunedRotationForest)c).tuneParameters(false);
                 ((TunedRotationForest)c).setSeed(fold);
                 break;
             case "TunedRandF":
                 c= new TunedRandomForest();
                 ((TunedRandomForest)c).tuneParameters(true);
-                ((TunedRandomForest)c).tuneTree(true);
                 ((TunedRandomForest)c).setCrossValidate(true);
                 ((TunedRandomForest)c).setSeed(fold);
                 
@@ -138,14 +134,12 @@ public class Football{
             case "TunedRandFOOB":
                 c= new TunedRandomForest();
                 ((TunedRandomForest)c).tuneParameters(true);
-                ((TunedRandomForest)c).tuneTree(true);
                 ((TunedRandomForest)c).setCrossValidate(false);
                 ((TunedRotationForest)c).setSeed(fold);
                 break;
             case "TunedRotF":
                 c= new TunedRotationForest();
-                ((TunedRotationForest)c).tuneFeatures(true);
-                ((TunedRotationForest)c).tuneTree(true);
+                ((TunedRotationForest)c).tuneParameters(true);
                 ((TunedRotationForest)c).setSeed(fold);
                 break;
             case "TunedSVMRBF":
