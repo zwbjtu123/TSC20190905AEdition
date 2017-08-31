@@ -192,17 +192,18 @@ public class MultipleClassifierEvaluation implements DebugPrinting {
         ClassifierResultsAnalysis.writeAllEvaluationFiles(writePath, experimentName, results, datasets.toArray(new String[] { }), buildMatlabDiagrams);
     }
 
-    public static void exampleRun() throws Exception {
+    public static void main(String[] args) throws Exception {
         String basePath = "C:/JamesLPHD/HESCA/UCI/UCIResults/";
 //            String basePath = "Z:/Results/FinalisedUCIContinuous/";
 
         MultipleClassifierEvaluation mcc = 
-            new MultipleClassifierEvaluation("analysisTest/", "testrun1", 30).
-                setDatasets(development.DataSets.UCIContinuousFileNames);
+            new MultipleClassifierEvaluation("C:/JamesLPHD/analysisTest/", "testrun6", 30).
+                setDatasets(development.DataSets.UCIContinuousFileNames).
+                setBuildMatlabDiagrams(true);
 
         mcc.setDebugPrinting(true);
-        mcc.readInClassifiers(new String[] {"NN", "C4.5", "SVML", "MLP"}, basePath);
-        mcc.readInClassifier("RandF", basePath);
+        mcc.readInClassifiers(new String[] {"NN", "C4.5"}, basePath);
+//        mcc.readInClassifier("RandF", basePath);
 
         mcc.printlnDebug("Writing started");
         mcc.runComparison();

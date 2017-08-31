@@ -20,6 +20,8 @@ import statistics.tests.TestResults;
 import statistics.tests.Tests;
 
 public class OneSampleTests extends Tests{
+    public static boolean beQuiet = false;
+    
     private static DecimalFormat df = new DecimalFormat("##.########");
     public static DataPoint[] absRankedData;
 
@@ -189,10 +191,12 @@ Need to rerank the data
         for(int j=0;j<adjN;j++)
         {
             diff=ranked[absRankedData[j].position].d-T.h0;
-			System.out.println(" Rank = "+ j +" Pos ="+absRankedData[j].position+" Val ="+ranked[absRankedData[j].position].d+" diff ="+diff+" Abs Val ="+absRankedData[j].d);
+            if (!beQuiet)
+                System.out.println(" Rank = "+ j +" Pos ="+absRankedData[j].position+" Val ="+ranked[absRankedData[j].position].d+" diff ="+diff+" Abs Val ="+absRankedData[j].d);
             if(diff<0)
             {
-				System.out.println(" Rank = "+ absRankedData[j].rank +" Value ="+ranked[absRankedData[j].position].d+"\t diff ="+diff);
+                if (!beQuiet)
+                    System.out.println(" Rank = "+ absRankedData[j].rank +" Value ="+ranked[absRankedData[j].position].d+"\t diff ="+diff);
                 rankSumUnder+=absRankedData[j].rank;
             }	
             else	

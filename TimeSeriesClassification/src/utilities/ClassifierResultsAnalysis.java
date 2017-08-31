@@ -16,6 +16,7 @@ import jxl.write.WritableCellFormat;
 import jxl.write.WritableFont;
 import jxl.write.WritableSheet;
 import jxl.write.WritableWorkbook;
+import statistics.tests.OneSampleTests;
 import statistics.tests.TwoSampleTests;
 import utilities.ClassifierResults;
 import utilities.StatisticalUtilities;
@@ -48,7 +49,8 @@ import utilities.StatisticalUtilities;
 
 public class ClassifierResultsAnalysis {
     
-    public static double FREIDMANCDDIA_PVAL = 0.05;
+    public static String matlabFilePath = "matlabfiles/";
+    public static double FRIEDMANCDDIA_PVAL = 0.05;
         
     public static class ClassifierEvaluation  {
         public String classifierName;
@@ -170,7 +172,7 @@ public class ClassifierResultsAnalysis {
         
         String cliques = "";
         try {
-            System.out.println(filename+"_"+statistic+".csv");
+            //System.out.println(filename+"_"+statistic+".csv");
             out.writeLine(MultipleClassifiersPairwiseTest.runTests(outPath+filename+"_"+statistic+".csv").toString());       
             cliques = MultipleClassifiersPairwiseTest.printCliques();
             out.writeLine("\n\n" + cliques);
@@ -239,7 +241,7 @@ public class ClassifierResultsAnalysis {
         out.writeLine("remember that nlls are auto-negated now\n");
         out.writeLine("and that basic notepad wont show the line breaks properly, view in notepad++");
         out.closeFile();
-        for (String subFolder : new String[] { "pairwise", "freidman" }) {
+        for (String subFolder : new String[] { "pairwise", "friedman" }) {
             (new File(cdFolder+subFolder+"/")).mkdirs();
             String cdName = cdFolder+subFolder+"/"+cdFileName(filename,statistic)+".csv";
             //meta hack for qol, negate the nll (sigh...) for correct ordering on dia
@@ -268,6 +270,11 @@ public class ClassifierResultsAnalysis {
     }
     
     public static void writeAllEvaluationFiles(String outPath, String expname, ArrayList<ClassifierEvaluation> results, String[] dsets, boolean makeCDDias) {
+        //hacky housekeeping
+        MultipleClassifiersPairwiseTest.beQuiet = true;
+        OneSampleTests.beQuiet = true;
+        
+        outPath += expname + "/";
         new File(outPath).mkdirs();
         
         String[] accSummaries = writeAccuracyEvaluationFiles(outPath, expname, results, dsets);
@@ -303,30 +310,32 @@ public class ClassifierResultsAnalysis {
         
         buildResultsSpreadsheet(outPath, expname);
         
-        if(makeCDDias) {
-            String [] cliques = { accSummaries[2], baccSummaries[2], aurocSummaries[2], nllSummaries[2] };
-            String [] stats = { "ACC", "BALACC", "AUROC", "NLL" };
-            buildPairwiseCDDias(outPath + "/cdDias/pairwise/", expname, stats, cliques);
-            buildFreidmanCDDias(outPath + "/cdDias/friedman/");
-        }
-    }
+        String [] cliques = { accSummaries[2], baccSummaries[2], aurocSummaries[2], nllSummaries[2] };
+        String [] stats = { "ACC", "BALACC", "AUROC", "NLL" };
+        //write these even if not actually making the dias this execution
+        writeCliqueHelperFiles(outPath + "/cdDias/pairwise/", expname, stats, cliques); 
         
-    protected static void buildFreidmanCDDias(String cdCSVpath) {
-        MatlabController proxy = MatlabController.getInstance();
-        proxy.eval("buildDiasInDirectory('"+cdCSVpath+"', 0, "+FREIDMANCDDIA_PVAL+")");
+        if(makeCDDias)
+            buildCDDias(outPath, expname, stats, cliques);
     }
-    protected static void buildPairwiseCDDias(String cdCSVpath, String expname, String[] stats, String[] cliques) {
-        //temp workaround, just write the cliques and readin again from matlab for ease of checking.editing for pairwise edge cases
+    
+    protected static void writeCliqueHelperFiles(String cdCSVpath, String expname, String[] stats, String[] cliques) {
+        //temp workaround, just write the cliques and readin again from matlab for ease of checking/editing for pairwise edge cases
         for (int i = 0; i < stats.length; i++) {
             OutFile out = new OutFile (cdCSVpath + cdFileName(expname, stats[i]) + "_cliques.txt");
             out.writeString(cliques[i]);
             out.closeFile();
         }
-        
-        MatlabController proxy = MatlabController.getInstance();
-        proxy.eval("buildDiasInDirectory('"+cdCSVpath+"', 1)"); 
     }
-        
+    
+    protected static void buildCDDias(String outpath, String expname, String[] stats, String[] cliques) {        
+        MatlabController proxy = MatlabController.getInstance();
+        proxy.eval("addpath(genpath('"+matlabFilePath+"'))");
+        proxy.eval("buildDiasInDirectory('"+outpath+"/cdDias/friedman/"+"', 0, "+FRIEDMANCDDIA_PVAL+")"); //friedman 
+        proxy.eval("buildDiasInDirectory('"+outpath+ "/cdDias/pairwise/"+"', 1)");  //pairwise
+        proxy.discconnectMatlab();
+    }
+    
     protected static String[] writeAccuracyEvaluationFiles(String outPath, String filename, ArrayList<ClassifierEvaluation> results, String[] dsets) {
         outPath += "Accuracy/";
         

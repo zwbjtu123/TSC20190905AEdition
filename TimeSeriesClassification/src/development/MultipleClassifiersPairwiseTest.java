@@ -25,6 +25,8 @@ import statistics.tests.TwoSampleTests;
  * @author ajb
  */
 public class MultipleClassifiersPairwiseTest {
+    public static boolean beQuiet = false;
+    
     static double[][] accs; //ROW indicates classifier, for ease of processing
     static double[][] pValsTTest; //ROW indicates classifier, for ease of processing
     static double[][] pValsSignTest; //ROW indicates classifier, for ease of processing
@@ -48,11 +50,14 @@ public class MultipleClassifiersPairwiseTest {
         accs=new double[nosClassifiers][nosProblems];
         for(int j=0;j<nosProblems;j++){
             String[] line = data.readLine().split(",");
-            System.out.print("Problem ="+line[0]+",");
+            if(!beQuiet)
+                System.out.print("Problem ="+line[0]+",");
             for(int i=0;i<nosClassifiers;i++){
                 accs[i][j]=Double.parseDouble(line[i+1]);
-                out.print(accs[i][j]+",");
+                if (!beQuiet)
+                    out.print(accs[i][j]+",");
             }
+            if (!beQuiet)
                 out.print("\n");
             
         }
