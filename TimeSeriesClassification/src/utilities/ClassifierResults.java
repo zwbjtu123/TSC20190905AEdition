@@ -47,6 +47,7 @@ public class ClassifierResults implements DebugPrinting {
     public ArrayList<double[]> predictedClassProbabilities;
     
     private boolean finalised = false;
+    private boolean allStatsFound = false;
     
     /**
      * for building results one by one while testing, call finaliseResults
@@ -141,6 +142,12 @@ public class ClassifierResults implements DebugPrinting {
 
     public void setParas(String paras) {
         this.paras = paras;
+    }
+    
+    public void cleanPredictionInfo() {
+        predictedClassProbabilities = null;
+        predictedClassValues = null;
+        actualClassValues = null;
     }
     
     /**
@@ -371,7 +378,17 @@ public class ClassifierResults implements DebugPrinting {
 //Negative log likelihood
        nll=findNLL();
        meanAUROC=findMeanAUROC();
-           
+       
+       allStatsFound = true;
+    }
+   
+    public void findAllStatsOnce(){
+        if (allStatsFound) {
+            printlnDebug("Stats already found, ignoring findAllStatsOnce()");
+            return;
+        }
+        
+        findAllStats();
     }
       
     /**
