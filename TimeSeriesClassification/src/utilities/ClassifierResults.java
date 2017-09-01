@@ -485,10 +485,25 @@ public class ClassifierResults implements DebugPrinting {
                 tn+=confMat[i][i];
             }
         }
+         
         precision = tp / (tp+fp);
         recall = tp / (tp+fn);
         sensitivity=recall;
         specificity=tn/(fp+tn);
+        
+        //jamesl
+        //one in a million case on very small AND unbalanced datasets (lenses...) that particular train/test splits and their cv splits
+        //lead to a divide by zero on one of these stats (C4.5, lenses, trainFold7 (and a couple others), specificity in the case i ran into)
+        //as a little work around, if this case pops up, will simply set the stat to 0
+        if (Double.compare(precision, Double.NaN) == 0)
+            precision = 0;
+        if (Double.compare(recall, Double.NaN) == 0)
+            recall = 0;
+        if (Double.compare(sensitivity, Double.NaN) == 0)
+            sensitivity = 0;
+        if (Double.compare(specificity, Double.NaN) == 0)
+            specificity = 0;
+        
         return (1+beta*beta) * (precision*recall) / ((beta*beta)*precision + recall);
     }
     protected double findAUROC(int c){
