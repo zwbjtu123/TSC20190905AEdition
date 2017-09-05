@@ -74,7 +74,6 @@ public class ImprovedOnlineSubSeqDistance extends OnlineSubSeqDistance{
                 if (currentDist < bestDist)
                 {
                     bestDist = currentDist;
-                    System.out.println(pos[j]);
                 }
             }
             i++;

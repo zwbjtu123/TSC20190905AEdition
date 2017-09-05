@@ -7,6 +7,7 @@ package timeseriesweka.filters.shapelet_transforms.search_functions;
 
 import java.util.ArrayList;
 import utilities.generic_storage.Pair;
+import utilities.generic_storage.Triple;
 import weka.core.Instances;
 
 /**
@@ -40,15 +41,15 @@ public class SubsampleRandomSearch extends ImpRandomSearch{
             int series = random.nextInt(numInstances);
             int length = random.nextInt(numLengths) + minShapeletLength; //offset the index by the min value.
             int position  = random.nextInt(numAttributes - length + 1); // can only have valid start positions based on the length. the upper bound is exclusive. 
-            //so for the m-m+1 case it always resolves to 0.
+            int dimension = random.nextInt(numDimensions);
             
             //find the shapelets for that series.
-            ArrayList<Pair<Integer,Integer>> shapeletList = shapeletsToFind.get(series);
+            ArrayList<Triple<Integer,Integer,Integer>> shapeletList = shapeletsToFind.get(series);
             if(shapeletList == null)
                 shapeletList = new ArrayList<>();
             
             //add the random shapelet to the length
-            shapeletList.add(new Pair(length, position));
+            shapeletList.add(new Triple(length, position, dimension));
             //put back the updated version.
             shapeletsToFind.put(series, shapeletList);
         }          

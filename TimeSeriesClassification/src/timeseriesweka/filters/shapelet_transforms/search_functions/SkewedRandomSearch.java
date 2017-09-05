@@ -6,9 +6,9 @@
 package timeseriesweka.filters.shapelet_transforms.search_functions;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Random;
 import utilities.generic_storage.Pair;
+import utilities.generic_storage.Triple;
 import weka.core.Instances;
 
 /**
@@ -39,14 +39,15 @@ public class SkewedRandomSearch extends ImpRandomSearch{
             //this gives an index, we assume the length dsitribution is from min-max. so a value of 0 is == minShapeletLength
             int length = sampleCounts(cumulativeDistribution, random) + minShapeletLength; //select the random length from the distribution of lengths.
             int position  = random.nextInt(seriesLength - length); // can only have valid start positions based on the length. (numAtts-1)-l+1
+            int dimension = random.nextInt(numDimensions);
             
             //find the shapelets for that series.
-            ArrayList<Pair<Integer,Integer>> shapeletList = shapeletsToFind.get(series);
+            ArrayList<Triple<Integer,Integer,Integer>> shapeletList = shapeletsToFind.get(series);
             if(shapeletList == null)
                 shapeletList = new ArrayList<>();
             
             //add the random shapelet to the length
-            shapeletList.add(new Pair(length, position));
+            shapeletList.add(new Triple(length, position, dimension));
             //put back the updated version.
             shapeletsToFind.put(series, shapeletList);
         }

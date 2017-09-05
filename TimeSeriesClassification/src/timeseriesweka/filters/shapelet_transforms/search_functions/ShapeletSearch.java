@@ -18,7 +18,7 @@ import static utilities.MultivariateInstanceTools.channelLength;
  */
 public class ShapeletSearch implements Serializable{
     
-    public enum SearchType {FULL, FS, GENETIC, RANDOM, LOCAL, MAGNIFY, TIMED_RANDOM, SKIPPING, TABU, REFINED_RANDOM, IMP_RANDOM, SUBSAMPLE_RANDOM, SKEWED, MULTI_I};
+    public enum SearchType {FULL, FS, GENETIC, RANDOM, LOCAL, MAGNIFY, TIMED_RANDOM, SKIPPING, TABU, REFINED_RANDOM, IMP_RANDOM, SUBSAMPLE_RANDOM, SKEWED};
     
 
     public interface ProcessCandidate{
@@ -43,6 +43,8 @@ public class ShapeletSearch implements Serializable{
     protected int minShapeletLength;
     protected int maxShapeletLength;
     
+    protected int numDimensions;
+    
     protected int lengthIncrement = 1;
     protected int positionIncrement = 1;
     
@@ -56,7 +58,8 @@ public class ShapeletSearch implements Serializable{
         minShapeletLength = ops.getMin();
         maxShapeletLength = ops.getMax();
         lengthIncrement = ops.getLengthInc();
-        positionIncrement = ops.getPosInc();
+        positionIncrement = ops.getPosInc();      
+        numDimensions = ops.getNumDimensions();
     }
     
     public void setMinAndMax(int min, int max){
@@ -89,19 +92,30 @@ public class ShapeletSearch implements Serializable{
     public ArrayList<Shapelet> SearchForShapeletsInSeries(Instance timeSeries, ProcessCandidate checkCandidate){
         ArrayList<Shapelet> seriesShapelets = new ArrayList<>();
         
+        //for univariate this will just 
         for (int length = minShapeletLength; length <= maxShapeletLength; length+=lengthIncrement) {
             //for all possible starting positions of that length. -1 to remove classValue but would be +1 (m-l+1) so cancel.
             for (int start = 0; start < seriesLength - length; start+=positionIncrement) {
-                Shapelet shapelet = checkCandidate.process(timeSeries, start, length);
-                
-                if (shapelet != null) {
-                    seriesShapelets.add(shapelet);
-                    shapeletsVisited.add(seriesCount+","+length+","+start+","+shapelet.qualityValue);
+                //for univariate this will be just once.
+                for(int dim = 0; dim < numDimensions; dim++)   {
+                    Shapelet shapelet = checkCandidate.process(getTimeSeries(timeSeries,dim), start, length, dim);
+
+                    if (shapelet != null) {
+                        seriesShapelets.add(shapelet);
+                        shapeletsVisited.add(seriesCount+","+length+","+start+","+shapelet.qualityValue);
+                    }
                 }
             }
         }
         
         seriesCount++;
         return seriesShapelets;
+    }
+    
+    
+    protected Instance getTimeSeries(Instance timeSeries, int dim){
+        if(numDimensions > 1)
+            return utilities.MultivariateInstanceTools.splitMultivariateInstanceWithClassVal(timeSeries)[dim];
+        return timeSeries;
     }
 }

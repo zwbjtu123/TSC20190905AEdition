@@ -54,6 +54,7 @@ public class MultivariateDependentDistance extends MultivariateDistance implemen
             if (sum < bestSum)
             {
                 bestSum = sum;
+                //System.out.println(i);
             }
         }
 

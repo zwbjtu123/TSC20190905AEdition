@@ -8,21 +8,22 @@ package timeseriesweka.filters.shapelet_transforms.search_functions;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import timeseriesweka.filters.shapelet_transforms.Shapelet;
 import utilities.generic_storage.Pair;
+import utilities.generic_storage.Triple;
 import weka.core.Instance;
 import weka.core.Instances;
-import timeseriesweka.filters.shapelet_transforms.Shapelet;
 
 /**
  *
- * @author raj09hxu
+ * @author Aaron
  */
 public class ImpRandomSearch extends RandomSearch{
-    
-    protected Map<Integer, ArrayList<Pair<Integer,Integer>>> shapeletsToFind = new HashMap<>();
+     protected Map<Integer, ArrayList<Triple<Integer,Integer, Integer>>> shapeletsToFind = new HashMap<>();
     
     int currentSeries =0;
-    public  Map<Integer, ArrayList<Pair<Integer,Integer>>> getShapeletsToFind(){
+    
+    public  Map<Integer, ArrayList<Triple<Integer,Integer, Integer>>> getShapeletsToFind(){
         return shapeletsToFind;
     }
         
@@ -42,14 +43,14 @@ public class ImpRandomSearch extends RandomSearch{
             int series = random.nextInt(input.numInstances());
             int length = random.nextInt(numLengths) + minShapeletLength; //offset the index by the min value.
             int position  = random.nextInt(seriesLength - length); // can only have valid start positions based on the length. (numAtts-1)-l+1
-            
+            int dimension = random.nextInt(numDimensions);
             //find the shapelets for that series.
-            ArrayList<Pair<Integer,Integer>> shapeletList = shapeletsToFind.get(series);
+            ArrayList<Triple<Integer,Integer, Integer>> shapeletList = shapeletsToFind.get(series);
             if(shapeletList == null)
                 shapeletList = new ArrayList<>();
             
             //add the random shapelet to the length
-            shapeletList.add(new Pair(length, position));
+            shapeletList.add(new Triple(length, position, dimension));
             //put back the updated version.
             
             shapeletsToFind.put(series, shapeletList);
@@ -58,10 +59,10 @@ public class ImpRandomSearch extends RandomSearch{
     
     
     @Override
-    public ArrayList<Shapelet> SearchForShapeletsInSeries(Instance timeSeries, ProcessCandidate checkCandidate){
+    public ArrayList<Shapelet> SearchForShapeletsInSeries(Instance timeSeries, ShapeletSearch.ProcessCandidate checkCandidate){
         
         ArrayList<Shapelet> seriesShapelets = new ArrayList<>();
-        ArrayList<Pair<Integer,Integer>> shapeletList = shapeletsToFind.get(currentSeries);
+        ArrayList<Triple<Integer,Integer, Integer>> shapeletList = shapeletsToFind.get(currentSeries);
         currentSeries++;
         
         //no shapelets to consider.
@@ -70,14 +71,13 @@ public class ImpRandomSearch extends RandomSearch{
         }
         
         //Only consider a fixed amount of shapelets.
-        for(Pair<Integer,Integer> shapelet : shapeletList){
+        for(Triple<Integer,Integer, Integer> shapelet : shapeletList){
             //position is in var2, and length is in var1
-            Shapelet shape = checkCandidate.process(timeSeries, shapelet.var1, shapelet.var2);
+            Shapelet shape = checkCandidate.process(getTimeSeries(timeSeries,shapelet.var3), shapelet.var1, shapelet.var2, shapelet.var3);
             if(shape != null)
                 seriesShapelets.add(shape);           
         }
 
         return seriesShapelets;
     }
-    
 }
