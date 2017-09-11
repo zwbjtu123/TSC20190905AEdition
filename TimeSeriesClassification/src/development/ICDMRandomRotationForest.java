@@ -14,7 +14,7 @@ which is randomly split by propInTrain
 */
 package development;
 
-import vector_classifiers.RandomRotationForest1;
+import vector_classifiers.RandomRotationForestLimitedAttributes;
 import fileIO.InFile;
 import fileIO.OutFile;
 import java.io.File;
@@ -95,7 +95,7 @@ this way for ease of comprehension, but in reality we distributed each resample
                 return r;
             case "RandRotF1":
 //Full Rotation Forest with no tuning            
-                RandomRotationForest1 r3=new RandomRotationForest1();
+                RandomRotationForestLimitedAttributes r3=new RandomRotationForestLimitedAttributes();
                 r3.setNumIterations(200);
                 r3.setMaxNumAttributes(100);
                 r3.justBuildTheClassifier();
@@ -613,7 +613,7 @@ this way for ease of comprehension, but in reality we distributed each resample
                 times.writeString(problem+","+(inst.numAttributes()-1)+","+(inst.numInstances())+",");
                 RotationForest rot1=new RotationForest();
                 rot1.setNumIterations(200);
-                RandomRotationForest1 rot2=new RandomRotationForest1();
+                RandomRotationForestLimitedAttributes rot2=new RandomRotationForestLimitedAttributes();
                 rot2.setNumIterations(200);
                 rot2.tuneParameters(false);
                 rot2.estimateAccFromTrain(false);
@@ -653,7 +653,7 @@ this way for ease of comprehension, but in reality we distributed each resample
                 times.writeString(problem+","+(inst.numAttributes()-1)+","+(inst.numInstances())+",");
                 RotationForest rot1=new RotationForest();
                 rot1.setNumIterations(200);
-                RandomRotationForest1 rot2=new RandomRotationForest1();
+                RandomRotationForestLimitedAttributes rot2=new RandomRotationForestLimitedAttributes();
                 rot2.setNumIterations(200);
                 rot2.tuneParameters(false);
                 rot2.estimateAccFromTrain(false);

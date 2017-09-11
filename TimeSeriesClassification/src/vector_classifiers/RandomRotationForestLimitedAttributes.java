@@ -5,14 +5,23 @@ VERSION 1:
 
 1. Limit the max number of attributes per tree
     Test 1: make sure it still does the same thing when maxNumAttributes> numAtts in all cases
-10/2/17: Run TunedRotationForest and RandomRotationForest1 with maxNumAttributes=10000 
+10/2/17: Run TunedRotationForest and RandomRotationForestLimitedAttributes with 
+maxNumAttributes=10000 
 should be no difference: 
 
     Test 2: check it still runs with problems where maxNumAttributes> numAtts
     Test 3: Compare accuracy on problems where maxNumAttributes> numAtts
     Test 4: Perform timing experiment on problems where maxNumAttributes> numAtts
 
-2. Impose bagging and work out OOB Error
+Timing Experiment: 
+Decide on threshold. 
+
+1. Determine problems that take more than 1 day or 1 hour to train a single model on my new machine
+2. Generate times for a range of n and m.
+3. Construct linear model as a function of n and m
+
+
+Version 2 will. Impose bagging and work out OOB Error
  */
 package vector_classifiers;
 
@@ -24,9 +33,9 @@ import vector_classifiers.TunedRotationForest;
  *
  * @author ajb
  */
-public class RandomRotationForest1 extends TunedRotationForest{
+public class RandomRotationForestLimitedAttributes extends TunedRotationForest{
     private int maxNumAttributes=100;
-    public RandomRotationForest1(){
+    public RandomRotationForestLimitedAttributes(){
         this.estimateAccFromTrain(false);
         this.tuneParameters(false);
         this.setNumIterations(200);
@@ -59,6 +68,8 @@ public class RandomRotationForest1 extends TunedRotationForest{
     
     return permutation;
   }    
+    
+//Bagging    
     public static void main(String[] args){
         
     }

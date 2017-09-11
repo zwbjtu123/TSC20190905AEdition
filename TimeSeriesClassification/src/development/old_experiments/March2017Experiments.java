@@ -8,7 +8,7 @@
 package development.old_experiments;
 
 import development.DataSets;
-import vector_classifiers.RandomRotationForest1;
+import vector_classifiers.RandomRotationForestLimitedAttributes;
 import fileIO.InFile;
 import fileIO.OutFile;
 import java.io.File;
@@ -486,7 +486,7 @@ public static boolean deleteDirectory(File directory) {
                 r.justBuildTheClassifier();
                 return r;
             case "RandRotF1":
-                RandomRotationForest1 r3=new RandomRotationForest1();
+                RandomRotationForestLimitedAttributes r3=new RandomRotationForestLimitedAttributes();
                 r3.setNumIterations(200);
                 r3.setMaxNumAttributes(100);
                 r3.justBuildTheClassifier();
@@ -1021,7 +1021,7 @@ public static boolean deleteDirectory(File directory) {
                 times.writeString(problem+","+(inst.numAttributes()-1)+","+(inst.numInstances())+",");
                 RotationForest rot1=new RotationForest();
                 rot1.setNumIterations(200);
-                RandomRotationForest1 rot2=new RandomRotationForest1();
+                RandomRotationForestLimitedAttributes rot2=new RandomRotationForestLimitedAttributes();
                 rot2.setNumIterations(200);
                 rot2.tuneParameters(false);
                 rot2.estimateAccFromTrain(false);
@@ -1061,7 +1061,7 @@ public static boolean deleteDirectory(File directory) {
                 times.writeString(problem+","+(inst.numAttributes()-1)+","+(inst.numInstances())+",");
                 RotationForest rot1=new RotationForest();
                 rot1.setNumIterations(200);
-                RandomRotationForest1 rot2=new RandomRotationForest1();
+                RandomRotationForestLimitedAttributes rot2=new RandomRotationForestLimitedAttributes();
                 rot2.setNumIterations(200);
                 rot2.tuneParameters(false);
                 rot2.estimateAccFromTrain(false);

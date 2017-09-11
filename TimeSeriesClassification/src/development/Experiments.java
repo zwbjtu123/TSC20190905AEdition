@@ -1,13 +1,13 @@
 /**
  *
  * @author ajb
- *local class to run experiments with the UCI-UEA data
+ *local class to run experiments with the UCR-UEA or UCI data
 
 
 */
 package development;
 
-import vector_classifiers.RandomRotationForest1;
+import vector_classifiers.RandomRotationForestLimitedAttributes;
 import fileIO.InFile;
 import fileIO.OutFile;
 import java.io.File;
@@ -194,9 +194,9 @@ public class Experiments{
                 c= svm;
                 break;
             case "RandomRotationForest1":
-                c= new RandomRotationForest1();
-                ((RandomRotationForest1)c).setNumIterations(200);
-                ((RandomRotationForest1)c).setMaxNumAttributes(100);
+                c= new RandomRotationForestLimitedAttributes();
+                ((RandomRotationForestLimitedAttributes)c).setNumIterations(200);
+                ((RandomRotationForestLimitedAttributes)c).setMaxNumAttributes(100);
                 break;
             case "Logistic":
                 c= new Logistic();
@@ -305,7 +305,7 @@ Optional
             System.out.println("Num args passed ="+args.length);
             for(String str:args)
                 System.out.println(str);
-            DataSets.problemPath="C:\\Users\\ajb\\Dropbox\\TSC Problems\\";
+            DataSets.problemPath="C:\\Users\\ajb\\Dropbox\\UCI Problems\\";
             DataSets.resultsPath="C:\\Temp\\";
             File f=new File(DataSets.resultsPath);
             if(!f.isDirectory()){
@@ -314,7 +314,8 @@ Optional
             generateTrainFiles=true;
             checkpoint=true;
             parameterNum=0;
-            String[] newArgs={"TunedSVMRBF","ItalyPowerDemand","2"};
+            debug=true;
+            String[] newArgs={"TunedRotF","balloons","1"};
             Experiments.singleClassifierAndFoldTrainTestSplit(newArgs);
             System.exit(0);
         }
@@ -403,8 +404,7 @@ Optional
             {
                 checkpoint=false;
 //Check if it already exists, if it does, exit
-                f=new File(predictions+"/fold"+fold+"_"+parameterNum+".csv");
-                if(f.exists() && f.length()>0){ //Exit
+                if(CollateResults.validateSingleFoldFile(predictions+"/fold"+fold+"_"+parameterNum+".csv")){ //Exit
                     System.out.println("Fold "+predictions+"/fold"+fold+"_"+parameterNum+".csv  already exists");
                     return; //Aready done
                 }
@@ -441,9 +441,12 @@ Optional
         
         ClassifierResults trainResults = null;
         ClassifierResults testResults = null;
-        
         if(parameterNum>0 && c instanceof ParameterSplittable)//Single parameter fold
         {
+//If TunedRandForest or TunedRotForest need to let the classifier know the number of attributes 
+//n orderto set parameters
+            if(c instanceof TunedRandomForest)
+                ((TunedRandomForest)c).setNumFeaturesInProblem(train.numAttributes()-1);
             checkpoint=false;
             ((ParameterSplittable)c).setParametersFromIndex(parameterNum);
 //            System.out.println("classifier paras =");

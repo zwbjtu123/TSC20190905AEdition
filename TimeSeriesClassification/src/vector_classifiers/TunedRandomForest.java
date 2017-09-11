@@ -25,6 +25,8 @@ grid search is then just 55 values and because it uses OOB no CV is required
  */
 package vector_classifiers;
 
+
+import development.CollateResults;
 import fileIO.OutFile;
 import java.io.File;
 import java.text.DecimalFormat;
@@ -69,11 +71,19 @@ public class TunedRandomForest extends RandomForest implements SaveParameterInfo
     private long combinedBuildTime;
     protected String resultsPath;
     protected boolean saveEachParaAcc=false;
-    
-    
+//Need to know this before build if the parameters are going to be set by index
+//It is only used in the method setParametersFromIndex, which throws an
+//Exception if it is zero    
+    private int numFeaturesInProblem=0; 
     private static int MAX_FOLDS=10;
     
      private ClassifierResults res =new ClassifierResults();
+   public void setNumFeaturesInProblem(int m){
+       numFeaturesInProblem=m;
+   }
+   public void setNumFeaturesForEachTree(int m){
+       m_numFeatures=m;
+   }
    
     public void setCrossValidate(boolean b){
         crossValidate=b;
@@ -105,19 +115,37 @@ public class TunedRandomForest extends RandomForest implements SaveParameterInfo
     public void setParametersFromIndex(int x) {
         tuneParameters=false;
 //Three paras, evenly distributed, 1 to maxPerPara.
-//Note that if maxPerPara > numFeatures, we have a problem, so it will throw an exception later        
+//Note that if maxPerPara > numFeaturesInProblem, we have a problem, so it will throw an exception later        
         paras=new int[3];
         if(x<1 || x>maxPerPara*maxPerPara*maxPerPara)//Error, invalid range
             throw new UnsupportedOperationException("ERROR parameter index "+x+" out of range for PolyNomialKernel"); //To change body of generated methods, choose Tools | Templates.
-        int numLevels=(x-1)/(maxPerPara*maxPerPara);
-        int numFeatures=((x-1)/(maxPerPara))%maxPerPara;
-        int numTrees=x%maxPerPara;
-        paras[0]=numLevels;//NOT CORRECT
-        paras[1]=numFeatures;//NOT CORRECT
-        paras[2]=numTrees;//NOT CORRECT
+        int numLevelsIndex=(x-1)/(maxPerPara*maxPerPara);
+        int numFeaturesIndex=((x-1)/(maxPerPara))%maxPerPara;
+        int numTreesIndex=x%maxPerPara;
+//Need to know number of attributes        
+        if(numFeaturesInProblem==0)
+            throw new RuntimeException("Error in TuneddRandomForest in set ParametersFromIndex: we do not know the number of attributes, need to call setNumFeaturesInProblem before this call");
+//Para 1. Maximum tree depth, m_MaxDepth
+        if(numLevelsIndex==0)
+            paras[0]=0;
+        else
+            paras[0]=numLevelsIndex*(numFeaturesInProblem/maxPerPara);
+//Para 2. Num features
+        if(numFeaturesIndex==0)
+            paras[1]=(int)Math.sqrt(numFeaturesInProblem);
+        else if(numFeaturesIndex==1)
+            paras[1]=(int) Utils.log2(numFeaturesInProblem)+1;
+        else
+            paras[1]=((numFeaturesIndex-1)*numFeaturesInProblem)/maxPerPara;
+        if(numTreesIndex==0)
+            paras[2]=10; //Weka default
+        else
+            paras[2]=100*numTreesIndex;
         setMaxDepth(paras[0]);
-        setNumFeatures(paras[1]);
+        setNumFeaturesForEachTree(paras[1]);
         setNumTrees(paras[2]);
+        if(debug)
+            System.out.println("Index ="+x+" Num Features ="+numFeaturesInProblem+" Max Depth="+paras[0]+" Num Features ="+paras[1]+" Num Trees ="+paras[2]);
     }
 
    
@@ -149,6 +177,7 @@ public class TunedRandomForest extends RandomForest implements SaveParameterInfo
         seed=0;
         accuracy=new ArrayList<>();
     }
+    @Override
     public void setSeed(int s){
         super.setSeed(s);
         seed = s;
@@ -235,8 +264,12 @@ public class TunedRandomForest extends RandomForest implements SaveParameterInfo
                     count++;
                     if(saveEachParaAcc){// check if para value already done
                         File f=new File(resultsPath+count+".csv");
-                        if(f.exists() && f.length()>0){
-                            continue;//If done, ignore skip this iteration                        
+                        if(f.exists()){
+                            if(CollateResults.validateSingleFoldFile(resultsPath+count+".csv")==false){
+                                System.out.println("Deleting file "+resultsPath+count+".csv because size ="+f.length());
+                            }
+                            else
+                                continue;//If done, ignore skip this iteration                        
                         }
                     }
                     TunedRandomForest model = new TunedRandomForest();
@@ -474,7 +507,7 @@ public class TunedRandomForest extends RandomForest implements SaveParameterInfo
       return m_bagger.getBagSizePercent();
     }
 
-    private class EnhancedBagging extends Bagging{
+    static protected class EnhancedBagging extends Bagging{
 // 
         @Override
         public void buildClassifier(Instances data)throws Exception {
@@ -659,9 +692,15 @@ public class TunedRandomForest extends RandomForest implements SaveParameterInfo
       
     
     public static void main(String[] args) {
+        TunedRandomForest randF=new TunedRandomForest();
+        randF.setNumFeaturesInProblem(100);
+        randF.debug=true;
+        for(int i=1;i<=1000;i++)
+            randF.setParametersFromIndex(i);
+            
   //      jamesltests();
   //      testBinMaker();
- //       System.exit(0);
+       System.exit(0);
         DecimalFormat df = new DecimalFormat("##.###");
         try{
             String dset = "balloons";             

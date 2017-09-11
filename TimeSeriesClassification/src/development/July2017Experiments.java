@@ -7,7 +7,7 @@
 */
 package development;
 
-import vector_classifiers.RandomRotationForest1;
+import vector_classifiers.RandomRotationForestLimitedAttributes;
 import fileIO.InFile;
 import fileIO.OutFile;
 import java.io.File;
@@ -66,7 +66,7 @@ public class July2017Experiments{
                 r.justBuildTheClassifier();
                 return r;
             case "RandRotF1":
-                RandomRotationForest1 r3=new RandomRotationForest1();
+                RandomRotationForestLimitedAttributes r3=new RandomRotationForestLimitedAttributes();
                 r3.setNumIterations(200);
                 r3.setMaxNumAttributes(100);
                 r3.justBuildTheClassifier();

@@ -127,7 +127,26 @@ public class CollateResults {
         Collections.sort(problems);
 
     }    
- 
+    public static boolean validateSingleFoldFile(String str){
+        File f= new File(str);
+        if(f.exists()){ // Check 1: non zero
+             if(f.length()==0){//Empty, delete file
+                 f.delete();
+             }
+             else{
+                 InFile inf=new InFile(str);
+                 int c=inf.countLines();
+                 if(c<=3){//No  predictions, delete
+                     inf.closeFile();
+                     f.delete();
+                     return false;
+                 }
+//Something in there, it is up to ClassifierResults to validate the rest
+                 return true; 
+             }
+        }
+        return false;
+    }
 /**
  * Stage 1: take all the single fold files, work out the diagnostics on test data: 
 Accuracy, BalancedAccuracy, NegLogLikelihood, AUROC and F1 and store the TrainCV accuracy. 
@@ -180,10 +199,11 @@ Parameter info: Parameter1.csv, Parameter2.csv...AllTuningAccuracies.csv (if tun
                         missing.writeString("\n");
                     missingCount=0;
                     for(int j=0;j<folds;j++){
-    //Check fold exists
-                        f=new File(path+"//testFold"+j+".csv");
+    //Check fold exists and is a valid file
+                        boolean valid=validateSingleFoldFile(path+"//testFold"+j+".csv");
 
-                        if(f.exists() && f.length()>0){//This could fail if file only has partial probabilities on the line
+                        if(valid){
+//This could fail if file only has partial probabilities on the line
     //Read in test accuracy and store                    
     //Check fold exists
     //Read in test accuracy and store
@@ -237,7 +257,6 @@ Parameter info: Parameter1.csv, Parameter2.csv...AllTuningAccuracies.csv (if tun
                                     for(String str:trainRes)
                                         System.out.println(str);
                                 }
-                                System.exit(1);
                             }finally{
                                 if(inf!=null)
                                     inf.closeFile();

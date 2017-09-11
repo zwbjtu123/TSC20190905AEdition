@@ -10,6 +10,7 @@ m_C
  */
 package vector_classifiers;
 
+import development.CollateResults;
 import fileIO.InFile;
 import fileIO.OutFile;
 import java.io.File;
@@ -310,8 +311,12 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
                 count++;
                 if(saveEachParaAcc){// check if para value already done
                     File f=new File(resultsPath+count+".csv");
-                    if(f.exists() && f.length()>0){
-                        continue;//If done, ignore skip this iteration                        
+                    if(f.exists()){
+                        if(f.length()==0){//Empty, delete
+                            f.delete();
+                        }
+                        else
+                            continue;//If done, ignore skip this iteration                        
                     }
                 }
                 SMO model = new SMO();
@@ -445,8 +450,12 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
                     count++;
                     if(saveEachParaAcc){// check if para value already done
                         File f=new File(resultsPath+count+".csv");
-                        if(f.exists() && f.length()>0){
-                            continue;//If done, ignore skip this iteration                        
+                        if(f.exists()){
+                            if(CollateResults.validateSingleFoldFile(resultsPath+count+".csv")==false){
+                                System.out.println("Deleting file "+resultsPath+count+".csv because incomplete, size ="+f.length());
+                            }
+                            else
+                                continue;//If done, ignore skip this iteration                        
                         }
                     }
                     SMO model = new SMO();
