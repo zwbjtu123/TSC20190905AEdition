@@ -270,6 +270,8 @@ Parameter info: Parameter1.csv, Parameter2.csv...AllTuningAccuracies.csv (if tun
                                 missing.writeString(name);
                             missingCount++;
                            missing.writeString(","+j);
+//Fold j missing, count here how many parameters are complete on it                           
+                           
                         }
                     }
                     counts.writeLine(name+","+(folds-missingCount));

@@ -115,6 +115,7 @@ public class Experiments{
                 ((TunedRandomForest)c).tuneParameters(false);
                 ((TunedRandomForest)c).setCrossValidate(false);
                 ((TunedRandomForest)c).setSeed(fold);
+                ((TunedRandomForest)c).setDebug(debug);
                 
                 break;
             case "RandF":
@@ -135,6 +136,7 @@ public class Experiments{
                 ((TunedRandomForest)c).tuneParameters(true);
                 ((TunedRandomForest)c).setCrossValidate(true);
                 ((TunedRandomForest)c).setSeed(fold);             
+                ((TunedRandomForest)c).setDebug(debug);
                 break;
             case "TunedRandFOOB":
                 c= new TunedRandomForest();
@@ -299,6 +301,16 @@ Optional
     */  
        
     public static void main(String[] args) throws Exception{
+//        tonyTest();
+//        System.exit(0);
+/*        String dset="hayes-roth";
+        Instances[] data = InstanceTools.resampleInstances(ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\UCI Problems\\"+dset+"\\"+dset), 0, 0.5);
+            OutFile temp1= new OutFile("C:/temp/"+dset+"train.arff");
+            temp1.writeString(data[0]+"");
+            OutFile temp2= new OutFile("C:/temp/"+dset+"test.arff");
+            temp2.writeString(data[1]+"");
+            System.exit(0);
+ */      
         for(String str:args)
             System.out.println(str);
         if(args.length<6){//Local run
@@ -312,10 +324,10 @@ Optional
                 f.mkdirs();
             }
             generateTrainFiles=true;
-            checkpoint=true;
+            checkpoint=false;
             parameterNum=0;
             debug=true;
-            String[] newArgs={"TunedRotF","balloons","1"};
+            String[] newArgs={"TunedRandF","hayes-roth","1"};
             Experiments.singleClassifierAndFoldTrainTestSplit(newArgs);
             System.exit(0);
         }
@@ -450,8 +462,10 @@ Optional
             checkpoint=false;
             ((ParameterSplittable)c).setParametersFromIndex(parameterNum);
 //            System.out.println("classifier paras =");
-            testFoldPath="/fold"+fold+"_"+parameterNum+".csv";
-            generateTrainFiles=false;
+//BUBUGBUG            
+            
+            trainFoldPath="/fold"+fold+"_"+parameterNum+".csv";
+            generateTrainFiles=true;
         }
         else{
 //Only do all this if not an internal fold
@@ -496,47 +510,63 @@ Optional
                     trainOut.closeFile();
                 }
             }
-            
-            //Start of testing
-            int numInsts = test.numInstances();
-            int pred;
-            testResults = new ClassifierResults(test.numClasses());
-            double[] trueClassValues = test.attributeToDoubleArray(test.classIndex()); //store class values here
-            
-            for(int testInstIndex = 0; testInstIndex < numInsts; testInstIndex++) {
-                test.instance(testInstIndex).setClassMissing();//and remove from each instance given to the classifier (just to be sure)
-                
-                //make prediction
-                double[] probs=c.distributionForInstance(test.instance(testInstIndex));
-                testResults.storeSingleResult(probs);
+            if(parameterNum==0)//Not a single parameter fold
+            {  
+                //Start of testing
+                int numInsts = test.numInstances();
+                int pred;
+                testResults = new ClassifierResults(test.numClasses());
+                double[] trueClassValues = test.attributeToDoubleArray(test.classIndex()); //store class values here
+
+                for(int testInstIndex = 0; testInstIndex < numInsts; testInstIndex++) {
+                    test.instance(testInstIndex).setClassMissing();//and remove from each instance given to the classifier (just to be sure)
+
+                    //make prediction
+                    double[] probs=c.distributionForInstance(test.instance(testInstIndex));
+                    testResults.storeSingleResult(probs);
+                }
+                testResults.finaliseResults(trueClassValues); 
+
+                //Write results
+                OutFile testOut=new OutFile(resultsPath+testFoldPath);
+                testOut.writeLine(test.relationName()+","+c.getClass().getName()+",test");
+                if(c instanceof SaveParameterInfo)
+                  testOut.writeLine(((SaveParameterInfo)c).getParameters());
+                else
+                    testOut.writeLine("No parameter info");
+                testOut.writeLine(testResults.acc+"");
+                testOut.writeString(testResults.writeInstancePredictions());
+                testOut.closeFile();
+                return testResults.acc;
             }
-            testResults.finaliseResults(trueClassValues); 
-            
-            //Write results
-            OutFile testOut=new OutFile(resultsPath+testFoldPath);
-            testOut.writeLine(test.relationName()+","+c.getClass().getName()+",test");
-            if(c instanceof SaveParameterInfo)
-              testOut.writeLine(((SaveParameterInfo)c).getParameters());
             else
-                testOut.writeLine("No parameter info");
-            testOut.writeLine(testResults.acc+"");
-            testOut.writeString(testResults.writeInstancePredictions());
-            testOut.closeFile();
-            
-            return testResults.acc;
+                 return 0;//trainResults.acc;   
         } catch(Exception e) {
             System.out.println(" Error ="+e+" in method simpleExperiment"+e);
             e.printStackTrace();
             System.out.println(" TRAIN "+train.relationName()+" has "+train.numAttributes()+" attributes and "+train.numInstances()+" instances");
             System.out.println(" TEST "+test.relationName()+" has "+test.numAttributes()+" attributes"+test.numInstances()+" instances");
-
             return Double.NaN;
         }
     }    
 
-    
-}
+   public static void tonyTest() throws Exception{
+        Instances all = ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\UCI Problems\\hayes-roth\\hayes-roth");
+        Instances[] data = InstanceTools.resampleInstances(all,0, .5);            
+        RandomForest rf=new RandomForest();
+        rf.setMaxDepth(0);
+        rf.setNumFeatures(1);
+        rf.setNumTrees(10);
+        CrossValidator cv = new CrossValidator();
+        ClassifierResults tempResults=cv.crossValidateWithStats(rf,data[0]);
+                    tempResults.setName("RandFPara");
+                    tempResults.setParas("maxDepth,"+rf.getMaxDepth()+",numFeatures,"+rf.getNumFeatures()+",numTrees,"+rf.getNumTrees());
+                    System.out.println(tempResults.writeResultsFileToString());
 
+
+}
+ 
+}
 
 
 

@@ -56,7 +56,6 @@ import weka.core.Utils;
  */
 public class TunedRandomForest extends RandomForest implements SaveParameterInfo, TrainAccuracyEstimate,SaveEachParameter,ParameterSplittable{
     boolean tuneParameters=true;
-    boolean debug=false;
     int[] paraSpace1;//Maximum tree depth, m_MaxDepth
     int[] paraSpace2;//Number of features per tree,m_numFeatures
     int[] paraSpace3;//Number of trees, m_numTrees
@@ -124,7 +123,7 @@ public class TunedRandomForest extends RandomForest implements SaveParameterInfo
         int numTreesIndex=x%maxPerPara;
 //Need to know number of attributes        
         if(numFeaturesInProblem==0)
-            throw new RuntimeException("Error in TuneddRandomForest in set ParametersFromIndex: we do not know the number of attributes, need to call setNumFeaturesInProblem before this call");
+            throw new RuntimeException("Error in TunedRandomForest in set ParametersFromIndex: we do not know the number of attributes, need to call setNumFeaturesInProblem before this call");
 //Para 1. Maximum tree depth, m_MaxDepth
         if(numLevelsIndex==0)
             paras[0]=0;
@@ -144,7 +143,7 @@ public class TunedRandomForest extends RandomForest implements SaveParameterInfo
         setMaxDepth(paras[0]);
         setNumFeaturesForEachTree(paras[1]);
         setNumTrees(paras[2]);
-        if(debug)
+        if(m_Debug)
             System.out.println("Index ="+x+" Num Features ="+numFeaturesInProblem+" Max Depth="+paras[0]+" Num Features ="+paras[1]+" Num Trees ="+paras[2]);
     }
 
@@ -186,7 +185,7 @@ public class TunedRandomForest extends RandomForest implements SaveParameterInfo
     }
     
     public void debug(boolean b){
-        this.debug=b;
+        m_Debug=b;
     }
     public void tuneParameters(boolean b){
         tuneParameters=b;
@@ -209,7 +208,7 @@ public class TunedRandomForest extends RandomForest implements SaveParameterInfo
 //Does 1000 parameter searches on a 10x10x10 grid    
        if(m<maxPerPara)
            maxPerPara=m;
-        if(debug){
+        if(m_Debug){
             System.out.println("Number of features ="+m+" max para values ="+maxPerPara);
             System.out.println("Setting defaults ....");
         }
@@ -230,7 +229,7 @@ public class TunedRandomForest extends RandomForest implements SaveParameterInfo
         paraSpace3[0]=10; //Weka default
         for(int i=1;i<paraSpace3.length;i++)
             paraSpace3[i]=100*i;
-        if(debug){
+        if(m_Debug){
             System.out.print("Para 1 (Num levels) : ");
             for(int i:paraSpace1)
                 System.out.print(i+", ");
@@ -277,9 +276,14 @@ public class TunedRandomForest extends RandomForest implements SaveParameterInfo
                     model.setNumFeatures(p2);
                     model.setNumTrees(p3);
                     model.tuneParameters=false;
+                    model.findTrainAcc=false;
+                    model.setSeed(count);
                     tempResults=cv.crossValidateWithStats(model,trainCopy);
+                    tempResults.setName("RandFPara"+count);
+                    tempResults.setParas("maxDepth,"+p1+",numFeatures,"+p2+",numTrees,"+p3);
+                    
                     double e=1-tempResults.acc;
-                    if(debug)
+                    if(m_Debug)
                         System.out.println("Depth="+p1+",Features"+p2+",Trees="+p3+" Acc = "+(1-e));
                     accuracy.add(tempResults.acc);
                     if(saveEachParaAcc){// Save to file and close
@@ -359,7 +363,7 @@ public class TunedRandomForest extends RandomForest implements SaveParameterInfo
                 this.setNumTrees(bestNumTrees);
                
                 res=best.res;
-                if(debug)
+                if(m_Debug)
                     System.out.println("Bestnum levels ="+bestNumLevels+" best num features = "+bestNumFeatures+" best num trees ="+bestNumTrees+" best train acc = "+res.acc);
             }else//Not all present, just ditch
                 System.out.println(resultsPath+" error: missing  ="+missing+" parameter values");
@@ -431,7 +435,7 @@ public class TunedRandomForest extends RandomForest implements SaveParameterInfo
         m_bagger.setCalcOutOfBag(true);
         m_bagger.setNumExecutionSlots(m_numExecutionSlots);
         m_bagger.buildClassifier(data);       
-
+        
 /*** 4. Find the estimates of the train acc, either through CV or OOB  ****/
 // do this after the main build in case OOB is used, because we need the main 
 //classifier for that
@@ -445,13 +449,15 @@ public class TunedRandomForest extends RandomForest implements SaveParameterInfo
                 t.setNumFeatures(this.getNumFeatures());
                 t.setNumTrees(this.getNumTrees());
                 t.setSeed(seed);
- 
-                //new (jamesl) 
                 CrossValidator cv = new CrossValidator();
                 cv.setSeed(seed); 
                 cv.setNumFolds(folds);
                 cv.buildFolds(data);
                 res = cv.crossValidateWithStats(t, data);
+                if(m_Debug){
+                    System.out.println("In cross  validate");
+                    System.out.println(getParameters());
+                }
             }
             else{
                 res.acc=1-this.measureOutOfBagError();
@@ -693,8 +699,8 @@ public class TunedRandomForest extends RandomForest implements SaveParameterInfo
     
     public static void main(String[] args) {
         TunedRandomForest randF=new TunedRandomForest();
-        randF.setNumFeaturesInProblem(100);
-        randF.debug=true;
+        randF.setNumFeaturesInProblem(3);
+        randF.m_Debug=true;
         for(int i=1;i<=1000;i++)
             randF.setParametersFromIndex(i);
             

@@ -239,6 +239,7 @@ public class TunedRotationForest extends RotationForest implements SaveParameter
                     }
                     TunedRotationForest model = new TunedRotationForest();
                     model.tuneParameters(false);
+                    model.findTrainAcc=false;
                     model.setMaxGroup(p1);
                     model.setMinGroup(p1);
                     model.setRemovedPercentage(p2);
