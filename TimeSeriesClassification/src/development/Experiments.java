@@ -122,7 +122,7 @@ public class Experiments{
                 c= new TunedRandomForest();
                 ((RandomForest)c).setNumTrees(500);
                 ((TunedRandomForest)c).tuneParameters(false);
-                ((TunedRandomForest)c).setCrossValidate(true);
+                ((TunedRandomForest)c).setCrossValidate(false);
                 ((TunedRandomForest)c).setSeed(fold);
                 break;
             case "RotF":
@@ -130,6 +130,7 @@ public class Experiments{
                 ((RotationForest)c).setNumIterations(200);
                 ((TunedRotationForest)c).tuneParameters(false);
                 ((TunedRotationForest)c).setSeed(fold);
+                ((TunedRotationForest)c).estimateAccFromTrain(false);
                 break;
             case "TunedRandF":
                 c= new TunedRandomForest();
