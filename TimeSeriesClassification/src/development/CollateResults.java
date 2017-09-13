@@ -71,6 +71,7 @@ public class CollateResults {
     static int[] numParas;
     static DecimalFormat df=new DecimalFormat("##.######");
     static double[][] data;
+    static boolean countPartials=false;
   
 /** 
  * Arguments: 
@@ -84,19 +85,26 @@ public class CollateResults {
  * 
  */
     public static void readData(String[] args){
+        int numInitArgs=4;
         basePath=args[0];
         System.out.println("Base path = "+basePath);
         problemPath=args[1];
         System.out.println("Problem path = "+problemPath);
          folds =Integer.parseInt(args[2]);
         System.out.println("Folds = "+folds);
-        numClassifiers=(args.length-3)/2;
+        String partial=args[3].toLowerCase();        
+        if(partial.equals("true"))
+            countPartials=true;
+        else
+            countPartials=false;
+                
+        numClassifiers=(args.length-numInitArgs)/2;
         classifiers=new String[numClassifiers];
         for(int i=0;i<classifiers.length;i++)
-            classifiers[i]=args[i+3];
+            classifiers[i]=args[i+numInitArgs];
         numParas=new int[classifiers.length];
         for(int i=0;i<classifiers.length;i++)
-            numParas[i]=Integer.parseInt(args[i+3+classifiers.length]);
+            numParas[i]=Integer.parseInt(args[i+numInitArgs+classifiers.length]);
 //Get problem files
         File f=new File(problemPath);
             problems=new ArrayList<>();
@@ -126,7 +134,10 @@ public class CollateResults {
         }
         Collections.sort(problems);
 
-    }    
+    }
+/*Returns True if the file is present and correct
+    
+    */    
     public static boolean validateSingleFoldFile(String str){
         File f= new File(str);
         if(f.exists()){ // Check 1: non zero
@@ -134,15 +145,23 @@ public class CollateResults {
                  f.delete();
              }
              else{
-                 InFile inf=new InFile(str);
-                 int c=inf.countLines();
-                 if(c<=3){//No  predictions, delete
-                     inf.closeFile();
-                     f.delete();
+                 try{
+                    InFile inf=new InFile(str);
+                    int c=inf.countLines();
+                    if(c<=3){//No  predictions, delete
+                        inf.closeFile();
+                        f.delete();
+                        return false;
+                    }
+                    inf.closeFile();
+                    return true; 
+                 }catch(Exception e){
+                     System.out.println("Exception thrown trying to read file "+str);
+                     System.out.println("Exception = "+e+"  THIS MAY BE A GOTCHA LATER");
+                     e.printStackTrace();
                      return false;
                  }
 //Something in there, it is up to ClassifierResults to validate the rest
-                 return true; 
              }
         }
         return false;
@@ -159,6 +178,7 @@ Timings: Timings.csv
 Parameter info: Parameter1.csv, Parameter2.csv...AllTuningAccuracies.csv (if tuning occurs, all tuning values).
 
  */    
+    public static int MAXNUMPARAS=1089;
     public static void collateFolds(){
 //        String[] allStats={"TestAcc","TrainCVAcc","TestNLL","TestBACC","TestAUROC","TestF1"};      
 
@@ -180,7 +200,10 @@ Parameter info: Parameter1.csv, Parameter2.csv...AllTuningAccuracies.csv (if tun
                 OutFile timings=new OutFile(basePath+cls+"/"+cls+"Timings.csv");
                 OutFile allAccSearchValues=new OutFile(basePath+cls+"/"+cls+"AllTuningAccuracies.csv");
                 OutFile missing=null;
-                OutFile counts=new OutFile(basePath+cls+"/"+cls+"Counts.csv");;
+                OutFile counts=new OutFile(basePath+cls+"/"+cls+"Counts.csv");
+                OutFile partials=null;
+                if(countPartials)
+                        partials=new OutFile(basePath+cls+"/"+cls+"PartialCounts.csv");;
                 
                 int missingCount=0;
                 for(String name:problems){            
@@ -198,6 +221,8 @@ Parameter info: Parameter1.csv, Parameter2.csv...AllTuningAccuracies.csv (if tun
                     if(missing!=null && missingCount>0)
                         missing.writeString("\n");
                     missingCount=0;
+                    if(countPartials)
+                        partials.writeString(name);
                     for(int j=0;j<folds;j++){
     //Check fold exists and is a valid file
                         boolean valid=validateSingleFoldFile(path+"//testFold"+j+".csv");
@@ -262,6 +287,7 @@ Parameter info: Parameter1.csv, Parameter2.csv...AllTuningAccuracies.csv (if tun
                                     inf.closeFile();
 
                             }
+                            partials.writeString(",0");
                         }
                         else{
                             if(missing==null)
@@ -270,11 +296,20 @@ Parameter info: Parameter1.csv, Parameter2.csv...AllTuningAccuracies.csv (if tun
                                 missing.writeString(name);
                             missingCount++;
                            missing.writeString(","+j);
-//Fold j missing, count here how many parameters are complete on it                           
-                           
+                           if(countPartials){
+    //Fold j missing, count here how many parameters are complete on it                           
+                               int x=0;
+                               for(int k=1;k<MAXNUMPARAS;k++){
+                                   if(validateSingleFoldFile(path+"//fold"+j+"_"+k+".csv"))
+                                       x++;
+                               }
+                                partials.writeString(","+x);
+                           }
                         }
                     }
                     counts.writeLine(name+","+(folds-missingCount));
+                    if(countPartials)
+                        partials.writeString("\n");
                     clsResults.writeString("\n");
                     trainResults.writeString("\n");
                     f1Results.writeString("\n");

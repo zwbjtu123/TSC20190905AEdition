@@ -370,7 +370,7 @@ public class InFile{
                 str=readLine();
                 count++;
         }
-        rewind();
+//        rewind();
         return(count);
     }
 

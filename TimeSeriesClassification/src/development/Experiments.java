@@ -393,8 +393,7 @@ Optional
             f.mkdirs();
         
         //Check whether fold already exists, if so, dont do it, just quit
-        f=new File(predictions+"/testFold"+fold+".csv");
-        if(!f.exists() || f.length()==0){
+        if(!CollateResults.validateSingleFoldFile(predictions+"/testFold"+fold+".csv")){
             Classifier c=setClassifier(classifier,fold);
             
             //Sample the dataset
@@ -423,7 +422,7 @@ Optional
             }
             
             double acc = singleClassifierAndFoldTrainTestSplit(data[0],data[1],c,fold,predictions);
-            System.out.println(classifier+","+problem+","+fold+","+acc);
+            System.out.println(classifier+","+problem+","+fold+",test acc,"+acc);
         }
     }
 /**
@@ -462,8 +461,6 @@ Optional
             checkpoint=false;
             ((ParameterSplittable)c).setParametersFromIndex(parameterNum);
 //            System.out.println("classifier paras =");
-//BUBUGBUG            
-            
             trainFoldPath="/fold"+fold+"_"+parameterNum+".csv";
             generateTrainFiles=true;
         }
