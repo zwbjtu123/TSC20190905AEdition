@@ -314,7 +314,7 @@ public class ClassifierResults implements DebugPrinting {
            //the value into the actual field
            String[] parts = paras.split(",");
            if (parts.length > 0 && parts[0].contains("BuildTime")) {
-               buildTime = Long.parseLong(parts[1]);
+               buildTime = (long)Double.parseDouble(parts[1].trim());
                 if (parts.length > 2) { //actual paras too, rebuild this string without buildtime
                     paras = parts[2];
                     for (int i = 3; i < parts.length; i++) {

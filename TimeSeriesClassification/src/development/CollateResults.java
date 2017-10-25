@@ -136,7 +136,7 @@ public class CollateResults {
 
     }
 /*Returns True if the file is present and correct
-    
+    Changed cos it is too slow at the moment
     */    
     public static boolean validateSingleFoldFile(String str){
         File f= new File(str);
@@ -146,7 +146,7 @@ public class CollateResults {
              }
              else{
                  try{
-                    InFile inf=new InFile(str);
+/*                    InFile inf=new InFile(str);
                     int c=inf.countLines();
                     if(c<=3){//No  predictions, delete
                         inf.closeFile();
@@ -154,7 +154,7 @@ public class CollateResults {
                         return false;
                     }
                     inf.closeFile();
-                    return true; 
+  */                  return true; 
                  }catch(Exception e){
                      System.out.println("Exception thrown trying to read file "+str);
                      System.out.println("Exception = "+e+"  THIS MAY BE A GOTCHA LATER");
@@ -186,25 +186,29 @@ Parameter info: Parameter1.csv, Parameter2.csv...AllTuningAccuracies.csv (if tun
             String cls=classifiers[i];
             System.out.println("Processing classifier ="+cls);
             File f=new File(basePath+cls);
-            if(f.isDirectory()){ //Check classifier directory exists. 
+            if(f.isDirectory()){ //Check classifier directory exists.
+                File stats=new File(basePath+cls+"/SummaryStats");
+                if(!stats.isDirectory())
+                    stats.mkdir();
+                String filePath=basePath+cls+"/SummaryStats/";
 //Write collated results for this classifier to a single file                
-                OutFile clsResults=new OutFile(basePath+cls+"/"+cls+"TestAcc.csv");
-                OutFile f1Results=new OutFile(basePath+cls+"/"+cls+"TestF1.csv");
-                OutFile BAccResults=new OutFile(basePath+cls+"/"+cls+"TestBAcc.csv");
-                OutFile nllResults=new OutFile(basePath+cls+"/"+cls+"TestNLL.csv");
-                OutFile AUROCResults=new OutFile(basePath+cls+"/"+cls+"TestAUROC.csv");
-                OutFile trainResults=new OutFile(basePath+cls+"/"+cls+"TrainCVAcc.csv");
+                OutFile clsResults=new OutFile(filePath+cls+"TestAcc.csv");
+                OutFile f1Results=new OutFile(filePath+cls+"TestF1.csv");
+                OutFile BAccResults=new OutFile(filePath+cls+"TestBAcc.csv");
+                OutFile nllResults=new OutFile(filePath+cls+"TestNLL.csv");
+                OutFile AUROCResults=new OutFile(filePath+cls+"TestAUROC.csv");
+                OutFile trainResults=new OutFile(filePath+cls+"TrainCVAcc.csv");
                 OutFile[] paraFiles=new OutFile[numParas[i]];
                 for(int j=0;j<paraFiles.length;j++)
-                    paraFiles[j]=new OutFile(basePath+cls+"/"+cls+"Parameter"+(j+1)+".csv");
-                OutFile timings=new OutFile(basePath+cls+"/"+cls+"Timings.csv");
-                OutFile allAccSearchValues=new OutFile(basePath+cls+"/"+cls+"AllTuningAccuracies.csv");
+                    paraFiles[j]=new OutFile(filePath+cls+"Parameter"+(j+1)+".csv");
+                OutFile timings=new OutFile(filePath+cls+"Timings.csv");
+                OutFile allAccSearchValues=new OutFile(filePath+cls+"AllTuningAccuracies.csv");
                 OutFile missing=null;
-                OutFile counts=new OutFile(basePath+cls+"/"+cls+"Counts.csv");
+                OutFile counts=new OutFile(filePath+cls+"Counts.csv");
                 OutFile partials=null;
                 if(countPartials)
-                        partials=new OutFile(basePath+cls+"/"+cls+"PartialCounts.csv");;
-                
+                        partials=new OutFile(filePath+cls+"PartialCounts.csv");;
+                OutFile of = new OutFile(filePath+cls+"Corrupted.csv");
                 int missingCount=0;
                 for(String name:problems){            
                     clsResults.writeString(name);
@@ -241,15 +245,17 @@ Parameter info: Parameter1.csv, Parameter2.csv...AllTuningAccuracies.csv (if tun
                                 clsResults.writeString(","+inf.readDouble());
                                 if(trainRes.length>1){//There IS parameter info
                                     //First is train time build
-                                    timings.writeString(","+df.format(Double.parseDouble(trainRes[1])));
+                                    String str=trainRes[1].trim();
+                                    timings.writeString(","+df.format(Double.parseDouble(str)));
                                     //second is the trainCV testAcc
                                     if(trainRes.length>3){
-                                        trainResults.writeString(","+Double.parseDouble(trainRes[3]));
+                                        str=trainRes[3].trim();
+                                        trainResults.writeString(","+Double.parseDouble(str));
                                         //Then variable list of numParas
                                         int pos=5;
                                         for(int k=0;k<numParas[i];k++){
                                             if(trainRes.length>pos){
-                                                paraFiles[k].writeString(Double.parseDouble(trainRes[pos])+",");
+                                                paraFiles[k].writeString(trainRes[pos]+",");
                                                 pos+=2;    
                                             }
                                             else
@@ -280,18 +286,23 @@ Parameter info: Parameter1.csv, Parameter2.csv...AllTuningAccuracies.csv (if tun
                                 if(trainRes!=null){
                                     System.out.println(" second line read has "+trainRes.length+" entries :");
                                     for(String str:trainRes)
-                                        System.out.println(str);
+                                        System.out.print(str+",");
+                                    System.out.println("XX"+trainRes[1]+"XX AND TRIMMED: XX"+trainRes[1].trim()+"XX");
+                                    of.writeLine(name+","+j);
+                                    e.printStackTrace();
+                                    System.exit(1);
                                 }
                             }finally{
                                 if(inf!=null)
                                     inf.closeFile();
 
                             }
-                            partials.writeString(",0");
+                            if(countPartials)
+                               partials.writeString(",0");
                         }
                         else{
                             if(missing==null)
-                                missing=new OutFile(basePath+cls+"//"+cls+"MissingFolds.csv");
+                                missing=new OutFile(filePath+cls+"MissingFolds.csv");
                             if(missingCount==0)
                                 missing.writeString(name);
                             missingCount++;
@@ -303,7 +314,8 @@ Parameter info: Parameter1.csv, Parameter2.csv...AllTuningAccuracies.csv (if tun
                                    if(validateSingleFoldFile(path+"//fold"+j+"_"+k+".csv"))
                                        x++;
                                }
-                                partials.writeString(","+x);
+                                if(countPartials)
+                                    partials.writeString(","+x);
                            }
                         }
                     }
@@ -344,17 +356,21 @@ public static void averageOverFolds(){
         String name=classifiers[0];
         for(int i=1;i<classifiers.length;i++)
             name+=classifiers[i];
-        File nf=new File(basePath+name);
+        String filePath=basePath+name+"\\";
+        if(classifiers.length==1)
+            filePath+="SummaryStats\\";
+        File nf=new File(filePath);
         if(!nf.isDirectory())
-            nf.mkdir();
-        String[] allStats={"TestAcc","TrainCVAcc","TestNLL","TestBAcc","TestAUROC","TestF1","Timings"};      
+            nf.mkdirs();
+        String[] allStats={"MeanTestAcc","MeanTrainCVAcc","MeanTestNLL","MeanTestBAcc","MeanTestAUROC","MeanTestF1","MeanTimings"};      
+        String[] testStats={"TestAcc","TrainCVAcc","TestNLL","TestBAcc","TestAUROC","TestF1","Timings"};      
         OutFile[] means=new OutFile[allStats.length];
         for(int i=0;i<means.length;i++)
-            means[i]=new OutFile(basePath+name+"/"+allStats[i]+name+".csv"); 
+            means[i]=new OutFile(filePath+allStats[i]+name+".csv"); 
         OutFile[] stDev=new OutFile[allStats.length];
         for(int i=0;i<stDev.length;i++)
-            stDev[i]=new OutFile(basePath+name+"/"+allStats[i]+"StDev"+name+".csv"); 
-        OutFile count=new OutFile(basePath+name+"/Counts"+name+".csv");
+            stDev[i]=new OutFile(filePath+allStats[i]+"StDev"+name+".csv"); 
+        OutFile count=new OutFile(filePath+"Counts"+name+".csv");
 
 //Headers        
         for(int i=0;i<classifiers.length;i++){
@@ -372,11 +388,15 @@ public static void averageOverFolds(){
 //Do counts first
         InFile[] allClassifiers=new InFile[classifiers.length];
         for(int i=0;i<allClassifiers.length;i++){
-            String p=basePath+classifiers[i]+"/"+classifiers[i]+"Counts.csv";
+            String str=basePath+classifiers[i]+"\\SummaryStats\\"+classifiers[i];
+            System.out.println("Loading "+str+"Counts.csv");
+            String p=str+"Counts.csv";
             if(new File(p).exists())
                 allClassifiers[i]=new InFile(p);
-            else
+            else{
                 allClassifiers[i]=null;//superfluous
+                System.out.println("File "+p+" does not exist");
+            }
         }
         for(String str:problems){
             count.writeString(str);
@@ -396,13 +416,16 @@ public static void averageOverFolds(){
         for(int j=0;j<allStats.length;j++){
 //Open files with data for all folds        
             for(int i=0;i<allClassifiers.length;i++){
-                String p=basePath+classifiers[i]+"/"+classifiers[i]+allStats[j]+".csv";
+                String str=basePath+classifiers[i]+"\\SummaryStats\\"+classifiers[i];
+                String p=str+testStats[j]+".csv";
                 if(new File(p).exists())
                     allClassifiers[i]=new InFile(p);
-                else
+                else{
                     allClassifiers[i]=null;//superfluous
+                                    System.out.println("File "+p+" does not exist");
+                }
             }
-//Find mean for             
+//Find means             
             for(String str:problems){
                 means[j].writeString(str);
                 stDev[j].writeString(str);
@@ -419,7 +442,7 @@ public static void averageOverFolds(){
                             double mean=0;
                             double sumSquare=0;
                             for(int m=1;m<res.length;m++){
-                                double d=Double.parseDouble(res[m]);
+                                double d=Double.parseDouble(res[m].trim());
                                 mean+=d;
                                 sumSquare+=d*d;
                             }
@@ -440,7 +463,7 @@ public static void averageOverFolds(){
                             System.out.println("failed to read line: "+ex+" previous line = "+prev+" file index ="+j+" classifier index ="+i);
                         }
                     }        
-                }               
+                }
                 means[j].writeString("\n");
                 stDev[j].writeString("\n");
                 if(j==0)
@@ -582,12 +605,16 @@ public static void basicSummaryComparisons(){
     
     public static void collate(String[] args){
 //STAGE 1: Read from arguments, find problems        
-        readData(args);
+       readData(args);
         System.out.println(" number of classifiers ="+numClassifiers);
-//STAGE 2: Collate the individual fold files into one        
+ //STAGE 2: Collate the individual fold files into one        
+        System.out.println("Collating folds ....");
         collateFolds();
+        System.out.println("Collate folds finished. \n Averaging over folds....");
+       
 //STAGE 3: Summarise over folds 
         averageOverFolds();
+        System.out.println("averaging folds finished.\n Basic stats comparison ....");
 //STAGE 4: Do statical comparisons
         basicSummaryComparisons();        
         
@@ -598,10 +625,13 @@ public static void basicSummaryComparisons(){
 //Next x arguments: x Classifiers to collate    
 //Next x arguments: number of numParas stored for each classifier    
     public static void main(String[] args) {
+        
         if(args.length>1)
             collate(args);
         else{    
-            String[] str={"C:/Research/Results/","C:/Users/ajb/Dropbox/UCI Problems/ProblemTest.csv","30","TunedRandF","TunedRotF","2","2"};
+            String[] str={"\\\\cmptscsvr.cmp.uea.ac.uk\\ueatsc\\Results\\UCIContinuous\\","\\\\cmptscsvr.cmp.uea.ac.uk\\ueatsc\\Data\\UCIContinuous\\","30","false","RotF200","3"};
+            
+            
             collate(str);
         
         }

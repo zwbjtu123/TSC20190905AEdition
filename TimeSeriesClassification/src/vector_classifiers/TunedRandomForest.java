@@ -66,7 +66,7 @@ public class TunedRandomForest extends RandomForest implements SaveParameterInfo
     Random rng; //legacy, 'seed' still (and always has) seeds this for any other rng purposes, e.g tie resolution
     ArrayList<Double> accuracy;
     boolean crossValidate=true;
-    boolean findTrainAcc=true;  //If there is no tuning, this will find the estimate with the fixed values
+    boolean estimateAcc=true;  //If there is no tuning, this will find the estimate with the fixed values
     private long combinedBuildTime;
     protected String resultsPath;
     protected boolean saveEachParaAcc=false;
@@ -83,12 +83,18 @@ public class TunedRandomForest extends RandomForest implements SaveParameterInfo
    public void setNumFeaturesForEachTree(int m){
        m_numFeatures=m;
    }
-   
+/**
+ * Determines whether an estimate of the accuracy is to be obtained from the train data
+ * by 10x cross validation
+ * @param b 
+ */   
     public void setCrossValidate(boolean b){
+        if(b)
+            setEstimateAcc(b);
         crossValidate=b;
     }
-    public void setTrainAcc(boolean b){
-        findTrainAcc=b;
+    public void setEstimateAcc(boolean b){
+        estimateAcc=b;
     }
     
 //methods from SaveEachParameter    
@@ -157,7 +163,7 @@ public class TunedRandomForest extends RandomForest implements SaveParameterInfo
     @Override
     public String getParameters() {
         String result="BuildTime,"+res.buildTime+",CVAcc,"+res.acc+",";
-        result+="NumLevels,"+paras[0]+",NumFeatures,"+paras[1]+",NumTrees,"+paras[2];
+        result+="MaxDepth,"+this.getMaxDepth()+",NumFeatures,"+this.getNumFeatures()+",NumTrees,"+this.getNumTrees();
         return result;
     }
 
@@ -199,10 +205,10 @@ public class TunedRandomForest extends RandomForest implements SaveParameterInfo
  @Override
     public void writeCVTrainToFile(String train) {
         trainPath=train;
-        findTrainAcc=true;
+        estimateAcc=true;
     }    
     @Override
-    public boolean findsTrainAccuracyEstimate(){ return findTrainAcc;}
+    public boolean findsTrainAccuracyEstimate(){ return estimateAcc;}
     protected final void setStandardParaSearchSpace(int m){
 //Need to know the number  of features to do this
 //Does 1000 parameter searches on a 10x10x10 grid    
@@ -224,12 +230,13 @@ public class TunedRandomForest extends RandomForest implements SaveParameterInfo
         
         for(int i=2;i<maxPerPara;i++)
             paraSpace2[i]=((i-1)*m)/maxPerPara;
-        
+ //Para 3. Num trees       
         paraSpace3=new int[10];//Num trees
         paraSpace3[0]=10; //Weka default
         for(int i=1;i<paraSpace3.length;i++)
             paraSpace3[i]=100*i;
         if(m_Debug){
+            System.out.print(" m ="+m);
             System.out.print("Para 1 (Num levels) : ");
             for(int i:paraSpace1)
                 System.out.print(i+", ");
@@ -276,7 +283,7 @@ public class TunedRandomForest extends RandomForest implements SaveParameterInfo
                     model.setNumFeatures(p2);
                     model.setNumTrees(p3);
                     model.tuneParameters=false;
-                    model.findTrainAcc=false;
+                    model.estimateAcc=false;
                     model.setSeed(count);
                     tempResults=cv.crossValidateWithStats(model,trainCopy);
                     tempResults.setName("RandFPara"+count);
@@ -290,6 +297,10 @@ public class TunedRandomForest extends RandomForest implements SaveParameterInfo
                         temp=new OutFile(resultsPath+count+".csv");
                         temp.writeLine(tempResults.writeResultsFileToString());
                         temp.closeFile();
+                        File f=new File(resultsPath+count+".csv");
+                        if(f.exists())
+                            f.setWritable(true, false);
+                        
                     }                
                     else{
                         if(e<minErr){
@@ -443,7 +454,7 @@ public class TunedRandomForest extends RandomForest implements SaveParameterInfo
 //It should really be nested up a level.         
  
     
-        if(findTrainAcc){   //Need find train acc, either through CV or OOB
+        if(estimateAcc){   //Need find train acc, either through CV or OOB
             if(crossValidate){  
                 RandomForest t= new RandomForest();
                 t.setNumFeatures(this.getNumFeatures());
@@ -671,7 +682,7 @@ public class TunedRandomForest extends RandomForest implements SaveParameterInfo
             
             TunedRandomForest ranF = new TunedRandomForest();
             ranF.setCrossValidate(true);
-            ranF.setTrainAcc(true);
+            ranF.setEstimateAcc(true);
             try {
                 ranF.buildClassifier(data[0]);
             } catch (Exception ex) {
@@ -699,10 +710,12 @@ public class TunedRandomForest extends RandomForest implements SaveParameterInfo
     
     public static void main(String[] args) {
         TunedRandomForest randF=new TunedRandomForest();
-        randF.setNumFeaturesInProblem(3);
         randF.m_Debug=true;
-        for(int i=1;i<=1000;i++)
-            randF.setParametersFromIndex(i);
+        randF.setStandardParaSearchSpace(200);
+        
+//        randF.setNumFeaturesInProblem(3);
+ //       for(int i=1;i<=1000;i++)
+ //           randF.setParametersFromIndex(i);
             
   //      jamesltests();
   //      testBinMaker();

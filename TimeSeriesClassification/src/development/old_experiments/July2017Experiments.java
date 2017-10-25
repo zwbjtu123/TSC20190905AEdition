@@ -1,20 +1,15 @@
 /**
-*   Input format: ARFF files. 
-* Either a single file, 
-* *    problemPath/problemName/problemName.arff
-which is randomly split by propInTrain
-* or a train/test file
-* *    problemPath/problemName/problemName_TRAIN.arff
-* *    problemPath/problemName/problemName_TEST.arff
-*  in which case the zero fold is as in file, other folds are resampled with 
-* the same train/test splits.  
-* 
-* Perform an experiment. The base operation is building a classifier on a problem file with a given fold. 
-* 
-*/
-package development;
+ *
+ * @author ajb
+ *local class to run experiments with the UCI data
 
-import vector_classifiers.RandomRotationForestLimitedAttributes;
+
+*/
+package development.old_experiments;
+
+import development.DataSets;
+import development.Experiments;
+import vector_classifiers.RotationForestLimitedAttributes;
 import fileIO.InFile;
 import fileIO.OutFile;
 import java.io.File;
@@ -34,74 +29,60 @@ import weka.classifiers.meta.RotationForest;
 import vector_classifiers.TunedRotationForest;
 import vector_classifiers.HESCA;
 import timeseriesweka.classifiers.ensembles.SaveableEnsemble;
+import timeseriesweka.classifiers.ensembles.elastic_ensemble.ED1NN;
 import weka.classifiers.trees.RandomForest;
 import vector_classifiers.TunedRandomForest;
+import weka.classifiers.functions.Logistic;
 import weka.core.Instances;
 
 
-public class ICDMRandomRotationForest{
-    static boolean debug=true;
-    public static String[] classifiers={"RotF","RandRotF"};
+public class July2017Experiments{
+    public static String[] classifiers={"SVM"};
     public static double propInTrain=0.5;
-    public static int folds=30; 
-
+    public static int folds=30;
+    public static Random rand=new Random(0);
+    static boolean debug=true;
+    static boolean generateTrainFiles=true;
     
-    static String[] UCIContinuousFileNames={"abalone","acute-inflammation","acute-nephritis","adult","annealing","arrhythmia","audiology-std","balance-scale","balloons","bank","blood","breast-cancer","breast-cancer-wisc","breast-cancer-wisc-diag","breast-cancer-wisc-prog","breast-tissue","car","cardiotocography-10clases","cardiotocography-3clases",
-        "chess-krvk","chess-krvkp","congressional-voting","conn-bench-sonar-mines-rocks","conn-bench-vowel-deterding",
-        "connect-4","contrac","credit-approval","cylinder-bands","dermatology","echocardiogram","ecoli","energy-y1","energy-y2","fertility","flags","glass","haberman-survival","hayes-roth","heart-cleveland","heart-hungarian","heart-switzerland","heart-va","hepatitis","hill-valley","horse-colic","ilpd-indian-liver","image-segmentation","ionosphere","iris","led-display","lenses","letter","libras","low-res-spect","lung-cancer","lymphography","magic","mammographic",
-        "miniboone","molec-biol-promoter","molec-biol-splice","monks-1","monks-2","monks-3","mushroom","musk-1","musk-2","nursery","oocytes_merluccius_nucleus_4d","oocytes_merluccius_states_2f","oocytes_trisopterus_nucleus_2f","oocytes_trisopterus_states_5b","optical","ozone","page-blocks","parkinsons","pendigits","pima","pittsburg-bridges-MATERIAL","pittsburg-bridges-REL-L","pittsburg-bridges-SPAN","pittsburg-bridges-T-OR-D","pittsburg-bridges-TYPE","planning","plant-margin","plant-shape","plant-texture","post-operative","primary-tumor","ringnorm","seeds","semeion","soybean","spambase","spect","spectf","statlog-australian-credit","statlog-german-credit","statlog-heart","statlog-image","statlog-landsat","statlog-shuttle","statlog-vehicle","steel-plates","synthetic-control","teaching","thyroid","tic-tac-toe","titanic","trains","twonorm","vertebral-column-2clases","vertebral-column-3clases","wall-following","waveform","waveform-noise","wine","wine-quality-red","wine-quality-white","yeast","zoo"};
-    
-    String problemPath=""; //The root location of the problem files. 
-    String resultsPath="";  //The directory where results will be written. If results are already there, nothing will happen
-    
-    static String[] files=UCIContinuousFileNames;
-/*
-Section ? Table ?
-    
- Can we better scale Rotation Forest for large feature spaces?    
  
-This function performs all the resamples in a single thread. It is written
-this way for ease of comprehension, but in reality we distributed each resample
-   
-    To run a single problem/classifier/fold combination, 
-    
-    do this for UCI
-    
-    or this for UCR-UEA
-    
-    
-    */    
-    public static void randomRotationForest1(String problem, boolean singleFile){
-        if(singleFile){//one ARFF with all the data as with UCI data
-            
-        }
-        else{ //Train/Test ARFF as with UCR-UEA data
-            
-        }
-            
-        
-    }
-
     public static Classifier setClassifier(String classifier, int fold){
 //RandF or RotF
         TunedRandomForest randF;
         TunedRotationForest r;
+        int[] numTrees;
         switch(classifier){
-//Full Rotation Forest with no tuning            
+            case "logistic":
+                Logistic log=new Logistic();
+                return log;
+            case "TunedSVMRBF":
+                TunedSVM svm=new TunedSVM();
+                svm.setKernelType(TunedSVM.KernelType.RBF);
+                svm.optimiseParas(true);
+                svm.optimiseKernel(false);
+                svm.setBuildLogisticModels(true);
+                svm.setSeed(fold);
+                return svm;
            case "RotF":
                 r=new TunedRotationForest();
                 r.setNumIterations(200);
                 r.justBuildTheClassifier();
                 return r;
             case "RandRotF1":
-//Full Rotation Forest with no tuning            
-                RandomRotationForestLimitedAttributes r3=new RandomRotationForestLimitedAttributes();
+                RotationForestLimitedAttributes r3=new RotationForestLimitedAttributes();
                 r3.setNumIterations(200);
                 r3.setMaxNumAttributes(100);
                 r3.justBuildTheClassifier();
                 return r3;
-                
-                
+            case "HESCA":
+                String[] names={"RotFCV","RandFOOB","SVM"};
+                Classifier[] c=new Classifier[3];
+                c[0]=new IBk();
+                c[1]=new IBk();
+                c[2]=new IBk();
+                HESCA h = new HESCA();
+                h.setClassifiers(c, names, null);
+                h.setDebug(true);
+                return h;    
             case "RotFCV":
                 r = new TunedRotationForest();
                 r.setNumIterations(200);
@@ -114,7 +95,7 @@ this way for ease of comprehension, but in reality we distributed each resample
                 randF.setNumTrees(500);
                 randF.debug(debug);
                 randF.setSeed(fold);
-                randF.setTrainAcc(true);
+                randF.setEstimateAcc(true);
                 randF.setCrossValidate(true);
                 return randF;
             case "RandFOOB":
@@ -123,10 +104,37 @@ this way for ease of comprehension, but in reality we distributed each resample
                 randF.setNumTrees(500);
                 randF.debug(debug);
                 randF.setSeed(fold);
-                randF.setTrainAcc(true);
+                randF.setEstimateAcc(true);
                 randF.setCrossValidate(false);
                 return randF; 
-
+            case "TunedRandFCV":
+//These are the built in defaults, here for clarity only                
+                numTrees=new int[]{10,50,100,200,300,400,500,600,700,800,900};
+                randF = new TunedRandomForest();
+                randF.tuneParameters(true);
+                randF.setSeed(fold);
+                randF.setEstimateAcc(true);
+                randF.setCrossValidate(true);
+                randF.setNumTreesRange(numTrees);
+                return randF;
+            case "TunedRandFOOB":
+                numTrees=new int[]{10,50,100,200,300,400,500,600,700,800,900};
+               randF = new TunedRandomForest();
+                randF.tuneParameters(true);
+                randF.setSeed(fold);
+                randF.setEstimateAcc(true);
+                randF.setCrossValidate(false);//Use OOB
+                randF.setNumTreesRange(numTrees);
+                return randF;
+            case "TunedRotFCV":
+//These are the built in defaults, here for clarity only                
+                numTrees=new int[]{10,50,100,200,300,400,500,600,700,800,900};
+                r = new TunedRotationForest();
+                r.tuneParameters(true);
+                r.setSeed(fold);
+                r.setNumTreesRange(numTrees);
+                return r;
+                
             default:
             throw new RuntimeException("Unknown classifier = "+classifier+" in Feb 2017 class");
         }
@@ -137,9 +145,9 @@ this way for ease of comprehension, but in reality we distributed each resample
         String problem=args[1];
         int fold=Integer.parseInt(args[2])-1;
    
-        Classifier c=ICDMRandomRotationForest.setClassifier(classifier,fold);
+        Classifier c=July2017Experiments.setClassifier(classifier,fold);
         Instances all=ClassifierTools.loadData(DataSets.problemPath+problem+"/"+problem);
-        all.randomize(new Random());
+//        all.randomize(rand);
         
         Instances[] split=InstanceTools.resampleInstances(all, fold, propInTrain);
         File f=new File(DataSets.resultsPath+classifier);
@@ -195,10 +203,10 @@ this way for ease of comprehension, but in reality we distributed each resample
                 str.append(act);
                 str.append(",");
                 str.append(pred);
-                str.append(",,");
+                str.append(",");
                 for(double d:probs){
-                    str.append(df.format(d));
                     str.append(",");
+                    str.append(df.format(d));
                 }
                 str.append("\n");
             }
@@ -361,153 +369,38 @@ this way for ease of comprehension, but in reality we distributed each resample
          return acc;
     }    
 
-
-    
-    
-    public static void collateResults(){
-//3. Merge classifier files into a single file with average accuracies
-        //NEED TO REWRITE FOR TRAIN TEST DIFF
-        String basePath="C:\\Users\\ajb\\Dropbox\\Results\\Forest\\";
-        OutFile acc=new OutFile(basePath+"CombinedAcc.csv");
-        for(String cls:classifiers){
-            acc.writeString(","+cls);
-        }
-        acc.writeString("\n");
-        InFile[] allTest=new InFile[classifiers.length];
-        for(int i=0;i<allTest.length;i++){
-            String p=basePath+classifiers[i]+"Test.csv";
-            if(new File(p).exists()){
-                allTest[i]=new InFile(p);
-//                System.out.println("File "+p+" opened ok");
+  public static void main(String[] args) throws Exception{
+      sanityCheckBones();
+      System.exit(0);
+              
+        for(String str:args)
+            System.out.println(str);
+        if(args.length!=6){//Local run
+            DataSets.problemPath="C:\\Users\\ajb\\Dropbox\\TSC Problems\\";
+            DataSets.resultsPath="c:\\Temp\\";
+            File f=new File(DataSets.resultsPath);
+            if(!f.isDirectory()){
+                f.mkdirs();
             }
-            else
-                allTest[i]=null;//superfluous
-//             p=basePath+classifiers[i]+"//"+classifiers[i]+"Train.csv";
+            generateTrainFiles=true;
+            String[] newArgs={"RandF","ItalyPowerDemand","1"};
+            Experiments.singleClassifierAndFoldTrainTestSplit(newArgs);
+            System.exit(0);
         }
-        for(int i=0;i<files.length;i++){
-            acc.writeString(files[i]+",");
-            String prev="First";
-            for(int j=0;j<allTest.length;j++){
-                if(allTest[j]==null){
-                    acc.writeString(",");
-                }
-                else{//Find mean
-                    try{
-                        String r=allTest[j].readLine();
-                        String[] res=r.split(",");
-                        double mean=0;
-                        for(int k=1;k<res.length;k++){
-                            mean+=Double.parseDouble(res[k]);
-                        }
-                        if(res.length>1){
-                            acc.writeString((mean/(res.length-1))+",");
-                        }
-                        else{
-                            acc.writeString(",");
-                        }
-                        prev=r;
-                    }catch(Exception ex){
-                        System.out.println("failed to read line: "+ex+" previous line = "+prev);
-                        System.exit(0);
-                    }
-                }
+        else{    
+            DataSets.problemPath=args[0];
+            DataSets.resultsPath=args[1];
+    //Third argument is whether to cross validate or not
+            generateTrainFiles=Boolean.parseBoolean(args[2]);
+            File f=new File(DataSets.resultsPath);
+            if(!f.isDirectory()){
+                f.mkdirs();
             }
-            acc.writeString("\n");
-        }
-        for(InFile  inf:allTest)
-            if(inf!=null)
-                inf.closeFile();
-        
-    }
-/**
- * nos cases, nos features, nos classes, nos cases/**
- * nos cases, nos features, nos classes, nos cases
- */   
-
-    public static void summariseData(){
-        
-        OutFile out=new OutFile(DataSets.problemPath+"SummaryInfo.csv");
-        out.writeLine("problem,numCases,numAtts,numClasses");
-        for(String str:files){
-            File f=new File(DataSets.problemPath+str+"/"+str+".arff");
-            if(f.exists()){
-                Instances ins=ClassifierTools.loadData(DataSets.problemPath+str+"/"+str);
-                out.writeLine(str+","+ins.numInstances()+","+(ins.numAttributes()-1)+","+ins.numClasses());
-            }
-            else
-                out.writeLine(str+",,");
-        }
-    }
-    public static void collateSVMParameters(){
-        InFile c=new InFile("C:\\Research\\Papers\\2017\\ECML Standard Parameters\\Section 6 choosing parameters\\TunedSVMParameterC.csv");
-        InFile g=new InFile("C:\\Research\\Papers\\2017\\ECML Standard Parameters\\Section 6 choosing parameters\\TunedSVMParameterGamma.csv");
-        int[][] counts=new int[25][25];
-        double[] vals={0.000015,0.000031,0.000061,0.000122,0.000244,0.000488,0.000977,0.001953,0.003906,0.007813,0.015625,0.031250,0.062500,0.125000,0.250000,0.500000,1.000000,2.000000,4.000000,8.000000,16.000000,32.000000,64.000000,128.000000,256.000000};
-        for(int i=0;i<files.length;i++){
-            String line=c.readLine();
-            String gLine=g.readLine();
-            String[] splitC=line.split(",");
-            String[] splitG=gLine.split(",");
-            System.out.print("\n Problem="+splitC[0]);
-            int cPos=0,gPos;
-            for(int j=1;j<splitC.length;j++){
-                if(!splitC[j].equals("")){
-                    //Look up
-                    int k=0;
-                    double v=Double.parseDouble(splitC[j]);
-                    try{
-                    while(vals[k]!=v)
-                        k++;
-                    cPos=k;
-                    }catch(Exception e){
-                        System.out.println(" EXCEPTION : ="+e+" v = "+v+" k="+k);
-                    }
-                    k=0;
-                    v=Double.parseDouble(splitG[j]);
-                    while(vals[k]!=v)
-                        k++;
-                    gPos=k;
-                    counts[cPos][gPos]++;
-                    
-//                    System.out.print("c Pos="+cPos+" G pos ="+gPos);
-                }
-            }
-        }
-        OutFile svm=new OutFile("C:\\Research\\Papers\\2017\\ECML Standard Parameters\\Section 6 choosing parameters\\svmParaCounts.csv");
-        for(int i=0;i<counts.length;i++){
-            for(int j=0;j<counts[i].length;j++)
-                svm.writeString(counts[i][j]+",");
-            svm.writeString("\n");
-        }
-        
-    }
-    public static void timingExperiment(String classifier){
-//Test times
-        
-        
-    }
-    
-    public static void main(String[] args) throws Exception{
-      boolean ucrData=true;
-       files=DataSets.fileNames;
- //      collateResults(30,true,args);
-//UCIRotFTimingExperiment();
-  //             System.exit(0);
- //       collateTrain();
-
-      
-      classifiers=new String[]{"RotF","RandRotF1"};
-        String dir="RepoScripts";
-        String jarFile="Repo";
-    System.exit(0);
-
-//        collateTrainTestResults(30);
-
-        if(ucrData)
-            runTSCDataSet(args);
-        else
-            runUCIDataSet(args);
-    }
+            String[] newArgs=new String[args.length-3];
+            for(int i=3;i<args.length;i++)
+                newArgs[i-3]=args[i];
+            Experiments.singleClassifierAndFoldTrainTestSplit(newArgs);
+        }    }
 
     
     public static void runTSCDataSet(String[] args) {
@@ -518,7 +411,7 @@ this way for ease of comprehension, but in reality we distributed each resample
             if(!f.isDirectory()){
                 f.mkdirs();
             }
-            ICDMRandomRotationForest.singleClassifierAndFoldTrainTestSplit(args);
+            July2017Experiments.singleClassifierAndFoldTrainTestSplit(args);
         }
         else{
             DataSets.problemPath=DataSets.dropboxPath+"TSC Problems/";
@@ -531,28 +424,44 @@ this way for ease of comprehension, but in reality we distributed each resample
             String[] paras={"RandFCV","ItalyPowerDemand","1"};
 //            paras[0]="RotFCV";
 //            paras[2]="1";
-            ICDMRandomRotationForest.singleClassifierAndFoldTrainTestSplit(paras);            
+            July2017Experiments.singleClassifierAndFoldTrainTestSplit(paras);            
             long t1=System.currentTimeMillis();
             for(int i=2;i<=11;i++){
                 paras[2]=i+"";
-                ICDMRandomRotationForest.singleClassifierAndFoldSingleDataSet(paras);            
+                July2017Experiments.singleClassifierAndFoldSingleDataSet(paras);            
             }
             long t2=System.currentTimeMillis();
             paras[0]="RandFOOB";
-            ICDMRandomRotationForest.singleClassifierAndFoldSingleDataSet(paras);            
+            July2017Experiments.singleClassifierAndFoldSingleDataSet(paras);            
             long t3=System.currentTimeMillis();
             for(int i=2;i<=11;i++){
                 paras[2]=i+"";
-                ICDMRandomRotationForest.singleClassifierAndFoldSingleDataSet(paras);            
+                July2017Experiments.singleClassifierAndFoldSingleDataSet(paras);            
             }
             long t4=System.currentTimeMillis();
             System.out.println("Standard = "+(t2-t1)+", Enhanced = "+(t4-t3));
             
        }        
     }
+
     
-    
-    
+    public static void sanityCheckBones(){
+        String[] files={"MiddlePhalanxOutlineAgeGroup","MiddlePhalanxTW","MiddlePhalanxOutlineCorrect","DistalPhalanxOutlineCorrect","DistalPhalanxOutlineAgeGroup","DistalPhalanxTW"};
+        
+        for(String str:files){
+            Instances train = ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\TSC Problems\\"+str+"\\"+str+"_TRAIN");
+            Instances test = ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\TSC Problems\\"+str+"\\"+str+"_TEST");
+            Classifier c=new ED1NN();
+            double a=ClassifierTools.singleTrainTestSplitAccuracy(c, train, test);
+            System.out.println(str+" correct ACC = "+a);
+            Instances train2 = ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\TSC Problems\\"+str+"\\"+str+"_TEST");
+            Instances test2 = ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\TSC Problems\\"+str+"\\"+str+"_TRAIN");
+            Classifier c2=new ED1NN();
+            double a2=ClassifierTools.singleTrainTestSplitAccuracy(c2, train2, test2);
+            System.out.println(str+" inverted ACC = "+a2);
+        }
+        
+    }
     public static void runUCIDataSet(String[] args) {
         if(args.length>0){//Cluster run
             DataSets.problemPath=DataSets.clusterPath+"UCIContinuous/";
@@ -561,7 +470,7 @@ this way for ease of comprehension, but in reality we distributed each resample
             if(!f.isDirectory()){
                 f.mkdirs();
             }
-            ICDMRandomRotationForest.singleClassifierAndFoldSingleDataSet(args);
+            July2017Experiments.singleClassifierAndFoldSingleDataSet(args);
         }
         else{
             DataSets.problemPath=DataSets.dropboxPath+"UCI Problems/";
@@ -577,104 +486,24 @@ this way for ease of comprehension, but in reality we distributed each resample
             File file =new File("C:\\Users\\ajb\\Dropbox\\Results\\UCIResults");
             paras[0]="RotFCV";
             paras[2]="1";
-            ICDMRandomRotationForest.singleClassifierAndFoldSingleDataSet(paras);            
+            July2017Experiments.singleClassifierAndFoldSingleDataSet(paras);            
             long t1=System.currentTimeMillis();
             for(int i=2;i<=11;i++){
                 paras[2]=i+"";
-                ICDMRandomRotationForest.singleClassifierAndFoldSingleDataSet(paras);            
+                July2017Experiments.singleClassifierAndFoldSingleDataSet(paras);            
             }
             long t2=System.currentTimeMillis();
             paras[0]="EnhancedRotF";
-            ICDMRandomRotationForest.singleClassifierAndFoldSingleDataSet(paras);            
+            July2017Experiments.singleClassifierAndFoldSingleDataSet(paras);            
             long t3=System.currentTimeMillis();
             for(int i=2;i<=11;i++){
                 paras[2]=i+"";
-                ICDMRandomRotationForest.singleClassifierAndFoldSingleDataSet(paras);            
+                July2017Experiments.singleClassifierAndFoldSingleDataSet(paras);            
             }
             long t4=System.currentTimeMillis();
             System.out.println("Standard = "+(t2-t1)+", Enhanced = "+(t4-t3));
             
        }        
-    }
-
-
-    public static void UCIRotFTimingExperiment() throws Exception{
-//Restrict to those with over 40 attributes
-        OutFile times=new OutFile("c:/temp/RotFUCITimes.csv");
-        for(String problem:UCIContinuousFileNames){
-//See whether we want to do this one
-            if(problem.equals("miniboone")||problem.equals("connect-4"))
-                continue;
-            Instances inst=ClassifierTools.loadData("C:/Data/UCIContinuous/"+problem+"/"+problem);
-            
-            if(inst.numAttributes()-1>40){
-
-                System.out.println(" Problem "+problem+" has "+(inst.numAttributes()-1)+" number of attributes");
-                times.writeString(problem+","+(inst.numAttributes()-1)+","+(inst.numInstances())+",");
-                RotationForest rot1=new RotationForest();
-                rot1.setNumIterations(200);
-                RandomRotationForestLimitedAttributes rot2=new RandomRotationForestLimitedAttributes();
-                rot2.setNumIterations(200);
-                rot2.tuneParameters(false);
-                rot2.estimateAccFromTrain(false);
-//Identical apart from this            
-                rot2.setMaxNumAttributes(40);
-                long t1=System.currentTimeMillis();
-                rot1.buildClassifier(inst);
-                long t2=System.currentTimeMillis();
-                System.out.println(" Full RotF time = "+((t2-t1)/1000));
-                times.writeString((t2-t1)+",");
-                t1=System.currentTimeMillis();
-                rot2.buildClassifier(inst);
-                t2=System.currentTimeMillis();
-                System.out.println(" truncated RotF time = "+((t2-t1)/1000));
-                times.writeLine((t2-t1)+",");
-                
-                
-                
-            }            
-        }
-        
-    }
-
-
-    public static void UCRRotFTimingExperiment() throws Exception{
-//Restrict to those with over 40 attributes
-        OutFile times=new OutFile("c:/temp/RotFUCITimes.csv");
-        for(String problem:DataSets.fileNames){
-//See whether we want to do this one
-            Instances inst=ClassifierTools.loadData("C:/Data/TSC Problems/"+problem+"/"+problem+"_TRAIN");
-            if(problem.equals("HandOutlines"))
-                continue;
-            
-            if(inst.numAttributes()-1>100){
-
-                System.out.println(" Problem "+problem+" has "+(inst.numAttributes()-1)+" number of attributes");
-                times.writeString(problem+","+(inst.numAttributes()-1)+","+(inst.numInstances())+",");
-                RotationForest rot1=new RotationForest();
-                rot1.setNumIterations(200);
-                RandomRotationForestLimitedAttributes rot2=new RandomRotationForestLimitedAttributes();
-                rot2.setNumIterations(200);
-                rot2.tuneParameters(false);
-                rot2.estimateAccFromTrain(false);
-//Identical apart from this            
-                rot2.setMaxNumAttributes(100);
-                long t1=System.currentTimeMillis();
-                rot1.buildClassifier(inst);
-                long t2=System.currentTimeMillis();
-                System.out.println(" Full RotF time = "+((t2-t1)/1000));
-                times.writeString((t2-t1)+",");
-                t1=System.currentTimeMillis();
-                rot2.buildClassifier(inst);
-                t2=System.currentTimeMillis();
-                System.out.println(" truncated RotF time = "+((t2-t1)/1000));
-                times.writeLine((t2-t1)+",");
-                
-                
-                
-            }            
-        }
-        
     }
 
 

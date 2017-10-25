@@ -8,7 +8,7 @@
 package development.old_experiments;
 
 import development.DataSets;
-import vector_classifiers.RandomRotationForestLimitedAttributes;
+import vector_classifiers.RotationForestLimitedAttributes;
 import fileIO.InFile;
 import fileIO.OutFile;
 import java.io.File;
@@ -535,7 +535,7 @@ public static boolean deleteDirectory(File directory) {
                 r.justBuildTheClassifier();
                 return r;
             case "RandRotF1":
-                RandomRotationForestLimitedAttributes r3=new RandomRotationForestLimitedAttributes();
+                RotationForestLimitedAttributes r3=new RotationForestLimitedAttributes();
                 r3.setNumIterations(200);
                 r3.setMaxNumAttributes(100);
                 r3.justBuildTheClassifier();
@@ -564,7 +564,7 @@ public static boolean deleteDirectory(File directory) {
                 randF.setNumTrees(500);
                 randF.debug(debug);
                 randF.setSeed(fold);
-                randF.setTrainAcc(true);
+                randF.setEstimateAcc(true);
                 randF.setCrossValidate(true);
                 return randF;
             case "RandFOOB":
@@ -573,7 +573,7 @@ public static boolean deleteDirectory(File directory) {
                 randF.setNumTrees(500);
                 randF.debug(debug);
                 randF.setSeed(fold);
-                randF.setTrainAcc(true);
+                randF.setEstimateAcc(true);
                 randF.setCrossValidate(false);
                 return randF; 
 
@@ -1115,7 +1115,7 @@ public static boolean deleteDirectory(File directory) {
                 times.writeString(problem+","+(inst.numAttributes()-1)+","+(inst.numInstances())+",");
                 RotationForest rot1=new RotationForest();
                 rot1.setNumIterations(200);
-                RandomRotationForestLimitedAttributes rot2=new RandomRotationForestLimitedAttributes();
+                RotationForestLimitedAttributes rot2=new RotationForestLimitedAttributes();
                 rot2.setNumIterations(200);
                 rot2.tuneParameters(false);
                 rot2.estimateAccFromTrain(false);
@@ -1155,7 +1155,7 @@ public static boolean deleteDirectory(File directory) {
                 times.writeString(problem+","+(inst.numAttributes()-1)+","+(inst.numInstances())+",");
                 RotationForest rot1=new RotationForest();
                 rot1.setNumIterations(200);
-                RandomRotationForestLimitedAttributes rot2=new RandomRotationForestLimitedAttributes();
+                RotationForestLimitedAttributes rot2=new RotationForestLimitedAttributes();
                 rot2.setNumIterations(200);
                 rot2.tuneParameters(false);
                 rot2.estimateAccFromTrain(false);

@@ -7,7 +7,7 @@
 */
 package development;
 
-import vector_classifiers.RandomRotationForestLimitedAttributes;
+import vector_classifiers.RotationForestLimitedAttributes;
 import fileIO.InFile;
 import fileIO.OutFile;
 import java.io.File;
@@ -16,6 +16,10 @@ import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Random;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import timeseriesweka.classifiers.BOSS;
 import timeseriesweka.classifiers.BagOfPatterns;
 import timeseriesweka.classifiers.DD_DTW;
@@ -58,21 +62,54 @@ import utilities.ClassifierResults;
 import vector_classifiers.HESCA;
 import timeseriesweka.classifiers.ensembles.SaveableEnsemble;
 import utilities.GenericTools;
+import vector_classifiers.RotationForestBootstrap;
 import vector_classifiers.SaveEachParameter;
 import weka.classifiers.trees.J48;
 import weka.classifiers.trees.RandomForest;
 import vector_classifiers.TunedRandomForest;
+import vector_classifiers.TunedMLP;
+import vector_classifiers.TunedTwoLayerMLP;
+import weka.classifiers.functions.supportVector.RBFKernel;
 import weka.core.Instances;
 
 
-public class Experiments{
+    
+
+public class Experiments implements Runnable{
+//For threaded version
+    String[] args;
     public static int folds=30; 
     static int numCVFolds = 10;
     static boolean debug=true;
     static boolean checkpoint=false;
     static boolean generateTrainFiles=true;
     static Integer parameterNum=0;
-    static boolean UCIData=false;
+    static boolean singleFile=false;
+    static boolean foldsInFile=false;
+    
+    
+public static String[] cmpv2202398={
+"miniboone"};
+    
+    
+public static String[] cmpv2264419={
+"miniboone"
+        /*"trains",
+"twonorm",
+"vertebral-column-2clases",
+"vertebral-column-3clases",
+"wall-following",
+"waveform",
+"waveform-noise",
+"wine",
+"wine-quality-red",
+"wine-quality-white",
+"yeast",
+"zoo"
+*/};
+public static String[] ajb17pc={
+    "connect-4","miniboone"
+};    
     public static Classifier setClassifier(String classifier, int fold){
         Classifier c=null;
         TunedSVM svm=null;
@@ -103,6 +140,16 @@ public class Experiments{
                 ((SMO)c).setRandomSeed(fold);
                 ((SMO)c).setBuildLogisticModels(true);
                 break;
+            case "SVMRBF": 
+                c=new SMO();
+                RBFKernel rbf=new RBFKernel();
+                rbf.setGamma(0.5);
+                ((SMO)c).setC(5);
+                ((SMO)c).setKernel(rbf);
+                ((SMO)c).setRandomSeed(fold);
+                ((SMO)c).setBuildLogisticModels(true);
+                
+                break;
             case "BN":
                 c=new BayesNet();
                 break;
@@ -114,6 +161,7 @@ public class Experiments{
                 ((RandomForest)c).setNumTrees(500);
                 ((TunedRandomForest)c).tuneParameters(false);
                 ((TunedRandomForest)c).setCrossValidate(false);
+                ((TunedRandomForest)c).setEstimateAcc(true);
                 ((TunedRandomForest)c).setSeed(fold);
                 ((TunedRandomForest)c).setDebug(debug);
                 
@@ -122,7 +170,7 @@ public class Experiments{
                 c= new TunedRandomForest();
                 ((RandomForest)c).setNumTrees(500);
                 ((TunedRandomForest)c).tuneParameters(false);
-                ((TunedRandomForest)c).setCrossValidate(false);
+                ((TunedRandomForest)c).setCrossValidate(true);
                 ((TunedRandomForest)c).setSeed(fold);
                 break;
             case "RotF":
@@ -131,6 +179,21 @@ public class Experiments{
                 ((TunedRotationForest)c).tuneParameters(false);
                 ((TunedRotationForest)c).setSeed(fold);
                 ((TunedRotationForest)c).estimateAccFromTrain(false);
+                break;
+            case "RotFBootstrap":
+                c= new RotationForestBootstrap();
+                ((RotationForestBootstrap)c).setNumIterations(200);
+                ((RotationForestBootstrap)c).setSeed(fold);
+                ((RotationForestBootstrap)c).tuneParameters(false);
+                ((RotationForestBootstrap)c).setSeed(fold);
+                ((RotationForestBootstrap)c).estimateAccFromTrain(false);
+                break;
+            case "RotFLimited":
+                c= new RotationForestLimitedAttributes();
+                ((RotationForestLimitedAttributes)c).setNumIterations(200);
+                ((RotationForestLimitedAttributes)c).tuneParameters(false);
+                ((RotationForestLimitedAttributes)c).setSeed(fold);
+                ((RotationForestLimitedAttributes)c).estimateAccFromTrain(false);
                 break;
             case "TunedRandF":
                 c= new TunedRandomForest();
@@ -196,10 +259,22 @@ public class Experiments{
                 svm.setSeed(fold);
                 c= svm;
                 break;
+            case "TunedSingleLayerMLP":
+                TunedMLP mlp=new TunedMLP();
+                mlp.setParamSearch(true);
+                mlp.setSeed(fold);
+                c= mlp;
+                break;
+            case "TunedTwoLayerMLP":
+                TunedTwoLayerMLP mlp2=new TunedTwoLayerMLP();
+                mlp2.setParamSearch(true);
+                mlp2.setSeed(fold);
+                c= mlp2;
+                break;
             case "RandomRotationForest1":
-                c= new RandomRotationForestLimitedAttributes();
-                ((RandomRotationForestLimitedAttributes)c).setNumIterations(200);
-                ((RandomRotationForestLimitedAttributes)c).setMaxNumAttributes(100);
+                c= new RotationForestLimitedAttributes();
+                ((RotationForestLimitedAttributes)c).setNumIterations(200);
+                ((RotationForestLimitedAttributes)c).setMaxNumAttributes(100);
                 break;
             case "Logistic":
                 c= new Logistic();
@@ -288,7 +363,23 @@ public class Experiments{
         }
         return c;
     }
-        
+       
+//Threaded version
+    public void run(){
+        try {      
+            System.out.print("Running ");
+            for(String str:args)
+                System.out.print(str+" ");
+            System.out.print("\n");
+            Experiments.singleClassifierAndFoldTrainTestSplit(args);
+        } catch (Exception ex) {
+            System.out.println("ERROR, cannot run experiment :");
+            for(String str:args)
+                System.out.print(str+",");
+        }
+    }
+    
+    
 /* MUST BE at least Arguments:
     1: Problem path args[0]
     2. Results path args[1]
@@ -312,27 +403,118 @@ Optional
             temp2.writeString(data[1]+"");
             System.exit(0);
  */      
+        debug=false;
+//        foldsInFile=true;
         for(String str:args)
             System.out.println(str);
-        if(args.length<6){//Local run
-            System.out.println("Num args passed ="+args.length);
-            for(String str:args)
-                System.out.println(str);
-            DataSets.problemPath="C:\\Users\\ajb\\Dropbox\\UCI Problems\\";
-            DataSets.resultsPath="C:\\Temp\\";
-            File f=new File(DataSets.resultsPath);
-            if(!f.isDirectory()){
-                f.mkdirs();
+        if(args.length<6){
+            if(debug){
+    //Debug run
+                System.out.println("Num args passed ="+args.length);
+                for(String str:args)
+                    System.out.println(str);
+                DataSets.problemPath="C:\\Users\\ajb\\Dropbox\\UCI Problems\\";
+                DataSets.resultsPath="C:\\Temp\\";
+                File f=new File(DataSets.resultsPath);
+                if(!f.isDirectory()){
+                    f.mkdirs();
+                }
+                generateTrainFiles=true;
+                checkpoint=false;
+                parameterNum=0;
+                debug=true;
+//                for(String str:DataSets.UCIContinuousFileNames){
+//                    String[] newArgs={"TunedTwoLayerMLP","trains"};
+//                    Experiments.singleClassifierAndFoldTrainTestSplit(newArgs);
+//                }
+                System.exit(0);
             }
-            generateTrainFiles=true;
-            checkpoint=false;
-            parameterNum=0;
-            debug=true;
-            String[] newArgs={"TunedRandF","hayes-roth","1"};
-            Experiments.singleClassifierAndFoldTrainTestSplit(newArgs);
-            System.exit(0);
+            else{ //Threaded run
+//              threadedExperiment("cmpv2202398");  
+              threadedExperiment("ajb17pc");  
+//              threadedExperiment("ajb17pc");  
+// //             threadedExperiment("UCIContinuous");  
+//              threadedExperiment("LargeProblems");  
+            }
         }
         else{    
+            singleExperiment(args);
+        }
+    
+    }
+    public static void threadedExperiment(String dataSet) throws Exception{
+        folds=30;
+        
+        int cores = Runtime.getRuntime().availableProcessors();        
+        System.out.println("# cores ="+cores);
+ //     cores=1; //debug       
+        
+        ExecutorService executor = Executors.newFixedThreadPool(cores);
+        Experiments exp;
+        DataSets.problemPath="//cmptscsvr.cmp.uea.ac.uk/ueatsc/Data/"+dataSet+"/";//Problem Path
+        DataSets.resultsPath="//cmptscsvr.cmp.uea.ac.uk/ueatsc/Results/"+dataSet+"/";         //Results path
+        String[] problems;
+        parameterNum=0;   
+        String classifier="TunedRotF";
+        if(dataSet.equals("UCIContinuous"))
+            problems=DataSets.UCIContinuousFileNames;
+        else if(dataSet.equals("TSCProblems"))
+            problems=DataSets.fileNames;
+        else if(dataSet.equals("LargeProblems"))
+            problems=DataSets.largeProblems;
+        else if(dataSet.equals("cmpv2202398")){
+            DataSets.problemPath="//cmptscsvr.cmp.uea.ac.uk/ueatsc/Data/UCIContinuous/";//Problem Path
+            DataSets.resultsPath="//cmptscsvr.cmp.uea.ac.uk/ueatsc/Results/UCIContinuous/";         //Results path
+            problems=cmpv2202398;
+            
+        }
+        else if(dataSet.equals("cmpv2264419")){
+            DataSets.problemPath="//cmptscsvr.cmp.uea.ac.uk/ueatsc/Data/UCIContinuous/";//Problem Path
+            DataSets.resultsPath="//cmptscsvr.cmp.uea.ac.uk/ueatsc/Results/UCIContinuous/";         //Results path
+            problems=cmpv2264419;
+            
+        }
+        else if(dataSet.equals("ajb17pc")){
+            DataSets.problemPath="//cmptscsvr.cmp.uea.ac.uk/ueatsc/Data/UCIContinuous/";//Problem Path
+            DataSets.resultsPath="//cmptscsvr.cmp.uea.ac.uk/ueatsc/Results/UCIContinuous/";         //Results path
+            problems=ajb17pc;
+            
+        }
+        else
+            throw new Exception(" data set = "+dataSet);
+            
+        ArrayList<String> names=new ArrayList<>();
+        for(String str:problems)
+            names.add(str);
+//        Collections.reverse(names);
+        generateTrainFiles=true;
+        checkpoint=true;
+        for(int i=0;i<names.size();i++){//Iterate over problems
+            if(isPig(names.get(i)))
+                continue;
+            for(int j=1;j<=folds;j++){//Iterate over folds
+                String[] args=new String[3];
+                args[0]=classifier;
+                args[1]=names.get(i);
+                args[2]=""+j;
+                exp=new Experiments();
+                exp.args=args;
+                executor.execute(exp);
+            }
+        }
+        executor.shutdown();
+        while (!executor.isTerminated()) {
+        }
+        System.out.println("Finished all threads");            
+        
+    }
+    public static boolean isPig(String str){
+//        if(str.equals("adult")||str.equals("miniboone")||str.equals("chess-krvk"))
+//            return true;
+        return false;
+        
+    }
+    public static void singleExperiment(String[] args) throws Exception{
             DataSets.problemPath=args[0];
             DataSets.resultsPath=args[1];
 //Arg 3 argument is whether to cross validate or not and produce train files
@@ -340,6 +522,7 @@ Optional
             File f=new File(DataSets.resultsPath);
             if(!f.isDirectory()){
                 f.mkdirs();
+                f.setWritable(true, false);
             }
 // Arg 4,5,6 Classifier, Problem, Fold             
             String[] newArgs=new String[3];
@@ -359,11 +542,8 @@ Optional
                 parameterNum=Integer.parseInt(args[7]);
             }
             System.out.println("Checkpoint ="+checkpoint+" param number ="+parameterNum);
-            Experiments.singleClassifierAndFoldTrainTestSplit(newArgs);
-        }
-    
+            Experiments.singleClassifierAndFoldTrainTestSplit(newArgs);        
     }
-    
     /** Run a given classifier/problem/fold combination with associated file set up
  @param args: 
  * args[0]: Classifier name. Create classifier with setClassifier
@@ -400,18 +580,34 @@ Optional
             //Sample the dataset
             Instances train,test;
             Instances[] data;
-            String uciTest=DataSets.problemPath.toUpperCase();
-            if(uciTest.contains("UCI"))
-                UCIData=true;
-            if(UCIData){
-                Instances all = ClassifierTools.loadData(DataSets.problemPath+problem+"/"+problem);
-                data = InstanceTools.resampleInstances(all, fold, .5);            
-            }else{
-                train=ClassifierTools.loadData(DataSets.problemPath+problem+"/"+problem+"_TRAIN");
-                test=ClassifierTools.loadData(DataSets.problemPath+problem+"/"+problem+"_TEST");
-                data=InstanceTools.resampleTrainAndTestInstances(train, test, fold);
+//Shapelet special case, hard coded,because all folds are pre-generated             
+            if(foldsInFile){
+                f=new File(DataSets.problemPath+problem+"/"+problem+fold+"_TRAIN.arff");
+                File f2=new File(DataSets.problemPath+problem+"/"+problem+fold+"_TEST.arff");
+                if(!f.exists()||!f2.exists())
+                    throw new Exception(" Problem files "+DataSets.problemPath+problem+"/"+problem+fold+"_TRAIN.arff not found");
+                train=ClassifierTools.loadData(DataSets.problemPath+problem+"/"+problem+fold+"_TRAIN");
+                test=ClassifierTools.loadData(DataSets.problemPath+problem+"/"+problem+fold+"_TEST");
+                data=new Instances[2];
+                data[0]=train;
+                data[1]=test;
+
             }
-            
+            else{
+    //If there is a train test split, use that. Otherwise, randomly split 50/50            
+                f=new File(DataSets.problemPath+problem+"/"+problem+"_TRAIN.arff");
+                File f2=new File(DataSets.problemPath+problem+"/"+problem+"_TEST.arff");
+                if(!f.exists()||!f2.exists())
+                    singleFile=true;
+                if(singleFile){
+                    Instances all = ClassifierTools.loadData(DataSets.problemPath+problem+"/"+problem);
+                    data = InstanceTools.resampleInstances(all, fold, .5);            
+                }else{
+                    train=ClassifierTools.loadData(DataSets.problemPath+problem+"/"+problem+"_TRAIN");
+                    test=ClassifierTools.loadData(DataSets.problemPath+problem+"/"+problem+"_TEST");
+                    data=InstanceTools.resampleTrainAndTestInstances(train, test, fold);
+                }
+            }
             if(parameterNum>0 && c instanceof ParameterSplittable)//Single parameter fold
             {
                 checkpoint=false;
@@ -477,8 +673,12 @@ Optional
         
         try{             
             if(generateTrainFiles){
-                if(c instanceof TrainAccuracyEstimate) //Classifier will perform cv internally
+                if(c instanceof TrainAccuracyEstimate){ //Classifier will perform cv internally
                     ((TrainAccuracyEstimate)c).writeCVTrainToFile(resultsPath+trainFoldPath);
+                    File f=new File(resultsPath+trainFoldPath);
+                    if(f.exists())
+                        f.setWritable(true, false);
+                }
                 else{ // Need to cross validate here
                     int numFolds = Math.min(train.numInstances(), numCVFolds);
                     CrossValidator cv = new CrossValidator();
@@ -506,6 +706,10 @@ Optional
                     //not simply calling trainResults.writeResultsFileToString() since it looks like those that extend SaveParameterInfo will store buildtimes
                     //as part of their params, and so would be written twice
                     trainOut.closeFile();
+                    File f=new File(resultsPath+trainFoldPath);
+                    if(f.exists())
+                        f.setWritable(true, false);
+                    
                 }
             }
             if(parameterNum==0)//Not a single parameter fold
@@ -535,15 +739,22 @@ Optional
                 testOut.writeLine(testResults.acc+"");
                 testOut.writeString(testResults.writeInstancePredictions());
                 testOut.closeFile();
+                File f=new File(resultsPath+testFoldPath);
+                if(f.exists())
+                    f.setWritable(true, false);
+                
                 return testResults.acc;
             }
             else
                  return 0;//trainResults.acc;   
         } catch(Exception e) {
-            System.out.println(" Error ="+e+" in method simpleExperiment"+e);
+            System.out.println(" Error ="+e+" in method simpleExperiment");
             e.printStackTrace();
             System.out.println(" TRAIN "+train.relationName()+" has "+train.numAttributes()+" attributes and "+train.numInstances()+" instances");
-            System.out.println(" TEST "+test.relationName()+" has "+test.numAttributes()+" attributes"+test.numInstances()+" instances");
+            System.out.println(" TEST "+test.relationName()+" has "+test.numAttributes()+" attributes and "+test.numInstances()+" instances");
+            System.out.println(" Classifier ="+c.getClass().getName()+" fold = "+fold);
+            System.out.println(" Results path is "+ resultsPath);
+                    
             return Double.NaN;
         }
     }    
@@ -571,215 +782,3 @@ Optional
 
 
 
-
-
-
-//OLD EXPERIMENTAL CODE SAVED, JUST IN CASE, jamesl
-
-///** Run a given classifier/problem/fold combination with associated file set up
-// @param args: 
-// * args[0]: Classifier name. Create classifier with setClassifier
-// * args[1]: Problem name
-// * args[2]: Fold number. This is assumed to range from 1, hence we subtract 1
-// * (this is because of the scripting we use to run the code on the cluster)
-// *          the standard archive folds are always fold 0
-// * 
-// * NOTES: 
-// * 1. this assumes you have set DataSets.problemPath to be where ever the 
-// * data is, and assumes the data is in its own directory with two files, 
-// * args[1]_TRAIN.arff and args[1]_TEST.arff 
-// * 2. assumes you have set DataSets.resultsPath to where you want the results to
-// * go It will NOT overwrite any existing results (i.e. if a file of non zero 
-// * size exists)
-// * 3. This method just does the file set up then calls the next method. If you 
-// * just want to run the problem, go to the next method
-//* */
-//    public static void singleClassifierAndFoldTrainTestSplit(String[] args) throws Exception{
-////first gives the problem file      
-//        String classifier=args[0];
-//        String problem=args[1];
-//        int fold=Integer.parseInt(args[2])-1;
-//   
-//        File f=new File(DataSets.resultsPath+classifier);
-//        if(!f.exists())
-//            f.mkdir();
-//        String predictions=DataSets.resultsPath+classifier+"/Predictions";
-//        f=new File(predictions);
-//        if(!f.exists())
-//            f.mkdir();
-//        predictions=predictions+"/"+problem;
-//        f=new File(predictions);
-//        if(!f.exists())
-//            f.mkdir();
-//        
-////Check whether fold already exists, if so, dont do it, just quit
-//        f=new File(predictions+"/testFold"+fold+".csv");
-//        if(!f.exists() || f.length()==0){
-//            Classifier c=setClassifier(classifier,fold);
-//            
-////DO ALL THE SAMPLING HERE NOW        
-//            Instances train,test;
-//            Instances[] data;
-//            String uciTest=DataSets.problemPath.toUpperCase();
-//            if(uciTest.contains("UCI"))
-//                UCIData=true;
-//            if(UCIData){
-//                Instances all = ClassifierTools.loadData(DataSets.problemPath+problem+"/"+problem);
-//                data = InstanceTools.resampleInstances(all, fold, .5);            
-//            }else{
-//                train=ClassifierTools.loadData(DataSets.problemPath+problem+"/"+problem+"_TRAIN");
-//                test=ClassifierTools.loadData(DataSets.problemPath+problem+"/"+problem+"_TEST");
-//                data=InstanceTools.resampleTrainAndTestInstances(train, test, fold);
-//
-//            }
-//            
-//            if(parameterNum>0 && c instanceof ParameterSplittable)//Single parameter fold
-//            {
-//                checkpoint=false;
-////Check if it already exists, if it does, exit
-//                f=new File(predictions+"/fold"+fold+"_"+parameterNum+".csv");
-//                if(f.exists() && f.length()>0){ //Exit
-//                    return; //Aready done
-//                }
-//            }
-//            else{
-//                if(generateTrainFiles){
-//                    if(c instanceof TrainAccuracyEstimate){
-//                        ((TrainAccuracyEstimate)c).writeCVTrainToFile(predictions+"/trainFold"+fold+".csv");
-//                    }
-//                    else{ // Need to cross validate
-//                        int numFolds=data[0].numInstances()>=10?10:data[0].numInstances();
-//                        CrossValidator cv = new CrossValidator();
-//                        cv.setSeed(fold);
-//                        cv.setNumFolds(numFolds);
-//            //Estimate train accuracy HERE
-////Perform the split here                        
-//                        ClassifierResults res=cv.crossValidateWithStats(c,data[0]);
-//            //Write to file
-//                        OutFile of=new OutFile(predictions+"/trainFold"+fold+".csv");
-//                        of.writeLine(data[0].relationName()+","+c.getClass().getName()+",train");
-//                        if(c instanceof SaveParameterInfo )
-//                            of.writeLine(((SaveParameterInfo)c).getParameters());
-//                        else
-//                            of.writeLine("No Parameter Info");
-//                        of.writeLine(res.acc+"");
-//                        
-//                        if(res.numInstances()>0){
-//                            double[] trueClassVals=res.getTrueClassVals();
-//                            double[] predClassVals=res.getPredClassVals();
-//                            DecimalFormat df=new DecimalFormat("###.###");
-//
-//                            for(int i=0;i<data[0].numInstances();i++){
-//                                //Basic sanity check
-//                                if(data[0].instance(i).classValue()!=trueClassVals[i]){
-//                                    throw new Exception("ERROR in TSF cross validation, class mismatch!");
-//                                }
-//                                of.writeString((int)trueClassVals[i]+","+(int)predClassVals[i]+",");
-//                                double[] distForInst=res.getDistributionForInstance(i);
-//                                for(double d:distForInst)
-//                                    of.writeString(","+df.format(d));
-//                                if(i<data[0].numInstances()-1)
-//                                    of.writeString("\n");
-//                            }
-//                       }
-//
-//                    }
-//                }
-//            }
-//            double acc =singleClassifierAndFoldTrainTestSplit(data[0],data[1],c,fold,predictions);
-//            System.out.println(classifier+","+problem+","+fold+","+acc);
-//        }
-//    }
-///**
-// * 
-// * @param train: the standard train fold Instances from the archive 
-// * @param test: the standard test fold Instances from the archive
-// * @param c: Classifier to evaluate
-// * @param fold: integer to indicate which fold. Set to 0 to just use train/test
-// * @param resultsPath: a string indicating where to store the results
-// * @return the accuracy of c on fold for problem given in train/test
-// * 
-// * NOTES:
-// * 1.  If the classifier is a SaveableEnsemble, then we save the internal cross 
-// * validation accuracy and the internal test predictions
-// * 2. The output of the file testFold+fold+.csv is
-// * Line 1: ProblemName,ClassifierName, train/test
-// * Line 2: parameter information for final classifier, if it is available
-// * Line 3: test accuracy
-// * then each line is
-// * Actual Class, Predicted Class, Class probabilities 
-// * 
-// * 
-// */    
-//    public static double singleClassifierAndFoldTrainTestSplit(Instances train, Instances test, Classifier c, int fold,String resultsPath){
-//        double acc=0;
-//        int act;
-//        int pred;
-//        String testFoldPath="/testFold"+fold+".csv";
-//        if(parameterNum>0 && c instanceof ParameterSplittable)//Single parameter fold
-//        {
-//            checkpoint=false;
-//            ((ParameterSplittable)c).setParametersFromIndex(parameterNum);
-////            System.out.println("classifier paras =");
-//            testFoldPath="/fold"+fold+"_"+parameterNum+".csv";
-//        }
-//        else{
-////Only do all this if not an internal fold
-//    // Save internal info for ensembles
-//            if(c instanceof SaveableEnsemble)
-//               ((SaveableEnsemble)c).saveResults(resultsPath+"/internalCV_"+fold+".csv",resultsPath+"/internalTestPreds_"+fold+".csv");
-//            if(checkpoint && c instanceof SaveEachParameter){     
-//                ((SaveEachParameter) c).setPathToSaveParameters(resultsPath+"/fold"+fold+"_");
-//            }
-//        }
-//        try{              
-//            c.buildClassifier(train);
-//            if(debug){
-//                if(c instanceof RandomForest)
-//                    System.out.println(" Number of features in MAIN="+((RandomForest)c).getNumFeatures());
-//            }
-//            StringBuilder str = new StringBuilder();
-//            DecimalFormat df=new DecimalFormat("##.######");
-//            for(int j=0;j<test.numInstances();j++)
-//            {
-//                act=(int)test.instance(j).classValue();
-//                test.instance(j).setClassMissing();//Just in case ....
-//                double[] probs=c.distributionForInstance(test.instance(j));
-//                pred=0;
-//                for(int i=1;i<probs.length;i++){
-//                    if(probs[i]>probs[pred])
-//                        pred=i;
-//                }
-//                if(act==pred)
-//                    acc++;
-//                str.append(act);
-//                str.append(",");
-//                str.append(pred);
-//                str.append(",");
-//                for(double d:probs){
-//                    str.append(",");
-//                    str.append(df.format(d));
-//                }
-//                if(j<test.numInstances()-1)
-//                    str.append("\n");
-//            }
-//            acc/=test.numInstances();
-//            OutFile p=new OutFile(resultsPath+testFoldPath);
-//            p.writeLine(train.relationName()+","+c.getClass().getName()+",test");
-//            if(c instanceof SaveParameterInfo){
-//              p.writeLine(((SaveParameterInfo)c).getParameters());
-//            }else
-//                p.writeLine("No parameter info");
-//            p.writeLine(acc+"");
-//            p.writeString(str.toString());
-//        }catch(Exception e)
-//        {
-//                System.out.println(" Error ="+e+" in method simpleExperiment"+e);
-//                e.printStackTrace();
-//                System.out.println(" TRAIN "+train.relationName()+" has "+train.numAttributes()+" attributes and "+train.numInstances()+" instances");
-//                System.out.println(" TEST "+test.relationName()+" has "+test.numAttributes()+" attributes"+test.numInstances()+" instances");
-//
-//                System.exit(0);
-//        }
-//         return acc;
-//    }    

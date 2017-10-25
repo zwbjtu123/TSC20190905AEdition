@@ -24,6 +24,7 @@ package vector_classifiers;
 import development.CollateResults;
 import fileIO.OutFile;
 import java.io.File;
+import java.io.FileNotFoundException;
 import weka.classifiers.trees.*;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
@@ -75,7 +76,8 @@ public class TunedRotationForest extends RotationForest implements SaveParameter
     protected String resultsPath;
     protected boolean saveEachParaAcc=false;
     private static int MAX_PER_PARA=10;
-    
+//HARD CODED FLAG that allows a build from partials    
+    private boolean buildFromPartial=false;
     public TunedRotationForest(){
         super();
         this.setNumIterations(200);
@@ -156,7 +158,7 @@ public class TunedRotationForest extends RotationForest implements SaveParameter
         debug=false;
     }
 
-     public void estimateAccFromTrain(boolean b){
+    public void estimateAccFromTrain(boolean b){
         this.findTrainAcc=b;
     }
   
@@ -199,7 +201,7 @@ public class TunedRotationForest extends RotationForest implements SaveParameter
         paraSpace3=new int[MAX_PER_PARA];//Number of trees
         for(int i=0;i<paraSpace3.length;i++)
             paraSpace3[i]=(50)*(i+1);  
-        System.out.println("Number of parameters for each ="+paraSpace1.length*paraSpace2.length*paraSpace3.length);
+//        System.out.println("Number of parameters for each ="+paraSpace1.length*paraSpace2.length*paraSpace3.length);
             
     }
 
@@ -257,20 +259,25 @@ public class TunedRotationForest extends RotationForest implements SaveParameter
                         temp=new OutFile(resultsPath+count+".csv");
                         temp.writeLine(tempResults.writeResultsFileToString());
                         temp.closeFile();
+                        File f=new File(resultsPath+count+".csv");
+                        if(f.exists())
+                            f.setWritable(true, false);
+                         
                     }                
                     else{
                         if(e<minErr){
                         minErr=e;
                         ties=new ArrayList<>();//Remove previous ties
-                        ties.add(new TunedSVM.ResultsHolder(p1,p3,tempResults));
+                        ties.add(new TunedSVM.ResultsHolder(p1,p2,p3,tempResults));
                         }
                         else if(e==minErr){//Sort out ties
-                            ties.add(new TunedSVM.ResultsHolder(p1,p3,tempResults));
+                            ties.add(new TunedSVM.ResultsHolder(p1,p2,p3,tempResults));
                         }
                     }
                 }
             }
         }
+//Step 2: set the actual parameters        
         int bestNumAtts;
         int bestRemovePercent;
         int bestNumTrees;
@@ -287,7 +294,7 @@ public class TunedRotationForest extends RotationForest implements SaveParameter
                     }
                 }
             }
-            if(missing==0)//All present
+            if(missing==0)//All present, or at least one and build from partial
             {
                 combinedBuildTime=0;
     //            If so, read them all from file, pick the best
@@ -297,16 +304,18 @@ public class TunedRotationForest extends RotationForest implements SaveParameter
                         for(int p3:paraSpace3){//num trees
                             count++;
                             tempResults = new ClassifierResults();
-                            tempResults.loadFromFile(resultsPath+count+".csv");
-                            combinedBuildTime+=tempResults.buildTime;
-                            double e=1-tempResults.acc;
-                            if(e<minErr){
-                                minErr=e;
-                                ties=new ArrayList<>();//Remove previous ties
-                                ties.add(new TunedSVM.ResultsHolder(p1,p2,p3,tempResults));
-                            }
-                            else if(e==minErr){//Sort out ties
+                            if(new File(resultsPath+count+".csv").exists()){
+                                tempResults.loadFromFile(resultsPath+count+".csv");
+                                combinedBuildTime+=tempResults.buildTime;
+                                double e=1-tempResults.acc;
+                                if(e<minErr){
+                                    minErr=e;
+                                    ties=new ArrayList<>();//Remove previous ties
                                     ties.add(new TunedSVM.ResultsHolder(p1,p2,p3,tempResults));
+                                }
+                                else if(e==minErr){//Sort out ties
+                                        ties.add(new TunedSVM.ResultsHolder(p1,p2,p3,tempResults));
+                                }
                             }
                         }            
                     }
@@ -370,7 +379,59 @@ public class TunedRotationForest extends RotationForest implements SaveParameter
             res=best.res;
          }     
     }
-
+    private void setParasFromPartiallyCompleteSearch() throws Exception{
+         paras=new int[3];
+        combinedBuildTime=0;
+        ArrayList<TunedSVM.ResultsHolder> ties=new ArrayList<>();
+    //            If so, read them all from file, pick the best
+        int count=0;
+        int present=0;
+        double minErr=1;
+        for(int p1:paraSpace1){//num per group
+            for(int p2:paraSpace2){//removal percentage
+                for(int p3:paraSpace3){//num trees
+                    ClassifierResults tempResults = new ClassifierResults();
+                    count++;
+                    if(new File(resultsPath+count+".csv").exists()){
+                        present++;
+                        tempResults.loadFromFile(resultsPath+count+".csv");
+                        combinedBuildTime+=tempResults.buildTime;
+                        double e=1-tempResults.acc;
+                        if(e<minErr){
+                            minErr=e;
+                            ties=new ArrayList<>();//Remove previous ties
+                            ties.add(new TunedSVM.ResultsHolder(p1,p2,p3,tempResults));
+                        }
+                        else if(e==minErr){//Sort out ties
+                                ties.add(new TunedSVM.ResultsHolder(p1,p2,p3,tempResults));
+                        }
+                    }
+                }            
+            }
+        }
+//Set the parameters
+        if(present>0){
+            System.out.println("Number of paras = "+present);
+            System.out.println("Number of best = "+ties.size());
+            TunedSVM.ResultsHolder best=ties.get(rng.nextInt(ties.size()));
+            int bestNumAtts;
+            int bestRemovePercent;
+            int bestNumTrees;
+            bestNumAtts=(int)best.x;
+            bestRemovePercent=(int)best.y;
+            bestNumTrees=(int)best.z;
+            paras[0]=bestNumAtts;
+            paras[1]=bestRemovePercent;
+            paras[2]=bestNumTrees;
+            this.setNumIterations(bestNumTrees);
+            this.setRemovedPercentage(bestRemovePercent);
+            this.setMaxGroup(bestNumAtts);
+            this.setMinGroup(bestNumAtts);
+            res=best.res;
+        }        
+        else
+            throw new Exception("Error, no parameter files for "+resultsPath);
+    }
      @Override
     public void buildClassifier(Instances data) throws Exception{
 //        res.buildTime=System.currentTimeMillis(); //removed with cv changes  (jamesl) 
@@ -385,13 +446,18 @@ public class TunedRotationForest extends RotationForest implements SaveParameter
         data = new Instances(data);
         data.deleteWithMissingClass();
         super.setSeed(seed);
-        if(tuneParameters){
+        if(buildFromPartial){
+            if(paraSpace1==null)
+                setStandardParaSearchSpace(data.numAttributes()-1);            
+            setParasFromPartiallyCompleteSearch();            
+        }
+        else if(tuneParameters){
             if(paraSpace1==null)
                 setStandardParaSearchSpace(data.numAttributes()-1);            
             tuneRotationForest(data);
         }
 /*If there is no parameter search, then there is no train CV available.        
-this gives the option of finding one. It is inefficient
+this gives the option of finding one using 10xCV  
 */        
         else if(findTrainAcc){
             RotationForest t= new RotationForest();
@@ -417,6 +483,10 @@ this gives the option of finding one. It is inefficient
             f.writeLine(getParameters());
             f.writeLine(res.acc+"");
             f.writeString(res.writeInstancePredictions());
+            f.closeFile();
+            File x=new File(trainPath);
+            x.setWritable(true, false);
+             
         }
     }
   

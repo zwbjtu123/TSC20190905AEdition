@@ -31,7 +31,10 @@ import fileIO.OutFile;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
+import statistics.distributions.NormalDistribution;
 import weka.classifiers.lazy.kNN;
+import weka.core.Attribute;
+import weka.core.DenseInstance;
 import weka.core.converters.ArffSaver;
 
 /**
@@ -709,31 +712,68 @@ public class ClassifierTools {
  * call makeBinaryFullRank
  * @param data
  */
-	public static Instances makeBinary(Instances data){
-		NominalToBinary nb = new NominalToBinary();
-	
-		Instances nd;
-		try{
-			Instance temp;
-			nb.setInputFormat(data);
-			int n = data.numInstances();
-			for(int i=0;i<n;i++)
-				nb.input(data.instance(i));
-			nd=nb.getOutputFormat();
-			for(int i=0;i<n;i++)
-			{
-				temp=nb.output();
+    public static Instances makeBinary(Instances data){
+        NominalToBinary nb = new NominalToBinary();
+
+        Instances nd;
+        try{
+            Instance temp;
+            nb.setInputFormat(data);
+            int n = data.numInstances();
+            for(int i=0;i<n;i++)
+                    nb.input(data.instance(i));
+            nd=nb.getOutputFormat();
+            for(int i=0;i<n;i++)
+            {
+                    temp=nb.output();
 //				System.out.println(temp); 
-				nd.add(temp);
-			}
-		}catch(Exception e)
-		{
-			System.out.println("Error in NominalToBinary  = "+e.toString());
-			nd=data;
-			System.exit(0);
-			
-		}
-		return nd;
-		
-		}
+                    nd.add(temp);
+            }
+        }catch(Exception e)
+        {
+            System.out.println("Error in NominalToBinary  = "+e.toString());
+            nd=data;
+            System.exit(0);
+        }
+        return nd;
+    }
+/**
+ * generates white noise attributes and random classes
+ * @param numAtts
+ * @param numCases
+ * @param numClasses
+ * @return 
+ */        
+    public static Instances generateRandomProblem(int numAtts,int numCases, int numClasses){
+        String name="Random"+numAtts+"_"+numCases+"_"+numClasses;
+        ArrayList<Attribute> atts=new ArrayList<>(numAtts);
+        for(int i=0;i<numAtts;i++){
+            Attribute at=new Attribute("Rand"+i);//Assume defaults to numeric?
+            atts.add(at);
+        }
+//Add class value
+        ArrayList<String> vals=new ArrayList<>(numClasses);
+        for(int i=0;i<numClasses;i++)
+                vals.add(i+"");
+        atts.add(new Attribute("Response",vals));
+ //Add instances
+        NormalDistribution norm=new NormalDistribution(0,1);
+        Random rng=new Random();
+        Instances data=new Instances(name,atts,numCases);
+        data.setClassIndex(numAtts);
+        for(int i=0;i<numCases;i++){
+            Instance in= new DenseInstance(data.numAttributes());
+           
+            for(int j=0;j<numAtts;j++){
+                double v=norm.simulate();
+                in.setValue(j, v);
+            }            
+            //Class value
+            double classV=rng.nextInt(numClasses);
+            in.setValue(numAtts,classV);
+            data.add(in);
+        }
+        return data;
+    }
+        
 }

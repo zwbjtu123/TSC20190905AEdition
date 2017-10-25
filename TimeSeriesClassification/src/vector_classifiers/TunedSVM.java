@@ -66,6 +66,8 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
     private double[] paras;//Stored final parameter values after search
     String trainPath="";
     boolean debug=false;
+    protected boolean findTrainAcc=true;
+    
     Random rng;
     ArrayList<Double> accuracy;
     private boolean kernelOptimise=false;   //Choose between linear, quadratic and RBF kernel
@@ -94,6 +96,9 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
         rng=new Random();
         accuracy=new ArrayList<>();
         setBuildLogisticModels(true);
+    }
+    public void estimateAccFromTrain(boolean b){
+        this.findTrainAcc=b;
     }
 
     
@@ -326,6 +331,8 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
                 model.setC(p1);
                 model.setBuildLogisticModels(true);
                 tempResults=cv.crossValidateWithStats(model,trainCopy);
+                tempResults.setName("TunedSVM"+kernel);
+                tempResults.setParas("C,"+p1+",Gamma,"+p2);
 
 //                Evaluation eval=new Evaluation(temp);
 //                eval.crossValidateModel(model, temp, folds, rng);
@@ -337,6 +344,11 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
                     temp=new OutFile(resultsPath+count+".csv");
                     temp.writeLine(tempResults.writeResultsFileToString());
                     temp.closeFile();
+                    File f=new File(resultsPath+count+".csv");
+                    if(f.exists())
+                        f.setWritable(true, false);
+                    
+                    
                 }                
                 else{
                     if(e<minErr){
@@ -857,6 +869,27 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
                     tunePolynomial(train);
             }
         }
+/*If there is no parameter search, then there is no train CV available.        
+this gives the option of finding one using 10xCV  
+*/        
+        else if(findTrainAcc){
+            int folds=10;
+            if(folds>train.numInstances())
+                folds=train.numInstances();
+            SMO model = new SMO();
+            model.setKernel(this.m_kernel);
+            model.setC(this.getC());
+            model.setBuildLogisticModels(true);
+            model.setRandomSeed(seed);
+            CrossValidator cv = new CrossValidator();
+            cv.setSeed(seed); //trying to mimick old seeding behaviour below
+            cv.setNumFolds(folds);
+            cv.buildFolds(train);
+            res = cv.crossValidateWithStats(model, train);
+      }        
+        
+        
+        
 //If both kernelOptimise and tuneParameters are false, it just builds and SVM        
 //With whatever the parameters are set to        
         super.buildClassifier(train);
@@ -867,10 +900,14 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
             res.buildTime=System.currentTimeMillis()-t;
         if(trainPath!=null && trainPath!=""){  //Save basic train results
             OutFile f= new OutFile(trainPath);
-            f.writeLine(train.relationName()+",TunedSVM,Train");
+            f.writeLine(train.relationName()+",TunedSVM"+kernel+",Train");
             f.writeLine(getParameters());
             f.writeLine(res.acc+"");
             f.writeLine(res.writeInstancePredictions());
+            f.closeFile();
+            File x=new File(trainPath);
+            x.setWritable(true, false);
+            
         }        
     }
     

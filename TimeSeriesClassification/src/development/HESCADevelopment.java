@@ -28,7 +28,7 @@ All depreciated by James's changes
 
 package development;
 
-import vector_classifiers.RandomRotationForestLimitedAttributes;
+import vector_classifiers.RotationForestLimitedAttributes;
 import fileIO.OutFile;
 import java.io.File;
 import java.io.FileWriter;
@@ -185,11 +185,11 @@ public class HESCADevelopment {
     public static void rotationForestTimesForL() throws Exception{
         OutFile out=new OutFile("C:/Temp/EnhancedRotFTest.csv");
         RotationForest[] rotf=new RotationForest[2];
-        RandomRotationForestLimitedAttributes[] rotf2=new RandomRotationForestLimitedAttributes[5];
+        RotationForestLimitedAttributes[] rotf2=new RotationForestLimitedAttributes[5];
         for(int i=0;i<rotf.length;i++){
             rotf[i]=new RotationForest();
             rotf[i].setNumIterations(10+i*40);
-            rotf2[i]=new RandomRotationForestLimitedAttributes();
+            rotf2[i]=new RotationForestLimitedAttributes();
             rotf2[i].setNumIterations(10+i*40);
         }
         out.writeString(", 10,20,30,40,50\n");

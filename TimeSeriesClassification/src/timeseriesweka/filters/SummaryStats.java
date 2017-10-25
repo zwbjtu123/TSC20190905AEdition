@@ -1,6 +1,7 @@
 package timeseriesweka.filters;
 
 
+import utilities.ClassifierTools;
 import weka.core.Attribute;
 import weka.core.DenseInstance;
 import weka.core.FastVector;
@@ -146,7 +147,7 @@ public Instances process(Instances inst) throws Exception {
 	}
 
 	public static void main(String[] args) {
-/**Debug code to test SummaryStats generation: 
+/**Debug code to test SummaryStats generation: **/
 	
 		
             try{
@@ -161,7 +162,7 @@ public Instances process(Instances inst) throws Exception {
                System.out.println("Exception thrown ="+e);
                e.printStackTrace();
                
-            }**/
+            }
         }
 
 }

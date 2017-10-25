@@ -5,7 +5,7 @@ VERSION 1:
 
 1. Limit the max number of attributes per tree
     Test 1: make sure it still does the same thing when maxNumAttributes> numAtts in all cases
-10/2/17: Run TunedRotationForest and RandomRotationForestLimitedAttributes with 
+10/2/17: Run TunedRotationForest and RotationForestLimitedAttributes with 
 maxNumAttributes=10000 
 should be no difference: 
 
@@ -28,20 +28,29 @@ package vector_classifiers;
 import java.util.Random;
 import weka.classifiers.meta.RotationForest;
 import vector_classifiers.TunedRotationForest;
+import weka.core.Instances;
 
 /**
  *
  * @author ajb
  */
-public class RandomRotationForestLimitedAttributes extends TunedRotationForest{
+public class RotationForestLimitedAttributes extends TunedRotationForest{
     private int maxNumAttributes=100;
-    public RandomRotationForestLimitedAttributes(){
+    private boolean propToNumAtts=true;
+    public RotationForestLimitedAttributes(){
         this.estimateAccFromTrain(false);
         this.tuneParameters(false);
         this.setNumIterations(200);
     }
     public void setMaxNumAttributes(int m){
-        maxNumAttributes=m;
+        if(m<100)
+            maxNumAttributes=m;
+        else if(m<400)
+            maxNumAttributes=m/2;
+        else
+            maxNumAttributes=m/4;
+        if(m<1)
+            maxNumAttributes=1;
     }
     @Override
     protected int [] attributesPermutation(int numAttributes, int classAttribute,
@@ -68,7 +77,12 @@ public class RandomRotationForestLimitedAttributes extends TunedRotationForest{
     
     return permutation;
   }    
-    
+    @Override
+    public void buildClassifier(Instances data) throws Exception{
+       if (propToNumAtts)
+        setMaxNumAttributes(data.numAttributes()-1);   
+       super.buildClassifier(data);
+    }
 //Bagging    
     public static void main(String[] args){
         

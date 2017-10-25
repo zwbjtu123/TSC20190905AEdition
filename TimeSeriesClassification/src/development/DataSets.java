@@ -27,12 +27,12 @@ public class DataSets {
     
     public static String clusterPath="/gpfs/home/ajb/";
     public static String dropboxPath="C:/Users/ajb/Dropbox/";    
-    
-    public static  String path=dropboxPath;    
+    public static String beastPath="//cmptscsvr.cmp.uea.ac.uk/ueatsc/Data/";
+    public static  String path=beastPath;    
     
     public static String problemPath=path+"/TSC Problems/";
     public static String resultsPath=path+"Results/";
-    public static String uciPath=path+"UCI Classification Problems/";
+    public static String uciPath=path+"UCIContinuous";
     
   //ALL of our TSC data sets  
     //<editor-fold defaultstate="collapsed" desc="fileNames: The new 85 UCR datasets">    
@@ -319,8 +319,8 @@ public class DataSets {
                 
                 
   //Small Files  
-    //<editor-fold defaultstate="collapsed" desc="smallFileNames:">    
-		public static String[] smallFileNames={	
+    //<editor-fold defaultstate="collapsed" desc="smallTSCProblems:">    
+		public static String[] smallTSCProblems={	
                     "Beef","BeetleFly","BirdChicken","FaceFour","Plane","FacesUCR"};
 
 /*//Train Size, Test Size, Series Length, Nos Classes
@@ -395,6 +395,12 @@ public class DataSets {
                 };  */ 
       //</editor-fold>    
 
+ //Large Problems  
+    //<editor-fold defaultstate="collapsed" desc="largProblems:">    
+    public static String[] largeProblems={	
+"HeartbeatBIDMC","MNIST",
+//"CambridgeMEG","KaggleMEG",        
+    };
                 
 //Sets used in papers                
                 

@@ -3,25 +3,21 @@
 
 VERSION 1: 
 
-1. Limit the max number of attributes per tree
-    Test 1: make sure it still does the same thing when maxNumAttributes> numAtts in all cases
-10/2/17: Run TunedRotationForest and RandomRotationForest1 with 
-maxNumAttributes=10000 
-should be no difference: 
 
-    Test 2: check it still runs with problems where maxNumAttributes> numAtts
-    Test 3: Compare accuracy on problems where maxNumAttributes> numAtts
-    Test 4: Perform timing experiment on problems where maxNumAttributes> numAtts
+Version 2. Impose bootstrapping and work out OOB Error
 
-Timing Experiment: 
-Decide on threshold. 
+Rotation forest samples 50% of the cases for each attribute set of any given tree. 
+This means you cannot find OOB and need to CV to get an error estimate.
+This class simply does the sampling for each tree rather than each set. 
+To Do:
+1. Implement the sampling
+2. Test whether it makes a difference to test acc
+3. Implement the calculation out of bag error and probabilities and debug
+4. Test difference in CV train and OOB error estimates
 
-1. Determine problems that take more than 1 day or 1 hour to train a single model on my new machine
-2. Generate times for a range of n and m.
-3. Construct linear model as a function of n and m
+cant really wrap this easily using the bagging clas, so will have to implement the bagging. 
+1. Set m_RemovedPercentage=0 
 
-
-Version 2 will. Impose bagging and work out OOB Error
  */
 package vector_classifiers;
 
@@ -46,10 +42,13 @@ import weka.filters.unsupervised.instance.RemovePercentage;
  *
  * @author ajb
  */
-public class RandomRotationForestBagging extends TunedRotationForest{
-
-    public RandomRotationForestBagging(){
+public class RotationForestBootstrap extends TunedRotationForest{
+    ///        boolean[][] inBags;
+    double trainPercentPerTree=0.5;
+    
+    public RotationForestBootstrap(){
         super();
+        m_RemovedPercentage=0;
 //This is not going to work.         
 //        EnhancedBagging base=new EnhancedBagging();
 //        base.setClassifier(new weka.classifiers.trees.J48());
@@ -91,14 +90,54 @@ public class RandomRotationForestBagging extends TunedRotationForest{
    * 			classifier.
    * @throws Exception 	if the classifier could not be built successfully
    */
+    private Instances[] splitByClass(Instances data){
+        int numClasses=data.numClasses();
+        Instances [] instancesOfClass = new Instances[numClasses + 1]; 
+        if( data.classAttribute().isNumeric() ) {
+          instancesOfClass = new Instances[numClasses]; 
+          instancesOfClass[0] = data;
+        }
+        else {
+          instancesOfClass = new Instances[numClasses+1]; 
+          for( int i = 0; i < instancesOfClass.length; i++ ) {
+            instancesOfClass[ i ] = new Instances( data, 0 );
+          }
+          Enumeration enu = data.enumerateInstances();
+          while( enu.hasMoreElements() ) {
+            Instance instance = (Instance)enu.nextElement();
+            if( instance.classIsMissing() ) {
+              instancesOfClass[numClasses].add( instance );
+            }
+            else {
+              int c = (int)instance.classValue();
+              instancesOfClass[c].add( instance );
+            }
+          }
+          // If there are not instances with a missing class, we do not need to
+          // consider them
+          if( instancesOfClass[numClasses].numInstances() == 0 ) {
+            Instances [] tmp = instancesOfClass;
+            instancesOfClass =  new Instances[ numClasses ];
+            System.arraycopy( tmp, 0, instancesOfClass, 0, numClasses );
+          }
+        }
+        return instancesOfClass;
+    }
+ 
+     @Override
+    public void buildClassifier(Instances data) throws Exception{
+//        res.buildTime=System.currentTimeMillis(); //removed with cv changes  (jamesl) 
+        long startTime=System.currentTimeMillis(); 
+        //now calced separately from any instance on ClassifierResults, and added on at the end
 
-    public void buildBaggedClassifier(Instances data) throws Exception {
-//From RotationForest
     // can classifier handle the data?
     getCapabilities().testWithFail(data);
+
     data = new Instances( data );
     super.buildClassifier(data);
+
     checkMinMax(data);
+
     Random random;
     if( data.numInstances() > 0 ) {
       // This function fails if there are 0 instances
@@ -107,6 +146,7 @@ public class RandomRotationForestBagging extends TunedRotationForest{
     else {
       random = new Random(m_Seed);
     }
+
     m_RemoveUseless = new RemoveUseless();
     m_RemoveUseless.setInputFormat(data);
     data = Filter.useFilter(data, m_RemoveUseless);
@@ -128,38 +168,6 @@ public class RandomRotationForestBagging extends TunedRotationForest{
           m_Groups[i].length );
     }
 
-    int numClasses = data.numClasses();
-
-    // Split the instances according to their class
-    Instances [] instancesOfClass = new Instances[numClasses + 1]; 
-    if( data.classAttribute().isNumeric() ) {
-      instancesOfClass = new Instances[numClasses]; 
-      instancesOfClass[0] = data;
-    }
-    else {
-      instancesOfClass = new Instances[numClasses+1]; 
-      for( int i = 0; i < instancesOfClass.length; i++ ) {
-        instancesOfClass[ i ] = new Instances( data, 0 );
-      }
-      Enumeration enu = data.enumerateInstances();
-      while( enu.hasMoreElements() ) {
-        Instance instance = (Instance)enu.nextElement();
-        if( instance.classIsMissing() ) {
-          instancesOfClass[numClasses].add( instance );
-	}
-	else {
-          int c = (int)instance.classValue();
-          instancesOfClass[c].add( instance );
-        }
-      }
-      // If there are not instances with a missing class, we do not need to
-      // consider them
-      if( instancesOfClass[numClasses].numInstances() == 0 ) {
-        Instances [] tmp = instancesOfClass;
-        instancesOfClass =  new Instances[ numClasses ];
-        System.arraycopy( tmp, 0, instancesOfClass, 0, numClasses );
-      }
-    }
 
     // These arrays keep the information of the transformed data set
     m_Headers = new Instances[ m_Classifiers.length ];
@@ -167,29 +175,37 @@ public class RandomRotationForestBagging extends TunedRotationForest{
 
     // Construction of the base classifiers
     for(int i = 0; i < m_Classifiers.length; i++) {
-//BAG DATA HERE
-//        
-        
-      m_ReducedHeaders[i] = new Instances[ m_Groups[i].length ];
-      FastVector transformedAttributes = new FastVector( data.numAttributes() );
-//HERE, sample data, but is this going to impact groups? Shouldnt do so?  
-// Going to confuse instancesOfClass though, may need to bring that in here? 
-      
-      
+        int numClasses = data.numClasses();
 
-// Construction of the dataset for each group of attributes
-      for( int j = 0; j < m_Groups[ i ].length; j++ ) {
+//HERE THE ONLY DIFFERENT BIT
+        Instances trainData=new Instances(data);
+        Instances testData=new Instances(data,0);
+        trainData.randomize(rng);
+        
+        int trainSize=(int)(trainPercentPerTree*data.numInstances());
+        while(trainSize<trainData.numInstances())
+            testData.add(trainData.remove(0));
+//MOVE THIS BIT BECAUSE THE DATA IS DIFFERENT NOW PER TREE
+// Split the instances according to their class: 
+//Doing unnecessary work in the spirit of simplicity of code
+/*Easy to optimise to do the split once, or indeed, see if it makes any difference
+        */        
+        Instances [] instancesOfClass = splitByClass(trainData); 
+        m_ReducedHeaders[i] = new Instances[ m_Groups[i].length ];
+      FastVector transformedAttributes = new FastVector( trainData.numAttributes() );
+
+        // Construction of the dataset for each group of attributes
+        for( int j = 0; j < m_Groups[ i ].length; j++ ) {
         FastVector fv = new FastVector( m_Groups[i][j].length + 1 );
         for( int k = 0; k < m_Groups[i][j].length; k++ ) {
-          String newName = data.attribute( m_Groups[i][j][k] ).name()
+          String newName = trainData.attribute( m_Groups[i][j][k] ).name()
             + "_" + k;
-          fv.addElement( data.attribute( m_Groups[i][j][k] ).copy(newName) );
+          fv.addElement( trainData.attribute( m_Groups[i][j][k] ).copy(newName) );
         }
-        fv.addElement( data.classAttribute( ).copy() );
+        fv.addElement( trainData.classAttribute( ).copy() );
         Instances dataSubSet = new Instances( "rotated-" + i + "-" + j + "-", 
-	    fv, 0);
+            fv, 0);
         dataSubSet.setClassIndex( dataSubSet.numAttributes() - 1 );
-
         // Select instances for the dataset
         m_ReducedHeaders[i][j] = new Instances( dataSubSet, 0 );
         boolean [] selectedClasses = selectClasses( instancesOfClass.length, 
@@ -211,9 +227,7 @@ public class RandomRotationForestBagging extends TunedRotationForest{
         }
 
         dataSubSet.randomize(random);
-//HERE: DONT DO THIS, JUST BAG BEFORE HAND        
-        
-        /*        // Remove a percentage of the instances
+        // Remove a percentage of the instances
 	Instances originalDataSubSet = dataSubSet;
 	dataSubSet.randomize(random);
         RemovePercentage rp = new RemovePercentage();
@@ -223,7 +237,7 @@ public class RandomRotationForestBagging extends TunedRotationForest{
 	if( dataSubSet.numInstances() < 2 ) {
 	  dataSubSet = originalDataSubSet;
 	}
-*/
+
         // Project de data
         m_ProjectionFilters[i][j].setInputFormat( dataSubSet );
 	Instances projectedData = null;
@@ -245,14 +259,14 @@ public class RandomRotationForestBagging extends TunedRotationForest{
         }
       }
       
-      transformedAttributes.addElement( data.classAttribute().copy() );
+      transformedAttributes.addElement( trainData.classAttribute().copy() );
       Instances buildClas = new Instances( "rotated-" + i + "-", 
         transformedAttributes, 0 );
       buildClas.setClassIndex( buildClas.numAttributes() - 1 );
       m_Headers[ i ] = new Instances( buildClas, 0 );
 
       // Project all the training data
-      Enumeration enu = data.enumerateInstances();
+      Enumeration enu = trainData.enumerateInstances();
       while( enu.hasMoreElements() ) {
         Instance instance = (Instance)enu.nextElement();
         Instance newInstance = convertInstance( instance, i );
@@ -268,56 +282,7 @@ public class RandomRotationForestBagging extends TunedRotationForest{
 
     if(m_Debug){
       printGroups();
-    }
-  }
-
- 
-     @Override
-    public void buildClassifier(Instances data) throws Exception{
-//        res.buildTime=System.currentTimeMillis(); //removed with cv changes  (jamesl) 
-        long startTime=System.currentTimeMillis(); 
-        //now calced separately from any instance on ClassifierResults, and added on at the end
-        int folds=MAX_FOLDS;
-        if(folds>data.numInstances())
-            folds=data.numInstances();
-    // can classifier handle the data?
-        getCapabilities().testWithFail(data);
-        // remove instances with missing class
-        data = new Instances(data);
-        data.deleteWithMissingClass();
-        super.setSeed(seed);
-        if(tuneParameters){
-            if(paraSpace1==null)
-                setStandardParaSearchSpace(data.numAttributes()-1);            
-            tuneRotationForest(data);
-        }
-/*GOING TO CHANGE THIS TO USE OOB
-*/        
-        else if(findTrainAcc){
-            RotationForest t= new RotationForest();
-            t.setMaxGroup(this.getMaxGroup());
-            t.setMinGroup(this.getMinGroup());
-            t.setNumIterations(this.getNumIterations());
-            t.setSeed(seed);
-            
-            //new (jamesl) 
-            CrossValidator cv = new CrossValidator();
-            cv.setSeed(seed); //trying to mimick old seeding behaviour below
-            cv.setNumFolds(folds);
-            cv.buildFolds(data);
-            res = cv.crossValidateWithStats(t, data);
-        }
-//        
-        
-        buildBaggedClassifier(data);
-        res.buildTime=System.currentTimeMillis()-startTime;
-        if(trainPath!=""){  //Save basic train results
-            OutFile f= new OutFile(trainPath);
-            f.writeLine(data.relationName()+",TunedRotF,Train");
-            f.writeLine(getParameters());
-            f.writeLine(res.acc+"");
-            f.writeString(res.writeInstancePredictions());
-        }
+    }        res.buildTime=System.currentTimeMillis()-startTime;
     }
   
       
