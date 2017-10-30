@@ -406,7 +406,7 @@ public class SMO
 //his experiments, 1000 iterations seems a reasonable limit, given r defaults to 25 and this
 //is only to work out the probability estimates, doesnt effect accuracy,so may set it 
 //lower      
-      m_logistic.setMaxIts(1000);
+      m_logistic.setMaxIts(100);
       m_logistic.buildClassifier(data);
     }
     

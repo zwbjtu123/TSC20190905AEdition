@@ -714,35 +714,39 @@ Optional
             }
             if(parameterNum==0)//Not a single parameter fold
             {  
-                //Start of testing
-                int numInsts = test.numInstances();
-                int pred;
-                testResults = new ClassifierResults(test.numClasses());
-                double[] trueClassValues = test.attributeToDoubleArray(test.classIndex()); //store class values here
+                //Start of testing, only doing this if the test file doesnt exist
+                //This is checked before the buildClassifier also, but we have a special case for the file builder
+                //that copies the results over in buildClassifier. No harm in checking again!
+                if(!CollateResults.validateSingleFoldFile(resultsPath+testFoldPath)){
+                    int numInsts = test.numInstances();
+                    int pred;
+                    testResults = new ClassifierResults(test.numClasses());
+                    double[] trueClassValues = test.attributeToDoubleArray(test.classIndex()); //store class values here
 
-                for(int testInstIndex = 0; testInstIndex < numInsts; testInstIndex++) {
-                    test.instance(testInstIndex).setClassMissing();//and remove from each instance given to the classifier (just to be sure)
+                    for(int testInstIndex = 0; testInstIndex < numInsts; testInstIndex++) {
+                        test.instance(testInstIndex).setClassMissing();//and remove from each instance given to the classifier (just to be sure)
 
-                    //make prediction
-                    double[] probs=c.distributionForInstance(test.instance(testInstIndex));
-                    testResults.storeSingleResult(probs);
+                        //make prediction
+                        double[] probs=c.distributionForInstance(test.instance(testInstIndex));
+                        testResults.storeSingleResult(probs);
+                    }
+                    testResults.finaliseResults(trueClassValues); 
+
+                    //Write results
+                    OutFile testOut=new OutFile(resultsPath+testFoldPath);
+                    testOut.writeLine(test.relationName()+","+c.getClass().getName()+",test");
+                    if(c instanceof SaveParameterInfo)
+                      testOut.writeLine(((SaveParameterInfo)c).getParameters());
+                    else
+                        testOut.writeLine("No parameter info");
+                    testOut.writeLine(testResults.acc+"");
+                    testOut.writeString(testResults.writeInstancePredictions());
+                    testOut.closeFile();
+                    File f=new File(resultsPath+testFoldPath);
+                    if(f.exists())
+                        f.setWritable(true, false);
+                    
                 }
-                testResults.finaliseResults(trueClassValues); 
-
-                //Write results
-                OutFile testOut=new OutFile(resultsPath+testFoldPath);
-                testOut.writeLine(test.relationName()+","+c.getClass().getName()+",test");
-                if(c instanceof SaveParameterInfo)
-                  testOut.writeLine(((SaveParameterInfo)c).getParameters());
-                else
-                    testOut.writeLine("No parameter info");
-                testOut.writeLine(testResults.acc+"");
-                testOut.writeString(testResults.writeInstancePredictions());
-                testOut.closeFile();
-                File f=new File(resultsPath+testFoldPath);
-                if(f.exists())
-                    f.setWritable(true, false);
-                
                 return testResults.acc;
             }
             else

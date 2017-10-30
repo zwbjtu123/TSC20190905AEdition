@@ -106,62 +106,53 @@ public class TunedTwoLayerMLP extends MultilayerPerceptron implements SaveParame
     }
     @Override
     public void setParametersFromIndex(int x) {
+        x=x-1;
 //Para 1: structure: 8 settings
 //Para 2: Learning rate: 8 settings
 //Para 3: Momentum: 8 settings
 //Para 4: Decay: 2 settings
 //        int paraSpaceSize=8*8*8*2=1024;
-        
-        paraSpace1=new String[8]; //# hidden layers
-        paraSpace1[0]="a";// =(m_numAttributes + m_numClasses) / 2;
-        paraSpace1[1]="i";//=m_numAttributes;
-        paraSpace1[2]="o";// = m_numClasses;
-        paraSpace1[3]="t";//= m_numAttributes + m_numClasses;    
-        paraSpace1[4]="a,a";// =(m_numAttributes + m_numClasses) / 2;
-        paraSpace1[5]="i,i";//=m_numAttributes;
-        paraSpace1[6]="o,o";// = m_numClasses;
-        paraSpace1[7]="t,t";//= m_numAttributes + m_numClasses;    
-        paraSpace2=new double[8];//Learning rate
-        for(int i=0;i<paraSpace2.length;i++)
-            paraSpace2[i]=1.0/Math.pow(2,i);
-        paraSpace3=new double[8];//momentum
-        for(int i=0;i<paraSpace3.length;i++)
-            paraSpace3[i]=i/10.0;
-        paraSpace4=new boolean[2];
-        paraSpace4[0]=true;
-        paraSpace4[1]=false;        
-        
-        
-        String p1="0";
-        if(x<=200)
-            p1="0,0";
-        else if(x<=400)
-            p1="a,a";
-        else if(x<=600)
-            p1="i,i";
-        else if(x<=800)
-            p1="o,o";
+        int para1Value=x/128; // First block para 1
+        int remainder=x%128;
+        int para2Value=remainder/16;
+        remainder=remainder%16;
+        int para3Value=remainder/2;
+        int para4Value=x%2;
+        System.out.println(para1Value+","+para2Value+","+para3Value+","+para4Value);
+        switch(para1Value){
+            case 0:
+                this.setHiddenLayers("a");
+            break;
+            case 1:
+                this.setHiddenLayers("i");
+            break;
+            case 2:
+                this.setHiddenLayers("o");
+            break;
+            case 3:
+                this.setHiddenLayers("t");
+            break;
+            case 4:
+                this.setHiddenLayers("a,a");
+            break;
+            case 5:
+                this.setHiddenLayers("i,i");
+            break;
+            case 6:
+                this.setHiddenLayers("o,o");
+            break;
+            case 7:
+                this.setHiddenLayers("t,t");
+            break;
+        }
+        this.setLearningRate(1.0/Math.pow(2,para2Value));
+
+ // SET UP MODEL        
+        this.setMomentum(((double)para3Value)/10.0);
+        if(para4Value==0)
+            this.setDecay(false);
         else
-            p1="t";
-        int t=(x-1)%200;
-        boolean p4;
-        if(t<=100)
-            p4=false;
-        else
-            p4=true;
-        t=(x-1)%100;
-        double p2=Math.pow(2,t%10);
-        p2=1.0/p2;
-        double p3=t/10;
-        p3=p3/10;
- /* SET UP MODEL        */
-        this.setHiddenLayers(p1);
-        this.setLearningRate(p2);
-        this.setMomentum(p3);
-        this.setDecay(p4);
-        if(debug)
-            System.out.println("input ="+x+" Paras ="+p1+","+p2+","+p3+","+p4);
-        
+            this.setDecay(true);
     }
     public void setSeed(int s){
         super.setSeed(s);
@@ -443,7 +434,7 @@ this gives the option of finding one. It is inefficient
 //        jamesltests();
         TunedTwoLayerMLP t=new TunedTwoLayerMLP();
         t.debug=true;
-        for(int i=1;i<=1000;i++)
+        for(int i=1;i<=1024;i++)
             t.setParametersFromIndex(i);
         System.exit(0);
         

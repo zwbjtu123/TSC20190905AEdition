@@ -67,7 +67,6 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
     String trainPath="";
     boolean debug=false;
     protected boolean findTrainAcc=true;
-    
     Random rng;
     ArrayList<Double> accuracy;
     private boolean kernelOptimise=false;   //Choose between linear, quadratic and RBF kernel
@@ -75,9 +74,11 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
     private ClassifierResults res =new ClassifierResults();
     private long combinedBuildTime;
     private boolean buildFromFile=false;
-    
     protected String resultsPath;
     protected boolean saveEachParaAcc=false;
+//HARD CODED FLAG that allows a build from partials    
+    private boolean buildFromPartial=false;
+    
     @Override
     public void setPathToSaveParameters(String r){
             resultsPath=r;
@@ -848,14 +849,119 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
         }
         
     }
-//    private void 
+    private void setRBFParasFromPartiallyCompleteSearch() throws Exception{
+         paras=new double[2];
+        combinedBuildTime=0;
+        ArrayList<TunedSVM.ResultsHolder> ties=new ArrayList<>();
+    //            If so, read them all from file, pick the best
+        int count=0;
+        int present=0;
+        double minErr=1;
+        for(double p1:paraSpace1){//C
+            for(double p2:paraSpace2){//GAMMA
+                ClassifierResults tempResults = new ClassifierResults();
+                count++;
+                if(new File(resultsPath+count+".csv").exists()){
+                    present++;
+                    tempResults.loadFromFile(resultsPath+count+".csv");
+                    combinedBuildTime+=tempResults.buildTime;
+                    double e=1-tempResults.acc;
+                    if(e<minErr){
+                        minErr=e;
+                        ties=new ArrayList<>();//Remove previous ties
+                        ties.add(new TunedSVM.ResultsHolder(p1,p2,tempResults));
+                    }
+                    else if(e==minErr){//Sort out ties
+                            ties.add(new TunedSVM.ResultsHolder(p1,p2,tempResults));
+                    }
+                }
+            }
+        }
+//Set the parameters
+        if(present>0){
+            System.out.println("Number of paras = "+present);
+            System.out.println("Number of best = "+ties.size());
+            TunedSVM.ResultsHolder best=ties.get(rng.nextInt(ties.size()));
+            double bestC;
+            double bestSigma;
+            bestC=best.x;
+            bestSigma=best.y;
+            paras[0]=bestC;
+            paras[1]=bestSigma;
+            setC(bestC);
+            ((RBFKernel)m_kernel).setGamma(bestSigma);
+            res=best.res;
+        }        
+        else
+            throw new Exception("Error, no parameter files for "+resultsPath);
+    }
+    private void setPolynomialParasFromPartiallyCompleteSearch() throws Exception{
+         paras=new double[3];
+        combinedBuildTime=0;
+        ArrayList<TunedSVM.ResultsHolder> ties=new ArrayList<>();
+    //            If so, read them all from file, pick the best
+        int count=0;
+        int present=0;
+        double minErr=1;
+        for(double p1:paraSpace1){//
+            for(double p2:paraSpace2){//
+                for(double p3:paraSpace3){//
+                    ClassifierResults tempResults = new ClassifierResults();
+                    count++;
+                    if(new File(resultsPath+count+".csv").exists()){
+                        present++;
+                        tempResults.loadFromFile(resultsPath+count+".csv");
+                        combinedBuildTime+=tempResults.buildTime;
+                        double e=1-tempResults.acc;
+                        if(e<minErr){
+                            minErr=e;
+                            ties=new ArrayList<>();//Remove previous ties
+                            ties.add(new TunedSVM.ResultsHolder(p1,p2,p3,tempResults));
+                        }
+                        else if(e==minErr){//Sort out ties
+                                ties.add(new TunedSVM.ResultsHolder(p1,p2,p3,tempResults));
+                        }
+                    }
+                }
+            }
+        }
+//Set the parameters
+        if(present>0){
+            System.out.println("Number of paras = "+present);
+            System.out.println("Number of best = "+ties.size());
+            TunedSVM.ResultsHolder best=ties.get(rng.nextInt(ties.size()));
+            double bestC;
+            double bestSigma;
+            bestC=best.x;
+            bestSigma=best.y;
+            paras[0]=bestC;
+            paras[1]=bestSigma;
+            setC(bestC);
+            ((RBFKernel)m_kernel).setGamma(bestSigma);
+            res=best.res;
+        }        
+        else
+            throw new Exception("Error, no parameter files for "+resultsPath);
+    }
+ 
+    
     @Override
     public void buildClassifier(Instances train) throws Exception {
         res =new ClassifierResults();
         long t=System.currentTimeMillis();
 //        if(kernelOptimise)
 //            selectKernel(train);
-        if(tuneParameters){
+        if(buildFromPartial){
+            if(paraSpace1==null)
+                setStandardParaSearchSpace();  
+            if(kernel==KernelType.RBF)
+                setRBFParasFromPartiallyCompleteSearch();            
+//            else if(kernel==KernelType.LINEAR || kernel==KernelType.QUADRATIC)
+//                setFixedPolynomialParasFromPartiallyCompleteSearch();            
+                else if(kernel==KernelType.POLYNOMIAL)
+                    setPolynomialParasFromPartiallyCompleteSearch();            
+        }
+        else if(tuneParameters){
             if(paraSpace1==null)
                 setStandardParaSearchSpace();
             if(buildFromFile){
