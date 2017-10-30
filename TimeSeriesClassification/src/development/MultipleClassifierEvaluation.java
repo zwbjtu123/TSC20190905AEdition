@@ -1,5 +1,6 @@
 package development;
 
+import ResultsProcessing.MatlabController;
 import utilities.ClassifierResultsAnalysis;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
@@ -23,14 +24,14 @@ import utilities.generic_storage.Pair;
  * classifiers/results located in memory or on disk and call runComparison(). 
  * 
  * Least-code one-off use case that's good enough for most problems is: 
- *       new MultipleClassifierEvaluation("writePath/", "expName", numFolds).
+ *       new MultipleClassifierEvaluation("write/path/", "experimentName", numFolds).
  *          setDatasets(development.DataSets.UCIContinuousFileNames).
- *          readInClassifiers(new String[] {"NN", "C4.5"}, basePath).
+ *          readInClassifiers(new String[] {"NN", "C4.5"}, baseReadingPath).
  *          runComparison();  
  * 
  * Will call findAllStatsOnce on each of the ClassifierResults (i.e. will do nothing if findAllStats has already been called elsewhere before), 
  * and there's a bool (default true) to set whether to null the instance prediction info after stats are found to save memory. 
- * If some custom analysis method not defined natively in classifierresults uses the individual prediction info, 
+ * If some custom analysis method not defined natively in classifierresults that uses the individual prediction info, 
  * (defined using addEvaluationStatistic(String statName, Function<ClassifierResults, Double> classifierResultsManipulatorFunction))
  * will need to keep the info, but that can get problematic depending on how many classifiers/datasets/folds there are
  * 
@@ -76,7 +77,7 @@ public class MultipleClassifierEvaluation implements DebugPrinting {
         
         this.buildMatlabDiagrams = false;
         this.cleanResults = true;
-        this.testResultsOnly = false;
+        this.testResultsOnly = true;
 
         this.datasets = new ArrayList<>();
         this.classifiersResults = new HashMap<>();
@@ -288,6 +289,9 @@ public class MultipleClassifierEvaluation implements DebugPrinting {
         printlnDebug("Writing started");
         ClassifierResultsAnalysis.writeAllEvaluationFiles(writePath, experimentName, statistics, results, datasets.toArray(new String[] { }));
         printlnDebug("Writing finished");
+        
+        if (buildMatlabDiagrams)
+            MatlabController.getInstance().discconnectMatlab();
     }
 
     public static void main(String[] args) throws Exception {
@@ -295,10 +299,10 @@ public class MultipleClassifierEvaluation implements DebugPrinting {
 //            String basePath = "Z:/Results/FinalisedUCIContinuous/";
 
         MultipleClassifierEvaluation mcc = 
-            new MultipleClassifierEvaluation("C:/JamesLPHD/analysisTest/", "testrunAll7", 30);
+            new MultipleClassifierEvaluation("C:/JamesLPHD/analysisTest/", "testrunPWS10", 30);
         
-        mcc.setTestResultsOnly(false); //as is default
-        mcc.setBuildMatlabDiagrams(false); //as is default
+        mcc.setTestResultsOnly(true); //as is default
+        mcc.setBuildMatlabDiagrams(true); //as is default
         mcc.setCleanResults(true); //as is default
         mcc.setDebugPrinting(true);
         
@@ -310,7 +314,7 @@ public class MultipleClassifierEvaluation implements DebugPrinting {
         mcc.setDatasets(development.DataSets.UCIContinuousFileNames);
         
         //general rule of thumb: set/add/read the classifiers as the last thing before running
-        mcc.readInClassifiers(new String[] {"NN", "C4.5"}, basePath); 
+        mcc.readInClassifiers(new String[] {"NN", "C4.5", "RotF", "RandF"}, basePath); 
 //        mcc.readInClassifier("RandF", basePath); //
 
         mcc.runComparison();  

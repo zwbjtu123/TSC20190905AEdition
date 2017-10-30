@@ -89,7 +89,7 @@ end
 
 cd = qalpha(k)*sqrt(k*(k+1)/(6*N));
 
-f = figure('Name', name);
+f = figure('Name', name, 'visible', 'off');
 
 set(f,'Units','normalized');		
 set(f,'Position',[0 0 0.7 0.5]);

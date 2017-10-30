@@ -17,28 +17,37 @@ import weka.core.Instances;
  * dataset passed (initial intention being the ifr non-invasive whiskey datasets)
  * and does the standard regression, before converting the output back into a discrete class value
  * 
+ * This version ignores the true values of the classes, instead just representing as class 0,1...c
+ * If c>2, classes should be ordered (ascending or descending, doesn't matter) by whatever logical
+ * ordering makes sense for the dataset. 
+ * 
  * @author James Large (james.large@uea.ac.uk)
  */
 public class PLSNominalClassifier extends PLSClassifier {
 
     protected Attribute classAttribute;
-    protected double[] numericClassVals;
     protected int classind;
+    protected int numClasses;
     
     public PLSNominalClassifier() {
         super();
+    }
+    
+    public int getNumComponents() {
+         return this.m_Filter.getNumComponents();
+    }
+    
+    public void setNumComponents(int value) {
+         this.m_Filter.setNumComponents(value);
     }
     
     @Override
     public void buildClassifier(Instances data) throws Exception {
         Instances train = new Instances(data);
         
+        numClasses = train.numClasses();
         classind = train.classIndex();
         classAttribute = train.classAttribute();
-        numericClassVals = new double[classAttribute.numValues()];
-              
-        for (int i = 0; i < numericClassVals.length; i++)
-            numericClassVals[i] = convertNominalToNumeric(classAttribute.value(i));
         
         FastVector<Attribute> atts = new FastVector<>(train.numAttributes());
         for (int i = 0; i < train.numAttributes(); i++) {
@@ -56,7 +65,7 @@ public class PLSNominalClassifier extends PLSClassifier {
         
         for (int i = 0; i < train.numInstances(); i++) {
             temp.add(new DenseInstance(1.0, train.instance(i).toDoubleArray()));
-            temp.instance(i).setClassValue(numericClassVals[(int)train.instance(i).classValue()]);
+            temp.instance(i).setClassValue(train.instance(i).classValue());
         }
         
         train = temp;
@@ -81,21 +90,19 @@ public class PLSNominalClassifier extends PLSClassifier {
     public double[] distributionForInstance(Instance instance) throws Exception {
         double regpred = regressInstance(instance);
         
-        double[] dist = new double[numericClassVals.length];
+        double[] dist = new double[numClasses];
         
-        if (regpred < numericClassVals[0])
+        if (regpred <= 0)
             dist[0] = 1.0;
-        else if (regpred > numericClassVals[numericClassVals.length-1])
-            dist[dist.length-1] = 1.0;
+        else if (regpred >= numClasses-1)
+            dist[numClasses-1] = 1.0;
         else {
-            for (int i = 1; i < numericClassVals.length; i++) {
-                if (regpred < numericClassVals[i]) {
-                    double end = numericClassVals[i] - numericClassVals[i-1];
-                    double t = regpred - numericClassVals[i-1];
-                    double propToRight = t / end;
+            for (int i = 1; i < numClasses; i++) {
+                if (regpred < i) {
+                    double t = regpred % 1;
                     
-                    dist[i] = propToRight;
-                    dist[i-1] = 1-propToRight;
+                    dist[i] = t;
+                    dist[i-1] = 1-t;
                     
                     break;
                 }    

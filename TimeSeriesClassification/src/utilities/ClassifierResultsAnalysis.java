@@ -1,13 +1,21 @@
 
 package utilities;
 
+import ResultsProcessing.CreatePairwiseScatter;
 import ResultsProcessing.MatlabController;
+import ResultsProcessing.ResultColumn;
+import ResultsProcessing.ResultTable;
 import development.MultipleClassifiersPairwiseTest;
 import fileIO.OutFile;
 import java.io.File;
+import java.io.FileFilter;
+import java.io.FileNotFoundException;
+import java.io.FilenameFilter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Scanner;
@@ -53,6 +61,8 @@ import utilities.generic_storage.Pair;
 public class ClassifierResultsAnalysis {
     
     protected static String matlabFilePath = "matlabfiles/";
+    protected static String pairwiseScatterDiaPath = "PairwiseScatterDias/";
+    protected static String cdDiaPath = "cddias/";
     public static double FRIEDMANCDDIA_PVAL = 0.05;
         
     public static boolean buildMatlabDiagrams = false;
@@ -239,6 +249,15 @@ public class ClassifierResultsAnalysis {
         return "cd_"+filename+"_"+statistic+"S";
     }
     
+    protected static String pwsFileName(String filename, String statistic) {
+        return "pws_"+filename+"_"+statistic+"S";
+    }
+    
+    
+    protected static String pwsIndFileName(String c1, String c2, String statistic) {
+        return "pws_"+c1+"VS"+c2+"_"+statistic+"S";
+    }
+    
     protected static String[] writeStatisticOnSplitFiles(String outPath, String filename, String evalSet, String statName, double[][][] foldVals, String[] cnames, String[] dsets) {
         outPath += evalSet + "/";
         
@@ -259,8 +278,7 @@ public class ClassifierResultsAnalysis {
         
         if (evalSet.equalsIgnoreCase("TEST")) {
             //qol for cd dia creation, make a copy of all the raw test stat files in a common folder, one for pairwise, one for freidman
-            File f = new File(outPath);
-            String cdFolder = f.getParentFile().getParent() + "/cddias/";
+            String cdFolder = new File(outPath).getParentFile().getParent() + "/cddias/";
             (new File(cdFolder)).mkdirs();
             OutFile out = new OutFile(cdFolder+"readme.txt");
             out.writeLine("remember that nlls are auto-negated now for cd dia ordering\n");
@@ -282,6 +300,12 @@ public class ClassifierResultsAnalysis {
                     writeTableFileRaw(cdName, dsetVals, cnames);
                 } 
             } //end qol
+            
+            //qol for pairwisescatter dia creation, make a copy of the test stat files 
+            String pwsFolder = new File(outPath).getParentFile().getParent() + "/" + pairwiseScatterDiaPath;
+            (new File(pwsFolder)).mkdirs();
+            String pwsName = pwsFolder+pwsFileName(filename,statName)+".csv";
+            writeTableFileRaw(pwsName, dsetVals, cnames);
         }
         
         writeTableFile(outPath+filename+"_"+evalSet+statName+"RANKS.csv", evalSet+statName+"RANKS", ranks, cnames, dsets);
@@ -360,8 +384,10 @@ public class ClassifierResultsAnalysis {
         
         //write these even if not actually making the dias this execution
         writeCliqueHelperFiles(outPath + "/cdDias/pairwise/", expname, statNames, statCliques); 
-        if(buildMatlabDiagrams)
+        if(buildMatlabDiagrams) {
             buildCDDias(outPath, expname, statNames, statCliques);
+            buildPairwiseScatterDiagrams(outPath, expname, statNames, dsets);
+        }
     }
     
     protected static void writeCliqueHelperFiles(String cdCSVpath, String expname, String[] stats, String[] cliques) {
@@ -378,7 +404,6 @@ public class ClassifierResultsAnalysis {
         proxy.eval("addpath(genpath('"+matlabFilePath+"'))");
         proxy.eval("buildDiasInDirectory('"+outpath+"/cdDias/friedman/"+"', 0, "+FRIEDMANCDDIA_PVAL+")"); //friedman 
         proxy.eval("buildDiasInDirectory('"+outpath+ "/cdDias/pairwise/"+"', 1)");  //pairwise
-        proxy.discconnectMatlab();
     }
         
     protected static void writePerFoldFiles(String outPath, double[][][] folds, String[] cnames, String[] dsets, String splitLabel) {
@@ -943,6 +968,79 @@ public class ClassifierResultsAnalysis {
             System.out.println("ERROR BUILDING RESULTS SPREADSHEET, COPYING CSV");
             System.out.println(e);
             System.exit(0);
+        }
+    }
+    
+    public static Pair<String[], double[][]> readTheFileFFS(String file, int numDsets) throws FileNotFoundException {
+        ArrayList<String> cnames = new ArrayList<>();
+        
+        Scanner in = new Scanner(new File(file));
+        
+        Scanner linein = new Scanner(in.nextLine());
+        linein.useDelimiter(",");
+        
+        while (linein.hasNext())
+            cnames.add(linein.next());
+        
+        double[][] vals = new double[cnames.size()][numDsets];
+        
+        for (int d = 0; d < numDsets; d++) {
+            linein = new Scanner(in.nextLine());
+            linein.useDelimiter(",");
+            for (int c = 0; c < cnames.size(); c++)
+                vals[c][d] = linein.nextDouble();
+        }
+        return new Pair<>(cnames.toArray(new String[] { }), vals);
+    }
+
+    public static void buildPairwiseScatterDiagrams(String outPath, String expName, String[] statNames, String[] dsets) {      
+        outPath += pairwiseScatterDiaPath;
+        
+        for (String statName : statNames) {
+            try {
+                Pair<String[], double[][]> asd = readTheFileFFS(outPath + pwsFileName(expName, statName) + ".csv", dsets.length);
+                ResultTable rt = new ResultTable(ResultTable.createColumns(asd.var1, dsets, asd.var2));
+
+                int numClassiifers = rt.getColumns().size();
+
+                MatlabController proxy = MatlabController.getInstance();
+                
+                for (int c1 = 0; c1 < numClassiifers-1; c1++) {
+                    for (int c2 = c1+1; c2 < numClassiifers; c2++) {
+                        String c1name = rt.getColumns().get(c1).getName();
+                        String c2name = rt.getColumns().get(c2).getName();
+                        
+                        if (c1name.compareTo(c2name) > 0) {
+                            String t = c1name;
+                            c1name = c2name;
+                            c2name = t;
+                        }
+                        
+                        String pwFolderName = outPath + c1name + "vs" + c2name + "/";
+                        (new File(pwFolderName)).mkdir();
+                        
+                        List<ResultColumn> pwrl = new ArrayList<>(2);
+                        pwrl.add(rt.getColumn(c1name).get());
+                        pwrl.add(rt.getColumn(c2name).get());
+                        ResultTable pwrt = new ResultTable(pwrl);
+
+                        proxy.eval("array = ["+ pwrt.toStringValues(false) + "];");
+
+                        final StringBuilder concat = new StringBuilder();
+                        concat.append("'");
+                        concat.append(c1name.replaceAll("_", "\\\\_"));
+                        concat.append("',");
+                        concat.append("'");
+                        concat.append(c2name.replaceAll("_", "\\\\_"));
+                        concat.append("'");
+                        proxy.eval("labels = {" + concat.toString() + "}");
+                        
+                        proxy.eval("pairedscatter('" + pwFolderName + pwsIndFileName(c1name, c2name, statName).replaceAll("\\.", "") + "',array(:,1),array(:,2),labels,'"+statName+"')");
+                    }
+                }
+            } catch (Exception io) {
+                System.out.println("buildPairwiseScatterDiagrams("+outPath+") failed loading " + statName + " file\n" + io);
+            }
         }
     }
     
