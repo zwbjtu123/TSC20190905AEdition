@@ -9,7 +9,7 @@ package applications;
 
 import development.DataSets;
 import development.Experiments;
-import vector_classifiers.RandomRotationForestLimitedAttributes;
+import vector_classifiers.RotationForestLimitedAttributes;
 import fileIO.InFile;
 import fileIO.OutFile;
 import java.io.File;
@@ -178,9 +178,9 @@ public class Football{
                 c= svm;
                 break;
             case "RandomRotationForest1":
-                c= new RandomRotationForestLimitedAttributes();
-                ((RandomRotationForestLimitedAttributes)c).setNumIterations(200);
-                ((RandomRotationForestLimitedAttributes)c).setMaxNumAttributes(100);
+                c= new RotationForestLimitedAttributes();
+                ((RotationForestLimitedAttributes)c).setNumIterations(200);
+                ((RotationForestLimitedAttributes)c).setMaxNumAttributes(100);
                 break;
             case "Logistic":
                 c= new Logistic();
