@@ -142,16 +142,6 @@ public class ERP1NN extends Efficient1NN{
         return Math.sqrt(curr[m-1]);
     }
 
-        
-    
-    
-    
-    
-    @Override
-    public double[] distributionForInstance(Instance instance) throws Exception {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-
     @Override
     public Capabilities getCapabilities() {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.

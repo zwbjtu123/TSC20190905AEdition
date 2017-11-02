@@ -356,9 +356,9 @@ public static void averageOverFolds(){
         String name=classifiers[0];
         for(int i=1;i<classifiers.length;i++)
             name+=classifiers[i];
-        String filePath=basePath+name+"\\";
+        String filePath=basePath+name+"/";
         if(classifiers.length==1)
-            filePath+="SummaryStats\\";
+            filePath+="SummaryStats/";
         File nf=new File(filePath);
         if(!nf.isDirectory())
             nf.mkdirs();
@@ -388,7 +388,7 @@ public static void averageOverFolds(){
 //Do counts first
         InFile[] allClassifiers=new InFile[classifiers.length];
         for(int i=0;i<allClassifiers.length;i++){
-            String str=basePath+classifiers[i]+"\\SummaryStats\\"+classifiers[i];
+            String str=basePath+classifiers[i]+"/SummaryStats/"+classifiers[i];
             System.out.println("Loading "+str+"Counts.csv");
             String p=str+"Counts.csv";
             if(new File(p).exists())
@@ -416,7 +416,7 @@ public static void averageOverFolds(){
         for(int j=0;j<allStats.length;j++){
 //Open files with data for all folds        
             for(int i=0;i<allClassifiers.length;i++){
-                String str=basePath+classifiers[i]+"\\SummaryStats\\"+classifiers[i];
+                String str=basePath+classifiers[i]+"/SummaryStats/"+classifiers[i];
                 String p=str+testStats[j]+".csv";
                 if(new File(p).exists())
                     allClassifiers[i]=new InFile(p);
@@ -629,7 +629,7 @@ public static void basicSummaryComparisons(){
         if(args.length>1)
             collate(args);
         else{    
-            String[] str={"\\\\cmptscsvr.cmp.uea.ac.uk\\ueatsc\\Results\\UCIContinuous\\","\\\\cmptscsvr.cmp.uea.ac.uk\\ueatsc\\Data\\UCIContinuous\\","30","false","RotF200","3"};
+            String[] str={"//cmptscsvr.cmp.uea.ac.uk/ueatsc/Results/UCIContinuous/","//cmptscsvr.cmp.uea.ac.uk/ueatsc/Data/UCIContinuous/","30","true","TunedSVMPolynomial","3"};
             
             
             collate(str);

@@ -77,7 +77,7 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
     protected String resultsPath;
     protected boolean saveEachParaAcc=false;
 //HARD CODED FLAG that allows a build from partials    
-    private boolean buildFromPartial=false;
+    private boolean buildFromPartial=true;
     
     @Override
     public void setPathToSaveParameters(String r){
@@ -931,13 +931,13 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
             System.out.println("Number of best = "+ties.size());
             TunedSVM.ResultsHolder best=ties.get(rng.nextInt(ties.size()));
             double bestC;
-            double bestSigma;
+            double bestB;
             bestC=best.x;
-            bestSigma=best.y;
+            bestB=best.y;
             paras[0]=bestC;
-            paras[1]=bestSigma;
+            paras[1]=bestB;
             setC(bestC);
-            ((RBFKernel)m_kernel).setGamma(bestSigma);
+            ((PolynomialKernel)m_kernel).setB(bestB);
             res=best.res;
         }        
         else

@@ -206,11 +206,6 @@ public class TWE1NN extends Efficient1NN{
         dist = D[r][c];
         return dist;
     }
-    
-    @Override
-    public double[] distributionForInstance(Instance instance) throws Exception {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
 
     @Override
     public Capabilities getCapabilities() {

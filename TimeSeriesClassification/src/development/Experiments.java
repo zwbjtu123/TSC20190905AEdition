@@ -87,29 +87,51 @@ public class Experiments implements Runnable{
     static boolean singleFile=false;
     static boolean foldsInFile=false;
     
-    
-public static String[] cmpv2202398={
-"miniboone"};
-    
-    
+public static String threadClassifier="TunedSVMPolynomial";    
 public static String[] cmpv2264419={
-"miniboone"
-        /*"trains",
-"twonorm",
-"vertebral-column-2clases",
-"vertebral-column-3clases",
-"wall-following",
-"waveform",
-"waveform-noise",
-"wine",
-"wine-quality-red",
-"wine-quality-white",
-"yeast",
-"zoo"
-*/};
+"annealing",
+"haberman-survival",
+"ilpd-indian-liver",
+"molec-biol-splice",
+"monks-2",
+"mushroom",
+"musk-2"
+};
 public static String[] ajb17pc={
-    "connect-4","miniboone"
+"nursery",
+"page-blocks",
+"pima",
+"plant-texture",
+"ringnorm",
+"spambase",
+"statlog-australian-credit",
+"statlog-landsat",
+"steel-plates",
+"thyroid",
+"wall-following",
+"blood"
 };    
+public static String[] cmpv2202398={
+"wine-quality-red",
+"hill-valley",
+"bank",
+"yeast",
+"mammographic",
+"abalone",
+"wine-quality-white",
+};
+//TODO
+/*
+"contrac",
+"magic",
+"statlog-shuttle",
+"chess-krvk",
+"adult",
+"connect-4",
+"miniboone"
+
+*/
+
     public static Classifier setClassifier(String classifier, int fold){
         Classifier c=null;
         TunedSVM svm=null;
@@ -430,9 +452,10 @@ Optional
                 System.exit(0);
             }
             else{ //Threaded run
-//              threadedExperiment("cmpv2202398");  
-              threadedExperiment("ajb17pc");  
-//              threadedExperiment("ajb17pc");  
+              threadedExperiment("cmpv2202398");  
+//             threadedExperiment("ajb17pc");  
+ //            threadedExperiment("cmpv2264419");  
+
 // //             threadedExperiment("UCIContinuous");  
 //              threadedExperiment("LargeProblems");  
             }
@@ -443,7 +466,8 @@ Optional
     
     }
     public static void threadedExperiment(String dataSet) throws Exception{
-        folds=30;
+        int startFold=1;
+        int endFold=30;
         
         int cores = Runtime.getRuntime().availableProcessors();        
         System.out.println("# cores ="+cores);
@@ -455,7 +479,7 @@ Optional
         DataSets.resultsPath="//cmptscsvr.cmp.uea.ac.uk/ueatsc/Results/"+dataSet+"/";         //Results path
         String[] problems;
         parameterNum=0;   
-        String classifier="TunedRotF";
+        String classifier=threadClassifier;
         if(dataSet.equals("UCIContinuous"))
             problems=DataSets.UCIContinuousFileNames;
         else if(dataSet.equals("TSCProblems"))
@@ -490,9 +514,9 @@ Optional
         generateTrainFiles=true;
         checkpoint=true;
         for(int i=0;i<names.size();i++){//Iterate over problems
-            if(isPig(names.get(i)))
-                continue;
-            for(int j=1;j<=folds;j++){//Iterate over folds
+//            if(isPig(names.get(i)))
+//                continue;
+            for(int j=startFold;j<=endFold;j++){//Iterate over folds
                 String[] args=new String[3];
                 args[0]=classifier;
                 args[1]=names.get(i);

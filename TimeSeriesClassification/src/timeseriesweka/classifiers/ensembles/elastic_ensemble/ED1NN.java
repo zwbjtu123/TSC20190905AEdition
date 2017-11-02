@@ -46,8 +46,10 @@ public class ED1NN extends Efficient1NN{
     
     @Override
     public double[] distributionForInstance(Instance instance) throws Exception {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
+        double[] dist=new double[instance.numClasses()];
+        dist[(int)classifyInstance(instance)]=1;
+        return dist;
+                }
 
     @Override
     public Capabilities getCapabilities() {
