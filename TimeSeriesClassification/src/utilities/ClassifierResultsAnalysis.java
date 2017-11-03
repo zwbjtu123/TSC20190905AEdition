@@ -386,7 +386,9 @@ public class ClassifierResultsAnalysis {
         writeCliqueHelperFiles(outPath + "/cdDias/pairwise/", expname, statNames, statCliques); 
         if(buildMatlabDiagrams) {
             buildCDDias(outPath, expname, statNames, statCliques);
-            buildPairwiseScatterDiagrams(outPath, expname, statNames, dsets);
+            //not yet supported, tested this part for first time in a while and matlab looked into the ark of the covenant
+            //java heap errors in matlab etc
+            //buildPairwiseScatterDiagrams(outPath, expname, statNames, dsets);
         }
     }
     
