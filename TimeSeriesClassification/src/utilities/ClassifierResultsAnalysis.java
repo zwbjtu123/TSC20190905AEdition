@@ -388,7 +388,7 @@ public class ClassifierResultsAnalysis {
             buildCDDias(outPath, expname, statNames, statCliques);
             //not yet supported, tested this part for first time in a while and matlab looked into the ark of the covenant
             //java heap errors in matlab etc
-            //buildPairwiseScatterDiagrams(outPath, expname, statNames, dsets);
+            buildPairwiseScatterDiagrams(outPath, expname, statNames, dsets);
         }
     }
     
@@ -406,6 +406,7 @@ public class ClassifierResultsAnalysis {
         proxy.eval("addpath(genpath('"+matlabFilePath+"'))");
         proxy.eval("buildDiasInDirectory('"+outpath+"/cdDias/friedman/"+"', 0, "+FRIEDMANCDDIA_PVAL+")"); //friedman 
         proxy.eval("buildDiasInDirectory('"+outpath+ "/cdDias/pairwise/"+"', 1)");  //pairwise
+        proxy.eval("clear"); 
     }
         
     protected static void writePerFoldFiles(String outPath, double[][][] folds, String[] cnames, String[] dsets, String splitLabel) {
@@ -1038,6 +1039,7 @@ public class ClassifierResultsAnalysis {
                         proxy.eval("labels = {" + concat.toString() + "}");
                         
                         proxy.eval("pairedscatter('" + pwFolderName + pwsIndFileName(c1name, c2name, statName).replaceAll("\\.", "") + "',array(:,1),array(:,2),labels,'"+statName+"')");
+                        proxy.eval("clear");
                     }
                 }
             } catch (Exception io) {
