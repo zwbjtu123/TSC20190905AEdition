@@ -14,7 +14,6 @@ import timeseriesweka.classifiers.BOSS;
 import timeseriesweka.classifiers.ElasticEnsemble;
 import timeseriesweka.classifiers.LearnShapelets;
 import timeseriesweka.classifiers.ST_HESCA;
-import weka.classifiers.Classifier;
 
 /**
  *

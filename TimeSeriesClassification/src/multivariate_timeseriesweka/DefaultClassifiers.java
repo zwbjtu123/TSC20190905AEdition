@@ -16,6 +16,7 @@ import multivariate_timeseriesweka.classifiers.NN_DTW_I;
 import multivariate_timeseriesweka.classifiers.NN_ED_D;
 import multivariate_timeseriesweka.classifiers.NN_ED_I;
 import multivariate_timeseriesweka.ensembles.IndependentDimensionEnsemble;
+import timeseriesweka.classifiers.ST_HESCA;
 import timeseriesweka.classifiers.ensembles.elastic_ensemble.DTW1NN;
 import weka.classifiers.Classifier;
 import weka.classifiers.functions.MultilayerPerceptron;
@@ -49,6 +50,7 @@ public class DefaultClassifiers {
         map.put("1NN_DTW_concat",DefaultClassifiers::create1NNDTW_concat);
         map.put("MLP_concat",DefaultClassifiers::createMultilayerPerceptron_concat);
         map.put("SMO_concat",DefaultClassifiers::createSMO_concat);
+        map.put("ST_concat",DefaultClassifiers::createST_concat);
         CLASSIFIERS = Collections.unmodifiableMap(map);
     }
     
@@ -159,6 +161,10 @@ public class DefaultClassifiers {
         return c;
     }
     
+    
+    public static Classifier createST_concat(){
+        return new ConcatenateClassifier(new ST_HESCA());
+    }
     
     
 }

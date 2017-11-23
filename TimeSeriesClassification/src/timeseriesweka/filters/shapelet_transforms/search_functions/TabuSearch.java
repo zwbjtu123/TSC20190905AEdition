@@ -41,19 +41,32 @@ public class TabuSearch extends ImpRandomSearch{
         super.init(input);
         
         float subsampleSize = (float) inputData.numInstances() * proportion;
-        
         numShapeletsPerSeries = (int) ((float) numShapelets / subsampleSize);  
         seriesToConsider = new BitSet(inputData.numInstances());
         
+        
+        System.out.println(numShapeletsPerSeries);
+        
+        //if we're looking at less than root(m) shapelets per series. sample to root n.
+        if(numShapeletsPerSeries < Math.sqrt(inputData.numAttributes()-1)){
+            //recalc prop and subsample size.
+            proportion =  ((float) Math.sqrt(inputData.numInstances()) / (float)inputData.numInstances());
+            subsampleSize = (float) inputData.numInstances() * proportion;
+            numShapeletsPerSeries = (int) ((float) numShapelets / subsampleSize);  
+            System.out.println("sampling");
+        }
+                    
         if(proportion >= 1.0){
             seriesToConsider.set(0, inputData.numInstances(), true); //enable all
-            return;
+        }
+        else{
+            //randomly select % of the series.
+            for(int i=0; i< subsampleSize; i++){
+                seriesToConsider.set(random.nextInt((int) subsampleSize));
+            }
         }
         
-        //randomly select 25% of the series.
-        for(int i=0; i< subsampleSize; i++){
-            seriesToConsider.set(random.nextInt((int) subsampleSize));
-        }
+        System.out.println(numShapeletsPerSeries);
         
         // we might need to reduce the number of series. could do 10% subsampling.
         if(numShapeletsPerSeries < 1)

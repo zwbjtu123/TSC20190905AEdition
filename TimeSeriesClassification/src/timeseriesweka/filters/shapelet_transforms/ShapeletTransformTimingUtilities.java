@@ -313,17 +313,17 @@ public class ShapeletTransformTimingUtilities
     }
     
     
-    public static long calc(int n, int m, int min, int max, int pos, int len)
+    public static double calc(int n, int m, int min, int max, int pos, int len)
     {
-        long numOps =0;
+        double numOps =0;
         
         //-1 from max because we index from 0.
         for(int length = 0; length <= ((max-min)/len); length++){
                         
             int currentLength = (len*length) + min;
-            long shapeletsLength = (long) Math.ceil((double)(m - currentLength + 1) / (double) pos); //shapelts found.
+            double shapeletsLength = Math.ceil((double)(m - currentLength + 1) / (double) pos); //shapelts found.
             
-            long shapeletsCompared = (m - currentLength + 1);
+            double shapeletsCompared = (m - currentLength + 1);
             
             numOps += shapeletsLength*shapeletsCompared*currentLength;
         }

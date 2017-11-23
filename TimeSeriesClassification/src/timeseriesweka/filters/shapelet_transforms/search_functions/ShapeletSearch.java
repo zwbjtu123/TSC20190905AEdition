@@ -99,7 +99,6 @@ public class ShapeletSearch implements Serializable{
                 //for univariate this will be just once.
                 for(int dim = 0; dim < numDimensions; dim++)   {
                     Shapelet shapelet = checkCandidate.process(getTimeSeries(timeSeries,dim), start, length, dim);
-
                     if (shapelet != null) {
                         seriesShapelets.add(shapelet);
                         shapeletsVisited.add(seriesCount+","+length+","+start+","+shapelet.qualityValue);

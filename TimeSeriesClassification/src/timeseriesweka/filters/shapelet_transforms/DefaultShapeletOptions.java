@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package multivariate_timeseriesweka;
+package timeseriesweka.filters.shapelet_transforms;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -12,13 +12,13 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
-import timeseriesweka.filters.shapelet_transforms.ShapeletTransformFactoryOptions;
-import timeseriesweka.filters.shapelet_transforms.ShapeletTransformTimingUtilities;
 import static timeseriesweka.filters.shapelet_transforms.ShapeletTransformTimingUtilities.nanoToOp;
 import timeseriesweka.filters.shapelet_transforms.distance_functions.SubSeqDistance;
 import timeseriesweka.filters.shapelet_transforms.search_functions.ShapeletSearch;
 import static timeseriesweka.filters.shapelet_transforms.search_functions.ShapeletSearch.SearchType.FULL;
 import static timeseriesweka.filters.shapelet_transforms.search_functions.ShapeletSearch.SearchType.IMP_RANDOM;
+import static timeseriesweka.filters.shapelet_transforms.search_functions.ShapeletSearch.SearchType.MAGNIFY;
+import static timeseriesweka.filters.shapelet_transforms.search_functions.ShapeletSearch.SearchType.TABU;
 import timeseriesweka.filters.shapelet_transforms.search_functions.ShapeletSearchOptions;
 import weka.core.Instances;
 import utilities.TriFunction;
@@ -45,6 +45,10 @@ public class DefaultShapeletOptions {
         map.put("INDEPENDENT", DefaultShapeletOptions::createIndependentShapeletSearch_TIMED);
         map.put("SHAPELET_I", DefaultShapeletOptions::createSHAPELET_I_TIMED);
         map.put("SHAPELET_D", DefaultShapeletOptions::createSHAPELET_D_TIMED);
+        map.put("SKIPPING", DefaultShapeletOptions::createSKIPPING_TIMED);
+        map.put("TABU", DefaultShapeletOptions::createTABU_TIMED);
+        map.put("RANDOM", DefaultShapeletOptions::createRANDOM_TIMED);
+        map.put("MAGNIFY", DefaultShapeletOptions::createMAGNIFY_TIMED);
 
         TIMED_FACTORY_OPTIONS = Collections.unmodifiableMap(map);
     }
@@ -200,6 +204,189 @@ public class DefaultShapeletOptions {
                                             .setKShapelets(K)
                                             .setSearchOptions(searchBuilder.build())
                                             .setDistanceType(SubSeqDistance.DistanceType.DEPENDENT)
+                                            .useBinaryClassValue()
+                                            .useClassBalancing()
+                                            .useCandidatePruning()
+                                            .build();
+        return options;
+    }
+    
+    public static ShapeletTransformFactoryOptions createSKIPPING_TIMED(Instances train, long time, long seed){  
+        int n = train.numInstances();
+        int m = train.numAttributes()-1;
+        //create our search options.
+        ShapeletSearchOptions.Builder searchBuilder = new ShapeletSearchOptions.Builder();
+        searchBuilder.setMin(3);
+        searchBuilder.setMax(m);
+
+        //clamp K to 2000.
+        int K = n > 2000 ? 2000 : n;   
+           
+        //how much time do we have vs. how long our algorithm will take.
+        BigInteger opCountTarget = new BigInteger(Long.toString(time / nanoToOp));
+        BigInteger opCount = ShapeletTransformTimingUtilities.calculateOps(n, m, 1, 1);
+        //multiple the total opCount by K becauise for each comparison we do across dimensions.
+        if(opCount.compareTo(opCountTarget) == 1){           
+             //we need to find atleast one shapelet in every series.
+            searchBuilder.setSeed(seed);
+            searchBuilder.setSearchType(FULL);
+            
+            //find skipping values.
+            int i = 1;
+            while(ShapeletTransformTimingUtilities.calc(n, m, 3, m, i, i) > opCountTarget.doubleValue())
+                    i++;
+            System.out.println(i);
+            searchBuilder.setPosInc(i);
+            searchBuilder.setLengthInc(i);
+        }
+
+        
+        ShapeletTransformFactoryOptions options = new ShapeletTransformFactoryOptions.Builder()
+                                            .setKShapelets(K)
+                                            .setSearchOptions(searchBuilder.build())
+                                            .setDistanceType(SubSeqDistance.DistanceType.IMP_ONLINE)
+                                            .useBinaryClassValue()
+                                            .useClassBalancing()
+                                            .useCandidatePruning()
+                                            .build();
+        return options;
+    }
+    
+    
+    public static ShapeletTransformFactoryOptions createTABU_TIMED(Instances train, long time, long seed){  
+        int n = train.numInstances();
+        int m = train.numAttributes()-1;
+        //create our search options.
+        ShapeletSearchOptions.Builder searchBuilder = new ShapeletSearchOptions.Builder();
+        searchBuilder.setMin(3);
+        searchBuilder.setMax(m);
+
+        //clamp K to 2000.
+        int K = n > 2000 ? 2000 : n;   
+        
+        long numShapelets;
+   
+        //how much time do we have vs. how long our algorithm will take.
+        BigInteger opCountTarget = new BigInteger(Long.toString(time / nanoToOp));
+        BigInteger opCount = ShapeletTransformTimingUtilities.calculateOps(n, m, 1, 1);
+        //multiple the total opCount by K becauise for each comparison we do across dimensions.
+        if(opCount.compareTo(opCountTarget) == 1){
+            BigDecimal oct = new BigDecimal(opCountTarget);
+            BigDecimal oc = new BigDecimal(opCount);
+            BigDecimal prop = oct.divide(oc, MathContext.DECIMAL64);
+            
+            //if we've not set a shapelet count, calculate one, based on the time set.
+            numShapelets = ShapeletTransformTimingUtilities.calculateNumberOfShapelets(n,m,3,m);
+            numShapelets *= prop.doubleValue();
+             
+             //we need to find atleast one shapelet in every series.
+            searchBuilder.setSeed(seed);
+            searchBuilder.setSearchType(TABU);
+            searchBuilder.setNumShapelets(numShapelets);
+            
+            // can't have more final shapelets than we actually search through.
+            K =  numShapelets > K ? K : (int) numShapelets;
+        }
+
+        
+        ShapeletTransformFactoryOptions options = new ShapeletTransformFactoryOptions.Builder()
+                                            .setKShapelets(K)
+                                            .setSearchOptions(searchBuilder.build())
+                                            .setDistanceType(SubSeqDistance.DistanceType.IMP_ONLINE)
+                                            .useBinaryClassValue()
+                                            .useClassBalancing()
+                                            .useCandidatePruning()
+                                            .build();
+        return options;
+    }
+    
+       public static ShapeletTransformFactoryOptions createRANDOM_TIMED(Instances train, long time, long seed){  
+        int n = train.numInstances();
+        int m = train.numAttributes()-1;
+        //create our search options.
+        ShapeletSearchOptions.Builder searchBuilder = new ShapeletSearchOptions.Builder();
+        searchBuilder.setMin(3);
+        searchBuilder.setMax(m);
+
+        //clamp K to 2000.
+        int K = n > 2000 ? 2000 : n;   
+        
+        long numShapelets;
+   
+        //how much time do we have vs. how long our algorithm will take.
+        BigInteger opCountTarget = new BigInteger(Long.toString(time / nanoToOp));
+        BigInteger opCount = ShapeletTransformTimingUtilities.calculateOps(n, m, 1, 1);
+        //multiple the total opCount by K becauise for each comparison we do across dimensions.
+        if(opCount.compareTo(opCountTarget) == 1){
+            BigDecimal oct = new BigDecimal(opCountTarget);
+            BigDecimal oc = new BigDecimal(opCount);
+            BigDecimal prop = oct.divide(oc, MathContext.DECIMAL64);
+            
+            //if we've not set a shapelet count, calculate one, based on the time set.
+            numShapelets = ShapeletTransformTimingUtilities.calculateNumberOfShapelets(n,m,3,m);
+            numShapelets *= prop.doubleValue();
+             
+             //we need to find atleast one shapelet in every series.
+            searchBuilder.setSeed(seed);
+            searchBuilder.setSearchType(IMP_RANDOM);
+            searchBuilder.setNumShapelets(numShapelets);
+            
+            // can't have more final shapelets than we actually search through.
+            K =  numShapelets > K ? K : (int) numShapelets;
+        }
+
+        
+        ShapeletTransformFactoryOptions options = new ShapeletTransformFactoryOptions.Builder()
+                                            .setKShapelets(K)
+                                            .setSearchOptions(searchBuilder.build())
+                                            .setDistanceType(SubSeqDistance.DistanceType.IMP_ONLINE)
+                                            .useBinaryClassValue()
+                                            .useClassBalancing()
+                                            .useCandidatePruning()
+                                            .build();
+        return options;
+    }
+       
+    public static ShapeletTransformFactoryOptions createMAGNIFY_TIMED(Instances train, long time, long seed){  
+        int n = train.numInstances();
+        int m = train.numAttributes()-1;
+        //create our search options.
+        ShapeletSearchOptions.Builder searchBuilder = new ShapeletSearchOptions.Builder();
+        searchBuilder.setMin(3);
+        searchBuilder.setMax(m);
+
+        //clamp K to 2000.
+        int K = n > 2000 ? 2000 : n;   
+        
+        long numShapelets;
+   
+        //how much time do we have vs. how long our algorithm will take.
+        BigInteger opCountTarget = new BigInteger(Long.toString(time / nanoToOp));
+        BigInteger opCount = ShapeletTransformTimingUtilities.calculateOps(n, m, 1, 1);
+        //multiple the total opCount by K becauise for each comparison we do across dimensions.
+        if(opCount.compareTo(opCountTarget) == 1){
+            BigDecimal oct = new BigDecimal(opCountTarget);
+            BigDecimal oc = new BigDecimal(opCount);
+            BigDecimal prop = oct.divide(oc, MathContext.DECIMAL64);
+            
+            //if we've not set a shapelet count, calculate one, based on the time set.
+            numShapelets = ShapeletTransformTimingUtilities.calculateNumberOfShapelets(n,m,3,m);
+            numShapelets *= prop.doubleValue();
+             
+             //we need to find atleast one shapelet in every series.
+            searchBuilder.setSeed(seed);
+            searchBuilder.setSearchType(MAGNIFY);
+            searchBuilder.setNumShapelets(numShapelets);
+            
+            // can't have more final shapelets than we actually search through.
+            K =  numShapelets > K ? K : (int) numShapelets;
+        }
+
+        
+        ShapeletTransformFactoryOptions options = new ShapeletTransformFactoryOptions.Builder()
+                                            .setKShapelets(K)
+                                            .setSearchOptions(searchBuilder.build())
+                                            .setDistanceType(SubSeqDistance.DistanceType.IMP_ONLINE)
                                             .useBinaryClassValue()
                                             .useClassBalancing()
                                             .useCandidatePruning()

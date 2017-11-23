@@ -34,25 +34,38 @@ public class MagnifySearch extends ImpRandomSearch{
     BitSet seriesToConsider;
     
     @Override
-    public void init(Instances input){
+    public void init(Instances input){       
+        //we need to detect whether it's multivariate or univariate.
+        //this feels like a hack. BOO.
+        //one relational and a class att.
         maxDepth = 3;
         inputData = input;
+        seriesLength = getSeriesLength();
+
         
         float subsampleSize = (float) inputData.numInstances() * proportion;
         numShapeletsPerSeries = (int) ((float) numShapelets / subsampleSize);  
-        numShapeletsPerSeries /= (float) maxDepth;
-        
         seriesToConsider = new BitSet(inputData.numInstances());
+        
+        //if we're looking at less than root(m) shapelets per series. sample to root n.
+        if(numShapeletsPerSeries < Math.sqrt(inputData.numAttributes()-1)){
+            //recalc prop and subsample size.
+            proportion =  ((float) Math.sqrt(inputData.numInstances()) / (float)inputData.numInstances());
+            subsampleSize = (float) inputData.numInstances() * proportion;
+            numShapeletsPerSeries = (int) ((float) numShapelets / subsampleSize); 
+            System.out.println("sampling");
+        }
+        
+        numShapeletsPerSeries /= (float) maxDepth;
         
         //if proportion is 1.0 enable all series.
         if(proportion >= 1.0){
             seriesToConsider.set(0, inputData.numInstances(), true); //enable all
-            return;
         }
-        
-        //randomly select 25% of the series.
-        for(int i=0; i< subsampleSize; i++){
-            seriesToConsider.set(random.nextInt((int) subsampleSize));
+        else{
+            for(int i=0; i< subsampleSize; i++){
+                seriesToConsider.set(random.nextInt((int) subsampleSize));
+            }
         }
         
         if(numShapeletsPerSeries < 1)
@@ -80,7 +93,6 @@ public class MagnifySearch extends ImpRandomSearch{
 
             //we divide the numShapeletsPerSeries by maxDepth.
             for(int i=0; i<numShapeletsPerSeries; i++){
-                
                 Pair<Integer, Integer> sh = createRandomShapelet(seriesLength-1, minLength, maxLength, minPos, maxPos);
                 Shapelet shape = checkCandidate.process(timeSeries, sh.var1, sh.var2);
                 
@@ -128,6 +140,7 @@ public class MagnifySearch extends ImpRandomSearch{
         //never let the max length go lower than 3.
         int maxL = Math.min(totalLength, Math.max(maxLen, minShapeletLength));
         int minL = Math.max(minShapeletLength, minLen);
+        
         int length = randomRange(random, minL, maxL);
         
 

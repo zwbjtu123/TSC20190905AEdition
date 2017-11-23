@@ -21,7 +21,6 @@ public class SkippingSearch extends ShapeletSearch{
     protected SkippingSearch(ShapeletSearchOptions sops){
         super(sops);
         
-        //TODO: if we're given a fixed amount of shapelets could calculate the skipping parameters.
     }
     
     @Override
@@ -38,14 +37,8 @@ public class SkippingSearch extends ShapeletSearch{
     public ArrayList<Shapelet> SearchForShapeletsInSeries(Instance timeSeries, ProcessCandidate checkCandidate){
         //we want to store a startLength and startPos for each class and cycle them when we're skipping.
         int index = (int)timeSeries.classValue();
-        
-        //if it's been reset back to 0 we need to addon the minShapeletLength;
-        if(lengths[index] == 0)
-            lengths[index] += minShapeletLength;
-        
         int start = positions[index];
-        int length = lengths[index];
-        
+        int length = lengths[index] + minShapeletLength;
         ArrayList<Shapelet> seriesShapelets = new ArrayList<>();
 
         for (; length <= maxShapeletLength; length+=lengthIncrement) {
