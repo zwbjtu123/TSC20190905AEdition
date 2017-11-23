@@ -267,6 +267,10 @@ public class ShapeletTransformTimingUtilities
     }
     
     
+    public static long calculateShapeletsFromOpCount(int numInstances, int numAttributes, long opCount){
+        return (long)((6.0* (double)opCount) / ( numAttributes * ((numAttributes*numAttributes) + (3*numAttributes) + 2)*(numInstances-1)));
+    }
+    
     public static long calculateOperations(Instances train, int minShapeletLength, int maxShapeletLength){      
         return calculateOperations(train.numInstances(), train.numAttributes()-1, minShapeletLength, maxShapeletLength);
     }

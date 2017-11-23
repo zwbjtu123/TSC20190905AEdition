@@ -61,7 +61,7 @@ public class SubSeqDistance implements Serializable{
         startPos = start;
         length = len;
         dimension =  dim;
-        
+
         //only call to double array when we've changed series.
         if(candidateInst==null || candidateInst != inst){
             candidateArray = inst.toDoubleArray();

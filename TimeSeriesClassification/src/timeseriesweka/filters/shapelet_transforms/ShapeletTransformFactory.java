@@ -7,8 +7,8 @@ package timeseriesweka.filters.shapelet_transforms;
  */
 
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.function.Supplier;
 import timeseriesweka.filters.shapelet_transforms.distance_functions.SubSeqDistance;
 import timeseriesweka.filters.shapelet_transforms.class_value.BinaryClassValue;
@@ -24,29 +24,34 @@ import timeseriesweka.filters.shapelet_transforms.distance_functions.Multivariat
 import timeseriesweka.filters.shapelet_transforms.distance_functions.OnlineCachedSubSeqDistance;
 import timeseriesweka.filters.shapelet_transforms.distance_functions.OnlineSubSeqDistance;
 import timeseriesweka.filters.shapelet_transforms.distance_functions.SubSeqDistance.DistanceType;
+import static timeseriesweka.filters.shapelet_transforms.distance_functions.SubSeqDistance.DistanceType.CACHED;
+import static timeseriesweka.filters.shapelet_transforms.distance_functions.SubSeqDistance.DistanceType.DEPENDENT;
+import static timeseriesweka.filters.shapelet_transforms.distance_functions.SubSeqDistance.DistanceType.DIMENSION;
+import static timeseriesweka.filters.shapelet_transforms.distance_functions.SubSeqDistance.DistanceType.IMP_ONLINE;
+import static timeseriesweka.filters.shapelet_transforms.distance_functions.SubSeqDistance.DistanceType.INDEPENDENT;
 import static timeseriesweka.filters.shapelet_transforms.distance_functions.SubSeqDistance.DistanceType.NORMAL;
+import static timeseriesweka.filters.shapelet_transforms.distance_functions.SubSeqDistance.DistanceType.ONLINE;
+import static timeseriesweka.filters.shapelet_transforms.distance_functions.SubSeqDistance.DistanceType.ONLINE_CACHED;
 
 /**
  *
  * @author Aaron
  */
 public class ShapeletTransformFactory {
+     
+    private static final Map<DistanceType, Supplier<SubSeqDistance>> distanceFunctions = createDistanceTable();
     
-    
-    //could change this to a map tbh.
-    private static final List<Supplier<SubSeqDistance>> distanceFunctions = createDistanceTable();
-    
-    private static List<Supplier<SubSeqDistance>> createDistanceTable(){
+    private static Map<DistanceType, Supplier<SubSeqDistance>> createDistanceTable(){
         //istanceType{NORMAL, ONLINE, IMP_ONLINE, CACHED, ONLINE_CACHED, DEPENDENT, INDEPENDENT};
-        List<Supplier<SubSeqDistance>> dCons = new ArrayList<>();
-        dCons.add(SubSeqDistance::new);
-        dCons.add(OnlineSubSeqDistance::new);
-        dCons.add(ImprovedOnlineSubSeqDistance::new);
-        dCons.add(CachedSubSeqDistance::new);
-        dCons.add(OnlineCachedSubSeqDistance::new);
-        dCons.add(MultivariateDependentDistance::new);
-        dCons.add(MultivariateIndependentDistance::new);
-        dCons.add(DimensionDistance::new);
+        Map<DistanceType, Supplier<SubSeqDistance>> dCons = new HashMap();
+        dCons.put(NORMAL, SubSeqDistance::new);
+        dCons.put(ONLINE, OnlineSubSeqDistance::new);
+        dCons.put(IMP_ONLINE, ImprovedOnlineSubSeqDistance::new);
+        dCons.put(CACHED, CachedSubSeqDistance::new);
+        dCons.put(ONLINE_CACHED, OnlineCachedSubSeqDistance::new);
+        dCons.put(DEPENDENT, MultivariateDependentDistance::new);
+        dCons.put(INDEPENDENT, MultivariateIndependentDistance::new);
+        dCons.put(DIMENSION, DimensionDistance::new);
         return dCons;
     }
     
@@ -55,7 +60,6 @@ public class ShapeletTransformFactory {
         options = op;
     }
     
-
     public ShapeletTransform getTransform(){
         //build shapelet transform based on options.
         ShapeletTransform st = createTransform(options.isBalanceClasses());
@@ -67,6 +71,7 @@ public class ShapeletTransformFactory {
         st.setQualityMeasure(options.getQualityChoice());
         st.setRoundRobin(options.useRoundRobin());
         st.setCandidatePruning(options.useCandidatePruning());
+        st.supressOutput();
         return st;
     }    
     
@@ -79,13 +84,12 @@ public class ShapeletTransformFactory {
                                         .setNumShapelets(numShapeletsToEvaluate)
                                         .setSeed(seed)
                                         .build();
-        
-        
+                
         ShapeletTransformFactoryOptions options = new ShapeletTransformFactoryOptions.Builder()
                                             .useClassBalancing()
                                             .useBinaryClassValue()
                                             .useCandidatePruning()
-                                            .setKShapelets(n)
+                                            .setKShapelets(Math.min(2000, n))
                                             .setDistanceType(DistanceType.IMP_ONLINE)
                                             .setSearchOptions(sOp)
                                             .build();
@@ -106,7 +110,7 @@ public class ShapeletTransformFactory {
     }
     
     private SubSeqDistance createDistance(DistanceType dist){
-            return distanceFunctions.get(dist.ordinal()).get();
+            return distanceFunctions.get(dist).get();
     }
     
     
