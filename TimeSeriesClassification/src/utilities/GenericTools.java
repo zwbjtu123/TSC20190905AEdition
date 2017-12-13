@@ -19,6 +19,23 @@ public class GenericTools {
     
     public static final DecimalFormat RESULTS_DECIMAL_FORMAT = new DecimalFormat("#.######");
     
+    public static double indexOfMin(double[] dist) {
+        double min = dist[0];
+        int minInd = 0;
+        
+        for (int i = 1; i < dist.length; ++i) {
+            if (dist[i] < min) {
+                min = dist[i];
+                minInd = i;
+            }
+        }
+        return minInd;
+    }
+    
+    public static double min(double[] array) {
+        return array[(int)indexOfMin(array)];
+    }
+    
     public static double indexOfMax(double[] dist) {
         double max = dist[0];
         int maxInd = 0;
@@ -30,6 +47,10 @@ public class GenericTools {
             }
         }
         return maxInd;
+    }
+    
+    public static double max(double[] array) {
+        return array[(int)indexOfMax(array)];
     }
     
     public static double indexOf(double[] array, double val){

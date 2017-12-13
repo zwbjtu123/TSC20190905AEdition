@@ -26,4 +26,5 @@ public class ErrorReport {
 
     public boolean isEmpty() { return !anyErrors; };
     public String getLog() { return errorLog; };
+    public void setLog(String newLog) { errorLog = newLog; };
 }

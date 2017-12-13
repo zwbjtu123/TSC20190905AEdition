@@ -585,30 +585,30 @@ base xi+1 to xi , that is, A
         return auroc;
     } 
     
-   public String writeAllStats(){
-        String str="Acc,"+acc+"\n";
-        str+="BalancedAcc,"+balancedAcc+"\n"; 
-        str+="sensitivity,"+sensitivity+"\n"; 
-        str+="precision,"+precision+"\n"; 
-        str+="recall,"+recall+"\n"; 
-        str+="specificity,"+specificity+"\n";         
-        str+="f1,"+f1+"\n"; 
-        str+="nll,"+nll+"\n"; 
-        str+="meanAUROC,"+meanAUROC+"\n"; 
-        str+="stddev,"+stddev+"\n"; 
-        str+="Count per class:\n";
-        for(int i=0;i<countPerClass.length;i++)
-            str+="Class "+i+","+countPerClass[i]+"\n";
-        str+="Confusion Matrix:\n";
-        for(int i=0;i<confusionMatrix.length;i++){
-            for(int j=0;j<confusionMatrix[i].length;j++)
-                str+=confusionMatrix[i][j]+",";
-            str+="\n";
-        }
-        return str;
-   }
+    public String writeAllStats(){
+         String str="Acc,"+acc+"\n";
+         str+="BalancedAcc,"+balancedAcc+"\n"; 
+         str+="sensitivity,"+sensitivity+"\n"; 
+         str+="precision,"+precision+"\n"; 
+         str+="recall,"+recall+"\n"; 
+         str+="specificity,"+specificity+"\n";         
+         str+="f1,"+f1+"\n"; 
+         str+="nll,"+nll+"\n"; 
+         str+="meanAUROC,"+meanAUROC+"\n"; 
+         str+="stddev,"+stddev+"\n"; 
+         str+="Count per class:\n";
+         for(int i=0;i<countPerClass.length;i++)
+             str+="Class "+i+","+countPerClass[i]+"\n";
+         str+="Confusion Matrix:\n";
+         for(int i=0;i<confusionMatrix.length;i++){
+             for(int j=0;j<confusionMatrix[i].length;j++)
+                 str+=confusionMatrix[i][j]+",";
+             str+="\n";
+         }
+         return str;
+    }
    
-   boolean hasInstanceData(){ return numInstances()!=0;}
+    boolean hasInstanceData(){ return numInstances()!=0;}
 
     public static void main(String[] args) throws FileNotFoundException {
         

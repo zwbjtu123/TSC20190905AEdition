@@ -168,4 +168,43 @@ public class StatisticalUtilities {
             pos++;
         return pos;
     }
+    
+    
+    public static double[][][][] averageFinalDimension(double[][][][][] results) { 
+        double[][][][] res = new double[results.length][results[0].length][results[0][0].length][results[0][0][0].length]; 
+        for (int i = 0; i < results.length; i++) 
+            for (int j = 0; j < results[0].length; j++) 
+                for (int k = 0; k < results[0][0].length; k++)
+                    for (int l = 0; l < results[0][0][0].length; l++)
+                        res[i][j][k][l] = StatisticalUtilities.mean(results[i][j][k][l], false);
+        return res;
+    }
+    
+    public static double[][][] averageFinalDimension(double[][][][] results) { 
+        double[][][] res = new double[results.length][results[0].length][results[0][0].length]; 
+        for (int i = 0; i < results.length; i++) 
+            for (int j = 0; j < results[0].length; j++) 
+                for (int k = 0; k < results[0][0].length; k++)
+                    res[i][j][k] = StatisticalUtilities.mean(results[i][j][k], false);
+        return res;
+    }
+
+    public static double[][] averageFinalDimension(double[][][] results) { 
+        double[][] res = new double[results.length][results[0].length];           
+        for (int i = 0; i < results.length; i++) 
+            for (int j = 0; j < results[0].length; j++) 
+                res[i][j] = StatisticalUtilities.mean(results[i][j], false);
+        return res;
+    }
+
+    public static double[] averageFinalDimension(double[][] results) { 
+        double[] res = new double[results.length];           
+        for (int i = 0; i < results.length; i++) 
+                res[i] = StatisticalUtilities.mean(results[i], false);
+        return res;
+    }
+    
+    public static double averageFinalDimension(double[] results) { 
+        return StatisticalUtilities.mean(results, false);
+    }
 }
