@@ -50,6 +50,7 @@ public class MultipleClassifierEvaluation implements DebugPrinting {
     private String writePath; 
     private String experimentName;
     private List<String> datasets;
+    private Map<String, Map<String, String[]>> datasetGroupings; // Map<GroupingMethodTitle(e.g "ByNumAtts"), Map<GroupTitle(e.g "<100"), dsetsInGroup(must be subset of datasets)>>
     private Map<String, ClassifierResults[/* train/test */][/* dataset */][/* fold */]> classifiersResults; 
     private int numFolds;
     private ArrayList<Pair<String, Function<ClassifierResults, Double>>> statistics;
@@ -82,6 +83,7 @@ public class MultipleClassifierEvaluation implements DebugPrinting {
         this.testResultsOnly = true;
 
         this.datasets = new ArrayList<>();
+        this.datasetGroupings = new HashMap<>();
         this.classifiersResults = new HashMap<>();
         
         this.statistics = ClassifierResultsAnalysis.getDefaultStatistics();
@@ -132,6 +134,109 @@ public class MultipleClassifierEvaluation implements DebugPrinting {
     }
     public MultipleClassifierEvaluation clearDatasets() {
         this.datasets.clear();
+        return this;
+    }
+    
+    /**
+     * Pass a directory containing a number of text files. The directory name (not including path)
+     * becomes the groupingMethodName (e.g ByNumAtts). Each text file contains a newline-separated
+     * list of datasets for an individual group. The textfile's name (excluding .txt file suffix)
+     * is the name of that group.
+     */
+    public MultipleClassifierEvaluation setDatasetGroupingFromDirectory(String groupingDirectory) throws FileNotFoundException { 
+        setDatasetGroupingFromDirectory(groupingDirectory, (new File(groupingDirectory)).getName());
+        return this;
+    }
+    
+    /**
+     * Use this if you want to define a different grouping method name to the directory name
+     * for clean printing purposes/clarity. E.g directory name might be 'UCRDsetGroupingByNumAtts_2groups', but the 
+     * name you define to be printed on the analysis could just be 'ByNumAtts'
+     * 
+     * Pass a directory containing a number of text files. Each text file contains a newline-separated
+     * list of datasets for an individual group. The textfile's name (excluding .txt file suffix)
+     * is the name of that group.
+     */
+    public MultipleClassifierEvaluation setDatasetGroupingFromDirectory(String groupingDirectory, String customGroupingMethodName) throws FileNotFoundException { 
+        clearDatasetGroupings();
+        addDatasetGroupingFromDirectory(groupingDirectory, customGroupingMethodName);
+        return this;
+    }
+    
+    /**
+     * Use this if you want to define a different grouping method name to the directory name
+     * for clean printing purposes/clarity. E.g directory name might be 'UCRDsetGroupingByNumAtts_2groups', but the 
+     * name you define to be printed on the analysis could just be 'ByNumAtts'
+     * 
+     * Pass a directory containing a number of text files. Each text file contains a newline-separated
+     * list of datasets for an individual group. The textfile's name (excluding .txt file suffix)
+     * is the name of that group.
+     */
+    public MultipleClassifierEvaluation addDatasetGroupingFromDirectory(String groupingDirectory) throws FileNotFoundException { 
+        addDatasetGroupingFromDirectory(groupingDirectory, (new File(groupingDirectory)).getName());
+        return this;
+    }
+    
+    /**
+     * Use this if you want to define a different grouping method name to the directory name
+     * for clean printing purposes/clarity. E.g directory name might be 'UCRDsetGroupingByNumAtts_2groups', but the 
+     * name you define to be printed on the analysis could just be 'ByNumAtts'
+     * 
+     * Pass a directory containing a number of text files. Each text file contains a newline-separated
+     * list of datasets for an individual group. The textfile's name (excluding .txt file suffix)
+     * is the name of that group.
+     */
+    public MultipleClassifierEvaluation addDatasetGroupingFromDirectory(String groupingDirectory, String customGroupingMethodName) throws FileNotFoundException { 
+        File[] groups = (new File(groupingDirectory)).listFiles();
+        String[] groupNames = new String[groups.length];
+        String[][] dsets = new String[groups.length][];
+        
+        for (int i = 0; i < groups.length; i++) {
+            groupNames[i] = groups[i].getName().replace(".txt", "").replace(".csv", "");
+            Scanner filein = new Scanner(groups[i]);
+        
+            List<String> groupDsets = new ArrayList<>();
+            while (filein.hasNextLine())
+                groupDsets.add(filein.nextLine());
+            
+            dsets[i] = groupDsets.toArray(new String [] { });
+        }
+        
+        addDatasetGrouping(customGroupingMethodName, groupNames, dsets);
+        return this;
+    }
+    
+    /**
+     * The purely array based method for those inclined
+     * 
+     * @param groupingMethodName e.g "ByNumAtts"
+     * @param groupNames e.g { "<100", ">100" }, where group name indices line up with outer array of 'groups' 
+     * @param groups [groupNames.length][variablelength number of datasets]
+     */
+    public MultipleClassifierEvaluation setDatasetGrouping(String groupingMethodName, String[] groupNames, String[][] groups) {
+        clearDatasetGroupings();
+        addDatasetGrouping(groupingMethodName, groupNames, groups);
+        return this;
+    }
+    
+    /**
+     * The purely array based method for those inclined
+     * 
+     * @param groupingMethodName e.g "ByNumAtts"
+     * @param groupNames e.g { "<100", ">100" }, where group name indices line up with outer array of 'groups' 
+     * @param groups [groupNames.length][variablelength number of datasets]
+     */
+    public MultipleClassifierEvaluation addDatasetGrouping(String groupingMethodName, String[] groupNames, String[][] groups) {
+        Map<String, String[]> groupsMap = new HashMap<>();
+        for (int i = 0; i < groupNames.length; i++)
+            groupsMap.put(groupNames[i], groups[i]);
+        
+        datasetGroupings.put(groupingMethodName, groupsMap);
+        return this;
+    }
+    
+    public MultipleClassifierEvaluation clearDatasetGroupings() {
+        this.datasetGroupings.clear();
         return this;
     }
 
@@ -303,7 +408,7 @@ public class MultipleClassifierEvaluation implements DebugPrinting {
         
         
         printlnDebug("Writing started");
-        ClassifierResultsAnalysis.writeAllEvaluationFiles(writePath, experimentName, statistics, results, datasets.toArray(new String[] { }));
+        ClassifierResultsAnalysis.writeAllEvaluationFiles(writePath, experimentName, statistics, results, datasets.toArray(new String[] { }), datasetGroupings);
         printlnDebug("Writing finished");
         
         if (buildMatlabDiagrams)
@@ -341,12 +446,14 @@ public class MultipleClassifierEvaluation implements DebugPrinting {
 //            setDatasets(development.DataSets.UCIContinuousFileNames).
 //            readInClassifiers(new String[] {"1NN", "C4.5"}, "Z:/Results/FinalisedUCIContinuous/").
 //            runComparison(); 
-        new MultipleClassifierEvaluation("Z:/Results/FinalisedUCIContinuousAnalysis/", "testy_mctestface_v4", 30).
-            setBuildMatlabDiagrams(true).
-            setUseAllStatistics().
+        new MultipleClassifierEvaluation("C:\\JamesLPHD\\DatasetGroups\\anatesting\\", "test16", 30).
+//            setBuildMatlabDiagrams(true).
+//            setUseAllStatistics().
 //            setDatasets(Arrays.copyOfRange(development.DataSets.UCIContinuousFileNames, 0, 10)). //using only 10 datasets just to make it faster... 
-            setDatasets("C:/Temp/dsets.txt"). //using only 10 datasets just to make it faster... 
-            readInClassifiers(new String[] {"1NN", "C4.5", "MLP", "NB"}, "Z:/Results/FinalisedUCIContinuous/").
+//            setDatasets("C:/Temp/dsets.txt").
+            setDatasets("C:/Temp/dsets.txt"). 
+            setDatasetGroupingFromDirectory("C:\\JamesLPHD\\DatasetGroups\\TestGroups"). 
+            readInClassifiers(new String[] {"1NN", "C4.5", "MLP", "RotF", "RandF"}, "C:\\JamesLPHD\\HESCA\\UCR\\UCRResults").
             runComparison(); 
     }
 }

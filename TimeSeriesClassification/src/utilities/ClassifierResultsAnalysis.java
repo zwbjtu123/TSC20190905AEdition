@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -34,14 +35,16 @@ import utilities.generic_storage.Pair;
 
 /**
  *
- * Basically functions to analyse/handle COMPLETED test AND train results in ClassifierResults format
+ * This is a monster of a class, with some bad code and not enough documentation. It's improving over time however.
+ * If there are any questions about it, best bet would be to email me (see below).
+ * 
+ * Basically functions to analyse/handle COMPLETED (i.e no folds missing out of those expected of the specified classifierXdatasetXfoldXsplit set) 
+ * sets of results in ClassifierResults format
  * 
  * For some reason, the excel workbook writer library i found/used makes xls files (instead of xlsx) and doens't 
  * support recent excel default fonts. Just open it and saveas if you want to
  
- Future work when wanted/needed/motivation could be to handle incomplete results (e.g random folds missing), to be able to 
- better customise what parts of the analysis is performed (e.g to only require test results), to define extra analysis through
- function args that manipulate classifierResults objects in some way, more matlab figures over time, 
+ Future work when wanted/needed/motivation could be to handle incomplete results (e.g random folds missing), more matlab figures over time, 
  and a MASSIVE refactor to remove the crap code
  
  Two ways to use, the big one-off static method writeALLEvaluationFiles(...) if you have everything in memory
@@ -60,9 +63,12 @@ import utilities.generic_storage.Pair;
 
 public class ClassifierResultsAnalysis {
     
+    public static String expRootDirectory;
     protected static String matlabFilePath = "matlabfiles/";
     protected static String pairwiseScatterDiaPath = "PairwiseScatterDias/";
     protected static String cdDiaPath = "cddias/";
+    protected static String pairwiseCDDiaDirectoryName = "pairwise/";
+    protected static String friedmanCDDiaDirectoryName = "friedman/";
     public static double FRIEDMANCDDIA_PVAL = 0.05;
         
     public static boolean buildMatlabDiagrams = false;
@@ -258,7 +264,7 @@ public class ClassifierResultsAnalysis {
         return "pws_"+c1+"VS"+c2+"_"+statistic+"S";
     }
     
-    protected static String[] writeStatisticOnSplitFiles(String outPath, String filename, String evalSet, String statName, double[][][] foldVals, String[] cnames, String[] dsets) {
+    protected static String[] writeStatisticOnSplitFiles(String outPath, String filename, String evalSet, String statName, double[][][] foldVals, String[] cnames, String[] dsets, Map<String, Map<String, String[]>> dsetGroupings) throws FileNotFoundException {
         outPath += evalSet + "/";
         
         double[][] dsetVals = findAvgsOverFolds(foldVals);
@@ -278,13 +284,13 @@ public class ClassifierResultsAnalysis {
         
         if (evalSet.equalsIgnoreCase("TEST")) {
             //qol for cd dia creation, make a copy of all the raw test stat files in a common folder, one for pairwise, one for freidman
-            String cdFolder = new File(outPath).getParentFile().getParent() + "/cddias/";
+            String cdFolder = expRootDirectory + cdDiaPath;
             (new File(cdFolder)).mkdirs();
             OutFile out = new OutFile(cdFolder+"readme.txt");
             out.writeLine("remember that nlls are auto-negated now for cd dia ordering\n");
             out.writeLine("and that basic notepad wont show the line breaks properly, view (cliques especially) in notepad++");
             out.closeFile();
-            for (String subFolder : new String[] { "pairwise", "friedman" }) {
+            for (String subFolder : new String[] { pairwiseCDDiaDirectoryName, friedmanCDDiaDirectoryName }) {
                 (new File(cdFolder+subFolder+"/")).mkdirs();
                 String cdName = cdFolder+subFolder+"/"+cdFileName(filename,statName)+".csv";
                 //meta hack for qol, negate the nll (sigh...) for correct ordering on dia
@@ -302,7 +308,7 @@ public class ClassifierResultsAnalysis {
             } //end qol
             
             //qol for pairwisescatter dia creation, make a copy of the test stat files 
-            String pwsFolder = new File(outPath).getParentFile().getParent() + "/" + pairwiseScatterDiaPath;
+            String pwsFolder = expRootDirectory + pairwiseScatterDiaPath;
             (new File(pwsFolder)).mkdirs();
             String pwsName = pwsFolder+pwsFileName(filename,statName)+".csv";
             writeTableFileRaw(pwsName, dsetVals, cnames);
@@ -312,18 +318,237 @@ public class ClassifierResultsAnalysis {
         writeTableFile(outPath+filename+"_"+evalSet+statName+".csv", evalSet+statName, dsetVals, cnames, dsets);
         writeTableFileRaw(outPath+filename+"_"+evalSet+statName+"RAW.csv", dsetVals, cnames); //for matlab stuff
         writeTableFile(outPath+filename+"_"+evalSet+statName+"STDDEVS.csv", evalSet+statName+"STDDEVS", stddevsFoldVals, cnames, dsets);
-        return writeStatisticSummaryFile(outPath, filename, evalSet+statName, foldVals, dsetVals, ranks, stddevsFoldVals, cnames, dsets); 
+        
+        String[] groupingSummary = { "" };
+        if (dsetGroupings != null && dsetGroupings.size() != 0)
+            groupingSummary = writeDatasetGroupingsFiles(outPath, filename, evalSet, statName, foldVals, cnames, dsets, dsetGroupings);
+        
+        
+        String[] summaryStrings = writeStatisticSummaryFile(outPath, filename, evalSet+statName, foldVals, dsetVals, ranks, stddevsFoldVals, cnames, dsets); 
+        
+        //write these even if not actually making the dias this execution
+        writeCliqueHelperFiles(expRootDirectory + cdDiaPath + pairwiseCDDiaDirectoryName, filename, statName, summaryStrings[2]); 
+        
+        //this really needs cleaning up at some point... jsut make it a list and stop circlejerking to arrays
+        String[] summaryStrings2 = new String[summaryStrings.length+groupingSummary.length];
+        int i = 0;
+        for ( ; i < summaryStrings.length; i++) 
+            summaryStrings2[i] = summaryStrings[i];
+        for (int j = 0; j < groupingSummary.length; j++) 
+            summaryStrings2[i] = groupingSummary[j];
+               
+        return summaryStrings2;
+    }
+    
+    public static String[] writeDatasetGroupingsFiles(String outPathBase, String filename, String evalSet, String statName, double[][][] foldVals, String[] cnames, String[] dsets, Map<String, Map<String, String[]>> dsetGroupings) throws FileNotFoundException {
+        String outPath = expRootDirectory + "DatasetGroupings/";
+//        String outPath = outPathBase + "DatasetGroupings/";
+        (new File(outPath)).mkdir();
+        
+        //for each grouping method 
+        for (Map.Entry<String, Map<String, String[]>> dsetGroupingMethod : dsetGroupings.entrySet()) {
+            String groupingMethodName = dsetGroupingMethod.getKey();
+            String groupingMethodPath = outPath + groupingMethodName + "/";
+            (new File(groupingMethodPath)).mkdir();
+            
+            int numGroups = dsetGroupingMethod.getValue().size();
+            String[] groupNames = new String[numGroups];
+            
+            //using maps for this because classifiernames could be in different ordering based on rankings 
+            //within each group. ordering of dataset groups temselves is constant though. jsut skips 
+            //annoying/bug inducing housekeeping of indices
+            Map<String, double[]> groupWins = new HashMap<>(); //will reflect ties, e.g if 2 classifiers tie for first rank, each will get 'half' a win
+            Map<String, double[]> groupAccs = new HashMap<>();
+            for (int i = 0; i < cnames.length; i++) {
+                groupWins.put(cnames[i], new double[numGroups]);
+                groupAccs.put(cnames[i], new double[numGroups]);
+            }
+            
+            //for each group in this grouping method 
+            StringBuilder [] groupSummaryStringBuilders = new StringBuilder[numGroups];
+            int groupIndex = 0;
+            
+            for (Map.Entry<String, String[]> dsetGroup : dsetGroupingMethod.getValue().entrySet()) {
+                String groupName = dsetGroup.getKey();
+                groupNames[groupIndex] = groupName;
+                String groupPath = groupingMethodPath + groupName + "/";
+                (new File(groupPath)).mkdir();
+                
+                //perform group analysis
+                String[] groupDsets = dsetGroup.getValue();
+                double[][][] groupFoldVals = collectDsetVals(foldVals, dsets, groupDsets);
+                String groupFileName = filename + "-" + groupName + "-";
+                String[] groupSummaryFileStrings = writeStatisticOnSplitFiles(groupPath+statName+"/", groupFileName, evalSet, statName, groupFoldVals, cnames, groupDsets, null);
+                
+                //collect the accuracies for the dataset group 
+                String[] classifierNamesLine = groupSummaryFileStrings[1].split("\n")[0].split(",");
+                assert(classifierNamesLine.length-1 == cnames.length);
+                String[] accLineParts = groupSummaryFileStrings[1].split("\n")[1].split(",");
+                for (int i = 1; i < accLineParts.length; i++) { //i=1 => skip the row header
+                    double[] accs = groupAccs.get(classifierNamesLine[i]);
+                    accs[groupIndex] = Double.parseDouble(accLineParts[i]);
+                    groupAccs.put(classifierNamesLine[i], accs);
+                }
+                
+                //collect the wins for the group
+                Scanner ranksFileIn = new Scanner(new File(groupPath+statName+"/"+evalSet+"/"+groupFileName+"_"+evalSet+statName+"RANKS.csv"));      
+                classifierNamesLine = ranksFileIn.nextLine().split(",");
+                double[] winCounts = new double[classifierNamesLine.length];
+                while (ranksFileIn.hasNextLine()) {
+                    //read the ranks on this dataset
+                    String[] ranksStr = ranksFileIn.nextLine().split(",");
+                    double[] ranks = new double[ranksStr.length];
+                    ranks[0] = Double.MAX_VALUE;
+                    for (int i = 1; i < ranks.length; i++)
+                        ranks[i] = Double.parseDouble(ranksStr[i]);
+                    
+                    //there might be ties, so cant just look for the rank "1"
+                    List<Integer> minRanks = min(ranks);
+                    for (Integer minRank : minRanks)
+                        winCounts[minRank] += 1.0 / minRanks.size();
+                }
+                ranksFileIn.close();
+                
+                for (int i = 1; i < winCounts.length; i++) {
+                    double[] wins = groupWins.get(classifierNamesLine[i]);
+                    wins[groupIndex] = winCounts[i];
+                    groupWins.put(classifierNamesLine[i], wins);
+                }
+                
+                //build the summary string
+                StringBuilder sb = new StringBuilder("Group: " +groupName + "\n");
+                sb.append(groupSummaryFileStrings[1]); 
+                
+                //when will the hacks ever end? 
+                String cliques = groupSummaryFileStrings[2];
+                cliques = cliques.replace("cliques = [", "cliques=,").replace("]", ""); //remove spaces in 'title' before next step
+                cliques = cliques.replace(" ", ",").replace("\n", "\n,"); //make vals comma separated, to line up in csv file
+                sb.append("\n"+cliques);
+                
+                groupSummaryStringBuilders[groupIndex] = sb;
+                groupIndex++;
+            }
+            
+            OutFile groupingMethodSummaryFile = new OutFile(groupingMethodPath + filename + "_" + groupingMethodName + "_" + evalSet + statName + ".csv");
+            for (StringBuilder groupSummary : groupSummaryStringBuilders) {
+                groupingMethodSummaryFile.writeLine(groupSummary.toString());
+                groupingMethodSummaryFile.writeLine("\n\n");
+            }
+            
+    //starting to write out the accs table
+            //header row
+            groupingMethodSummaryFile.writeString("AvgAccsOnGroups:");
+            for (String cname : cnames) 
+                groupingMethodSummaryFile.writeString(","+cname);
+            groupingMethodSummaryFile.writeLine(",Averages");
+            
+            //calc the avgs too
+            double[] groupAvgs = new double[numGroups], clsfrAvgs = new double[cnames.length];
+            for (int i = 0; i < numGroups; i++) {
+                groupingMethodSummaryFile.writeString(groupNames[i]);
+                for (int j = 0; j < cnames.length; j++) {
+                    double val = groupAccs.get(cnames[j])[i];
+                    groupAvgs[i] += val;
+                    clsfrAvgs[j] += val;
+                    groupingMethodSummaryFile.writeString(","+val);
+                }
+                groupingMethodSummaryFile.writeLine(","+(groupAvgs[i]/cnames.length));
+            }
+            
+            //print final row, avg of classifiers
+            double globalAvg = 0;
+            groupingMethodSummaryFile.writeString("Averages");
+            for (int j = 0; j < cnames.length; j++) {
+                double avg = clsfrAvgs[j]/numGroups;
+                globalAvg += avg;
+                groupingMethodSummaryFile.writeString(","+avg);
+            }
+            globalAvg /= cnames.length;
+//            //jsut to help debugging
+//            double globalAvgCheck = 0;
+//            for (int i = 0; i < numGroups; ++i)
+//                globalAvgCheck += groupAvgs[i]/cnames.length;
+//            globalAvgCheck /= numGroups;
+//            assert(globalAvg == globalAvgCheck);
+            
+            groupingMethodSummaryFile.writeLine(","+globalAvg);
+    //end of writing accs table
+    
+            groupingMethodSummaryFile.writeLine("\n\n");
+    
+    //starting to write out the wins table
+            groupingMethodSummaryFile.writeLine("This table accounts for ties on a dset e.g if 2 classifiers share best accuracy "
+                    + "that will count as half a win for each");
+    
+            //header row
+            groupingMethodSummaryFile.writeString("NumWinsInGroups:");
+            for (String cname : cnames) 
+                groupingMethodSummaryFile.writeString(","+cname);
+            groupingMethodSummaryFile.writeLine(",TotalNumDsetsInGroup");
+            
+            //calc the avgs too
+            double[] groupSums = new double[numGroups], clsfrSums = new double[cnames.length];
+            for (int i = 0; i < numGroups; i++) {
+                groupingMethodSummaryFile.writeString(groupNames[i]);
+                for (int j = 0; j < cnames.length; j++) {
+                    double val = groupWins.get(cnames[j])[i];
+                    groupSums[i] += val;
+                    clsfrSums[j] += val;
+                    groupingMethodSummaryFile.writeString(","+val);
+                }
+                groupingMethodSummaryFile.writeLine(","+(groupSums[i]));
+            }
+            
+            //print final row, avg of classifiers
+            double globalSum = 0;
+            groupingMethodSummaryFile.writeString("TotalNumWinsForClassifier");
+            for (int j = 0; j < cnames.length; j++) {
+                globalSum += clsfrSums[j];
+                groupingMethodSummaryFile.writeString(","+clsfrSums[j]);
+            }
+//            //jsut to help debugging
+//            double globalAvgCheck = 0;
+//            for (int i = 0; i < numGroups; ++i)
+//                globalAvgCheck += groupAvgs[i]/cnames.length;
+//            globalAvgCheck /= numGroups;
+//            assert(globalAvg == globalAvgCheck);
+            
+            groupingMethodSummaryFile.writeLine(","+globalSum);
+    //end of writing wins table
+    
+            groupingMethodSummaryFile.closeFile();
+        }
+        
+        return new String[] { };
+    }
+    
+    public static double[][][] collectDsetVals(double[][][] foldVals, String[] dsets, String[] groupDsets) {
+        //cloning arrays to avoid any potential referencing issues considering we're recursing + doing more stuff after all this grouping shite
+        double[][][] groupFoldVals = new double[foldVals.length][groupDsets.length][foldVals[0][0].length];
+        
+        for (int groupDsetInd = 0; groupDsetInd < groupDsets.length; ++groupDsetInd) {
+            String dset = groupDsets[groupDsetInd];
+            int globalDsetInd = Arrays.asList(dsets).indexOf(dset);
+            
+            for (int classifier = 0; classifier < foldVals.length; classifier++) {
+                for (int fold = 0; fold < foldVals[classifier][globalDsetInd].length; fold++) {
+                    groupFoldVals[classifier][groupDsetInd][fold] = foldVals[classifier][globalDsetInd][fold];
+                }
+            }
+        }
+        
+        return groupFoldVals;
     }
     
     /**
      * Essentially just a wrapper for what writeStatisticOnSplitFiles does, in the simple case that we just have a 3d array of test accs and want summaries for it
      * Mostly for legacy results not in the classifier results file format 
      */
-    public static void summariseTestAccuracies(String outPath, String filename, double[][][] testFolds, String[] cnames, String[] dsets) {
-        writeStatisticOnSplitFiles(outPath, filename, testLabel, "ACC", testFolds, cnames, dsets);
+    public static void summariseTestAccuracies(String outPath, String filename, double[][][] testFolds, String[] cnames, String[] dsets, Map<String, Map<String, String[]>> dsetGroupings) throws FileNotFoundException {
+        writeStatisticOnSplitFiles(outPath, filename, testLabel, "ACC", testFolds, cnames, dsets, dsetGroupings);
     }
     
-    protected static String[] writeStatisticFiles(String outPath, String filename, ArrayList<ClassifierEvaluation> results, Pair<String, Function<ClassifierResults, Double>> evalStatistic, String[] cnames, String[] dsets) {
+    protected static String[] writeStatisticFiles(String outPath, String filename, ArrayList<ClassifierEvaluation> results, Pair<String, Function<ClassifierResults, Double>> evalStatistic, String[] cnames, String[] dsets, Map<String, Map<String, String[]>> dsetGroupings) throws FileNotFoundException {
         String statName = evalStatistic.var1;
         outPath += statName + "/";
         new File(outPath).mkdirs();        
@@ -333,39 +558,53 @@ public class ClassifierResultsAnalysis {
         if (!testResultsOnly) {
             double[][][] trainFolds = getInfo(results, evalStatistic.var2, trainLabel);
             double[][][] trainTestDiffsFolds = findTrainTestDiffs(trainFolds, testFolds);
-            writeStatisticOnSplitFiles(outPath, filename, trainLabel, statName, trainFolds, cnames, dsets); //TODO
-            writeStatisticOnSplitFiles(outPath, filename, trainTestDiffLabel, statName, trainTestDiffsFolds, cnames, dsets);
+            writeStatisticOnSplitFiles(outPath, filename, trainLabel, statName, trainFolds, cnames, dsets, dsetGroupings); 
+            writeStatisticOnSplitFiles(outPath, filename, trainTestDiffLabel, statName, trainTestDiffsFolds, cnames, dsets, dsetGroupings);
         }
         
-        return writeStatisticOnSplitFiles(outPath, filename, testLabel, statName, testFolds, cnames, dsets);
+        return writeStatisticOnSplitFiles(outPath, filename, testLabel, statName, testFolds, cnames, dsets, dsetGroupings);
     }
     
     /**
      * for legacy code, will call the overloaded version with acc,balacc,nll,auroc as the default statisitics
      */
     public static void writeAllEvaluationFiles(String outPath, String expname, ArrayList<ClassifierEvaluation> results, String[] dsets) {  
-        writeAllEvaluationFiles(outPath, expname, getDefaultStatistics(), results, dsets);
+        writeAllEvaluationFiles(outPath, expname, getDefaultStatistics(), results, dsets, new HashMap<String, Map<String, String[]>>());
     }
     
-    public static void writeAllEvaluationFiles(String outPath, String expname, ArrayList<Pair<String,Function<ClassifierResults,Double>>> statistics, ArrayList<ClassifierEvaluation> results, String[] dsets) {
+    public static void writeAllEvaluationFiles(String outPath, String expname, ArrayList<Pair<String,Function<ClassifierResults,Double>>> statistics, ArrayList<ClassifierEvaluation> results, String[] dsets, Map<String, Map<String, String[]>> dsetGroupings) {
         //hacky housekeeping
         MultipleClassifiersPairwiseTest.beQuiet = true;
         OneSampleTests.beQuiet = true;
         
+        outPath = outPath.replace("\\", "/"); 
+        if (!outPath.endsWith("/"))
+            outPath+="/";
         outPath += expname + "/";
         new File(outPath).mkdirs();
+        
+        expRootDirectory = outPath;
         
         OutFile bigSummary = new OutFile(outPath + expname + "_BIGglobalSummary.csv");
         OutFile smallSummary = new OutFile(outPath + expname + "_SMALLglobalSummary.csv");
         
         String[] cnames = getNames(results);
-        String [] statCliques = new String[statistics.size()];
-        String [] statNames = new String[statistics.size()];
+        String[] statCliques = new String[statistics.size()];
+        String[] statNames = new String[statistics.size()];
         
         for (int i = 0; i < statistics.size(); ++i) {
             Pair<String, Function<ClassifierResults, Double>> stat = statistics.get(i);
             
-            String[] summary = writeStatisticFiles(outPath, expname, results, stat, cnames, dsets);
+            String[] summary = null;
+            try { 
+                summary = writeStatisticFiles(outPath, expname, results, stat, cnames, dsets, dsetGroupings);
+            } catch (FileNotFoundException fnf) {
+                System.out.println("Something went wrong, later stages of analysis could not find files that should have been made"
+                        + "internally in earlier stages of the pipeline, FATAL");
+                System.out.println(fnf);
+                System.exit(0);
+            }
+            
             
             bigSummary.writeString(stat.var1+":");
             bigSummary.writeLine(summary[0]);
@@ -382,30 +621,28 @@ public class ClassifierResultsAnalysis {
         
         buildResultsSpreadsheet(outPath, expname, statistics);
         
-        //write these even if not actually making the dias this execution
-        writeCliqueHelperFiles(outPath + "/cdDias/pairwise/", expname, statNames, statCliques); 
+//        if (dsetGroupings != null && dsetGroupings.size() != 0)
+//            buildDsetGroupingsSpreadsheet(outPath, expname, statistics);
+        
         if(buildMatlabDiagrams) {
-            buildCDDias(outPath, expname, statNames, statCliques);
-            //not yet supported, tested this part for first time in a while and matlab looked into the ark of the covenant
-            //java heap errors in matlab etc
+            buildCDDias(expname, statNames, statCliques);
             buildPairwiseScatterDiagrams(outPath, expname, statNames, dsets);
         }
     }
     
-    protected static void writeCliqueHelperFiles(String cdCSVpath, String expname, String[] stats, String[] cliques) {
+    protected static void writeCliqueHelperFiles(String cdCSVpath, String expname, String stat, String cliques) {
         //temp workaround, just write the cliques and readin again from matlab for ease of checking/editing for pairwise edge cases
-        for (int i = 0; i < stats.length; i++) {
-            OutFile out = new OutFile (cdCSVpath + cdFileName(expname, stats[i]) + "_cliques.txt");
-            out.writeString(cliques[i]);
-            out.closeFile();
-        }
+        OutFile out = new OutFile (cdCSVpath + cdFileName(expname, stat) + "_cliques.txt");
+        out.writeString(cliques);
+        out.closeFile();
     }
     
-    protected static void buildCDDias(String outpath, String expname, String[] stats, String[] cliques) {        
+    protected static void buildCDDias(String expname, String[] stats, String[] cliques) {        
         MatlabController proxy = MatlabController.getInstance();
         proxy.eval("addpath(genpath('"+matlabFilePath+"'))");
-        proxy.eval("buildDiasInDirectory('"+outpath+"/cdDias/friedman/"+"', 0, "+FRIEDMANCDDIA_PVAL+")"); //friedman 
-        proxy.eval("buildDiasInDirectory('"+outpath+ "/cdDias/pairwise/"+"', 1)");  //pairwise
+        proxy.eval("buildDiasInDirectory('"+expRootDirectory+friedmanCDDiaDirectoryName+"', 0, "+FRIEDMANCDDIA_PVAL+")"); //friedman 
+        proxy.eval("clear");
+        proxy.eval("buildDiasInDirectory('"+expRootDirectory+"/cdDias/"+pairwiseCDDiaDirectoryName+"', 1)");  //pairwise
         proxy.eval("clear"); 
     }
         

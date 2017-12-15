@@ -329,7 +329,7 @@ public class MultipleClassifiersPairwiseTest {
     public static String printCliques() {
         StringBuilder sb = new StringBuilder();
         
-        sb.append("\n\ncliques = [");
+        sb.append("cliques = [");
         boolean[][] cliques = findCliques(noDifference);
         for (int i = 0; i < cliques.length; i++) {
             for (int j = 0; j < cliques[i].length; j++) 
