@@ -71,6 +71,21 @@ public class MultipleClassifierEvaluation implements DebugPrinting {
     private boolean testResultsOnly;
     
     /**
+     * if true, will perform xmeans clustering on the classifierXdataset results, to find data-driven datasetgroupings, as well
+     * as any extra dataset groupings you've defined.
+     * 
+     * 1) for each dataset, each classifier's [stat] is replaced by its difference to the mean for that dataset
+     *      e.g if scores of 3 classifiers on a dataset are { 0.8, 0.7, 0.6 }, the new vals will be { 0.1, 0, -0.1 } 
+     * 
+     * 2) weka instances are formed from this data, with classifiers as atts, datasets as insts
+     * 
+     * 3) xmeans clustering performed, as a (from a human input pov) quick way of determining number of clusters + those clusters
+     * 
+     * 4) perform the normal grouping analysis based on those clusters
+     */
+    private boolean performPostHocDsetResultsClustering;
+    
+    /**
      * @param experimentName forms the analysis directory name, and the prefix to most files
      */
     public MultipleClassifierEvaluation(String writePath, String experimentName, int numFolds) {
@@ -81,6 +96,7 @@ public class MultipleClassifierEvaluation implements DebugPrinting {
         this.buildMatlabDiagrams = false;
         this.cleanResults = true;
         this.testResultsOnly = true;
+        this.performPostHocDsetResultsClustering = false;
 
         this.datasets = new ArrayList<>();
         this.datasetGroupings = new HashMap<>();
@@ -88,17 +104,46 @@ public class MultipleClassifierEvaluation implements DebugPrinting {
         
         this.statistics = ClassifierResultsAnalysis.getDefaultStatistics();
     }
-
+    
+    /**
+     * if true, will not attempt to load trainFold results, and will not produce stats for train or traintestdiffs results
+     */
     public MultipleClassifierEvaluation setTestResultsOnly(boolean b) {
         testResultsOnly = b;
         return this;
     }
+    
+    /**
+     * if true, the relevant .m files must be located in the netbeans project directory
+     */
     public MultipleClassifierEvaluation setBuildMatlabDiagrams(boolean b) {
         buildMatlabDiagrams = b;
         return this;
     }
+    
+    /**
+     * if true, will null the individual prediction info of each ClassifierResults object after stats are found 
+     */
     public MultipleClassifierEvaluation setCleanResults(boolean b) {
         cleanResults = b;
+        return this;
+    }
+    
+    /**
+     * if true, will perform xmeans clustering on the classifierXdataset results, to find data-driven datasetgroupings, as well
+     * as any extra dataset groupings you've defined.
+     * 
+     * 1) for each dataset, each classifier's [stat] is replaced by its difference to the mean for that dataset
+     *      e.g if scores of 3 classifiers on a dataset are { 0.8, 0.7, 0.6 }, the new vals will be { 0.1, 0, -0.1 } 
+     * 
+     * 2) weka instances are formed from this data, with classifiers as atts, datasets as insts
+     * 
+     * 3) xmeans clustering performed, as a (from a human input pov) quick way of determining number of clusters + those clusters
+     * 
+     * 4) perform the normal grouping analysis based on those clusters
+     */
+    public MultipleClassifierEvaluation setPerformPostHocDsetResultsClustering(boolean b) {
+        performPostHocDsetResultsClustering = b;
         return this;
     }
     
@@ -406,6 +451,9 @@ public class MultipleClassifierEvaluation implements DebugPrinting {
         ClassifierResultsAnalysis.buildMatlabDiagrams = buildMatlabDiagrams;
         ClassifierResultsAnalysis.testResultsOnly = testResultsOnly;
         
+        //ClassifierResultsAnalysis will find this flag internally as queue to do clustering
+        if (performPostHocDsetResultsClustering) 
+            datasetGroupings.put(ClassifierResultsAnalysis.clusterGroupingIdentifier, null); 
         
         printlnDebug("Writing started");
         ClassifierResultsAnalysis.writeAllEvaluationFiles(writePath, experimentName, statistics, results, datasets.toArray(new String[] { }), datasetGroupings);
@@ -446,14 +494,53 @@ public class MultipleClassifierEvaluation implements DebugPrinting {
 //            setDatasets(development.DataSets.UCIContinuousFileNames).
 //            readInClassifiers(new String[] {"1NN", "C4.5"}, "Z:/Results/FinalisedUCIContinuous/").
 //            runComparison(); 
-        new MultipleClassifierEvaluation("C:\\JamesLPHD\\DatasetGroups\\anatesting\\", "test16", 30).
-//            setBuildMatlabDiagrams(true).
-//            setUseAllStatistics().
-//            setDatasets(Arrays.copyOfRange(development.DataSets.UCIContinuousFileNames, 0, 10)). //using only 10 datasets just to make it faster... 
-//            setDatasets("C:/Temp/dsets.txt").
-            setDatasets("C:/Temp/dsets.txt"). 
-            setDatasetGroupingFromDirectory("C:\\JamesLPHD\\DatasetGroups\\TestGroups"). 
-            readInClassifiers(new String[] {"1NN", "C4.5", "MLP", "RotF", "RandF"}, "C:\\JamesLPHD\\HESCA\\UCR\\UCRResults").
-            runComparison(); 
+//        new MultipleClassifierEvaluation("C:\\JamesLPHD\\DatasetGroups\\anatesting\\", "test29", 30).
+////            setBuildMatlabDiagrams(true).
+////            setUseAllStatistics().
+////            setDatasets(Arrays.copyOfRange(development.DataSets.UCIContinuousFileNames, 0, 10)). //using only 10 datasets just to make it faster... 
+////            setDatasets("C:/Temp/dsets.txt").
+//            setDatasets("C:/Temp/dsets.txt"). 
+//            setDatasetGroupingFromDirectory("C:\\JamesLPHD\\DatasetGroups\\TestGroups"). 
+//            setPerformPostHocDsetResultsClustering(true).
+//            readInClassifiers(new String[] {"1NN", "C4.5", "MLP", "RotF", "RandF"}, "C:\\JamesLPHD\\HESCA\\UCR\\UCRResults").
+//            runComparison(); 
+
+        workingExampleCodeHopefullyRunnableEntirelyOnBeast();
+    }
+    
+    public static void workingExampleCodeHopefullyRunnableEntirelyOnBeast() throws FileNotFoundException, Exception {
+        //Running from my PC, this code takes 34 seconds to run, despite looking at only 10 folds of 10 datasets. 
+        //The majority of this time is eaten up by reading the results from the beast. If you have results on your local PC, it will be faster. 
+        
+        //to rerun this from a clean slate to check validity, delete any existing 'Example1' folder in here: 
+        String folderToWriteAnalysisTo = "Z:/Results/FinalisedUCIContinuousAnalysis/WORKINGEXAMPLE/";
+        String nameOfAnalysisWhichWillBecomeFolderName = "Example1";
+        int numberOfFoldsAKAResamplesOfEachDataset = 10;
+        MultipleClassifierEvaluation mce = new MultipleClassifierEvaluation(folderToWriteAnalysisTo, nameOfAnalysisWhichWillBecomeFolderName, numberOfFoldsAKAResamplesOfEachDataset); //10 folds only to make faster... 
+        
+        String aFileWithListOfDsetsToUse = "Z:/Results/FinalisedUCIContinuousAnalysis/WORKINGEXAMPLE/dsets.txt";
+        mce.setDatasets(aFileWithListOfDsetsToUse);
+        
+        String aDirectoryContainingFilesThatDefineDatasetGroupings = "Z:/Results/FinalisedUCIContinuousAnalysis/WORKINGEXAMPLE/dsetGroupings/evenAndOddDsets/";
+        String andAnother = "Z:/Results/FinalisedUCIContinuousAnalysis/WORKINGEXAMPLE/dsetGroupings/topAndBotHalves/";
+        mce.addDatasetGroupingFromDirectory(aDirectoryContainingFilesThatDefineDatasetGroupings);
+        mce.addDatasetGroupingFromDirectory(andAnother);
+        
+        mce.setPerformPostHocDsetResultsClustering(true); //will create 3rd data-driven grouping automatically
+        
+        String[] classifiers = new String[] {"1NN", "C4.5", "NB"};
+        String directoryWithResultsClassifierByClassifier =  "Z:/Results/FinalisedUCIContinuous/";
+        mce.readInClassifiers(classifiers, directoryWithResultsClassifierByClassifier);
+        
+        mce.runComparison(); 
+        
+        //minimal version of above: 
+//        MultipleClassifierEvaluation mce = new MultipleClassifierEvaluation("Z:/Results/FinalisedUCIContinuousAnalysis/WORKINGEXAMPLE/", "Example1", 10); //10 folds only to make faster... 
+//        mce.setDatasets("Z:/Results/FinalisedUCIContinuousAnalysis/WORKINGEXAMPLE/dsets.txt");
+//        mce.addDatasetGroupingFromDirectory("Z:/Results/FinalisedUCIContinuousAnalysis/WORKINGEXAMPLE/dsetGroups/randomGrouping1/");
+//        mce.addDatasetGroupingFromDirectory("Z:/Results/FinalisedUCIContinuousAnalysis/WORKINGEXAMPLE/dsetGroups/randomGrouping2/");
+//        mce.setPerformPostHocDsetResultsClustering(true); //will create 3rd data-driven grouping automatically
+//        mce.readInClassifiers(new String[] {"1NN", "C4.5", "MLP", "RotF", "RandF"}, "Z:/Results/FinalisedUCIContinuous/");
+//        mce.runComparison(); 
     }
 }

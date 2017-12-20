@@ -32,6 +32,10 @@ import statistics.tests.TwoSampleTests;
 import utilities.ClassifierResults;
 import utilities.StatisticalUtilities;
 import utilities.generic_storage.Pair;
+import weka.clusterers.SimpleKMeans;
+import weka.clusterers.XMeans;
+import weka.core.Instance;
+import weka.core.Instances;
 
 /**
  *
@@ -63,6 +67,7 @@ import utilities.generic_storage.Pair;
 
 public class ClassifierResultsAnalysis {
     
+    
     public static String expRootDirectory;
     protected static String matlabFilePath = "matlabfiles/";
     protected static String pairwiseScatterDiaPath = "PairwiseScatterDias/";
@@ -87,6 +92,8 @@ public class ClassifierResultsAnalysis {
     private static final String testLabel = "TEST";
     private static final String trainLabel = "TRAIN";
     private static final String trainTestDiffLabel = "TRAINTESTDIFFS";
+    
+    public static final String clusterGroupingIdentifier = "PostHocXmeansClustering";
     
     public static class ClassifierEvaluation  {
         public String classifierName;
@@ -264,8 +271,10 @@ public class ClassifierResultsAnalysis {
         return "pws_"+c1+"VS"+c2+"_"+statistic+"S";
     }
     
-    protected static String[] writeStatisticOnSplitFiles(String outPath, String filename, String evalSet, String statName, double[][][] foldVals, String[] cnames, String[] dsets, Map<String, Map<String, String[]>> dsetGroupings) throws FileNotFoundException {
+    protected static String[] writeStatisticOnSplitFiles(String outPath, String filename, String groupingName, String evalSet, String statName, double[][][] foldVals, String[] cnames, String[] dsets, Map<String, Map<String, String[]>> dsetGroupings) throws FileNotFoundException {
         outPath += evalSet + "/";
+        if (groupingName != null && !groupingName.equals(""))
+            outPath += groupingName + "/";
         
         double[][] dsetVals = findAvgsOverFolds(foldVals);
         double[][] stddevsFoldVals = findStddevsOverFolds(foldVals);
@@ -346,12 +355,83 @@ public class ClassifierResultsAnalysis {
         (new File(outPath)).mkdir();
         
         //for each grouping method 
-        for (Map.Entry<String, Map<String, String[]>> dsetGroupingMethod : dsetGroupings.entrySet()) {
-            String groupingMethodName = dsetGroupingMethod.getKey();
+        for (Map.Entry<String, Map<String, String[]>> dsetGroupingMethodEntry : dsetGroupings.entrySet()) {
+            String groupingMethodName = dsetGroupingMethodEntry.getKey();
             String groupingMethodPath = outPath + groupingMethodName + "/";
-            (new File(groupingMethodPath)).mkdir();
+            (new File(groupingMethodPath+statName+"/"+evalSet+"/")).mkdirs();
             
-            int numGroups = dsetGroupingMethod.getValue().size();
+            Map<String, String[]> dsetGroupingMethod = dsetGroupingMethodEntry.getValue();
+            
+            if (groupingMethodName.equals(clusterGroupingIdentifier)) {
+                //if clustering is to be done, build the groups now.
+                //can't 'put' these groups back into the dsetGroupings map
+                //since we'd be editing a map that we're currently iterating over
+                //EDIT: actually, jsut move this process outside the for loop as
+                //a preprocess step, if the need ever arises 
+                
+                assert(dsetGroupingMethod == null);
+                dsetGroupingMethod = new HashMap<>();
+                
+                int[] assignments = performDatasetResultsClustering(StatisticalUtilities.averageFinalDimension(foldVals));
+                
+                //puts numClusters as final element
+                assert(assignments.length == dsets.length+1);
+                int numClusters = assignments[dsets.length];
+                
+                String[] clusterNames = new String[numClusters];
+                String[][] clusterDsets = new String[numClusters][];
+                
+                //would generally prefer to jsut loop once over the assignments array, but that would
+                //require we already know the size of each cluster and/or wankery with array lists
+                for (int cluster = 0; cluster < numClusters; cluster++) {
+                    ArrayList<String> dsetAlist = new ArrayList<>();
+                    for (int dset = 0; dset < dsets.length; dset++)
+                        if (assignments[dset] == cluster)
+                            dsetAlist.add(dsets[dset]); 
+                    
+                    clusterNames[cluster] = "Cluster " + (cluster+1);
+                    clusterDsets[cluster] = dsetAlist.toArray(new String[] { });
+                    dsetGroupingMethod.put(clusterNames[cluster], clusterDsets[cluster]);
+                }
+            
+                //writing all the clusters to one file start here
+                OutFile allDsetsOut = new OutFile(groupingMethodPath+statName+"/"+evalSet+"/" + "clusters.csv");
+                
+                for (int cluster = 0; cluster < numClusters; cluster++)
+                    allDsetsOut.writeString(clusterNames[cluster] + ",");
+                allDsetsOut.writeLine("");
+                
+                //printing variable length 2d array in table form, columns = clusters, rows = dsets
+                int dsetInd = 0;
+                boolean allDone = false;
+                while (!allDone) {
+                    allDone = true;
+                    for (int cluster = 0; cluster < numClusters; cluster++) {
+                        if (dsetInd < clusterDsets[cluster].length) {
+                            allDsetsOut.writeString(clusterDsets[cluster][dsetInd]);
+                            allDone = false;
+                        }
+                        allDsetsOut.writeString(",");
+                    }
+                    allDsetsOut.writeLine("");
+                    dsetInd++;
+                }
+                allDsetsOut.closeFile();
+                //writing all the clusters to one file end here
+            
+                String clusterGroupsPath = groupingMethodPath+statName+"/"+evalSet+"/" + "DsetClustersTxtFiles/";
+                (new File(clusterGroupsPath)).mkdir();
+            
+                //writing each individual clsuter file start here
+                for (int cluster = 0; cluster < numClusters; cluster++) {
+                    OutFile clusterFile = new OutFile(clusterGroupsPath + clusterNames[cluster] + ".txt");
+                    for (String dset : clusterDsets[cluster])
+                        clusterFile.writeLine(dset);
+                    clusterFile.closeFile();
+                }
+            }
+            
+            int numGroups = dsetGroupingMethod.size();
             String[] groupNames = new String[numGroups];
             
             //using maps for this because classifiernames could be in different ordering based on rankings 
@@ -368,17 +448,18 @@ public class ClassifierResultsAnalysis {
             StringBuilder [] groupSummaryStringBuilders = new StringBuilder[numGroups];
             int groupIndex = 0;
             
-            for (Map.Entry<String, String[]> dsetGroup : dsetGroupingMethod.getValue().entrySet()) {
+            for (Map.Entry<String, String[]> dsetGroup : dsetGroupingMethod.entrySet()) {
                 String groupName = dsetGroup.getKey();
                 groupNames[groupIndex] = groupName;
-                String groupPath = groupingMethodPath + groupName + "/";
-                (new File(groupPath)).mkdir();
+//                String groupPath = groupingMethodPath + groupName + "/";
+//                (new File(groupPath)).mkdir();
                 
                 //perform group analysis
                 String[] groupDsets = dsetGroup.getValue();
                 double[][][] groupFoldVals = collectDsetVals(foldVals, dsets, groupDsets);
                 String groupFileName = filename + "-" + groupName + "-";
-                String[] groupSummaryFileStrings = writeStatisticOnSplitFiles(groupPath+statName+"/", groupFileName, evalSet, statName, groupFoldVals, cnames, groupDsets, null);
+//                String[] groupSummaryFileStrings = writeStatisticOnSplitFiles(groupPath+statName+"/", groupFileName, groupName, evalSet, statName, groupFoldVals, cnames, groupDsets, null);
+                String[] groupSummaryFileStrings = writeStatisticOnSplitFiles(groupingMethodPath+statName+"/", groupFileName, groupName, evalSet, statName, groupFoldVals, cnames, groupDsets, null);
                 
                 //collect the accuracies for the dataset group 
                 String[] classifierNamesLine = groupSummaryFileStrings[1].split("\n")[0].split(",");
@@ -391,7 +472,7 @@ public class ClassifierResultsAnalysis {
                 }
                 
                 //collect the wins for the group
-                Scanner ranksFileIn = new Scanner(new File(groupPath+statName+"/"+evalSet+"/"+groupFileName+"_"+evalSet+statName+"RANKS.csv"));      
+                Scanner ranksFileIn = new Scanner(new File(groupingMethodPath+statName+"/"+evalSet+"/"+groupName+"/"+groupFileName+"_"+evalSet+statName+"RANKS.csv"));      
                 classifierNamesLine = ranksFileIn.nextLine().split(",");
                 double[] winCounts = new double[classifierNamesLine.length];
                 while (ranksFileIn.hasNextLine()) {
@@ -429,97 +510,103 @@ public class ClassifierResultsAnalysis {
                 groupIndex++;
             }
             
-            OutFile groupingMethodSummaryFile = new OutFile(groupingMethodPath + filename + "_" + groupingMethodName + "_" + evalSet + statName + ".csv");
-            for (StringBuilder groupSummary : groupSummaryStringBuilders) {
-                groupingMethodSummaryFile.writeLine(groupSummary.toString());
-                groupingMethodSummaryFile.writeLine("\n\n");
-            }
-            
-    //starting to write out the accs table
-            //header row
-            groupingMethodSummaryFile.writeString("AvgAccsOnGroups:");
-            for (String cname : cnames) 
-                groupingMethodSummaryFile.writeString(","+cname);
-            groupingMethodSummaryFile.writeLine(",Averages");
-            
-            //calc the avgs too
-            double[] groupAvgs = new double[numGroups], clsfrAvgs = new double[cnames.length];
-            for (int i = 0; i < numGroups; i++) {
-                groupingMethodSummaryFile.writeString(groupNames[i]);
-                for (int j = 0; j < cnames.length; j++) {
-                    double val = groupAccs.get(cnames[j])[i];
-                    groupAvgs[i] += val;
-                    clsfrAvgs[j] += val;
-                    groupingMethodSummaryFile.writeString(","+val);
-                }
-                groupingMethodSummaryFile.writeLine(","+(groupAvgs[i]/cnames.length));
-            }
-            
-            //print final row, avg of classifiers
-            double globalAvg = 0;
-            groupingMethodSummaryFile.writeString("Averages");
-            for (int j = 0; j < cnames.length; j++) {
-                double avg = clsfrAvgs[j]/numGroups;
-                globalAvg += avg;
-                groupingMethodSummaryFile.writeString(","+avg);
-            }
-            globalAvg /= cnames.length;
-//            //jsut to help debugging
-//            double globalAvgCheck = 0;
-//            for (int i = 0; i < numGroups; ++i)
-//                globalAvgCheck += groupAvgs[i]/cnames.length;
-//            globalAvgCheck /= numGroups;
-//            assert(globalAvg == globalAvgCheck);
-            
-            groupingMethodSummaryFile.writeLine(","+globalAvg);
-    //end of writing accs table
-    
-            groupingMethodSummaryFile.writeLine("\n\n");
-    
-    //starting to write out the wins table
-            groupingMethodSummaryFile.writeLine("This table accounts for ties on a dset e.g if 2 classifiers share best accuracy "
-                    + "that will count as half a win for each");
-    
-            //header row
-            groupingMethodSummaryFile.writeString("NumWinsInGroups:");
-            for (String cname : cnames) 
-                groupingMethodSummaryFile.writeString(","+cname);
-            groupingMethodSummaryFile.writeLine(",TotalNumDsetsInGroup");
-            
-            //calc the avgs too
-            double[] groupSums = new double[numGroups], clsfrSums = new double[cnames.length];
-            for (int i = 0; i < numGroups; i++) {
-                groupingMethodSummaryFile.writeString(groupNames[i]);
-                for (int j = 0; j < cnames.length; j++) {
-                    double val = groupWins.get(cnames[j])[i];
-                    groupSums[i] += val;
-                    clsfrSums[j] += val;
-                    groupingMethodSummaryFile.writeString(","+val);
-                }
-                groupingMethodSummaryFile.writeLine(","+(groupSums[i]));
-            }
-            
-            //print final row, avg of classifiers
-            double globalSum = 0;
-            groupingMethodSummaryFile.writeString("TotalNumWinsForClassifier");
-            for (int j = 0; j < cnames.length; j++) {
-                globalSum += clsfrSums[j];
-                groupingMethodSummaryFile.writeString(","+clsfrSums[j]);
-            }
-//            //jsut to help debugging
-//            double globalAvgCheck = 0;
-//            for (int i = 0; i < numGroups; ++i)
-//                globalAvgCheck += groupAvgs[i]/cnames.length;
-//            globalAvgCheck /= numGroups;
-//            assert(globalAvg == globalAvgCheck);
-            
-            groupingMethodSummaryFile.writeLine(","+globalSum);
-    //end of writing wins table
-    
-            groupingMethodSummaryFile.closeFile();
+            String groupMethodSummaryFilename = groupingMethodPath + filename + "_" + groupingMethodName + "_" + evalSet + statName + ".csv";
+            datasetGroupings_writeGroupingMethodSummaryFile(groupMethodSummaryFilename, groupSummaryStringBuilders, cnames, groupNames, groupWins, groupAccs);
         }
         
         return new String[] { };
+    }
+    
+    public static void datasetGroupings_writeGroupingMethodSummaryFile(String filename, StringBuilder [] groupSummaryStringBuilders, String[] cnames, String[] groupNames, 
+            Map<String, double[]> groupWins, Map<String, double[]> groupAccs) {
+        
+        OutFile groupingMethodSummaryFile = new OutFile(filename);
+        for (StringBuilder groupSummary : groupSummaryStringBuilders) {
+            groupingMethodSummaryFile.writeLine(groupSummary.toString());
+            groupingMethodSummaryFile.writeLine("\n\n");
+        }
+
+        groupingMethodSummaryFile.writeString(datasetGroupings_buildAccsTableString(groupAccs, cnames, groupNames));
+        groupingMethodSummaryFile.writeLine("\n\n");
+        groupingMethodSummaryFile.writeString(datasetGroupings_buildWinsTableString(groupWins, cnames, groupNames));
+
+        groupingMethodSummaryFile.closeFile();
+    }
+    
+    public static String datasetGroupings_buildWinsTableString(Map<String, double[]> groupWins, String[] cnames, String[] groupNames) {
+        int numGroups = groupNames.length;
+        StringBuilder sb = new StringBuilder();
+
+        sb.append("This table accounts for ties on a dset e.g if 2 classifiers share best accuracy "
+        + "that will count as half a win for each").append("\n");
+
+        //header row
+        sb.append("NumWinsInGroups:");
+        for (String cname : cnames) 
+            sb.append(","+cname);
+        sb.append(",TotalNumDsetsInGroup").append("\n");
+
+        //calc the avgs too
+        double[] groupSums = new double[numGroups], clsfrSums = new double[cnames.length];
+        for (int i = 0; i < numGroups; i++) {
+            sb.append(groupNames[i]);
+            for (int j = 0; j < cnames.length; j++) {
+                double val = groupWins.get(cnames[j])[i];
+                groupSums[i] += val;
+                clsfrSums[j] += val;
+                sb.append(","+val);
+            }
+            sb.append(","+(groupSums[i])).append("\n");
+        }
+
+        //print final row, avg of classifiers
+        double globalSum = 0;
+        sb.append("TotalNumWinsForClassifier");
+        for (int j = 0; j < cnames.length; j++) {
+            globalSum += clsfrSums[j];
+            sb.append(","+clsfrSums[j]);
+        }
+
+        sb.append(","+globalSum).append("\n");
+        
+        return sb.toString();
+    }
+    
+    public static String datasetGroupings_buildAccsTableString(Map<String, double[]> groupAccs, String[] cnames, String[] groupNames) {
+        int numGroups = groupNames.length;
+        StringBuilder sb = new StringBuilder();
+
+        //header row
+        sb.append("AvgAccsOnGroups:");
+        for (String cname : cnames) 
+            sb.append(","+cname);
+        sb.append(",Averages").append("\n");
+
+        //calc the avgs too
+        double[] groupAvgs = new double[numGroups], clsfrAvgs = new double[cnames.length];
+        for (int i = 0; i < numGroups; i++) {
+            sb.append(groupNames[i]);
+            for (int j = 0; j < cnames.length; j++) {
+                double val = groupAccs.get(cnames[j])[i];
+                groupAvgs[i] += val;
+                clsfrAvgs[j] += val;
+                sb.append(","+val);
+            }
+            sb.append(","+(groupAvgs[i]/cnames.length)).append("\n");
+        }
+
+        //print final row, avg of classifiers
+        double globalAvg = 0;
+        sb.append("Averages");
+        for (int j = 0; j < cnames.length; j++) {
+            double avg = clsfrAvgs[j]/numGroups;
+            globalAvg += avg;
+            sb.append(","+avg);
+        }
+        globalAvg /= cnames.length;
+        sb.append(","+globalAvg).append("\n");
+        
+        return sb.toString();
     }
     
     public static double[][][] collectDsetVals(double[][][] foldVals, String[] dsets, String[] groupDsets) {
@@ -545,7 +632,7 @@ public class ClassifierResultsAnalysis {
      * Mostly for legacy results not in the classifier results file format 
      */
     public static void summariseTestAccuracies(String outPath, String filename, double[][][] testFolds, String[] cnames, String[] dsets, Map<String, Map<String, String[]>> dsetGroupings) throws FileNotFoundException {
-        writeStatisticOnSplitFiles(outPath, filename, testLabel, "ACC", testFolds, cnames, dsets, dsetGroupings);
+        writeStatisticOnSplitFiles(outPath, filename, null, testLabel, "ACC", testFolds, cnames, dsets, dsetGroupings);
     }
     
     protected static String[] writeStatisticFiles(String outPath, String filename, ArrayList<ClassifierEvaluation> results, Pair<String, Function<ClassifierResults, Double>> evalStatistic, String[] cnames, String[] dsets, Map<String, Map<String, String[]>> dsetGroupings) throws FileNotFoundException {
@@ -558,11 +645,11 @@ public class ClassifierResultsAnalysis {
         if (!testResultsOnly) {
             double[][][] trainFolds = getInfo(results, evalStatistic.var2, trainLabel);
             double[][][] trainTestDiffsFolds = findTrainTestDiffs(trainFolds, testFolds);
-            writeStatisticOnSplitFiles(outPath, filename, trainLabel, statName, trainFolds, cnames, dsets, dsetGroupings); 
-            writeStatisticOnSplitFiles(outPath, filename, trainTestDiffLabel, statName, trainTestDiffsFolds, cnames, dsets, dsetGroupings);
+            writeStatisticOnSplitFiles(outPath, filename, null, trainLabel, statName, trainFolds, cnames, dsets, dsetGroupings); 
+            writeStatisticOnSplitFiles(outPath, filename, null, trainTestDiffLabel, statName, trainTestDiffsFolds, cnames, dsets, dsetGroupings);
         }
         
-        return writeStatisticOnSplitFiles(outPath, filename, testLabel, statName, testFolds, cnames, dsets, dsetGroupings);
+        return writeStatisticOnSplitFiles(outPath, filename, null, testLabel, statName, testFolds, cnames, dsets, dsetGroupings);
     }
     
     /**
@@ -601,7 +688,7 @@ public class ClassifierResultsAnalysis {
             } catch (FileNotFoundException fnf) {
                 System.out.println("Something went wrong, later stages of analysis could not find files that should have been made"
                         + "internally in earlier stages of the pipeline, FATAL");
-                System.out.println(fnf);
+                fnf.printStackTrace();
                 System.exit(0);
             }
             
@@ -1285,4 +1372,44 @@ public class ClassifierResultsAnalysis {
         }
     }
     
+    
+    public static int[] performDatasetResultsClustering(double[/*classifier*/][/*dataset*/] results) { 
+        double[/*dataset*/][/*classifier*/] dsetScores = GenericTools.cloneAndTranspose(results);
+        int numDsets = dsetScores.length;
+        
+        for (int dset = 0; dset < dsetScores.length; dset++) {
+            double dsetAvg = StatisticalUtilities.mean(dsetScores[dset], false);
+            for (int clsfr = 0; clsfr < dsetScores[dset].length; clsfr++)
+                dsetScores[dset][clsfr] -= dsetAvg;
+        }
+        
+        Instances clusterData = InstanceTools.toWekaInstances(dsetScores);
+        
+        XMeans xmeans = new XMeans();
+        xmeans.setMaxNumClusters(Math.min((int)Math.sqrt(numDsets), 5));
+        xmeans.setSeed(0);
+        
+        try {
+            xmeans.buildClusterer(new Instances(clusterData)); 
+            //pass copy, just in case xmeans does any kind of reordering of 
+            //instances. we want to maintain order of dsets/instances for indexing purposes
+        } catch (Exception e) {
+            System.out.println("Problem building clusterer for post hoc dataset groupings\n" + e);
+        }
+        
+        int numClusters = xmeans.numberOfClusters();
+        
+        int[] assignments = new int[numDsets+1];
+        assignments[numDsets] = numClusters;
+        
+        for (int i = 0; i < numDsets; i++) {
+            try {
+                assignments[i] = xmeans.clusterInstance(clusterData.instance(i));
+            } catch (Exception e) {
+                System.out.println("Problem assigning clusters in post hoc dataset groupings, dataset " + i + "\n" + e);
+            }
+        }
+        
+        return assignments;
+    }
 }

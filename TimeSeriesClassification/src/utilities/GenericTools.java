@@ -99,4 +99,15 @@ public class GenericTools {
         return out;
     }
     
+    /**
+     * assumes it's a square matrix basically. uneven inner array lengths will mess up
+     */
+    public static double[][] cloneAndTranspose(double[][] in) {
+        double[][] out = new double[in[0].length][in.length];
+        
+        for (int i = 0; i < in.length; i++)
+            for (int j = 0; j < in[0].length; j++)
+                out[j][i] = in[i][j];
+        return out;
+    }
 }
