@@ -53,7 +53,7 @@ public class TabuSearch extends ImpRandomSearch{
             proportion =  ((float) Math.sqrt(inputData.numInstances()) / (float)inputData.numInstances());
             subsampleSize = (float) inputData.numInstances() * proportion;
             numShapeletsPerSeries = (int) ((float) numShapelets / subsampleSize);  
-            System.out.println("sampling");
+            System.out.println("subsampleSize " + (int)subsampleSize);
         }
                     
         if(proportion >= 1.0){
@@ -62,8 +62,9 @@ public class TabuSearch extends ImpRandomSearch{
         else{
             //randomly select % of the series.
             for(int i=0; i< subsampleSize; i++){
-                seriesToConsider.set(random.nextInt((int) subsampleSize));
+                seriesToConsider.set(random.nextInt((int) inputData.numInstances()));
             }
+            System.out.println(seriesToConsider);
         }
         
         System.out.println(numShapeletsPerSeries);
@@ -139,9 +140,13 @@ public class TabuSearch extends ImpRandomSearch{
             
             if(local_bsf_shapelet == null) continue;
             
+            
+            if(bsf_shapelet == null){
+                bsf_shapelet = local_bsf_shapelet;
+                seriesShapelets.add(local_bsf_shapelet); //stick the local best ones in the list.
+            }
+                
             //update bsf shapelet if the local one is better.
-            if(bsf_shapelet == null) bsf_shapelet = local_bsf_shapelet;
-
             if(comparator.compare(bsf_shapelet, local_bsf_shapelet) > 0){
                 bsf_shapelet = local_bsf_shapelet;
                 seriesShapelets.add(local_bsf_shapelet); //stick the local best ones in the list.

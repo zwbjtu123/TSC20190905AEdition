@@ -64,8 +64,9 @@ public class MagnifySearch extends ImpRandomSearch{
         }
         else{
             for(int i=0; i< subsampleSize; i++){
-                seriesToConsider.set(random.nextInt((int) subsampleSize));
+                seriesToConsider.set(random.nextInt((int) inputData.numInstances()));
             }
+            System.out.println(seriesToConsider);
         }
         
         if(numShapeletsPerSeries < 1)
