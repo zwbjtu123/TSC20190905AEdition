@@ -10,6 +10,7 @@
  */
 package timeseriesweka.filters.shapelet_transforms;
 
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -17,6 +18,9 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.io.PrintStream;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -586,8 +590,10 @@ public class ShapeletTransform extends SimpleBatchFilter implements SaveParamete
 
         this.numShapelets = kShapelets.size();
 
-        recordShapelets(kShapelets, this.ouputFileLocation);
-        printShapelets(kShapelets);
+        if (recordShapelets) 
+            recordShapelets(kShapelets, this.ouputFileLocation);
+        if (!supressOutput)
+            writeShapelets(kShapelets, new OutputStreamWriter(System.out));
 
         return kShapelets;
     }
@@ -869,59 +875,36 @@ public class ShapeletTransform extends SimpleBatchFilter implements SaveParamete
     }
 
     protected void recordShapelets(ArrayList<Shapelet> kShapelets, String saveLocation) {
-        if (!this.recordShapelets) {
-            return;
+        //just in case the file doesn't exist or the directories.
+        File file = new File(saveLocation);
+        if (file.getParentFile() != null) {
+            file.getParentFile().mkdirs();
         }
 
-        try {
-            //just in case the file doesn't exist or the directories.
-            File file = new File(saveLocation);
-            if (file.getParentFile() != null) {
-                file.getParentFile().mkdirs();
-            }
-
-            FileWriter out = new FileWriter(file);
-
-            for (Shapelet kShapelet : kShapelets) {
-                out.append(kShapelet.qualityValue + "," + kShapelet.seriesId + "," + kShapelet.startPos + "\n");
-                double[] shapeletContent = kShapelet.getUniveriateShapeletContent();
-
-                for (int j = 0; j < shapeletContent.length; j++) {
-                    out.append(shapeletContent[j] + ",");
-                }
-                out.append("\n");
-            }
-            out.close();
+        try (FileWriter out = new FileWriter(file)) {
+            writeShapelets(kShapelets, out);
         } catch (IOException ex) {
-            System.out.println("IOException: " + ex);
+            Logger.getLogger(ShapeletTransform.class.getName()).log(Level.SEVERE, null, ex);
         }
-
     }
 
-    protected void printShapelets(ArrayList<Shapelet> kShapelets) {
-        if (supressOutput) {
-            return;
-        }
-
-        System.out.println();
-        System.out.println("Output Shapelets:");
-        System.out.println("-------------------");
-        System.out.println("informationGain,seriesId,startPos,classVal,numChannels,dimenion");
-        System.out.println("<shapelet>");
-        System.out.println("-------------------");
-        System.out.println();
-        for (Shapelet kShapelet : kShapelets) {
-            System.out.println(kShapelet.qualityValue + "," + kShapelet.seriesId + "," + kShapelet.startPos + "," + kShapelet.classValue + "," + kShapelet.getNumDimensions() + "," + kShapelet.dimension);
-            for (int i = 0; i < kShapelet.numDimensions; i++) {
-                double[] shapeletContent = kShapelet.getContent().getShapeletContent(i);
-                for (int j = 0; j < shapeletContent.length; j++) {
-                    System.out.print(shapeletContent[j] + ",");
+    
+    protected void writeShapelets(ArrayList<Shapelet> kShapelets, OutputStreamWriter out){
+        try {
+            out.append("informationGain,seriesId,startPos,classVal,numChannels,dimension\n");
+            for (Shapelet kShapelet : kShapelets) {
+                out.append(kShapelet.qualityValue + "," + kShapelet.seriesId + "," + kShapelet.startPos + "," + kShapelet.classValue + "," + kShapelet.getNumDimensions() + "," + kShapelet.dimension+"\n");
+                for (int i = 0; i < kShapelet.numDimensions; i++) {
+                    double[] shapeletContent = kShapelet.getContent().getShapeletContent(i);
+                    for (int j = 0; j < shapeletContent.length; j++) {
+                        out.append(shapeletContent[j] + ",");
+                    }
+                    out.append("\n");
                 }
-                System.out.println();
             }
-            
+        } catch (IOException ex) {
+            Logger.getLogger(ShapeletTransform.class.getName()).log(Level.SEVERE, null, ex);
         }
-
     }
     
     /**
