@@ -5,6 +5,7 @@
  */
 package timeseriesweka.filters.shapelet_transforms;
 
+import java.io.OutputStreamWriter;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -86,8 +87,11 @@ public class BalancedClassShapeletTransform extends ShapeletTransform implements
         
         this.numShapelets = kShapelets.size();
 
-        recordShapelets(kShapelets, this.ouputFileLocation);
-        printShapelets(kShapelets);
+        
+        if (recordShapelets) 
+            recordShapelets(kShapelets, this.ouputFileLocation);
+        if (!supressOutput)
+            writeShapelets(kShapelets, new OutputStreamWriter(System.out));
 
         return kShapelets;
     }

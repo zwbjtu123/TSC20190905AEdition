@@ -71,7 +71,7 @@ public class ShapeletTransformFactory {
         st.setQualityMeasure(options.getQualityChoice());
         st.setRoundRobin(options.useRoundRobin());
         st.setCandidatePruning(options.useCandidatePruning());
-        st.supressOutput();
+        //st.supressOutput();
         return st;
     }    
     

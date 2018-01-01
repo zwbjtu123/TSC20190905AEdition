@@ -63,6 +63,10 @@ public class Shapelet implements Comparable<Shapelet>, Serializable
     }
     
     public int getNumDimensions(){
+        if (content != null) {
+            numDimensions = content.getNumChannels();
+        }
+       
         return numDimensions;
     }
     
@@ -132,6 +136,7 @@ public class Shapelet implements Comparable<Shapelet>, Serializable
     {
         this.content = content;
         length = content.getLength();
+        numDimensions = content.getNumChannels();
         this.seriesId = seriesId;
         this.startPos = startPos;
         this.qualityType = qualityChoice;

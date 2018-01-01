@@ -1016,15 +1016,18 @@ public class ShapeletTransform extends SimpleBatchFilter implements SaveParamete
      * @throws java.io.FileNotFoundException
      */
     public static ArrayList<Shapelet> readShapeletCSV(File f) throws FileNotFoundException{
-        
         ArrayList<Shapelet> shapelets = new ArrayList<>();
         
         Scanner sc = new Scanner(f);
+        System.out.println(sc.nextLine());
         
         boolean readHeader = true;
         
-        double quality = 0;
-        int series = 0, position = 0;
+        double quality = 0, classVal = 0;
+        int series = 0, position = 0, dimension = 0, numDimensions = 1;
+        ShapeletCandidate cand = null;
+        int currentDim = 0;
+
         
         while(sc.hasNextLine()){
             String line = sc.nextLine();
@@ -1034,18 +1037,32 @@ public class ShapeletTransform extends SimpleBatchFilter implements SaveParamete
                 quality = Double.parseDouble(cotentsAsString[0]);
                 series = Integer.parseInt(cotentsAsString[1]);
                 position = Integer.parseInt(cotentsAsString[2]);
+                classVal = Double.parseDouble(cotentsAsString[3]);
+                numDimensions = Integer.parseInt(cotentsAsString[4]);
+                dimension = Integer.parseInt(cotentsAsString[5]);
+                cand = new ShapeletCandidate(numDimensions);
+                currentDim =0;
+                readHeader = false;
             }
             else{
+                //read dims until we run out.
                 double[] content = new double[cotentsAsString.length];
                 for (int i = 0; i < content.length; i++) {
                     content[i] = Double.parseDouble(cotentsAsString[i]);
                 }
+                //set the content for the current channel.
+                cand.setShapeletContent(currentDim, content);
+                currentDim++;
                 
-                shapelets.add(new Shapelet(new ShapeletCandidate(content), quality, series, position));   
+                //if we've evald all the current dim data for a shapelet we can add it to the list, and move on with the next one.
+                if(currentDim == numDimensions){
+                    Shapelet shapelet = new Shapelet(cand, quality, series, position);
+                    shapelet.dimension = dimension;
+                    shapelet.classValue = classVal;
+                    shapelets.add(shapelet);
+                    readHeader = true;
+                }
             }
-            
-            readHeader = !readHeader; //alternate
-        
         }
         return shapelets;
         
