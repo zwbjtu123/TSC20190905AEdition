@@ -8,8 +8,8 @@ package timeseriesweka.filters.shapelet_transforms.distance_functions;
 import java.io.Serializable;
 import java.util.Arrays;
 import timeseriesweka.filters.shapelet_transforms.ShapeletCandidate;
-import static utilities.MultivariateInstanceTools.convertMultiInstanceToArrays;
-import static utilities.MultivariateInstanceTools.splitMultivariateInstance;
+import static utilities.multivariate_tools.MultivariateInstanceTools.convertMultiInstanceToArrays;
+import static utilities.multivariate_tools.MultivariateInstanceTools.splitMultivariateInstance;
 import weka.core.Instance;
 
 /**

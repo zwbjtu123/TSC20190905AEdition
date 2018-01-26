@@ -18,7 +18,7 @@ public class MultivariateIndependentDistance extends MultivariateDistance implem
     //calculate the minimum distance for each channel, and then average.
     @Override
     public double calculate(Instance timeSeries, int timeSeriesId){
-        Instance[] channel = utilities.MultivariateInstanceTools.splitMultivariateInstance(timeSeries);
+        Instance[] channel = utilities.multivariate_tools.MultivariateInstanceTools.splitMultivariateInstance(timeSeries);
         double cumulative_distance=0;
         for(int i=0; i< channel.length; i++){
             cumulative_distance += calculate(cand.getShapeletContent(i), channel[i].toDoubleArray());

@@ -7,8 +7,8 @@ package timeseriesweka.filters.shapelet_transforms.distance_functions;
 
 import java.io.Serializable;
 import timeseriesweka.filters.shapelet_transforms.ShapeletCandidate;
-import static utilities.MultivariateInstanceTools.convertMultiInstanceToArrays;
-import static utilities.MultivariateInstanceTools.splitMultivariateInstance;
+import static utilities.multivariate_tools.MultivariateInstanceTools.convertMultiInstanceToArrays;
+import static utilities.multivariate_tools.MultivariateInstanceTools.splitMultivariateInstance;
 import weka.core.Instance;
 import weka.core.Instances;
 
@@ -24,8 +24,8 @@ public class MultivariateDistance extends SubSeqDistance implements Serializable
     public void init(Instances data)
     {
         count =0;
-        numChannels = utilities.MultivariateInstanceTools.numChannels(data);
-        seriesLength = utilities.MultivariateInstanceTools.channelLength(data);
+        numChannels = utilities.multivariate_tools.MultivariateInstanceTools.numChannels(data);
+        seriesLength = utilities.multivariate_tools.MultivariateInstanceTools.channelLength(data);
         
     }
     

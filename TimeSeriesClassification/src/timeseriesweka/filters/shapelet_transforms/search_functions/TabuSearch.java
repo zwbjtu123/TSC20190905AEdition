@@ -184,7 +184,7 @@ public class TabuSearch extends ImpRandomSearch{
                 if(newLen < minShapeletLength || //don't allow length to be less than minShapeletLength. 
                    newLen > maxShapeletLength || //don't allow length to be more than maxShapeletLength.
                    newPos < 0                 || //don't allow position to be less than 0.               
-                   newPos >= (m-newLen+1))       //don't allow position to be greater than m-l+1.
+                   newPos >= (m-newLen))       //don't allow position to be greater than m-l+1.
                     continue;
                 
                 neighbourhood.add(new Pair(newLen, newPos));

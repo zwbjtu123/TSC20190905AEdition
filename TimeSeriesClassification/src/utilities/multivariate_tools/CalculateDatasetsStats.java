@@ -3,15 +3,12 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package multivariate_timeseriesweka;
+package utilities.multivariate_tools;
 
 import fileIO.OutFile;
-import java.io.File;
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.util.Map.Entry;
 import timeseriesweka.filters.SummaryStats;
 import static utilities.InstanceTools.createClassInstancesMap;
 import weka.core.Instances;
@@ -20,52 +17,17 @@ import weka.core.Instances;
  *
  * @author raj09hxu
  */
-public class DataSets {
-    
-    public static String dropboxPath = "E:\\LocalData\\Dropbox\\Multivariate TSC\\Aarons Official\\";
-
-    //All of the multivariate datasets.
-    public static String[] multivariateNames = {
-        "AALTD_0",
-        "AALTD_1",
-        "AALTD_2",
-        "AALTD_3",
-        "AALTD_4",
-        "AALTD_5",
-        "AALTD_6",
-        "AALTD_7",
-        "ArabicDigit", 
-        "ArticularyWordLL",
-        "ArticularyWordT1",
-        "ArticularyWordUL",
-        "CricketLeft",
-        "CricketRight",
-        "HandwritingAccelerometer",
-        "HandwritingGyroscope",
-        "JapaneseVowels",
-        "MVMotionA",
-        "MVMotionG",
-        "MVMotionAG",
-        "PEMS",
-        "PenDigits",
-        "UWaveGesture",
-        "VillarData",
-    };
+public class CalculateDatasetsStats {
     
     
-    public static void createAndWriteSummaryStats() throws Exception{
+    public static void main(String[] args) throws Exception {
+                
         //load datasets
         for(String dataset : multivariate_timeseriesweka.DataSets.multivariateNames){
             
-            Instances train;
-            try {
-                train = utilities.ClassifierTools.loadData(new File(multivariate_timeseriesweka.DataSets.dropboxPath + dataset + "/" + dataset +"_TRAIN.arff"));
-            } catch (IOException ex) {
-                continue; //if dataset doesn't exist move on.
-            }
-            
             OutFile out = new OutFile(multivariate_timeseriesweka.DataSets.dropboxPath + dataset +"_summarystats.txt");
             
+            Instances train = utilities.ClassifierTools.loadData(multivariate_timeseriesweka.DataSets.dropboxPath + dataset + "/" + dataset +"_TRAIN.arff");
             Instances[] channels = utilities.multivariate_tools.MultivariateInstanceTools.splitMultivariateInstances(train);
             
             out.writeLine("num instances " + train.numInstances());
@@ -98,7 +60,11 @@ public class DataSets {
                 }
             }
             out.closeFile();
-        }         
+        }   
+            
+            
+        
+       
     }
     
     public static double[][] calculateStatsForInstances(Instances dataset) throws Exception{
@@ -107,18 +73,17 @@ public class DataSets {
 
         Map<Double, Instances> instancesMap = createClassInstancesMap(filter);
 
-        //we calculate 6 stats.
-        double[][] seriesStats = new double[instancesMap.size()][6];
+        double[][] seriesStats = new double[instancesMap.size()][filter.numAttributes()-1];
 
-        for(Map.Entry<Double, Instances> pair : instancesMap.entrySet()){
+        for(Entry<Double, Instances> pair : instancesMap.entrySet()){
 
             Instances inst = pair.getValue();
             double[][] data = utilities.InstanceTools.fromWekaInstancesArray(inst, true);
-            double[] averagedStats = new double[6];
-            //TODO triple check this.
+            double[] averagedStats = new double[inst.numAttributes()-1];
+            //TODO double check this.
             for(int i=0; i<averagedStats.length; i++){
                 for(int j=0; j<inst.numInstances(); j++){
-                    averagedStats[i] += data[j][i]; //column major. want to add along the access of 6 values.
+                    averagedStats[i] += data[j][i];
                 }
             }
 
@@ -131,7 +96,4 @@ public class DataSets {
         return seriesStats;
     }
     
-    public static void main(String[] args) throws Exception {
-        createAndWriteSummaryStats();
-    }
 }

@@ -10,10 +10,10 @@ import java.lang.reflect.Method;
 import weka.classifiers.AbstractClassifier;
 import weka.classifiers.Classifier;
 import weka.core.Instances;
-import static utilities.MultivariateInstanceTools.concatinateInstances;
-import static utilities.MultivariateInstanceTools.numChannels;
-import static utilities.MultivariateInstanceTools.splitMultivariateInstanceWithClassVal;
-import static utilities.MultivariateInstanceTools.splitMultivariateInstances;
+import static utilities.multivariate_tools.MultivariateInstanceTools.concatinateInstances;
+import static utilities.multivariate_tools.MultivariateInstanceTools.numChannels;
+import static utilities.multivariate_tools.MultivariateInstanceTools.splitMultivariateInstanceWithClassVal;
+import static utilities.multivariate_tools.MultivariateInstanceTools.splitMultivariateInstances;
 import weka.classifiers.RandomizableIteratedSingleClassifierEnhancer;
 import weka.core.Instance;
 

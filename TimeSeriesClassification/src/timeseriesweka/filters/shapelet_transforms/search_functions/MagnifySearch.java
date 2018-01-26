@@ -118,7 +118,6 @@ public class MagnifySearch extends ImpRandomSearch{
             //should give us a bit of a range of improving shapelets and a really gone one.
             //do another trial. -- this is super unlikely.
             if(bsf==null) {
-                depth--;
                 continue;
             }
             
@@ -148,9 +147,10 @@ public class MagnifySearch extends ImpRandomSearch{
         //calculate max and min clamp based on length.
         //can't have max position > m-l+1
         //choose the smaller of the two.
-        int maxP = Math.min(totalLength-length+1, maxPos);
+        int maxP = Math.min(totalLength-length, maxPos);
         int minP = Math.max(0, minPos);
         int position = randomRange(random, minP, maxP);
+        
         return new Pair(length, position);   
     }
     

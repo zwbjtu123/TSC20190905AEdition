@@ -11,7 +11,7 @@ import java.util.Comparator;
 import weka.core.Instance;
 import weka.core.Instances;
 import timeseriesweka.filters.shapelet_transforms.Shapelet;
-import static utilities.MultivariateInstanceTools.channelLength;
+import static utilities.multivariate_tools.MultivariateInstanceTools.channelLength;
 /**
  *
  * @author raj09hxu
@@ -114,7 +114,7 @@ public class ShapeletSearch implements Serializable{
     
     protected Instance getTimeSeries(Instance timeSeries, int dim){
         if(numDimensions > 1)
-            return utilities.MultivariateInstanceTools.splitMultivariateInstanceWithClassVal(timeSeries)[dim];
+            return utilities.multivariate_tools.MultivariateInstanceTools.splitMultivariateInstanceWithClassVal(timeSeries)[dim];
         return timeSeries;
     }
 }

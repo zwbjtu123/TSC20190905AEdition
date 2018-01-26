@@ -67,13 +67,13 @@ public class DefaultShapeletOptions {
      */
     public static ShapeletTransformFactoryOptions createIndependentShapeletSearch_TIMED(Instances train, long time, long seed){  
         int n = train.numInstances();
-        int m = utilities.MultivariateInstanceTools.channelLength(train);
+        int m = utilities.multivariate_tools.MultivariateInstanceTools.channelLength(train);
         //create our search options.
         ShapeletSearchOptions.Builder searchBuilder = new ShapeletSearchOptions.Builder();
         searchBuilder.setMin(3);
         searchBuilder.setMax(m);
         searchBuilder.setSearchType(FULL); //default to FULL, if we need to sample will get overwrote.
-        searchBuilder.setNumDimensions(utilities.MultivariateInstanceTools.numChannels(train));
+        searchBuilder.setNumDimensions(utilities.multivariate_tools.MultivariateInstanceTools.numChannels(train));
         
         //clamp K to 2000.
         int K = n > 2000 ? 2000 : n;   
@@ -117,7 +117,7 @@ public class DefaultShapeletOptions {
     
     public static ShapeletTransformFactoryOptions createSHAPELET_I_TIMED(Instances train, long time, long seed){  
         int n = train.numInstances();
-        int m = utilities.MultivariateInstanceTools.channelLength(train);
+        int m = utilities.multivariate_tools.MultivariateInstanceTools.channelLength(train);
         //create our search options.
         ShapeletSearchOptions.Builder searchBuilder = new ShapeletSearchOptions.Builder();
         searchBuilder.setMin(3);
@@ -132,7 +132,7 @@ public class DefaultShapeletOptions {
         BigInteger opCountTarget = new BigInteger(Long.toString(time / nanoToOp));
         BigInteger opCount = ShapeletTransformTimingUtilities.calculateOps(n, m, 1, 1);
         //multiple the total opCount by K becauise for each comparison we do across dimensions.
-        opCount = opCount.multiply(BigInteger.valueOf(utilities.MultivariateInstanceTools.numChannels(train)));
+        opCount = opCount.multiply(BigInteger.valueOf(utilities.multivariate_tools.MultivariateInstanceTools.numChannels(train)));
         if(opCount.compareTo(opCountTarget) == 1){
             BigDecimal oct = new BigDecimal(opCountTarget);
             BigDecimal oc = new BigDecimal(opCount);
@@ -165,7 +165,7 @@ public class DefaultShapeletOptions {
     
     public static ShapeletTransformFactoryOptions createSHAPELET_D_TIMED(Instances train, long time, long seed){  
         int n = train.numInstances();
-        int m = utilities.MultivariateInstanceTools.channelLength(train);
+        int m = utilities.multivariate_tools.MultivariateInstanceTools.channelLength(train);
         //create our search options.
         ShapeletSearchOptions.Builder searchBuilder = new ShapeletSearchOptions.Builder();
         searchBuilder.setMin(3);
@@ -179,7 +179,7 @@ public class DefaultShapeletOptions {
         //how much time do we have vs. how long our algorithm will take.
         BigInteger opCountTarget = new BigInteger(Long.toString(time / nanoToOp));
         BigInteger opCount = ShapeletTransformTimingUtilities.calculateOps(n, m, 1, 1);
-        opCount = opCount.multiply(BigInteger.valueOf(utilities.MultivariateInstanceTools.numChannels(train)));
+        opCount = opCount.multiply(BigInteger.valueOf(utilities.multivariate_tools.MultivariateInstanceTools.numChannels(train)));
         //multiple the total opCount by K becauise for each comparison we do across dimensions.
         if(opCount.compareTo(opCountTarget) == 1){
             BigDecimal oct = new BigDecimal(opCountTarget);
@@ -244,7 +244,7 @@ public class DefaultShapeletOptions {
         ShapeletTransformFactoryOptions options = new ShapeletTransformFactoryOptions.Builder()
                                             .setKShapelets(K)
                                             .setSearchOptions(searchBuilder.build())
-                                            .setDistanceType(SubSeqDistance.DistanceType.IMP_ONLINE)
+                                            .setDistanceType(SubSeqDistance.DistanceType.CACHED)
                                             .useBinaryClassValue()
                                             .useClassBalancing()
                                             .useCandidatePruning()
@@ -292,7 +292,7 @@ public class DefaultShapeletOptions {
         ShapeletTransformFactoryOptions options = new ShapeletTransformFactoryOptions.Builder()
                                             .setKShapelets(K)
                                             .setSearchOptions(searchBuilder.build())
-                                            .setDistanceType(SubSeqDistance.DistanceType.IMP_ONLINE)
+                                            .setDistanceType(SubSeqDistance.DistanceType.CACHED)
                                             .useBinaryClassValue()
                                             .useClassBalancing()
                                             .useCandidatePruning()
@@ -339,7 +339,7 @@ public class DefaultShapeletOptions {
         ShapeletTransformFactoryOptions options = new ShapeletTransformFactoryOptions.Builder()
                                             .setKShapelets(K)
                                             .setSearchOptions(searchBuilder.build())
-                                            .setDistanceType(SubSeqDistance.DistanceType.IMP_ONLINE)
+                                            .setDistanceType(SubSeqDistance.DistanceType.CACHED)
                                             .useBinaryClassValue()
                                             .useClassBalancing()
                                             .useCandidatePruning()
@@ -386,7 +386,7 @@ public class DefaultShapeletOptions {
         ShapeletTransformFactoryOptions options = new ShapeletTransformFactoryOptions.Builder()
                                             .setKShapelets(K)
                                             .setSearchOptions(searchBuilder.build())
-                                            .setDistanceType(SubSeqDistance.DistanceType.IMP_ONLINE)
+                                            .setDistanceType(SubSeqDistance.DistanceType.CACHED)
                                             .useBinaryClassValue()
                                             .useClassBalancing()
                                             .useCandidatePruning()
@@ -397,9 +397,9 @@ public class DefaultShapeletOptions {
     public static ShapeletTransformFactoryOptions createIndependentShapeletSearch(Instances train){
         ShapeletSearchOptions sOps = new ShapeletSearchOptions.Builder()
                                     .setMin(3)
-                                    .setMax(utilities.MultivariateInstanceTools.channelLength(train))
+                                    .setMax(utilities.multivariate_tools.MultivariateInstanceTools.channelLength(train))
                                     .setSearchType(ShapeletSearch.SearchType.FULL)
-                                    .setNumDimensions(utilities.MultivariateInstanceTools.numChannels(train))
+                                    .setNumDimensions(utilities.multivariate_tools.MultivariateInstanceTools.numChannels(train))
                                     .build();
 
         ShapeletTransformFactoryOptions options = new ShapeletTransformFactoryOptions.Builder()
@@ -416,7 +416,7 @@ public class DefaultShapeletOptions {
     public static ShapeletTransformFactoryOptions createSHAPELET_I(Instances train){
         ShapeletTransformFactoryOptions options = new ShapeletTransformFactoryOptions.Builder()
                                             .setMinLength(3)
-                                            .setMaxLength(utilities.MultivariateInstanceTools.channelLength(train))
+                                            .setMaxLength(utilities.multivariate_tools.MultivariateInstanceTools.channelLength(train))
                                             .setDistanceType(SubSeqDistance.DistanceType.INDEPENDENT)
                                             .setKShapelets(Math.min(2000,train.numInstances()))
                                             .useBinaryClassValue()
@@ -429,7 +429,7 @@ public class DefaultShapeletOptions {
     public static ShapeletTransformFactoryOptions createSHAPELET_D(Instances train){
         ShapeletTransformFactoryOptions options = new ShapeletTransformFactoryOptions.Builder()
                                             .setMinLength(3)
-                                            .setMaxLength(utilities.MultivariateInstanceTools.channelLength(train))
+                                            .setMaxLength(utilities.multivariate_tools.MultivariateInstanceTools.channelLength(train))
                                             .setDistanceType(SubSeqDistance.DistanceType.DEPENDENT)
                                             .setKShapelets(Math.min(2000,train.numInstances()))
                                             .useBinaryClassValue()

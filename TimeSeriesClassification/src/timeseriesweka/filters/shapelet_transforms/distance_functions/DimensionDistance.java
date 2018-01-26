@@ -18,7 +18,7 @@ public class DimensionDistance extends ImprovedOnlineSubSeqDistance implements S
     @Override
     public double calculate(Instance timeSeries, int timeSeriesId){
         //split the timeSeries up and pass in the specific shapelet dim.
-        Instance[] dimensions = utilities.MultivariateInstanceTools.splitMultivariateInstance(timeSeries);
+        Instance[] dimensions = utilities.multivariate_tools.MultivariateInstanceTools.splitMultivariateInstance(timeSeries);
         return calculate(dimensions[dimension].toDoubleArray(), timeSeriesId);
     }
     

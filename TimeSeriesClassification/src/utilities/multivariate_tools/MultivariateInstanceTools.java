@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package utilities;
+package utilities.multivariate_tools;
 
 import weka.core.Attribute;
 import weka.core.DenseInstance;

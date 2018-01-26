@@ -5,7 +5,7 @@
  */
 package multivariate_timeseriesweka.measures;
 
-import static utilities.MultivariateInstanceTools.splitMultivariateInstance;
+import static utilities.multivariate_tools.MultivariateInstanceTools.splitMultivariateInstance;
 import weka.core.Instance;
 import weka.core.Instances;
 import timeseriesweka.elastic_distance_measures.DTW_DistanceBasic;

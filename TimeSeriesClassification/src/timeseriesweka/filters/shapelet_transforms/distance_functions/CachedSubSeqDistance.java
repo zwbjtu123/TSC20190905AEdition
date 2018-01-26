@@ -61,7 +61,7 @@ public class CachedSubSeqDistance extends SubSeqDistance{
         
         double minSum = Double.MAX_VALUE;
         int subLength = length;
-        
+
         double xMean = stats.getMeanX(startPos, subLength);
         double xStdDev = stats.getStdDevX(startPos, subLength);
 

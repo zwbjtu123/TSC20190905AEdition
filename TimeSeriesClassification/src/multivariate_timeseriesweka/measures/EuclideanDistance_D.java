@@ -5,7 +5,7 @@
  */
 package multivariate_timeseriesweka.measures;
 
-import static utilities.MultivariateInstanceTools.splitMultivariateInstance;
+import static utilities.multivariate_tools.MultivariateInstanceTools.splitMultivariateInstance;
 import weka.core.EuclideanDistance;
 import weka.core.Instance;
 import weka.core.Instances;
@@ -36,8 +36,8 @@ public class EuclideanDistance_D extends EuclideanDistance{
         Instance[] multi2 = splitMultivariateInstance(multiseries2);
 
         //TODO: might need to normalise here.
-        double[][] data1 = utilities.MultivariateInstanceTools.convertMultiInstanceToTransposedArrays(multi1);
-        double[][] data2 = utilities.MultivariateInstanceTools.convertMultiInstanceToTransposedArrays(multi2);
+        double[][] data1 = utilities.multivariate_tools.MultivariateInstanceTools.convertMultiInstanceToTransposedArrays(multi1);
+        double[][] data2 = utilities.multivariate_tools.MultivariateInstanceTools.convertMultiInstanceToTransposedArrays(multi2);
         return Math.sqrt(distance(data1, data2, cutoff));
     }
     
