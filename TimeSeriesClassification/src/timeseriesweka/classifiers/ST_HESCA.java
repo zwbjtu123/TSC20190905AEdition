@@ -41,7 +41,8 @@ public class ST_HESCA  extends AbstractClassifier implements HiveCoteModule, Sav
     private boolean preferShortShapelets = false;
     private String shapeletOutputPath;
     
-    private HESCA hesca;
+    private HESCA hesca=new HESCA();
+;
     private ShapeletTransform transform;
     private Instances format;
     int[] redundantFeatures;
@@ -133,7 +134,6 @@ public class ST_HESCA  extends AbstractClassifier implements HiveCoteModule, Sav
     public void buildClassifier(Instances data) throws Exception {
         format = doTransform ? createTransformData(data, timeLimit) : data;
         
-        hesca=new HESCA();
         hesca.setRandSeed((int) seed);
                 
         redundantFeatures=InstanceTools.removeRedundantTrainAttributes(format);
