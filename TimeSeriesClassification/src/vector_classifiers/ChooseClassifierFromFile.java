@@ -30,9 +30,34 @@ public class ChooseClassifierFromFile implements Classifier{
     private int foldNumber = 0;
     private int indexOfLargest = 0;
     ArrayList<String> line;
-    private String resultsPath = "Results/";
-    private String name = "EnsembleResults";  
+    
+    /**
+     * if size results path == 1, all classifier's results read from that one path
+     * else, resultsPaths.length must equal classifiers.length, with each index aligning 
+     * to the path to read the classifier's results from.
+     * 
+     * e.g to read 2 classifiers from one directory, and another 2 from 2 different directories: 
+     * 
+     *     Index |  Paths  | Classifier
+     *     --------------------------
+     *       0   |  pathA  |   c1
+     *       1   |  pathA  |   c2
+     *       2   |  pathB  |   c3
+     *       3   |  pathC  |   c4 
+     * 
+     */
+    private String[] resultsPaths = { "Results/" }; 
+    
+    /**
+     * if resultsWritePath is not set, will default to resultsPaths[0]
+     * i.e, if only reading from one directory, will write back the chosen results 
+     * under the same directory. if reading from multiple directories but a particular 
+     * write path not set, will simply pick the first one given. 
+     */
+    private String resultsWritePath = null;
     private String classifiers[] = {"TunedSVMRBF", "TunedSVMPolynomial"};
+    
+    private String name = "EnsembleResults";  
     private String relationName = "abalone";
     private double accuracies[];
     private File dir;
@@ -51,8 +76,16 @@ public class ChooseClassifierFromFile implements Classifier{
         this.classifiers = classifiers;
     }
     
+    public void setResultsPath(String[] resultsPaths){
+        this.resultsPaths = resultsPaths;
+    }
+    
     public void setResultsPath(String resultsPath){
-        this.resultsPath = resultsPath;
+        this.resultsPaths = new String[] { resultsPath };
+    }
+    
+    public void setResultsWritePath(String writePath) {
+        this.resultsWritePath = writePath;
     }
     
     public void setName(String name){
@@ -65,8 +98,14 @@ public class ChooseClassifierFromFile implements Classifier{
 
     @Override
     public void buildClassifier(Instances data) throws Exception {
- 
-        dir = new File(resultsPath + "/" + this.name + "/Predictions/" + relationName + "/trainFold" + foldNumber + ".csv");
+        if (resultsPaths.length > 1)
+            if (resultsPaths.length != classifiers.length)
+                throw new Exception("ChooseClassifierFromFile.buildClassifier: more than one results path given, but number given does not align with the number of classifiers.");
+        
+        if (resultsWritePath == null)
+            resultsWritePath = resultsPaths[0];
+        
+        dir = new File(resultsWritePath + "/" + this.name + "/Predictions/" + relationName + "/trainFold" + foldNumber + ".csv");
         
         if(!dir.exists()){
             try{ 
@@ -74,11 +113,13 @@ public class ChooseClassifierFromFile implements Classifier{
                 accuracies = new double[classifiers.length];
 
                 for (int i = 0; i < classifiers.length; i++) {
-                trainFiles[i] = new BufferedReader(new FileReader(resultsPath + "/"+ classifiers[i] + "/Predictions/" + relationName + "/trainFold" + foldNumber + ".csv"), bufferSize);
-                trainFiles[i].mark(bufferSize);
-                trainFiles[i].readLine();
-                trainFiles[i].readLine();
-                accuracies[i] = Double.valueOf(trainFiles[i].readLine());
+                    int pathIndex = resultsPaths.length == 1 ? 0 : i;
+                    
+                    trainFiles[i] = new BufferedReader(new FileReader(resultsPaths[pathIndex] + "/"+ classifiers[i] + "/Predictions/" + relationName + "/trainFold" + foldNumber + ".csv"), bufferSize);
+                    trainFiles[i].mark(bufferSize);
+                    trainFiles[i].readLine();
+                    trainFiles[i].readLine();
+                    accuracies[i] = Double.valueOf(trainFiles[i].readLine());
                 }
 
                 for (int i = 0; i < accuracies.length; i++ ) { 
@@ -100,7 +141,7 @@ public class ChooseClassifierFromFile implements Classifier{
                 }
 
                 //Write Train file.
-                dir = new File(resultsPath + "/" + this.name + "/Predictions/" + relationName);
+                dir = new File(resultsWritePath + "/" + this.name + "/Predictions/" + relationName);
                 dir.mkdirs();
                 outTrain = new BufferedWriter(new FileWriter(dir + "/trainFold" + foldNumber + ".csv"));
                 trainFiles[indexOfLargest].reset();
@@ -122,7 +163,10 @@ public class ChooseClassifierFromFile implements Classifier{
 
                 //Write Test file.
                 outTest = new BufferedWriter(new FileWriter(dir + "/testFold" + foldNumber + ".csv"));
-                testFile = new BufferedReader(new FileReader(resultsPath + "/"+ classifiers[indexOfLargest] + "/Predictions/" + relationName + "/testFold" + foldNumber + ".csv"), bufferSize);
+                
+                int pathIndex = resultsPaths.length == 1 ? 0 : indexOfLargest;
+                testFile = new BufferedReader(new FileReader(resultsPaths[pathIndex] + "/"+ classifiers[indexOfLargest] + "/Predictions/" + relationName + "/testFold" + foldNumber + ".csv"), bufferSize);
+                
                 line = new ArrayList<>(Arrays.asList(testFile.readLine().split(",")));
                 line.set(1, name);
                 outTest.write(line.toString().replace("[", "").replace("]", ""));
