@@ -114,8 +114,8 @@ public class FilteringEvaluations {
 //        selectFilterAndWriteResults();
 //        selectFilterParametersAndWriteResults();
 //        performSomeSimpleStatsOnWhetherFilteringIsAtAllReasonableWithTestData();
-//        extractFilterParameterSelectionsFromOptimisedFoldFiles();
-        whatIfWeJustEnsembleOverOptimisedFilters();
+        extractFilterParameterSelectionsFromOptimisedFoldFiles();
+//        whatIfWeJustEnsembleOverOptimisedFilters();
 
 //        //just wanted to double check none where missing
 //        MultipleClassifierResultsCollection mcrc = new MultipleClassifierResultsCollection(
@@ -150,7 +150,7 @@ public class FilteringEvaluations {
      *          ...
      */
     public static  void performStandardClassifierComparisonWithFilteredAndUnfilteredDatasets() throws Exception {
-        String expName = "EDvsEachFiltervsFilterSelected_MA,PCA,EXP,SG,DFT";
+        String expName = "RotFvsFilterEnesmble_MA,PCA,EXP,SG,DFT";
 //        String expName = "RotFvsRotFwith(DFT_EXP_SG)vsRotFFilterANDParaSelected";
         
         String basePath = "C:/JamesLPHD/TSC_Smoothing/";
@@ -159,9 +159,9 @@ public class FilteringEvaluations {
         String unfilteredResultsPath = baseResultsPath + "TSC_Unfiltered/";
 
 
-        String baseClassifier = "ED";        
-        String[] filters = { "_PCAFiltered", "_DFTFiltered", "_EXPFiltered", "_SGFiltered", "_MAFiltered" }; //
-        String[] filterResultsFolders = { "TSCProblems_PCA_smoothed", "TSC_FFT_zeroed", "TSC_Exponential", "TSC_SavitzkyGolay", "TSCProblems_MovingAverage" }; 
+        String baseClassifier = "RotF";        
+//        String[] filters = { "_PCAFiltered", "_DFTFiltered", "_EXPFiltered", "_SGFiltered", "_MAFiltered" }; //
+//        String[] filterResultsFolders = { "TSCProblems_PCA_smoothed", "TSC_FFT_zeroed", "TSC_Exponential", "TSC_SavitzkyGolay", "TSCProblems_MovingAverage" }; 
 //        String[] filters = { "_SGFiltered" }; //
 //        String[] filterResultsFolders = { "TSC_SavitzkyGolay" }; 
         
@@ -174,9 +174,10 @@ public class FilteringEvaluations {
         mce.addAllDatasetGroupingsInDirectory("Z:/Data/DatasetGroupings/UCRUEAGroupings_77Dsets_Nonpigs/");
 
         mce.readInClassifier(baseClassifier, unfilteredResultsPath);
-        mce.readInClassifier(baseClassifier+"_FILTERED2", baseResultsPath + "FilterSelected");
-        for (int i = 0; i < filters.length; i++)
-            mce.readInClassifier(baseClassifier + filters[i], baseResultsPath + filterResultsFolders[i]);
+        mce.readInClassifier(baseClassifier+"_6FilterEnsemble", baseResultsPath + "ENSEMBLES");
+//        mce.readInClassifier(baseClassifier+"_FILTERED2", baseResultsPath + "FilterSelected");
+//        for (int i = 0; i < filters.length; i++)
+//            mce.readInClassifier(baseClassifier + filters[i], baseResultsPath + filterResultsFolders[i]);
         
         mce.runComparison(); 
     }
@@ -536,7 +537,11 @@ public class FilteringEvaluations {
         String [] parts = null;
         
         //e.g CricketZ-PCA_95-  =>    PCA
-        String filterTitle = datasetName.split("-")[1].split("_")[0];
+        String[] temp =  datasetName.split("-");
+        if (temp.length == 1)
+            return "0"; //no filtering
+        
+        String filterTitle =temp[1].split("_")[0];
         
         if (filterTitle.equals("PCA")) {
             //e.g CricketZ-PCA_95-            =>          0.99
