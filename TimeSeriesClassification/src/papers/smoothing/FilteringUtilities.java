@@ -31,10 +31,12 @@ public class FilteringUtilities {
 //        String dataPath = "Z:/Data/TSCProblems_FFT_truncate/";
 //        String writePath = "Z:/Data/TSCProblems_PCA_smoothed_FCV/";
 //        String dataPath = "Z:/Data/TSCProblems_PCA_smoothed/";
-        String writePath = "Z:/Data/TSCProblems_MovingAverage_FCV/";
-        String dataPath = "Z:/Data/TSCProblems_MovingAverage/";
+//        String writePath = "Z:/Data/TSCProblems_MovingAverage_FCV/";
+//        String dataPath = "Z:/Data/TSCProblems_MovingAverage/";
 //        String writePath = "Z:/Data/TSCProblems_Exponential_FCV/";
 //        String dataPath = "Z:/Data/TSCProblems_Exponential/";
+        String writePath = "Z:/Data/TSCProblems_Gaussian_FCV/";
+        String dataPath = "Z:/Data/TSCProblems_Gaussian/";
         
 //        String dset = "Adiac-DFT_1-";
         
@@ -82,4 +84,7 @@ public class FilteringUtilities {
         }
     }
     
+    public static void main(String[] args) throws Exception {
+        fixClassValuesFromMatlab2Weka();
+    }
 }

@@ -113,7 +113,31 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule, SavePar
     protected boolean writeIndividualsResults = false;
     
     protected boolean resultsFilesParametersInitialised;
-    protected String resultsFilesDirectory;
+    
+    /**
+     * if readResultsFilesDirectories.length == 1, all classifier's results read from that one path
+     * else, resultsPaths.length must equal classifiers.length, with each index aligning 
+     * to the path to read the classifier's results from.
+     * 
+     * e.g to read 2 classifiers from one directory, and another 2 from 2 different directories: 
+     * 
+     *     Index |  Paths  | Classifier
+     *     --------------------------
+     *       0   |  pathA  |   c1
+     *       1   |  pathA  |   c2
+     *       2   |  pathB  |   c3
+     *       3   |  pathC  |   c4 
+     * 
+     */
+    protected String readResultsFilesDirectories[] = null; 
+    
+    /**
+     * if resultsWritePath is not set, will default to resultsPaths[0]
+     * i.e, if only reading from one directory, will write back the chosen results 
+     * under the same directory. if reading from multiple directories but a particular 
+     * write path not set, will simply pick the first one given. 
+     */
+    protected String writeResultsFilesDirectory = null;
     protected String ensembleIdentifier = "HESCA";
     protected int resampleIdentifier;
     protected String datasetName;
@@ -293,6 +317,17 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule, SavePar
     public void buildClassifier(Instances data) throws Exception {
         printlnDebug("**HESCA TRAIN**");
         
+        
+        //housekeeping
+        if (resultsFilesParametersInitialised) {
+            if (readResultsFilesDirectories.length > 1)
+                if (readResultsFilesDirectories.length != modules.length)
+                    throw new Exception("HESCA.buildClassifier: more than one results path given, but number given does not align with the number of classifiers/modules.");
+
+            if (writeResultsFilesDirectory == null)
+                writeResultsFilesDirectory = readResultsFilesDirectories[0];
+        }
+        
         long startTime = System.currentTimeMillis();
         
         //transform data if specified
@@ -325,7 +360,7 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule, SavePar
     
     /**
      * this does cv writing for TrainAccuracyEstimate, where the output path (outputEnsembleTrainingPathAndFile, set by 'writeCVTrainToFile(...)') 
-     * may be different to the ensemble write path (resultsFilesDirectory, set by 'setResultsFileLocationParameters(...))
+ may be different to the ensemble write path (readResultsFilesDirectories, set by 'setResultsFileLocationParameters(...))
      */
     protected void writeEnsembleCVResults(Instances data) throws IOException {
         StringBuilder output = new StringBuilder();
@@ -430,15 +465,17 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule, SavePar
     protected void loadModules() throws Exception {
         //will look for all files and report all that are missing, instead of bailing on the first file not found
         //just helps debugging/running experiments a little 
-        ErrorReport errors = new ErrorReport("Errors while loading modules from file. Directory given: " + resultsFilesDirectory);
+        ErrorReport errors = new ErrorReport("Errors while loading modules from file. Directories given: " + Arrays.toString(readResultsFilesDirectories));
         
         //for each module
         for(int m = 0; m < this.modules.length; m++){
+            String readResultsFilesDirectory = readResultsFilesDirectories.length == 1 ? readResultsFilesDirectories[0] : readResultsFilesDirectories[m];
+            
             boolean trainResultsLoaded = false;
             boolean testResultsLoaded = false; 
             
             //try and load in the train/test results for this module
-            File moduleTrainResultsFile = findResultsFile(modules[m].getModuleName(), "train");
+            File moduleTrainResultsFile = findResultsFile(readResultsFilesDirectory, modules[m].getModuleName(), "train");
             if (moduleTrainResultsFile != null) { 
                 printlnDebug(modules[m].getModuleName() + " train loading... " + moduleTrainResultsFile.getAbsolutePath());
                 
@@ -448,7 +485,7 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule, SavePar
                 trainResultsLoaded = true;
             }
 
-            File moduleTestResultsFile = findResultsFile(modules[m].getModuleName(), "test");
+            File moduleTestResultsFile = findResultsFile(readResultsFilesDirectory, modules[m].getModuleName(), "test");
             if (moduleTestResultsFile != null) { 
                 //of course these results not actually used at all during training, 
                 //only loaded for future use when classifying with ensemble
@@ -479,8 +516,8 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule, SavePar
         return performEnsembleCV || weightingScheme.needTrainPreds || votingScheme.needTrainPreds;
     }
     
-    protected File findResultsFile(String classifierName, String trainOrTest) {
-        File file = new File(resultsFilesDirectory+classifierName+"/Predictions/"+datasetName+"/"+trainOrTest+"Fold"+resampleIdentifier+".csv");
+    protected File findResultsFile(String readResultsFilesDirectory, String classifierName, String trainOrTest) {
+        File file = new File(readResultsFilesDirectory+classifierName+"/Predictions/"+datasetName+"/"+trainOrTest+"Fold"+resampleIdentifier+".csv");
         if(!file.exists() || file.length() == 0)
             return null;
         else 
@@ -494,7 +531,7 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule, SavePar
         st.append(results.acc).append("\n");
         st.append(results.writeInstancePredictions());
         
-        String fullPath = this.resultsFilesDirectory+classifierName+"/Predictions/"+datasetName;
+        String fullPath = this.writeResultsFilesDirectory+classifierName+"/Predictions/"+datasetName;
         new File(fullPath).mkdirs();
         FileWriter out = new FileWriter(fullPath+"/" + trainOrTest + "Fold"+this.resampleIdentifier+".csv");
         out.append(st);
@@ -502,7 +539,7 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule, SavePar
     }
     
     /**
-     * must be called in order to build ensemble from results files or to write individual's 
+     * must be called (this or the directory ARRAY overload) in order to build ensemble from results files or to write individual's 
      * results files
      * 
      * exitOnFilesNotFound defines whether the ensemble will simply throw exception/exit if results files 
@@ -511,9 +548,32 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule, SavePar
     public void setResultsFileLocationParameters(String individualResultsFilesDirectory, String datasetName, int resampleIdentifier) {
         resultsFilesParametersInitialised = true;
         
-        this.resultsFilesDirectory = individualResultsFilesDirectory;
+        this.readResultsFilesDirectories = new String [] {individualResultsFilesDirectory};
         this.datasetName = datasetName;
         this.resampleIdentifier = resampleIdentifier;
+    }
+    
+    /**
+     * must be called (this or the single directory string overload) in order to build ensemble from results files or to write individual's 
+     * results files
+     * 
+     * exitOnFilesNotFound defines whether the ensemble will simply throw exception/exit if results files 
+     * arnt found, or will try to carry on (e.g train the classifiers normally)
+     */
+    public void setResultsFileLocationParameters(String[] individualResultsFilesDirectories, String datasetName, int resampleIdentifier) {
+        resultsFilesParametersInitialised = true;
+        
+        this.readResultsFilesDirectories = individualResultsFilesDirectories;
+        this.datasetName = datasetName;
+        this.resampleIdentifier = resampleIdentifier;
+    }
+    
+    /**
+     * if writing results of individuals/ensemble, but want to define a specific folder to write to as opposed to defaulting to the (only or first)
+     * reading location
+     */
+    public void setResultsFileWritingLocation(String writeResultsFilesDirectory) {
+        this.writeResultsFilesDirectory = writeResultsFilesDirectory;
     }
     
     public void setBuildIndividualsFromResultsFiles(boolean b) {

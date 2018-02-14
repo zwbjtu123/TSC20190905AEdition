@@ -2,22 +2,24 @@
 package papers.smoothing;
 
 import development.DataSets;
-import development.Experiments;
 import development.MultipleClassifierEvaluation;
 import fileIO.OutFile;
 import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.rmi.server.ExportException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import statistics.tests.TwoSampleTests;
 import utilities.ClassifierResults;
+import utilities.ClassifierTools;
+import utilities.InstanceTools;
 import utilities.MultipleClassifierResultsCollection;
 import utilities.StatisticalUtilities;
 import vector_classifiers.ChooseClassifierFromFile;
 import vector_classifiers.ChooseDatasetFromFile;
+import vector_classifiers.HESCA;
+import weka.core.Instances;
 
 /**
  * Some functions to compute generic evaluations on completed filtering results
@@ -112,7 +114,8 @@ public class FilteringEvaluations {
 //        selectFilterAndWriteResults();
 //        selectFilterParametersAndWriteResults();
 //        performSomeSimpleStatsOnWhetherFilteringIsAtAllReasonableWithTestData();
-        extractFilterParameterSelectionsFromOptimisedFoldFiles();
+//        extractFilterParameterSelectionsFromOptimisedFoldFiles();
+        whatIfWeJustEnsembleOverOptimisedFilters();
 
 //        //just wanted to double check none where missing
 //        MultipleClassifierResultsCollection mcrc = new MultipleClassifierResultsCollection(
@@ -122,6 +125,10 @@ public class FilteringEvaluations {
 //                "C:/JamesLPHD/TSC_Smoothing/Results/TSCProblems_MovingAverage/", 
 //                true, true, false);
     }
+    
+    
+    
+    
     
     /**
      * Assumes folder structure: 
@@ -158,7 +165,7 @@ public class FilteringEvaluations {
 //        String[] filters = { "_SGFiltered" }; //
 //        String[] filterResultsFolders = { "TSC_SavitzkyGolay" }; 
         
-        MultipleClassifierEvaluation mce = new MultipleClassifierEvaluation( analysisPath, expName, 30);
+        MultipleClassifierEvaluation mce = new MultipleClassifierEvaluation(analysisPath, expName, 30);
         mce.setBuildMatlabDiagrams(true);
 //            setUseAllStatistics().
         mce.setDatasets(UCRDsetsNoPigs);
@@ -183,7 +190,9 @@ public class FilteringEvaluations {
      */
     public static void selectFilterAndWriteResults() throws Exception {
         String baseReadPath = "C:/JamesLPHD/TSC_Smoothing/Results/";
+//        String baseReadPath = "Z:/Results/SmoothingExperiments/";
         String[] baseDatasets = UCRDsetsNoPigs;
+//        String[] baseDatasets = new String[] { "Worms" };
         int numBaseDatasets = baseDatasets.length;
         int numFolds = 30;
         
@@ -197,7 +206,7 @@ public class FilteringEvaluations {
             "_SGFiltered", 
             "_PCAFiltered", 
             "_MAFiltered",
-            "_Sieved"
+//            "_Sieved"
         }; 
         String[] filterResultsPaths = { 
             unfilteredReadPath, 
@@ -242,17 +251,18 @@ public class FilteringEvaluations {
      * to mirror a single classifier on single dataset (the chosen filtered-version)
      */
     public static  void selectFilterParametersAndWriteResults() throws Exception {
-//        String classifier = "ED";
         String baseReadPath = "C:/JamesLPHD/TSC_Smoothing/Results/";
+//        String baseReadPath = "Z:/Results/SmoothingExperiments/";
 //        String[] baseDatasets = DataSets.fileNames;
         String[] baseDatasets = UCRDsetsNoPigs;
+//        String[] baseDatasets = new String[] { "Worms" };
         int numBaseDatasets = baseDatasets.length;
         int numFolds = 30;
         
         String unfilteredReadPath = baseReadPath + "TSC_Unfiltered/";
         
-        String[] filterSuffixes = { "_MAFiltered"  }; //"_DFTFiltered", "_EXPFiltered", "_SGFiltered", "_PCAFiltered",
-        String[] filterResultsPaths = { "TSCProblems_MovingAverage" }; //"TSC_FFT_zeroed", "TSC_Exponential", "TSC_SavitzkyGolay", "TSCProblems_PCA_smoothed",
+        String[] filterSuffixes = { "_DFTFiltered", "_EXPFiltered", "_SGFiltered", "_PCAFiltered", "_MAFiltered"  }; //
+        String[] filterResultsPaths = { "TSC_FFT_zeroed", "TSC_Exponential", "TSC_SavitzkyGolay", "TSCProblems_PCA_smoothed", "TSCProblems_MovingAverage" }; //
         
         for (int i = 0; i < filterResultsPaths.length; i++) {
             String filterReadPath = baseReadPath + filterResultsPaths[i] + "/";
@@ -283,7 +293,10 @@ public class FilteringEvaluations {
                         String[] datasets = (new File(filterReadPath + classifier + "/Predictions/")).list(new FilenameFilter() {
                             @Override
                             public boolean accept(File dir, String name) {
-                                return name.contains(baseDset);
+                                //e.g CricketZ-PCA_95-     =>    CricketZ
+                                //the "_" split is included jsut as future proofing. non of the datasetnames include _
+                                //...he said confidently
+                                return name.split("-")[0].split("_")[0].equals(baseDset);
                             }
                         });
                         Arrays.sort(datasets);
@@ -330,7 +343,10 @@ public class FilteringEvaluations {
             String[] datasets = (new File(baseReadPath + classifiers[0] + "/Predictions/")).list(new FilenameFilter() {
                 @Override
                 public boolean accept(File dir, String name) {
-                    return name.contains(datasetBase);
+                    //e.g CricketZ-PCA_95-     =>    CricketZ
+                    //the "_" split is included jsut as future proofing. non of the datasetnames include _
+                    //...he said confidently
+                    return name.split("-")[0].split("_")[0].equals(datasetBase);
                 }
             });
             Arrays.sort(datasets);
@@ -519,47 +535,116 @@ public class FilteringEvaluations {
         
         String [] parts = null;
         
-        if (datasetName.contains("PCA")) {
+        //e.g CricketZ-PCA_95-  =>    PCA
+        String filterTitle = datasetName.split("-")[1].split("_")[0];
+        
+        if (filterTitle.equals("PCA")) {
             //e.g CricketZ-PCA_95-            =>          0.99
             parts = datasetName.split("_");
             return "0." + parts[1].replace("-", "");   
         } 
-        else if (datasetName.contains("EXP")) {
+        else if (filterTitle.equals("EXP")) {
             //e.g CricketZ-EXP_50-             =>           50
             parts = datasetName.split("_");
             return parts[1].replace("-", "");            
         } 
-        else if (datasetName.contains("SG")) { 
+        else if (filterTitle.equals("SG")) { 
             //BECAUSE DERIVATIVES ARE NOT CONSIDERED FOR THIS PAPER, ONLY RETURNING VALUES OF N AND M
             //e.g  CricketZ-SG_d0_n8_m65-       =>       8_65
             parts = datasetName.split("_");
             return parts[2].replace("n", "") + "_" + parts[3].replace("m", "").replace("-", "");
         } 
-        else if (datasetName.contains("MA")) {
+        else if (filterTitle.equals("MA")) {
             // e.g CricketZ-MA_11-        =>            11
             parts = datasetName.split("_");
             return parts[1].replace("-", "");
         } 
-        else if (datasetName.contains("DFT")) {
+        else if (filterTitle.equals("DFT")) {
             //e.g CricketY-DFT_log2-           =>        log2
             //e.g CricketY-DFT_25-           =>        0.25
             
-            if (datasetName.contains("log2"))
+            if (filterTitle.equals("log2"))
                 return "log2";
-            if (datasetName.contains("sqrt"))
+            if (datasetName.equals("sqrt"))
                 return "sqrt";
             
             parts = datasetName.split("_");
             return "0." + parts[1].replace("-", "");
         } 
-        else if (datasetName.contains("Sieved")) {
+        else if (filterTitle.equals("Sieved")) {
             return "unsupported so far";
         } 
-//        else if (datasetName.contains("GF")) { //GF alones messed up with EC*GF*iveDays, use something else i guess
+//        else if (datasetName.equals("Gauss")) { 
 //            return "unsupported so far";
 //        } 
         else {
             return "0"; //no filtering occured
         }       
+    }
+    
+    
+    
+    /**
+     * need to edit hesca to be able to handle resutls files in different locations
+     */
+    public static void whatIfWeJustEnsembleOverOptimisedFilters() throws Exception {
+        String baseReadPath = "C:/JamesLPHD/TSC_Smoothing/Results/";
+        String writePath = baseReadPath + "ENSEMBLES/";
+        String[] baseDatasets = UCRDsetsNoPigs;
+        int numBaseDatasets = baseDatasets.length;
+        int numFolds = 30;
+        
+        for (String classifier : new String [] { "ED", "DTWCV", "RotF" }) { 
+            String[] filteredClassifiers = { 
+                classifier + "",
+                classifier + "_DFTFiltered", 
+                classifier + "_EXPFiltered", 
+                classifier + "_SGFiltered", 
+                classifier + "_PCAFiltered", 
+                classifier + "_MAFiltered",
+            }; 
+            String[] filterResultsPaths = { 
+                baseReadPath + "TSC_Unfiltered/", 
+                baseReadPath + "TSC_FFT_zeroed/",
+                baseReadPath + "TSC_Exponential/", 
+                baseReadPath + "TSC_SavitzkyGolay/", 
+                baseReadPath + "TSCProblems_PCA_smoothed/", 
+                baseReadPath + "TSCProblems_MovingAverage/", 
+            }; 
+
+            for (int dset = 0; dset < numBaseDatasets; dset++) {
+                String baseDset = baseDatasets[dset];
+
+                Instances train = ClassifierTools.loadData("Z:/Data/TSCProblems/"+baseDset+"/"+baseDset+"_TRAIN");
+                Instances test = ClassifierTools.loadData("Z:/Data/TSCProblems/"+baseDset+"/"+baseDset+"_TEST");
+                
+                for (int fold = 0; fold < numFolds; fold++) {
+//                    ClassifierResults crTrain = new ClassifierResults(filterReadPath + filteredClassifier + "/Predictions/" + baseDset + "/trainFold" + fold + ".csv");
+ 
+                    Instances[] data = InstanceTools.resampleTrainAndTestInstances(train, test, fold);
+
+                    HESCA hesca = new HESCA();
+                    hesca.setEnsembleIdentifier(classifier + "_" + filteredClassifiers.length + "FilterEnsemble");
+                    hesca.setBuildIndividualsFromResultsFiles(true);
+                    hesca.setClassifiers(null, filteredClassifiers, null);
+                    hesca.setResultsFileLocationParameters(filterResultsPaths, baseDset, fold);
+                    hesca.setResultsFileWritingLocation(writePath);
+                    hesca.setRandSeed(fold);
+                    hesca.setPerformCV(true);
+                    
+//                    hesca.setWeightingScheme(weight);
+//                    hesca.setVotingScheme(votingScheme);
+                    
+                    hesca.buildClassifier(data[0]); //can pass null?
+                    
+                    //look back at ensembletests or something
+                    for (int i = 0; i < data[1].numInstances(); i++)
+                        hesca.classifyInstance(data[1].instance(i));
+                    hesca.writeEnsembleTrainTestFiles(data[1].attributeToDoubleArray(data[1].classIndex()), true);
+                }
+
+            }
+
+        }
     }
 }
