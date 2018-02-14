@@ -4,6 +4,7 @@ import ResultsProcessing.MatlabController;
 import java.io.File;
 import utilities.ClassifierResultsAnalysis;
 import java.io.FileNotFoundException;
+import java.io.FilenameFilter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -209,10 +210,26 @@ public class MultipleClassifierEvaluation implements DebugPrinting {
     }
     
     /**
-     * Use this if you want to define a different grouping method name to the directory name
-     * for clean printing purposes/clarity. E.g directory name might be 'UCRDsetGroupingByNumAtts_2groups', but the 
-     * name you define to be printed on the analysis could just be 'ByNumAtts'
-     * 
+     * Pass a directory containing a number of DIRECTORIES that define groupings. Each subdirectory contains 
+     * a number of text files. The names of these subdirectories define the grouping method names. 
+     * Each text file within contains a newline-separated
+     * list of datasets for an individual group. The textfile's name (excluding .txt file suffix)
+     * is the name of that group.
+     */
+    public MultipleClassifierEvaluation addAllDatasetGroupingsInDirectory(String groupingSuperDirectory) throws FileNotFoundException { 
+        for (String groupingDirectory : (new File(groupingSuperDirectory)).list(new FilenameFilter() {
+            @Override
+            public boolean accept(File dir, String name) {
+                return dir.isDirectory();
+            }
+        })) {
+            
+            addDatasetGroupingFromDirectory(groupingSuperDirectory + groupingDirectory);
+        }
+        return this;
+    }
+    
+    /**
      * Pass a directory containing a number of text files. Each text file contains a newline-separated
      * list of datasets for an individual group. The textfile's name (excluding .txt file suffix)
      * is the name of that group.

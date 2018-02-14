@@ -4,11 +4,16 @@ package papers.smoothing;
 import development.DataSets;
 import development.Experiments;
 import development.MultipleClassifierEvaluation;
+import fileIO.OutFile;
 import java.io.File;
 import java.io.FilenameFilter;
+import java.io.IOException;
 import java.nio.file.Files;
+import java.rmi.server.ExportException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import statistics.tests.TwoSampleTests;
+import utilities.ClassifierResults;
 import utilities.MultipleClassifierResultsCollection;
 import utilities.StatisticalUtilities;
 import vector_classifiers.ChooseClassifierFromFile;
@@ -103,18 +108,18 @@ public class FilteringEvaluations {
     };   
     
     public static void main(String[] args) throws Exception {
-        performStandardClassifierComparisonWithFilteredAndUnfilteredDatasets();
+//        performStandardClassifierComparisonWithFilteredAndUnfilteredDatasets();
 //        selectFilterAndWriteResults();
 //        selectFilterParametersAndWriteResults();
 //        performSomeSimpleStatsOnWhetherFilteringIsAtAllReasonableWithTestData();
-
+        extractFilterParameterSelectionsFromOptimisedFoldFiles();
 
 //        //just wanted to double check none where missing
 //        MultipleClassifierResultsCollection mcrc = new MultipleClassifierResultsCollection(
 //                new String [] { "ED", "DTWCV", "RotF" }, 
 //                UCRDsetsNoPigs, 
 //                30, 
-//                "C:/JamesLPHD/TSC_Smoothing/Results/TSC_Exponential/", 
+//                "C:/JamesLPHD/TSC_Smoothing/Results/TSCProblems_MovingAverage/", 
 //                true, true, false);
     }
     
@@ -138,7 +143,7 @@ public class FilteringEvaluations {
      *          ...
      */
     public static  void performStandardClassifierComparisonWithFilteredAndUnfilteredDatasets() throws Exception {
-        String expName = "RotFvsPCA_DFT_SG_EXP";
+        String expName = "EDvsEachFiltervsFilterSelected_MA,PCA,EXP,SG,DFT";
 //        String expName = "RotFvsRotFwith(DFT_EXP_SG)vsRotFFilterANDParaSelected";
         
         String basePath = "C:/JamesLPHD/TSC_Smoothing/";
@@ -147,17 +152,22 @@ public class FilteringEvaluations {
         String unfilteredResultsPath = baseResultsPath + "TSC_Unfiltered/";
 
 
-        String baseClassifier = "RotF";        
-        String[] filters = { "_PCAFiltered", "_DFTFiltered", "_EXPFiltered", "_SGFiltered" }; //
-        String[] filterResultsFolders = { "TSCProblems_PCA_smoothed", "TSC_FFT_zeroed", "TSC_Exponential", "TSC_SavitzkyGolay" }; //
+        String baseClassifier = "ED";        
+        String[] filters = { "_PCAFiltered", "_DFTFiltered", "_EXPFiltered", "_SGFiltered", "_MAFiltered" }; //
+        String[] filterResultsFolders = { "TSCProblems_PCA_smoothed", "TSC_FFT_zeroed", "TSC_Exponential", "TSC_SavitzkyGolay", "TSCProblems_MovingAverage" }; 
+//        String[] filters = { "_SGFiltered" }; //
+//        String[] filterResultsFolders = { "TSC_SavitzkyGolay" }; 
         
         MultipleClassifierEvaluation mce = new MultipleClassifierEvaluation( analysisPath, expName, 30);
-        mce.setBuildMatlabDiagrams(false);
+        mce.setBuildMatlabDiagrams(true);
 //            setUseAllStatistics().
         mce.setDatasets(UCRDsetsNoPigs);
+        
+        mce.setPerformPostHocDsetResultsClustering(true);
+        mce.addAllDatasetGroupingsInDirectory("Z:/Data/DatasetGroupings/UCRUEAGroupings_77Dsets_Nonpigs/");
 
         mce.readInClassifier(baseClassifier, unfilteredResultsPath);
-//        mce.readInClassifier(baseClassifier+"_FILTERED", baseResultsPath + "FilterSelected");
+        mce.readInClassifier(baseClassifier+"_FILTERED2", baseResultsPath + "FilterSelected");
         for (int i = 0; i < filters.length; i++)
             mce.readInClassifier(baseClassifier + filters[i], baseResultsPath + filterResultsFolders[i]);
         
@@ -180,10 +190,26 @@ public class FilteringEvaluations {
         String unfilteredResultsPath = "TSC_Unfiltered";
         String unfilteredReadPath = baseReadPath + unfilteredResultsPath + "/";
         
-        String[] filterSuffixes = { "_DFTFiltered", "_EXPFiltered", "_SGFiltered" }; //"_PCAFiltered",    //"_MAFiltered",
-        String[] filterResultsPaths = { unfilteredReadPath, baseReadPath+"TSC_FFT_zeroed", baseReadPath+"TSC_Exponential", baseReadPath+"TSC_SavitzkyGolay" }; //"TSCProblems_PCA_smoothed", //"TSCProblems_MovingAverage", 
+        String[] filterSuffixes = { 
+            //(unfiltered),
+            "_DFTFiltered", 
+            "_EXPFiltered", 
+            "_SGFiltered", 
+            "_PCAFiltered", 
+            "_MAFiltered",
+            "_Sieved"
+        }; 
+        String[] filterResultsPaths = { 
+            unfilteredReadPath, 
+            baseReadPath+"TSC_FFT_zeroed",
+            baseReadPath+"TSC_Exponential", 
+            baseReadPath+"TSC_SavitzkyGolay", 
+            baseReadPath+"TSCProblems_PCA_smoothed", 
+            baseReadPath+"TSCProblems_MovingAverage", 
+//            baseReadPath+"Paul" 
+        }; 
         
-        for (String classifier : new String [] { "RotF" }) { //"ED", "DTWCV"
+        for (String classifier : new String [] { "ED", "DTWCV", "RotF" }) { 
 
             String[] classifierNames = new String[filterResultsPaths.length];
             classifierNames[0] = classifier;
@@ -195,7 +221,7 @@ public class FilteringEvaluations {
 
                 for (int fold = 0; fold < numFolds; fold++) {
                     ChooseClassifierFromFile ccff = new ChooseClassifierFromFile();
-                    ccff.setName(classifier + "_FILTERED");
+                    ccff.setName(classifier + "_FILTERED2");
                     ccff.setClassifiers(classifierNames);
                     ccff.setRelationName(baseDset);
                     ccff.setResultsPath(filterResultsPaths);
@@ -225,8 +251,8 @@ public class FilteringEvaluations {
         
         String unfilteredReadPath = baseReadPath + "TSC_Unfiltered/";
         
-        String[] filterSuffixes = { "_PCAFiltered", }; //"_DFTFiltered", "_EXPFiltered", "_SGFiltered"
-        String[] filterResultsPaths = { "TSCProblems_PCA_smoothed", }; //"TSC_FFT_zeroed", "TSC_Exponential", "TSC_SavitzkyGolay" 
+        String[] filterSuffixes = { "_MAFiltered"  }; //"_DFTFiltered", "_EXPFiltered", "_SGFiltered", "_PCAFiltered",
+        String[] filterResultsPaths = { "TSCProblems_MovingAverage" }; //"TSC_FFT_zeroed", "TSC_Exponential", "TSC_SavitzkyGolay", "TSCProblems_PCA_smoothed",
         
         for (int i = 0; i < filterResultsPaths.length; i++) {
             String filterReadPath = baseReadPath + filterResultsPaths[i] + "/";
@@ -345,5 +371,195 @@ public class FilteringEvaluations {
         for (boolean b : arr)
             if (b) counter++;
         return counter;
+    }
+    
+    public static void extractFilterParameterSelectionsFromOptimisedFoldFiles() throws IOException, Exception { 
+        String baseReadPath = "C:/JamesLPHD/TSC_Smoothing/Results/";
+        String[] baseDatasets = UCRDsetsNoPigs;
+        int numBaseDatasets = baseDatasets.length;
+        int numFolds = 30;
+        
+        String unfilteredReadPath = baseReadPath + "TSC_Unfiltered/";
+        
+        String[] filterSuffixes = { "_DFTFiltered", "_EXPFiltered", "_SGFiltered", "_PCAFiltered", "_MAFiltered"  }; //
+        String[] filterResultsPaths = { "TSC_FFT_zeroed", "TSC_Exponential", "TSC_SavitzkyGolay", "TSCProblems_PCA_smoothed", "TSCProblems_MovingAverage" }; //
+        
+        ArrayList<String> tssColumnHeaders = new ArrayList<>();
+        ArrayList<String> tssRowHeaders = new ArrayList<>();
+        ArrayList<ArrayList<Double>> tsstrainAccs = new ArrayList<>();
+        ArrayList<ArrayList<Double>> tsstestAccs = new ArrayList<>();
+        ArrayList<ArrayList<String>> tssparas = new ArrayList<>();
+        int tssColumnIndex = -1;
+        boolean rowHeadersFinished = false;
+        
+        for (int i = 0; i < filterResultsPaths.length; i++) {
+            String filterReadPath = baseReadPath + filterResultsPaths[i] + "/";
+            String filterSuffix = filterSuffixes[i];          
+            
+            for (String classifier : new String [] { "ED", "DTWCV", "RotF" }) { 
+                String filteredClassifier = classifier + filterSuffix;
+                
+                tssColumnHeaders.add(filteredClassifier);
+                tsstrainAccs.add(new ArrayList<>());
+                tsstestAccs.add(new ArrayList<>());
+                tssparas.add(new ArrayList<>());
+                tssColumnIndex++;
+                
+                //columns = fold, rows = dataset
+                OutFile clsfrTrainAccs = new OutFile(filterReadPath + filteredClassifier + "bestTrainACCS.csv");
+                OutFile clsfrParas = new OutFile(filterReadPath + filteredClassifier + "parasSelected.csv");                
+                
+                clsfrTrainAccs.writeString("fold");
+                clsfrParas.writeString("fold");
+                for (int j = 0; j < numFolds; j++) {
+                    clsfrTrainAccs.writeString("," + j);
+                    clsfrParas.writeString("," + j);
+                }
+                clsfrTrainAccs.writeLine("");
+                clsfrParas.writeLine("");
+                
+                for (int dset = 0; dset < numBaseDatasets; dset++) {
+                    String baseDset = baseDatasets[dset];
+                    
+                    clsfrTrainAccs.writeString(baseDset);
+                    clsfrParas.writeString(baseDset);
+                    
+                    for (int fold = 0; fold < numFolds; fold++) {
+                        ClassifierResults crTrain = new ClassifierResults(filterReadPath + filteredClassifier + "/Predictions/" + baseDset + "/trainFold" + fold + ".csv");
+                        ClassifierResults crTest = new ClassifierResults(filterReadPath + filteredClassifier + "/Predictions/" + baseDset + "/trainFold" + fold + ".csv");
+                        
+                        String selectedDataset ="";
+                        try {
+                            selectedDataset = parseDatasetChosenFromParasList(crTrain.getParas());
+                        } catch (Exception ex) {
+                            throw new Exception("Problem with: " + filterReadPath + filteredClassifier + "/Predictions/" + baseDset + "/trainFold" + fold + ".csv\n");
+                        }
+                         
+                        String paras = parseFilterParasFromDatasetName(selectedDataset);
+                        
+                        clsfrTrainAccs.writeString(","+crTrain.acc);
+                        clsfrTrainAccs.writeString(","+paras);
+                        
+                        tsstrainAccs.get(tssColumnIndex).add(crTrain.acc);
+                        tsstestAccs.get(tssColumnIndex).add(crTest.acc);
+                        tssparas.get(tssColumnIndex).add(paras);
+                        if (!rowHeadersFinished)
+                            tssRowHeaders.add(baseDset + "_" + fold);
+                    }
+                    
+                    clsfrTrainAccs.writeLine("");
+                    clsfrParas.writeLine("");
+                }
+                
+                rowHeadersFinished = true; //first set of all dsets/folds done, have all the ehaders we need
+                
+                clsfrTrainAccs.closeFile();
+                clsfrParas.closeFile();
+            }
+        }
+        
+        //texassharpshooterstyle columns = classifier, rows = dset/fold combo as list. group columns by filter method
+        OutFile allTrainAccs = new OutFile(baseReadPath+"AllFilters_BESTTRAINACCS_TSSStyle.csv");
+        OutFile allTestAccs = new OutFile(baseReadPath+"AllFilters_TESTACCS_TSSStyle.csv");
+        OutFile allParas = new OutFile(baseReadPath+"AllFilters_PARASSELECTED_TSSStyle.csv");
+        
+        allTrainAccs.writeString("dset_fold");
+        allTestAccs.writeString("dset_fold");
+        allParas.writeString("dset_fold");
+        for (int i = 0; i < tssColumnHeaders.size(); i++) {
+            allTrainAccs.writeString("," + tssColumnHeaders.get(i));
+            allTestAccs.writeString("," + tssColumnHeaders.get(i));
+            allParas.writeString("," + tssColumnHeaders.get(i));
+        }
+        allTrainAccs.writeLine("");
+        allTestAccs.writeLine("");
+        allParas.writeLine("");
+        
+        for (int i = 0; i < tssRowHeaders.size(); i++) {
+            allTrainAccs.writeString(tssRowHeaders.get(i));
+            allTestAccs.writeString(tssRowHeaders.get(i));
+            allParas.writeString(tssRowHeaders.get(i));
+            for (int j = 0; j < tssColumnHeaders.size(); j++) {
+                allTrainAccs.writeString(","+tsstrainAccs.get(j).get(i));
+                allTestAccs.writeString(","+tsstestAccs.get(j).get(i));
+                allParas.writeString(","+tssparas.get(j).get(i));
+            }
+            allTrainAccs.writeLine("");
+            allTestAccs.writeLine("");
+            allParas.writeLine("");
+        }
+        allTrainAccs.closeFile();
+        allTestAccs.closeFile();
+        allParas.closeFile();
+    }
+    
+    public static String parseDatasetChosenFromParasList(String parasLine) throws Exception {
+        String[] parts = parasLine.split(",");
+        
+        for (int i = 0; i < parts.length; i++) {
+            if (parts[i].contains("originalDataset"))
+                return parts[i+1];
+        }
+        throw new Exception("Cant find originalDataset para");
+    }
+    
+    /**
+     * Takes dataset name, and produces a simple string representation of the paras for whatever filtered
+     * version of the dataset (if there was any filtering at all)
+     * 
+     * If there was no filtering, returns "0", else in most cases where there is 1 para, will return 
+     * that value as a reasonble string depending on its meaning in the context of the given filter, 
+     * else if there is more than one para, will return as '_' delimited values
+     * (',' and '/' will probs annoy excel)
+     *
+     * e.g for pca, the values are as a proportion, but because we don't want '.' in directory names, that will be added in here e.g "99" =>  "0.99"
+     * e.g some cases may have a true string value, e.g "sqrt" or "log2", in those cases, simply those values are returned
+     */
+    public static String parseFilterParasFromDatasetName(String datasetName) { 
+        
+        String [] parts = null;
+        
+        if (datasetName.contains("PCA")) {
+            //e.g CricketZ-PCA_95-            =>          0.99
+            parts = datasetName.split("_");
+            return "0." + parts[1].replace("-", "");   
+        } 
+        else if (datasetName.contains("EXP")) {
+            //e.g CricketZ-EXP_50-             =>           50
+            parts = datasetName.split("_");
+            return parts[1].replace("-", "");            
+        } 
+        else if (datasetName.contains("SG")) { 
+            //BECAUSE DERIVATIVES ARE NOT CONSIDERED FOR THIS PAPER, ONLY RETURNING VALUES OF N AND M
+            //e.g  CricketZ-SG_d0_n8_m65-       =>       8_65
+            parts = datasetName.split("_");
+            return parts[2].replace("n", "") + "_" + parts[3].replace("m", "").replace("-", "");
+        } 
+        else if (datasetName.contains("MA")) {
+            // e.g CricketZ-MA_11-        =>            11
+            parts = datasetName.split("_");
+            return parts[1].replace("-", "");
+        } 
+        else if (datasetName.contains("DFT")) {
+            //e.g CricketY-DFT_log2-           =>        log2
+            //e.g CricketY-DFT_25-           =>        0.25
+            
+            if (datasetName.contains("log2"))
+                return "log2";
+            if (datasetName.contains("sqrt"))
+                return "sqrt";
+            
+            parts = datasetName.split("_");
+            return "0." + parts[1].replace("-", "");
+        } 
+        else if (datasetName.contains("Sieved")) {
+            return "unsupported so far";
+        } 
+//        else if (datasetName.contains("GF")) { //GF alones messed up with EC*GF*iveDays, use something else i guess
+//            return "unsupported so far";
+//        } 
+        else {
+            return "0"; //no filtering occured
+        }       
     }
 }
