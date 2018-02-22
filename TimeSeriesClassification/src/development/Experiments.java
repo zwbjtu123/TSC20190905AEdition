@@ -69,6 +69,7 @@ import weka.classifiers.trees.RandomForest;
 import vector_classifiers.TunedRandomForest;
 import vector_classifiers.TunedMLP;
 import vector_classifiers.TunedTwoLayerMLP;
+import vector_classifiers.TunedXGBoost;
 import weka.classifiers.functions.supportVector.RBFKernel;
 import weka.core.Instances;
 
@@ -378,6 +379,16 @@ public static String[] cmpv2202398={
              case "HiveCOTE":
                 c=new HiveCote();
                 break; 
+             case "XGBoost":
+                 c=new TunedXGBoost();
+                ((TunedXGBoost)c).setSeed(fold);
+                ((TunedXGBoost)c).setTuneParameters(false);
+                 break;
+            case "TunedXGBoost":
+                 c=new TunedXGBoost();
+                ((TunedXGBoost)c).setSeed(fold);
+                ((TunedXGBoost)c).setTuneParameters(true);
+                 break;
            default:
                 System.out.println("UNKNOWN CLASSIFIER "+classifier);
                 System.exit(0);
