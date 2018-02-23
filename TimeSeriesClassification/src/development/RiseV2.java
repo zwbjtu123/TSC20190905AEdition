@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package Rise2;
+package development;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -91,6 +91,10 @@ public class RiseV2 implements Classifier{
     
     public void buildFromSavedData(Boolean buildFromSavedData){
         this.buildFromSavedData = buildFromSavedData;
+    }
+    
+    public boolean getBuildFromSavedData(){
+        return buildFromSavedData;
     }
     
     public void setTransformType(String s){
