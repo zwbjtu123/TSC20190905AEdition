@@ -2,3 +2,10 @@
 /75 Data sets for Elastic Ensemble DAMI Paper/
 /.git/
 /dist/
+nbproject/private/
+build/
+nbbuild/
+dist/
+nbdist/
+nbactions.xml
+nb-configuration.xml

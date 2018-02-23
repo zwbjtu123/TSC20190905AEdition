@@ -42,11 +42,11 @@ public class RISE extends AbstractClassifierWithTrainingData implements SavePara
     long buildTime;
     Classifier[] baseClassifiers;
     Classifier baseClassifierTemplate=new RandomTree();
-    int numBaseClassifiers=500;
+    int numBaseClassifiers=50;
 //INTERVAL BOUNDS ARE INCLUSIVE    
     int[] startPoints;
     int[] endPoints;
-    public static int MIN_INTERVAL=16;
+    public static int MIN_INTERVAL=9;
     public static int MIN_BITS=3;
     Random rand;
     PowerSpectrum ps=new PowerSpectrum();

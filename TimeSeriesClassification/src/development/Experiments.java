@@ -358,6 +358,10 @@ public static String[] cmpv2202398={
             case "RISE":
                 c=new RISE();
                 break;
+            case "RISEV2":
+                c=new RiseV2();
+                ((RiseV2)c).buildFromSavedData(true);
+                break;
             case "TSBF":
                 c=new TSBF();
                 break;
@@ -715,11 +719,16 @@ Optional
                         f.setWritable(true, false);
                 }
                 else{ // Need to cross validate here
-                    int numFolds = Math.min(train.numInstances(), numCVFolds);
-                    CrossValidator cv = new CrossValidator();
-                    cv.setSeed(fold);
-                    cv.setNumFolds(numFolds);
-                    trainResults=cv.crossValidateWithStats(c,train);
+                    
+                    if(c instanceof RiseV2 && ((RiseV2)c).getBuildFromSavedData()){
+                        //Write some internal crossvalidation that can deal with read from files.
+                    }else{
+                        CrossValidator cv = new CrossValidator();
+                        cv.setSeed(fold);
+                        int numFolds = Math.min(train.numInstances(), numCVFolds);
+                        cv.setNumFolds(numFolds);
+                        trainResults=cv.crossValidateWithStats(c,train);
+                    }    
                 }
             }
             
