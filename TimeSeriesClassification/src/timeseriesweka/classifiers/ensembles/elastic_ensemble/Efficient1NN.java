@@ -4,8 +4,10 @@ import java.io.File;
 import java.io.FileWriter;
 import java.text.DecimalFormat;
 import java.util.Scanner;
+import utilities.ClassifierResults;
 import utilities.ClassifierTools;
 import utilities.InstanceTools;
+import utilities.SaveParameterInfo;
 import weka.classifiers.AbstractClassifier;
 import weka.classifiers.Classifier;
 import weka.core.DenseInstance;
@@ -25,7 +27,7 @@ import weka.core.Instances;
  * 
  * @author Jason Lines (j.lines@uea.ac.uk)
  */
-public abstract class Efficient1NN extends AbstractClassifier{
+public abstract class Efficient1NN extends AbstractClassifier implements SaveParameterInfo{
     
     protected Instances train;
     protected Instances[] trainGroup;
@@ -38,6 +40,7 @@ public abstract class Efficient1NN extends AbstractClassifier{
     private String outputDir;
     private String datasetName;
     private int resampleId;
+    private ClassifierResults res =new ClassifierResults();
     
     /**
      * Abstract method to calculates the distance between two Instance objects
@@ -207,6 +210,12 @@ public abstract class Efficient1NN extends AbstractClassifier{
         return classifierIdentifier;
     } 
     
+    @Override
+    public String getParameters(){
+        String paras="BuildTime,"+res.buildTime;
+        return paras;
+        
+    }    
     // could parallelise here
 //    public void writeLOOCVOutput(String tscProblemDir, String datasetName, int resampleId, String outputResultsDir, boolean tidyUp) throws Exception{    
 //        for(int paramId = 0; paramId < 100; paramId++){

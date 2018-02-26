@@ -23,7 +23,7 @@ public class CalculateDatasetsStats {
     public static void main(String[] args) throws Exception {
                 
         //load datasets
-        for(String dataset : multivariate_timeseriesweka.DataSets.multivariateNames){
+        for(String dataset : multivariate_timeseriesweka.DataSets.arransList){
             
             OutFile out = new OutFile(multivariate_timeseriesweka.DataSets.dropboxPath + dataset +"_summarystats.txt");
             

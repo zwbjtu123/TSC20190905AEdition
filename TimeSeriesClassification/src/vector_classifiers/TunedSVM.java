@@ -77,7 +77,7 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
     protected String resultsPath;
     protected boolean saveEachParaAcc=false;
 //HARD CODED FLAG that allows a build from partials    
-    private boolean buildFromPartial=true;
+    private boolean buildFromPartial=false;
     
     @Override
     public void setPathToSaveParameters(String r){
@@ -1096,6 +1096,8 @@ this gives the option of finding one using 10xCV
     
     
     public static void main(String[] args){
+        cheatOnMNIST();
+        System.exit(0);
         try {
             testKernel();
         } catch (Exception ex) {
@@ -1201,5 +1203,28 @@ this gives the option of finding one using 10xCV
             return result;
           }
     }
+   
+    public static void cheatOnMNIST(){
+        Instances train=ClassifierTools.loadData("\\\\cmptscsvr.cmp.uea.ac.uk\\ueatsc\\Data\\LargeProblems\\MNIST\\MNIST_TRAIN");
+        Instances test=ClassifierTools.loadData("\\\\cmptscsvr.cmp.uea.ac.uk\\ueatsc\\Data\\LargeProblems\\MNIST\\MNIST_TEST");
+        SMO svm=new SMO();
+        RBFKernel k=new RBFKernel();
+        svm.setKernel(k);
+        System.out.println("Data loaded ......");
+        double a =ClassifierTools.singleTrainTestSplitAccuracy(svm, train, test);
+        System.out.println("Default acc = "+a);
+        int min=1;//These search values are used for all kernels with C. It is also used for Gamma in RBF, but not for the Polynomial exponent search
+        int max=6;
+        for(double c=min;c<=max;c++)
+            for(double r=min;r<=max;r++){
+                     svm.setC(Math.pow(2, c));
+                     k.setGamma(Math.pow(2, r));
+                     svm.setKernel(k);//Just in case ...
+                    a =ClassifierTools.singleTrainTestSplitAccuracy(svm, train, test);
+                    System.out.println("logC ="+c+" logGamma = "+r+" acc = "+a);
+                }
+        
+    }
+  
     
 }

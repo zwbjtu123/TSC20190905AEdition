@@ -119,6 +119,11 @@ public class TunedMLP extends MultilayerPerceptron implements SaveParameterInfo,
             p1="o";
         else
             p1="t";
+//"a"=(m_numAttributes + m_numClasses) / 2;
+//"i"= m_numAttributes;
+//"o" = m_numClasses;
+//"t" = m_numAttributes + m_numClasses;
+        
         int t=(x-1)%200;
         boolean p4;
         if(t<=100)

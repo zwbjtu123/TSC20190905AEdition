@@ -21,6 +21,7 @@ import java.util.Collections;
  */
 public class ClassifierResults implements DebugPrinting {
     public long buildTime;
+    public long memory;
     private int numClasses;
     private int numInstances;
     private String name;
@@ -333,18 +334,25 @@ public class ClassifierResults implements DebugPrinting {
            while(line!=null){
                String[] split=line.split(",");
                if(split.length>3){
-                    double a=Double.valueOf(split[0]);
+//GAVIN HACK
+//                   double a=Double.valueOf(split[0])-1;
+//                    double b=Double.valueOf(split[1])-1;
+                   double a=Double.valueOf(split[0]);
                     double b=Double.valueOf(split[1]);
                     actualClassValues.add(a);
                     predictedClassValues.add(b);
                     if(a==b)
                         acc++;
                     if(numInstances==0){
+//GAVIN HACK
+//                          numClasses=split.length-2;   //Check!
                         numClasses=split.length-3;   //Check!
                     }
                     double[] probs=new double[numClasses];
                     for(int i=0;i<probs.length;i++)
-                        probs[i]=Double.valueOf(split[3+i]);
+//GAVIN HACK
+//                        probs[i]=Double.valueOf(split[2+i].trim());
+                          probs[i]=Double.valueOf(split[3+i].trim());
                     predictedClassProbabilities.add(probs);
                    numInstances++;
                }

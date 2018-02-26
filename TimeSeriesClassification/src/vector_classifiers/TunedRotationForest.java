@@ -596,6 +596,8 @@ this gives the option of finding one using 10xCV
     }
     
     public static void main(String[] args) {
+        cheatOnMNIST();
+        System.exit(0);
 //        jamesltests();
         DecimalFormat df = new DecimalFormat("##.###");
         try{
@@ -612,6 +614,21 @@ this gives the option of finding one using 10xCV
             System.exit(0);
         }
        
+    }
+    
+    public static void cheatOnMNIST(){
+        Instances train=ClassifierTools.loadData("\\\\cmptscsvr.cmp.uea.ac.uk\\ueatsc\\Data\\LargeProblems\\MNIST\\MNIST_TRAIN");
+        Instances test=ClassifierTools.loadData("\\\\cmptscsvr.cmp.uea.ac.uk\\ueatsc\\Data\\LargeProblems\\MNIST\\MNIST_TEST");
+        RotationForest rf=new RotationForest();
+        System.out.println("Data loaded ......");
+        double a =ClassifierTools.singleTrainTestSplitAccuracy(rf, train, test);
+        System.out.println("Trees ="+10+" acc = "+a);
+        for(int trees=50;trees<=500;trees+=50){
+            rf.setNumIterations(trees);
+            a =ClassifierTools.singleTrainTestSplitAccuracy(rf, train, test);
+            System.out.println("Trees ="+trees+" acc = "+a);
+        }
+        
     }
   
 }

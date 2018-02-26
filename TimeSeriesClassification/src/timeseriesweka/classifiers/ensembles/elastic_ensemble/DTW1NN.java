@@ -11,7 +11,7 @@ import timeseriesweka.elastic_distance_measures.DTW;
  *
  * @author Jason Lines (j.lines@uea.ac.uk)
  */
-public class DTW1NN extends Efficient1NN{
+public class DTW1NN extends Efficient1NN {
 
     
     private double r = 1;
@@ -52,7 +52,10 @@ public class DTW1NN extends Efficient1NN{
     public void turnOffCV(){
         this.allowLoocv = false;
     }
-    
+     public void turnOnCV(){
+        this.allowLoocv = true;
+    }
+   
     @Override
     public double[] loocv(Instances train) throws Exception{
         if(this.allowLoocv==true && this.classifierIdentifier.contains("R1")){

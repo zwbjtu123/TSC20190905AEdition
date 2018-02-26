@@ -50,7 +50,8 @@ import weka.filters.unsupervised.attribute.Remove;
  <!-- globalinfo-start -->
  * WrapperSubsetEval:<br/>
  * <br/>
- * Evaluates attribute sets by using a learning scheme. Cross validation is used to estimate the accuracy of the learning scheme for a set of attributes.<br/>
+ * Evaluates attribute sets by using a learning scheme. Cross validation is used 
+ * to estimate the accuracy of the learning scheme for a set of attributes.<br/>
  * <br/>
  * For more information see:<br/>
  * <br/>

@@ -47,6 +47,7 @@ import weka.core.Instances;
 import utilities.ClassifierTools;
 import utilities.TrainAccuracyEstimate;
 import weka.classifiers.lazy.kNN;
+import weka.core.Instance;
 import weka.filters.NormalizeCase;
 /*
 AJB Oct 2016
@@ -299,8 +300,8 @@ public class SimulationExperiments {
                 break;        
                         
             case "WholeSeries":
- //               data=SimulateWholeSeriesData.generateWholeSeriesData(seriesLength,casesPerClass);
-//                break;
+                data=SimulateWholeSeriesData.generateWholeSeriesdData(seriesLength,casesPerClass);
+                break;
            case "WholeSeriesElastic":
                 data=SimulateElasticData.generateElasticData(seriesLength,casesPerClass);
                 break;
@@ -902,9 +903,51 @@ public class SimulationExperiments {
         }
         
     }
+    public static void smoothingTests(){
+        String sim="WholeSeries";
+        setStandardGlobalParameters(sim);
+        seriesLength=1000;
+        int s=22;
+        Model.setGlobalRandomSeed(s);
+        Model.setDefaultSigma(5);
+        casesPerClass=new int[]{50,50};
+        String[] names={"ED","DTW","RotF","BOSS","TSF"};//,"ST","HESCA","HIVECOTE"};
+        Classifier[] cls=new Classifier[names.length];
+        for(int i=0;i<names.length;i++)
+            cls[i]=setClassifier(names[i]);
+        try{
+            Instances data=simulateData(sim,s);
+            addSpikes(data);
+            Instances[] split=InstanceTools.resampleInstances(data, 0,trainProp);
+            DecimalFormat df= new DecimalFormat("##.##");
+            for(int i=0;i<names.length;i++){
+                double d=ClassifierTools.singleTrainTestSplitAccuracy(cls[i], split[0], split[1]);
+                System.out.println(names[i]+" acc = "+df.format(d));
+            }
+        }catch(Exception e){
+            System.out.println("should do something really ....");
+        }
+  }
+    public static void addSpikes(Instances t){
+        double peak=100;
+        int numSpikes=10;
+        for(int i=0;i<numSpikes;i++){
+            for(Instance ins:t){
+                    int position=Model.rand.nextInt(t.numAttributes()-1);
+//                if(Model.rand.nextDouble()<0.5){
+                    
+                    if(Model.rand.nextDouble()<0.5)
+                        ins.setValue(position, peak);
+                    else
+                        ins.setValue(position, -peak);
 
+//                    }
+            }
+        }
+    }
     public static void main(String[] args) throws Exception{
-
+smoothingTests();
+System.exit(0);
         if(args.length>0){
             DataSets.resultsPath=DataSets.clusterPath+"Results/SimulationExperiments/";
             if(args.length==3){//Base experiment
@@ -920,12 +963,15 @@ public class SimulationExperiments {
 //            DataSets.resultsPath="C:\\Users\\ajb\\Dropbox\\Results\\MatrixProfileExperiments\\";
             local=true;
             DataSets.resultsPath="C:\\temp\\";
-                String[] algos={"ED","MP_ED"};//,,"MP_RotF","MP_DTW"};
+                String[] algos={"ED"};//,,"MP_RotF","MP_DTW"};
                 double[] meanAcc=new double[algos.length];
+                
             for(int i=1;i<=10;i++){
                 for(int j=0;j<algos.length;j++){
-                    String[] para={"MatrixProfile",algos[j],i+""};
-                    double b=runSimulationExperiment(para,true);
+                setStandardGlobalParameters("WholeSeries");
+                Model.setDefaultSigma(20);
+                    String[] para={"WholeSeries",algos[j],i+""};
+                    double b=runSimulationExperiment(para,false);
                     meanAcc[j]+=b;
                     System.out.println(para[0]+","+para[1]+","+","+para[2]+" Acc ="+b);
                     

@@ -185,7 +185,7 @@ public class SinusoidalModel extends Model{
     }
         
         
-/** A Load of static classes 
+/** A Load of static methods 
  * 
  * @param r
  * @param min

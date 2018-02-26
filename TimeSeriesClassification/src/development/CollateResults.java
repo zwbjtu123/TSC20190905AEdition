@@ -175,10 +175,11 @@ these are
 Counts: counts.csv, number per problem (max number is NumberOfFolds, it does not check for more).
 Diagnostics: TestAcc.csv, TestF1.csv, TestBAcc.csv, TestNLL.csv, TestAUROC.csv, TrainCVAcc.csv
 Timings: Timings.csv
+Memory: Memory.csv
 Parameter info: Parameter1.csv, Parameter2.csv...AllTuningAccuracies.csv (if tuning occurs, all tuning values).
 
  */    
-    public static int MAXNUMPARAS=1089;
+    public static int MAXNUMPARAS=1180;
     public static void collateFolds(){
 //        String[] allStats={"TestAcc","TrainCVAcc","TestNLL","TestBACC","TestAUROC","TestF1"};      
 
@@ -187,6 +188,7 @@ Parameter info: Parameter1.csv, Parameter2.csv...AllTuningAccuracies.csv (if tun
             System.out.println("Processing classifier ="+cls);
             File f=new File(basePath+cls);
             if(f.isDirectory()){ //Check classifier directory exists.
+                System.out.println("Base path "+basePath+cls+" exists");
                 File stats=new File(basePath+cls+"/SummaryStats");
                 if(!stats.isDirectory())
                     stats.mkdir();
@@ -202,6 +204,7 @@ Parameter info: Parameter1.csv, Parameter2.csv...AllTuningAccuracies.csv (if tun
                 for(int j=0;j<paraFiles.length;j++)
                     paraFiles[j]=new OutFile(filePath+cls+"Parameter"+(j+1)+".csv");
                 OutFile timings=new OutFile(filePath+cls+"Timings.csv");
+                OutFile mem=new OutFile(filePath+cls+"Memory.csv");
                 OutFile allAccSearchValues=new OutFile(filePath+cls+"AllTuningAccuracies.csv");
                 OutFile missing=null;
                 OutFile counts=new OutFile(filePath+cls+"Counts.csv");
@@ -219,8 +222,11 @@ Parameter info: Parameter1.csv, Parameter2.csv...AllTuningAccuracies.csv (if tun
                     AUROCResults.writeString(name);
                     allAccSearchValues.writeString(name);
                     timings.writeString(name);
+                    mem.writeString(name);
                     for(OutFile out:paraFiles)
                         out.writeString(name+",");
+//GAVIN HACK                    
+//                    String path=basePath+cls+"/"+name+"/results/";
                     String path=basePath+cls+"//Predictions//"+name;
                     if(missing!=null && missingCount>0)
                         missing.writeString("\n");
@@ -339,8 +345,11 @@ Parameter info: Parameter1.csv, Parameter2.csv...AllTuningAccuracies.csv (if tun
                     for(int k=0;k<paraFiles.length;k++)
                         paraFiles[k].closeFile();
             }
-            else
+            else{
                 System.out.println("Classifier "+cls+" has no results directory: "+basePath+cls);
+                System.out.println("Exit ");
+                System.exit(0);
+            }
         }
         
     }
@@ -356,7 +365,7 @@ public static void averageOverFolds(){
         String name=classifiers[0];
         for(int i=1;i<classifiers.length;i++)
             name+=classifiers[i];
-        String filePath=basePath+name+"/";
+       String filePath=basePath+name+"/";
         if(classifiers.length==1)
             filePath+="SummaryStats/";
         File nf=new File(filePath);
@@ -619,17 +628,34 @@ public static void basicSummaryComparisons(){
         basicSummaryComparisons();        
         
     }
+
+    
+   public static void jamesStats() throws Exception{
+       MultipleClassifierEvaluation m=new MultipleClassifierEvaluation("//cmptscsvr.cmp.uea.ac.uk/ueatsc/Results/FinalisedUCIContinuousAnalysis/", "TreeVsSVM", 30);
+       m.setBuildMatlabDiagrams(true);
+       m.setDebugPrinting(true);
+       m.setUseAllStatistics();
+       m.setDatasets(Arrays.copyOfRange(development.DataSets.UCIContinuousFileNames, 0, 121)); 
+       m.readInClassifiers(new String[] {"TunedRandF", "TunedRotF","TunedSVMRBF","TunedSVMPolynomial"}, "//cmptscsvr.cmp.uea.ac.uk/ueatsc/Results/FinalisedUCIContinuous/");
+       m.runComparison(); 
+       
+       
+   }
+    
 //First argument: String path to results directories
 //Second argument: path to directory with problem allStats to look for
 //Third argument: number of folds    
 //Next x arguments: x Classifiers to collate    
 //Next x arguments: number of numParas stored for each classifier    
-    public static void main(String[] args) {
-        
+    public static void main(String[] args) throws Exception {
+//        jamesStats();\\cmptscsvr.cmp.uea.ac.uk\\Results\UCIContinuous
+//       System.exit(0);
+        String classifier="FastDTWWrapper";
+        String parameters="2";
         if(args.length>1)
             collate(args);
-        else{    
-            String[] str={"//cmptscsvr.cmp.uea.ac.uk/ueatsc/Results/UCIContinuous/","//cmptscsvr.cmp.uea.ac.uk/ueatsc/Data/UCIContinuous/","30","true","TunedSVMPolynomial","3"};
+        else{ 
+            String[] str={"//cmptscsvr.cmp.uea.ac.uk/ueatsc/Results/TSCProblems/","//cmptscsvr.cmp.uea.ac.uk/ueatsc/Data/TSCProblems/","1","false",classifier,parameters};
             
             
             collate(str);

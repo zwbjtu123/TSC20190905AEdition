@@ -4,7 +4,7 @@ is fine.  Decay is probably weight decay regularisation,  difficult to know
 how it is coded and value will depend on the size of the training set and learning rate, I'd try 1, 1/2, 1/4, ... going down to very small values.
 MLP parameters searched by this classifier
 
-Single hidden layer version:
+Two hiddn layer version:
 number of hidden layers: 2 values, 1 or 2
 number of nodes per layer: 4 values, data dependent, same for both if two hidden layers: 
 Embedded in m_hiddenLayers. Values either 

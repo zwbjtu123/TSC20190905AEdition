@@ -709,6 +709,7 @@ public class TunedRandomForest extends RandomForest implements SaveParameterInfo
       
     
     public static void main(String[] args) {
+        cheatOnMNIST();
         TunedRandomForest randF=new TunedRandomForest();
         randF.m_Debug=true;
         randF.setStandardParaSearchSpace(200);
@@ -769,5 +770,21 @@ public class TunedRandomForest extends RandomForest implements SaveParameterInfo
             System.exit(0);
         }
     }
+   
+    public static void cheatOnMNIST(){
+        Instances train=ClassifierTools.loadData("\\\\cmptscsvr.cmp.uea.ac.uk\\ueatsc\\Data\\LargeProblems\\MNIST\\MNIST_TRAIN");
+        Instances test=ClassifierTools.loadData("\\\\cmptscsvr.cmp.uea.ac.uk\\ueatsc\\Data\\LargeProblems\\MNIST\\MNIST_TEST");
+        RandomForest rf=new RandomForest();
+        System.out.println("Data loaded ......");
+        double a =ClassifierTools.singleTrainTestSplitAccuracy(rf, train, test);
+        System.out.println("Trees ="+10+" acc = "+a);
+        for(int trees=50;trees<=1000;trees+=50){
+            rf.setNumTrees(trees);
+            a =ClassifierTools.singleTrainTestSplitAccuracy(rf, train, test);
+            System.out.println("Trees ="+trees+" acc = "+a);
+        }
+        
+    }
+  
   
 }

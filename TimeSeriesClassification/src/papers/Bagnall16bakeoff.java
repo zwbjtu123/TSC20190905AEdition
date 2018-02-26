@@ -314,7 +314,7 @@ public class Bagnall16bakeoff {
         DataSets.problemPath=DataSets.dropboxPath+"UCI Problems/";
         DataSets.resultsPath="C:/Temp/";
 //2. Set up the arguments: Classifier, Problem, Fold
-        String[] paras={"BOSS","ItalyPowerDemand","1"};
+        String[] paras={"ST_HESCA","ItalyPowerDemand","1"};
 //3. Run a full experiment, saving the results
         singleClassifierAndFold(paras);
     }

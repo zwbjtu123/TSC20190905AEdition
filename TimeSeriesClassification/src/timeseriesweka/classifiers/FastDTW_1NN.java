@@ -12,6 +12,7 @@ import vector_classifiers.SaveEachParameter;
 import weka.classifiers.AbstractClassifier;
 import weka.classifiers.Classifier;
 import weka.core.*;
+import java.lang.instrument.*;
 
 /* 
  * The reason for specialising is this class has the option of searching for 
@@ -64,6 +65,8 @@ public class FastDTW_1NN extends AbstractClassifier  implements SaveParameterInf
     String trainPath;
     protected String resultsPath;
     protected boolean saveEachParaAcc=false;
+    private ClassifierResults res =new ClassifierResults();
+    
     @Override
     public void setPathToSaveParameters(String r){
             resultsPath=r;
@@ -95,7 +98,6 @@ public class FastDTW_1NN extends AbstractClassifier  implements SaveParameterInf
     public double getAcc() {
         return res.acc;
     }  
-    private ClassifierResults res =new ClassifierResults();
 
     public FastDTW_1NN(){
         dtw=new DTW();
@@ -107,8 +109,8 @@ public class FastDTW_1NN extends AbstractClassifier  implements SaveParameterInf
     }
     @Override
     public String getParameters() {
-        String result="BuildTime,"+res.buildTime+",CVAcc,"+res.acc;
-        result+=",BestWarpPercent,"+bestWarp+",AllAccs,";
+        String result="BuildTime,"+res.buildTime+",CVAcc,"+res.acc+",Memory,"+res.memory;
+        result+=",BestWarpPercent,"+bestWarp+"AllAccs,";
        for(double d:accuracy)
             result+=","+d;
         
@@ -182,6 +184,9 @@ public class FastDTW_1NN extends AbstractClassifier  implements SaveParameterInf
             res.acc=maxAcc;
         }
         res.buildTime=System.currentTimeMillis()-t;
+        Runtime rt = Runtime.getRuntime();
+        long usedBytes = (rt.totalMemory() - rt.freeMemory());
+        res.memory=usedBytes;
         
         if(trainPath!=null && trainPath!=""){  //Save basic train results
 //            

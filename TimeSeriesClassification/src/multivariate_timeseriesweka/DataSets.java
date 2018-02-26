@@ -23,9 +23,10 @@ import weka.core.Instances;
 public class DataSets {
     
     public static String dropboxPath = "E:\\LocalData\\Dropbox\\Multivariate TSC\\Aarons Official\\";
+    public static String[] filenames = {};
 
     //All of the multivariate datasets.
-    public static String[] multivariateNames = {
+    public static String[] arransList = {
         "AALTD_0",
         "AALTD_1",
         "AALTD_2",
@@ -51,15 +52,18 @@ public class DataSets {
         "UWaveGesture",
         "VillarData",
     };
-    
-    
     public static void createAndWriteSummaryStats() throws Exception{
+        createAndWriteSummaryStats(false);
+    }    
+    public static void createAndWriteSummaryStats(boolean findStats) throws Exception{
         //load datasets
-        for(String dataset : multivariate_timeseriesweka.DataSets.multivariateNames){
+        for(String dataset : multivariate_timeseriesweka.DataSets.arransList){
             
             Instances train;
+            Instances test;
             try {
                 train = utilities.ClassifierTools.loadData(new File(multivariate_timeseriesweka.DataSets.dropboxPath + dataset + "/" + dataset +"_TRAIN.arff"));
+                test = utilities.ClassifierTools.loadData(new File(multivariate_timeseriesweka.DataSets.dropboxPath + dataset + "/" + dataset +"_TEST.arff"));
             } catch (IOException ex) {
                 continue; //if dataset doesn't exist move on.
             }
@@ -68,33 +72,34 @@ public class DataSets {
             
             Instances[] channels = utilities.multivariate_tools.MultivariateInstanceTools.splitMultivariateInstances(train);
             
-            out.writeLine("num instances " + train.numInstances());
+            out.writeLine("train size " + train.numInstances());
             out.writeLine("num dimenions " + channels.length);
-            out.writeLine("dimension length " + channels[0].numAttributes());
+            out.writeLine("series length " + channels[0].numAttributes());
             out.writeLine("num classes " + train.numClasses());
-            out.writeLine("[mean, variance, skewness, kurtosis, min, max]");
-            
-            //we calculate 6 stats mean, variance, skewness, kurtosis, min, max 
-            double[][][] overallStatsByClass = new double[channels.length][train.numClasses()][6];
-            double[][] overallStats = new double[channels.length][6];
-            
-            for(int i=0; i< channels.length; i++){
-                overallStatsByClass[i] = calculateStatsForInstances(channels[i]);
-            }
-            
-            for(int i=0; i< channels.length; i++){               
-                for(int j =0; j< 6; j++){
-                    for(int k=0; k<train.numClasses(); k++)
-                        overallStats[i][j] += overallStatsByClass[i][k][j];
-                    overallStats[i][j] /= train.numClasses();
+            if(findStats){
+                out.writeLine("[mean, variance, skewness, kurtosis, min, max]");
+                //we calculate 6 stats mean, variance, skewness, kurtosis, min, max 
+                double[][][] overallStatsByClass = new double[channels.length][train.numClasses()][6];
+                double[][] overallStats = new double[channels.length][6];
+
+                for(int i=0; i< channels.length; i++){
+                    overallStatsByClass[i] = calculateStatsForInstances(channels[i]);
                 }
-                out.writeLine("Channel " + i + " " + Arrays.toString(overallStats[i]));
-            }
-            
-            for(int i=0; i< channels.length; i++){  
-                out.writeLine("Channel "+ i);
-                for (int j=0; j < overallStatsByClass[i].length; j++) {
-                        out.writeLine("class: "+ j+ " " + Arrays.toString(overallStatsByClass[i][j]));
+
+                for(int i=0; i< channels.length; i++){               
+                    for(int j =0; j< 6; j++){
+                        for(int k=0; k<train.numClasses(); k++)
+                            overallStats[i][j] += overallStatsByClass[i][k][j];
+                        overallStats[i][j] /= train.numClasses();
+                    }
+                    out.writeLine("Channel " + i + " " + Arrays.toString(overallStats[i]));
+                }
+
+                for(int i=0; i< channels.length; i++){  
+                    out.writeLine("Channel "+ i);
+                    for (int j=0; j < overallStatsByClass[i].length; j++) {
+                            out.writeLine("class: "+ j+ " " + Arrays.toString(overallStatsByClass[i][j]));
+                    }
                 }
             }
             out.closeFile();
