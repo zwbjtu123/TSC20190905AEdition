@@ -36,6 +36,7 @@ import timeseriesweka.classifiers.ParameterSplittable;
 import timeseriesweka.classifiers.RISE;
 import timeseriesweka.classifiers.SAXVSM;
 import timeseriesweka.classifiers.ST_HESCA;
+import timeseriesweka.classifiers.SlowDTW_1NN;
 import timeseriesweka.classifiers.TSBF;
 import timeseriesweka.classifiers.TSF;
 import timeseriesweka.classifiers.ensembles.elastic_ensemble.DTW1NN;
@@ -61,6 +62,7 @@ import vector_classifiers.TunedRotationForest;
 import utilities.ClassifierResults;
 import vector_classifiers.HESCA;
 import timeseriesweka.classifiers.ensembles.SaveableEnsemble;
+import timeseriesweka.classifiers.FastWWS.FastDTWWrapper;
 import utilities.GenericTools;
 import vector_classifiers.RotationForestBootstrap;
 import vector_classifiers.SaveEachParameter;
@@ -83,61 +85,34 @@ public class Experiments implements Runnable{
     static int numCVFolds = 10;
     static boolean debug=true;
     static boolean checkpoint=false;
-    static boolean generateTrainFiles=true;
+    static boolean generateTrainFiles=false;
     static Integer parameterNum=0;
     static boolean singleFile=false;
     static boolean foldsInFile=false;
     
-public static String threadClassifier="TunedSVMPolynomial";    
+public static String threadClassifier="ED";    
 public static String[] cmpv2264419={
-"annealing",
-"haberman-survival",
-"ilpd-indian-liver",
-"molec-biol-splice",
-"monks-2",
-"mushroom",
-"musk-2"
+"adult",
 };
 public static String[] ajb17pc={
-"nursery",
-"page-blocks",
-"pima",
-"plant-texture",
-"ringnorm",
-"spambase",
-"statlog-australian-credit",
-"statlog-landsat",
-"steel-plates",
-"thyroid",
-"wall-following",
-"blood"
+"abalone"
 };    
 public static String[] cmpv2202398={
-"wine-quality-red",
-"hill-valley",
-"bank",
-"yeast",
-"mammographic",
-"abalone",
-"wine-quality-white",
+"adult"
 };
 //TODO
 /*
-"contrac",
-"magic",
-"statlog-shuttle",
-"chess-krvk",
-"adult",
-"connect-4",
-"miniboone"
 
 */
-
+public static String[] laptop={
+"balloons"  
+};
     public static Classifier setClassifier(String classifier, int fold){
         Classifier c=null;
         TunedSVM svm=null;
         switch(classifier){
-//TIME DOMAIN CLASSIFIERS            
+//TIME DOMAIN CLASSIFIERS   
+            
             case "ED":
                 c=new ED1NN();
                 break;
@@ -285,6 +260,7 @@ public static String[] cmpv2202398={
             case "TunedSingleLayerMLP":
                 TunedMLP mlp=new TunedMLP();
                 mlp.setParamSearch(true);
+                mlp.setTrainingTime(200);
                 mlp.setSeed(fold);
                 c= mlp;
                 break;
@@ -314,11 +290,18 @@ public static String[] cmpv2202398={
                 c=new DTW1NN();
                 ((DTW1NN )c).setWindow(1);
                 break;
+            case "SLOWDTWCV":
+//                c=new DTW1NN();
+                c=new SlowDTW_1NN();
+                ((SlowDTW_1NN)c).optimiseWindow(true);
+                break;
             case "DTWCV":
 //                c=new DTW1NN();
-                c=new FastDTW_1NN();
-                ((FastDTW_1NN)c).optimiseWindow(true);
-                
+//                c=new FastDTW_1NN();
+//                ((FastDTW_1NN)c).optimiseWindow(true);
+//                break;
+//            case "FastDTWWrapper":
+                c= new FastDTWWrapper();
                 break;
             case "DD_DTW":
                 c=new DD_DTW();
@@ -408,7 +391,8 @@ public static String[] cmpv2202398={
             for(String str:args)
                 System.out.print(str+" ");
             System.out.print("\n");
-            Experiments.singleClassifierAndFoldTrainTestSplit(args);
+            singleExperiment(args);
+//            Experiments.singleClassifierAndFoldTrainTestSplit(args);
         } catch (Exception ex) {
             System.out.println("ERROR, cannot run experiment :");
             for(String str:args)
@@ -428,61 +412,94 @@ Optional
     7. boolean whether to checkpoint parameter search (true/false)
     8. integer for specific parameter search (0 indicates ignore this) 
     */  
-       
-    public static void main(String[] args) throws Exception{
-//        tonyTest();
+    public static void sanityCheck(String c) throws Exception{
+        DataSets.problemPath="\\cmptscsvr.cmp.uea.ac.uk\\ueatsc\\Data\\TSCProblems";
+        DataSets.resultsPath="C:\\Temp\\";
+        threadClassifier=c;
+        depreciatedThreadedExperiment("TSCProblems",1,10);
+
+    }
+    public static void debugExperiment() throws Exception{
+//        sanityCheck("DTWCV");
 //        System.exit(0);
-/*        String dset="hayes-roth";
-        Instances[] data = InstanceTools.resampleInstances(ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\UCI Problems\\"+dset+"\\"+dset), 0, 0.5);
-            OutFile temp1= new OutFile("C:/temp/"+dset+"train.arff");
-            temp1.writeString(data[0]+"");
-            OutFile temp2= new OutFile("C:/temp/"+dset+"test.arff");
-            temp2.writeString(data[1]+"");
-            System.exit(0);
- */      
+    //Debug run
+        DataSets.problemPath="//cmptscsvr.cmp.uea.ac.uk/ueatsc/Data/TSCProblems/";
+        DataSets.resultsPath="C:\\Temp\\";
+        File f=new File(DataSets.resultsPath);
+        if(!f.isDirectory()){
+            f.mkdirs();
+        }
+        generateTrainFiles=false;
+        checkpoint=false;
+        parameterNum=0;
+        debug=true;
+            String[] newArgs={"FastDTWWrapper","ItalyPowerDemand","1"};
+            Experiments.singleClassifierAndFoldTrainTestSplit(newArgs);
+//                for(String str:DataSets.UCIContinuousFileNames){
+//                }
+        System.exit(0);
+
+        
+    }
+    
+    public static void main(String[] args) throws Exception{
+
+//IF args are passed, it is a cluster run. Otherwise it is a local run, either threaded or not
         debug=false;
+
 //        foldsInFile=true;
         for(String str:args)
             System.out.println(str);
         if(args.length<6){
+            boolean threaded=false;
             if(debug){
-    //Debug run
-                System.out.println("Num args passed ="+args.length);
-                for(String str:args)
-                    System.out.println(str);
-                DataSets.problemPath="C:\\Users\\ajb\\Dropbox\\UCI Problems\\";
-                DataSets.resultsPath="C:\\Temp\\";
-                File f=new File(DataSets.resultsPath);
-                if(!f.isDirectory()){
-                    f.mkdirs();
-                }
-                generateTrainFiles=true;
-                checkpoint=false;
-                parameterNum=0;
-                debug=true;
-//                for(String str:DataSets.UCIContinuousFileNames){
-//                    String[] newArgs={"TunedTwoLayerMLP","trains"};
-//                    Experiments.singleClassifierAndFoldTrainTestSplit(newArgs);
-//                }
-                System.exit(0);
+                debugExperiment();
             }
-            else{ //Threaded run
-              threadedExperiment("cmpv2202398");  
-//             threadedExperiment("ajb17pc");  
- //            threadedExperiment("cmpv2264419");  
+            else{ 
+    //Args 1 and 2 are problem and results path
+                String[] newArgs=new String[6];
+                newArgs[0]="//cmptscsvr.cmp.uea.ac.uk/ueatsc/Data/TSCProblems/";//All on the beast now
+                newArgs[1]="//cmptscsvr.cmp.uea.ac.uk/ueatsc/Results/TSCProblems/";
+    //Arg 3 argument is whether to cross validate or not and produce train files
+                newArgs[2]="false";
+    // Arg 4,5,6 Classifier, Problem, Fold             
+                newArgs[3]="FastDTWWrapper";
+//These are set in the localX method
+//              newArgs[4]="Adiac";
+//                newArgs[5]="1";
+                String[] problems=DataSets.fileNames;
+///                problems=new String[]{"Distal"};
+                int folds=1;
+                if(threaded){//Do problems listed threaded 
+                    localThreadedRun(newArgs,problems,folds);
+                    
+                    
+                }
+                else //Do the problems listed sequentially
+                    localSequentialRun(newArgs,problems,folds);
+            }
+
+
+//Threaded run
+ //             threadedExperiment("cmpv2202398");  
+ /*           generateTrainFiles=false;
+            parameterNum=0;
+            threadClassifier="FastDTWWrapper";
+            threadedExperiment("ajb17pc",1,1);  
+//             threadedExperiment("cmpv2264419");  
 
 // //             threadedExperiment("UCIContinuous");  
 //              threadedExperiment("LargeProblems");  
             }
+  */          
+            
         }
         else{    
             singleExperiment(args);
         }
     
     }
-    public static void threadedExperiment(String dataSet) throws Exception{
-        int startFold=1;
-        int endFold=30;
+    public static void depreciatedThreadedExperiment(String dataSet, int startFold, int endFold) throws Exception{
         
         int cores = Runtime.getRuntime().availableProcessors();        
         System.out.println("# cores ="+cores);
@@ -492,16 +509,20 @@ Optional
         Experiments exp;
         DataSets.problemPath="//cmptscsvr.cmp.uea.ac.uk/ueatsc/Data/"+dataSet+"/";//Problem Path
         DataSets.resultsPath="//cmptscsvr.cmp.uea.ac.uk/ueatsc/Results/"+dataSet+"/";         //Results path
-        String[] problems;
+        String[] problems=DataSets.fileNames;
         parameterNum=0;   
         String classifier=threadClassifier;
-        if(dataSet.equals("UCIContinuous"))
-            problems=DataSets.UCIContinuousFileNames;
-        else if(dataSet.equals("TSCProblems"))
-            problems=DataSets.fileNames;
-        else if(dataSet.equals("LargeProblems"))
-            problems=DataSets.largeProblems;
-        else if(dataSet.equals("cmpv2202398")){
+        switch(dataSet){
+            case "UCIContinuous"://Do all UCI
+                problems=DataSets.UCIContinuousFileNames;
+            break;
+            case "TSCProblems": case "TSC Problems": //Do all Repo
+                problems=DataSets.fileNames;
+            break;
+            
+            
+        }
+        if(dataSet.equals("cmpv2202398")){
             DataSets.problemPath="//cmptscsvr.cmp.uea.ac.uk/ueatsc/Data/UCIContinuous/";//Problem Path
             DataSets.resultsPath="//cmptscsvr.cmp.uea.ac.uk/ueatsc/Results/UCIContinuous/";         //Results path
             problems=cmpv2202398;
@@ -519,8 +540,6 @@ Optional
             problems=ajb17pc;
             
         }
-        else
-            throw new Exception(" data set = "+dataSet);
             
         ArrayList<String> names=new ArrayList<>();
         for(String str:problems)
@@ -580,7 +599,6 @@ Optional
             if(args.length>=8){
                 parameterNum=Integer.parseInt(args[7]);
             }
-            System.out.println("Checkpoint ="+checkpoint+" param number ="+parameterNum);
             Experiments.singleClassifierAndFoldTrainTestSplit(newArgs);        
     }
     /** Run a given classifier/problem/fold combination with associated file set up
@@ -658,7 +676,7 @@ Optional
             }
             
             double acc = singleClassifierAndFoldTrainTestSplit(data[0],data[1],c,fold,predictions);
-            System.out.println(classifier+","+problem+","+fold+",test acc,"+acc);
+            System.out.println("Classifier="+classifier+", Problem="+problem+", Fold="+fold+", Test Acc,"+acc);
         }
     }
 /**
@@ -807,6 +825,45 @@ Optional
         }
     }    
 
+    
+    public static void localSequentialRun(String[] standardArgs,String[] problemList, int folds) throws Exception{
+        for(String str:problemList){
+                System.out.println("Problem ="+str);
+            for(int i=1;i<=folds;i++){
+                standardArgs[4]=str;
+                standardArgs[5]=i+"";
+                singleExperiment(standardArgs);
+                
+            }
+        }
+        
+        
+    }
+    public static void localThreadedRun(String[] standardArgs,String[] problemList, int folds) throws Exception{
+        int cores = Runtime.getRuntime().availableProcessors();        
+        System.out.println("# cores ="+cores);
+        cores=cores/2;
+        System.out.println("# threads ="+cores);
+        ExecutorService executor = Executors.newFixedThreadPool(cores);
+        Experiments exp;
+        for(String str:problemList){
+            for(int i=1;i<=folds;i++){
+                String[] args=new String[standardArgs.length];//Need to clone them!
+                for(int j=0;j<standardArgs.length;j++)
+                    args[j]=standardArgs[j];
+                args[4]=str;
+                args[5]=i+"";
+                exp=new Experiments();
+                exp.args=args;
+                executor.execute(exp);
+            }
+        }
+        executor.shutdown();
+        while (!executor.isTerminated()) {
+        }
+        System.out.println("Finished all threads");            
+    }
+    
    public static void tonyTest() throws Exception{
         Instances all = ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\UCI Problems\\hayes-roth\\hayes-roth");
         Instances[] data = InstanceTools.resampleInstances(all,0, .5);            
