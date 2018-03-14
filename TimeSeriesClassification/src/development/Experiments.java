@@ -366,14 +366,18 @@ public static String[] laptop={
              case "HiveCOTE":
                 c=new HiveCote();
                 break; 
-             case "XGBoost":
+            case "XGBoost":
                  c=new TunedXGBoost();
                 ((TunedXGBoost)c).setSeed(fold);
+                ((TunedXGBoost)c).setDebug(false);
+                ((TunedXGBoost)c).setDebugPrinting(false);
                 ((TunedXGBoost)c).setTuneParameters(false);
                  break;
             case "TunedXGBoost":
                  c=new TunedXGBoost();
                 ((TunedXGBoost)c).setSeed(fold);
+                ((TunedXGBoost)c).setDebug(false);
+                ((TunedXGBoost)c).setDebugPrinting(false);
                 ((TunedXGBoost)c).setTuneParameters(true);
                  break;
            default:
