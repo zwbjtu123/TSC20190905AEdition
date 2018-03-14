@@ -97,8 +97,8 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule, SavePar
     
     protected boolean performEnsembleCV = true;
     protected CrossValidator cv = null;
-    private ClassifierResults ensembleTrainResults = null;//data generated during buildclassifier if above = true 
-    private ClassifierResults ensembleTestResults = null;//data generated during testing
+    protected ClassifierResults ensembleTrainResults = null;//data generated during buildclassifier if above = true 
+    protected ClassifierResults ensembleTestResults = null;//data generated during testing
     
     //data info
     protected int numTrainInsts;
@@ -351,8 +351,11 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule, SavePar
             //buildTime does not include the ensemble's cv, only the work required to be ready for testing
             long buildTime = System.currentTimeMillis() - startTime; 
             
-            doEnsembleCV(data); //combine modules to find overall ensemble trainpreds 
+            ensembleTrainResults = doEnsembleCV(data); //combine modules to find overall ensemble trainpreds 
             ensembleTrainResults.buildTime = buildTime; //store the buildtime to be saved
+            
+            if (writeEnsembleTrainingFile)
+                writeEnsembleCVResults(train);
         }
         
         this.testInstCounter = 0; //prep for start of testing
@@ -410,6 +413,8 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule, SavePar
         for (int m = 0; m < modules.length; m++) {
             modules[m].trainResults.setNumClasses(numClasses);
             modules[m].trainResults.setNumInstances(numTrainInsts);
+            
+            modules[m].trainResults.findAllStatsOnce();
         }
     }
     
@@ -588,7 +593,7 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule, SavePar
             readIndividualsResults = false;
     }
     
-    protected void doEnsembleCV(Instances data) throws Exception {
+    protected ClassifierResults doEnsembleCV(Instances data) throws Exception {
         double[] preds = new double[numTrainInsts];
         double[][] dists = new double[numTrainInsts][];
         double[] accPerFold = new double[cv.getNumFolds()]; //for variance
@@ -621,9 +626,11 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule, SavePar
         double acc = correct/numTrainInsts;
         double stddevOverFolds = StatisticalUtilities.standardDeviation(accPerFold, false, acc);
         
-        ensembleTrainResults = new ClassifierResults(acc, data.attributeToDoubleArray(data.classIndex()), preds, dists, stddevOverFolds, numClasses);
-        ensembleTrainResults.setNumClasses(numClasses);
-        ensembleTrainResults.setNumInstances(numTrainInsts);
+        ClassifierResults trainResults = new ClassifierResults(acc, data.attributeToDoubleArray(data.classIndex()), preds, dists, stddevOverFolds, numClasses);
+        trainResults.setNumClasses(numClasses);
+        trainResults.setNumInstances(numTrainInsts);
+        
+        return trainResults;
     }
     
     /**
@@ -793,6 +800,7 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule, SavePar
     public void writeCVTrainToFile(String path) {
         outputEnsembleTrainingPathAndFile=path;
         performEnsembleCV=true;
+        writeEnsembleTrainingFile=true;
     }    
     @Override
     public boolean findsTrainAccuracyEstimate(){ return performEnsembleCV;}

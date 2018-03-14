@@ -418,7 +418,7 @@ public class MultipleClassifierEvaluation implements DebugPrinting {
                 } catch (FileNotFoundException ex) {
                     er.log(testFile + "\n");
                     totalFnfs++;
-                }
+                } 
             }
         }
 

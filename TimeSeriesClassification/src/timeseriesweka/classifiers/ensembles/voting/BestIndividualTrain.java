@@ -5,7 +5,7 @@ import weka.core.Instance;
 
 /**
  *
- * TODO what if there's tie for best?  UNTESTED
+ * TODO what if there's tie for best?  
  * 
  * The ensemble's distribution for an instance is equal to the single 'best' individual,
  * as defined by whatever (uniform) weighting scheme is being used. 
@@ -38,7 +38,7 @@ public class BestIndividualTrain extends BestIndividual {
                 if (prevWeight == modules[m].posteriorWeights[c])
                     prevWeight = modules[m].posteriorWeights[c];
                 else 
-                    throw new Exception("BestIndividualTrain cannot be use with non-uniform weighitn schemes");
+                    throw new Exception("BestIndividualTrain cannot be used with non-uniform weighting schemes");
             }
             
             if (modules[m].posteriorWeights[0] > bestWeight) {

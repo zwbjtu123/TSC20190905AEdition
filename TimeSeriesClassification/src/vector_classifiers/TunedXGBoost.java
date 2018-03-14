@@ -21,6 +21,8 @@ import weka.classifiers.AbstractClassifier;
 import weka.core.Instance;
 import weka.core.Instances;
 import development.CollateResults;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Random;
 import utilities.SaveParameterInfo;
 
@@ -40,11 +42,11 @@ import utilities.SaveParameterInfo;
  * as an option. Would search over the learning rate, num iterations, max tree depth, and min child weighting.
  * 
  * TODOS:
- * - Edit best parameter tie resolution to pick most conservative (least likely to be overfitting), instead of randomly picking
  * - Sort out any extra licensing/citations needed
  * - Thorough testing of the tuning checkpointing/para splitting for evaluation
  * - Potentially tweaking the para spaces depending on observed behaviour
  * - Any extra software engineering-type things required
+ * - Look for speedups, esp early abandons on grid search with num iters
  * 
  * @author James Large (james.large@uea.ac.uk)
  */
@@ -75,18 +77,18 @@ public class TunedXGBoost extends AbstractClassifier implements SaveParameterInf
     //      https://cambridgespark.com/content/tutorials/hyperparameter-tuning-in-xgboost/index.html
     //hyperparameters - tunable through cv (5^4 = 625 possible paras)
     float learningRate = 0.1f; //aka eta
-    float[] learningRateParaRange = { 0.01f, 0.05f, 0.1f, 0.2f, 0.3f };
+    static float[] learningRateParaRange = { 0.01f, 0.05f, 0.1f, 0.2f, 0.3f };
     int maxTreeDepth = 4; //aka max_depth
-    int[] maxTreeDepthParaRange = { 2,4,6,8,10 };
+    static int[] maxTreeDepthParaRange = { 2,4,6,8,10 };
     int minChildWeight = 1; //aka min_child_weight
-    int[] minChildWeightParaRange = new int[] { 1,3,5,7,9 };
-    int numIterations = 100; //aka rounds
-    int[] numIterationsParaRange = { 50, 100, 250, 500, 1000 };
+    static int[] minChildWeightParaRange = { 1,3,5,7,9 };
+    int numIterations = 500; //aka rounds
+    static int[] numIterationsParaRange = { 50, 100, 250, 500, 1000 };
     int maxOptionsPerPara = 5;
     
     //tuning/cv/jobsplitting
     int cvFolds = 10;
-    boolean tuneParameters=true;
+    boolean tuneParameters=false;
     boolean estimateAcc=true;  //If there is no tuning, this will find the estimate with the fixed values
     protected String resultsPath;
     protected boolean saveEachParaAcc=false;
@@ -140,27 +142,61 @@ public class TunedXGBoost extends AbstractClassifier implements SaveParameterInf
     public void setNumIterations(int numIterations) {
         this.numIterations = numIterations;
     }
-    
 
+    
     //copied over/refactored from tunedsvm/randf/rotf
-    static class ResultsHolder{
+    public static class XGBoostParamResultsHolder implements Comparable<XGBoostParamResultsHolder> {
         float learningRate;
         int maxTreeDepth;
         int minChildWeight;
         int numIterations;
+        int conservedness;
         ClassifierResults results;
         
-        ResultsHolder(float learningRate, int maxTreeDepth, int minChildWeight, int numIterations,ClassifierResults r){
+        XGBoostParamResultsHolder(float learningRate, int maxTreeDepth, int minChildWeight, int numIterations,ClassifierResults r){
             this.learningRate=learningRate;
             this.maxTreeDepth=maxTreeDepth;
             this.minChildWeight=minChildWeight;
             this.numIterations=numIterations;
+            
+            conservedness = computeConservedness();
             results=r;
+        }
+        
+        @Override
+        public String toString() {
+            return "learningRate="+learningRate+",maxTreeDepth="+maxTreeDepth+",minChildWeight"+minChildWeight+",numIterations="+numIterations+",conservedness="+conservedness+",acc="+results.acc;
+        }
+        
+        /**
+         * This values wants to be minimised, higher values = potentially more prone to overfitting
+         */
+        public int computeConservedness() {
+            return (1 + Arrays.binarySearch(TunedXGBoost.learningRateParaRange, learningRate))
+                * (1 + Arrays.binarySearch(TunedXGBoost.maxTreeDepthParaRange, maxTreeDepth))
+                * (1 + (TunedXGBoost.minChildWeightParaRange.length - Arrays.binarySearch(TunedXGBoost.minChildWeightParaRange, minChildWeight)))
+                * (1 + Arrays.binarySearch(TunedXGBoost.numIterationsParaRange, numIterations));
+        }
+        
+        /**
+         * Implements a fairly naive way of determining if this param set is more conservative than the other,
+         * based on the total 'ranking' of each of the param values within the 4 param spaces. 
+         * 
+         * Returns less than zero if this is LESS conservative than other (i.e this.computeConservedness() > other.computeConservedness())
+         * Returns greater than zero if this is MORE conservative than other (i.e this.computeConservedness() < other.computeConservedness())
+         * 
+         * Therefore to find most conservative in list of params, use max();
+         */
+        @Override
+        public int compareTo(XGBoostParamResultsHolder other) {
+            return other.conservedness - this.conservedness;
         }
     }
     
     //copied over/refactored from vector_classifiers.tunedsvm/randf/rotf
     public void tuneHyperparameters() throws Exception {
+        printlnDebug("tuneHyperparameters()");
+        
         double minErr=1;
         paramAccuracies=new ArrayList<>();
         
@@ -169,7 +205,7 @@ public class TunedXGBoost extends AbstractClassifier implements SaveParameterInf
         cv.setSeed(seed);
         cv.setNumFolds(cvFolds);
         cv.buildFolds(trainCopy);
-        ArrayList<ResultsHolder> ties=new ArrayList<>();
+        ArrayList<XGBoostParamResultsHolder> ties=new ArrayList<>();
         ClassifierResults tempResults;
         int count=0;
         OutFile temp=null;
@@ -210,17 +246,15 @@ public class TunedXGBoost extends AbstractClassifier implements SaveParameterInf
                             File f=new File(resultsPath+count+".csv");
                             if(f.exists())
                                 f.setWritable(true, false);
-
                         }                
                         else{
                             if(e<minErr){
-                            minErr=e;
-                            ties=new ArrayList<>();//Remove previous ties
-                            ties.add(new ResultsHolder(p1,p2,p3,p4,tempResults));
+                                minErr=e;
+                                ties=new ArrayList<>();//Remove previous ties
+                                ties.add(new XGBoostParamResultsHolder(p1,p2,p3,p4,tempResults));
                             }
-                            else if(e==minErr){//Sort out ties
-                                ties.add(new ResultsHolder(p1,p2,p3,p4,tempResults));
-                            }
+                            else if(e==minErr)//Sort out ties
+                                ties.add(new XGBoostParamResultsHolder(p1,p2,p3,p4,tempResults));
                         }
                     }
                 }
@@ -260,10 +294,10 @@ public class TunedXGBoost extends AbstractClassifier implements SaveParameterInf
                                 if(e<minErr){
                                     minErr=e;
                                     ties=new ArrayList<>();//Remove previous ties
-                                    ties.add(new ResultsHolder(p1,p2,p3,p4,tempResults));
+                                    ties.add(new XGBoostParamResultsHolder(p1,p2,p3,p4,tempResults));
                                 }
                                 else if(e==minErr){//Sort out ties
-                                    ties.add(new ResultsHolder(p1,p2,p3,p4,tempResults));
+                                    ties.add(new XGBoostParamResultsHolder(p1,p2,p3,p4,tempResults));
                                 }
             //Delete the files here to clean up.
 
@@ -274,7 +308,8 @@ public class TunedXGBoost extends AbstractClassifier implements SaveParameterInf
                         }
                     }            
                 }
-                ResultsHolder best=ties.get(rng.nextInt(ties.size()));
+//                XGBoostParamResultsHolder best=ties.get(rng.nextInt(ties.size()));
+                XGBoostParamResultsHolder best=Collections.max(ties); //get the most conservative (see XGBoostParamResultsHolder.computeconservedness())
                 printlnDebug("Best learning rate ="+best.learningRate+" best max depth = "+best.maxTreeDepth+" best min child weight ="+best.minChildWeight+" best num iterations ="+best.numIterations+ " acc = " + trainResults.acc + " (num ties = " + ties.size() + ")");
                 
                 this.setLearningRate(best.learningRate);
@@ -285,7 +320,14 @@ public class TunedXGBoost extends AbstractClassifier implements SaveParameterInf
                 System.out.println(resultsPath+" error: missing  ="+missing+" parameter values");
         }
         else{
-            ResultsHolder best=ties.get(rng.nextInt(ties.size()));
+            printlnDebug("\nTies Handling: ");
+            for (XGBoostParamResultsHolder tie : ties) {
+                printlnDebug(tie.toString());
+            }
+            printlnDebug("\n");
+            
+//            XGBoostParamResultsHolder best=ties.get(rng.nextInt(ties.size()));
+            XGBoostParamResultsHolder best=Collections.max(ties); //get the most conservative (see XGBoostParamResultsHolder.computeconservedness())
             printlnDebug("Best learning rate ="+best.learningRate+" best max depth = "+best.maxTreeDepth+" best min child weight ="+best.minChildWeight+" best num iterations ="+best.numIterations+" acc = " + trainResults.acc + " (num ties = " + ties.size() + ")");
             
             this.setLearningRate(best.learningRate);
@@ -315,31 +357,40 @@ public class TunedXGBoost extends AbstractClassifier implements SaveParameterInf
         trainDMat = wekaInstancesToDMatrix(trainInsts);
         HashMap<String, Object> params = new HashMap<String, Object>();
         //todo: this is a mega hack to enforce 1 thread only on cluster (else bad juju).
-        //fix some how at some point 
-        if (System.getProperty("os.name").toLowerCase().contains("linux"));
+        //fix some how at some point. 
+        if (System.getProperty("os.name").toLowerCase().contains("linux"))
             params.put("nthread", 1);
         // else == num processors by default
+        
         //fixed params
         params.put("silent", 1);
         params.put("objective", objective);
-        params.put("num_class", numClasses); //required with multiclass problems
+        if(objective.contains("multi"))
+            params.put("num_class", numClasses); //required with multiclass problems
         params.put("seed", seed);
         params.put("subsample", rowSubsampling);
         params.put("colsample_bytree", colSubsampling);
+        
         //tunable params (numiterations passed directly to XGBoost.train(...)
         params.put("learning_rate", learningRate);
         params.put("max_depth", maxTreeDepth);
         params.put("min_child_weight", minChildWeight);
         
         HashMap<String, DMatrix> watches = new HashMap<String, DMatrix>();
-        if (getDebugPrinting() || getDebug())
-            watches.put("train", trainDMat);
+//        if (getDebugPrinting() || getDebug())
+//        watches.put("train", trainDMat);
         
-        //train a boost model
+//        int earlyStopping = (int) Math.ceil(numIterations / 10.0); 
+        //e.g numIts == 25    =>   stop after 3 increases in err 
+        //    numIts == 250   =>   stop after 25 increases in err
+        
+//        booster = XGBoost.train(trainDMat, params, numIterations, watches, null, null, null, earlyStopping);
         booster = XGBoost.train(trainDMat, params, numIterations, watches, null, null);
     }
     
     public ClassifierResults estimateTrainAcc(Instances insts) throws Exception {
+        printlnDebug("estimateTrainAcc()");
+        
         TunedXGBoost xg = new TunedXGBoost();
         xg.setLearningRate(learningRate);
         xg.setMaxTreeDepth(maxTreeDepth);
@@ -348,16 +399,21 @@ public class TunedXGBoost extends AbstractClassifier implements SaveParameterInf
         xg.tuneParameters=false;
         xg.estimateAcc=false;
         xg.setSeed(seed);
+        
         CrossValidator cv = new CrossValidator();
         cv.setSeed(seed); 
         cv.setNumFolds(cvFolds);
         cv.buildFolds(insts);
+        
         return cv.crossValidateWithStats(xg, insts);
     }
     
     @Override
     public void buildClassifier(Instances insts) throws Exception {
         long startTime=System.currentTimeMillis(); 
+        
+        booster = null;
+        trainResults =new ClassifierResults();
         
         trainInsts = new Instances(insts);
         numTrainInsts = insts.numInstances();
@@ -370,9 +426,8 @@ public class TunedXGBoost extends AbstractClassifier implements SaveParameterInf
         
         buildActualClassifer();
         
-        if(estimateAcc && !tuneParameters){   //Need find train acc, either through CV or OOB
+        if(estimateAcc && !tuneParameters) //if tuneparas, will take the cv results of the best para set
             trainResults = estimateTrainAcc(trainInsts);
-        }
         
         if(saveEachParaAcc)
             trainResults.buildTime=combinedBuildTime;
@@ -380,7 +435,7 @@ public class TunedXGBoost extends AbstractClassifier implements SaveParameterInf
             trainResults.buildTime=System.currentTimeMillis()-startTime;
         if(trainPath!=""){  //Save basic train results
             OutFile f= new OutFile(trainPath);
-            f.writeLine(trainInsts.relationName()+",XGBoost,Train");
+            f.writeLine(trainInsts.relationName()+"," + (tuneParameters ? "TunedXGBoost" : "XGBoost") + ",Train");
             f.writeLine(getParameters());
             f.writeLine(trainResults.acc+"");
             f.writeLine(trainResults.writeInstancePredictions());
@@ -499,6 +554,7 @@ public class TunedXGBoost extends AbstractClassifier implements SaveParameterInf
         result+=",learningRate,"+learningRate;
         result+=",maxTreeDepth,"+maxTreeDepth;
         result+=",minChildWeight,"+minChildWeight;
+        result+=",numIterations,"+numIterations;
         if (tuneParameters)
             for(double d:paramAccuracies)
                 result+=","+d;
