@@ -32,8 +32,8 @@ public class HESCA_MajorityVote extends HESCA {
     
     
         public static void main(String[] args) throws Exception {
-//        exps();
-        ana();
+        exps();
+//        ana();
     }
     
     public static void ana() throws Exception {
@@ -63,7 +63,8 @@ public class HESCA_MajorityVote extends HESCA {
 //        String classifier = "HESCA_NaiveBayesCombiner";
 //        String classifier = "HESCA_RecallCombiner";
 //        String classifier = "HESCA_WeightedMajorityVote";
-        String classifier = "HESCA_TunedAlpha";
+//        String classifier = "HESCA_TunedAlpha";
+        String classifier = "HESCA_PickBest";
         
         System.out.println("\t" + classifier);
 

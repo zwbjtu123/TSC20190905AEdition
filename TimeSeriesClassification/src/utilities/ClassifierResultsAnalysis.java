@@ -727,7 +727,7 @@ public class ClassifierResultsAnalysis {
     protected static void buildCDDias(String expname, String[] stats, String[] cliques) {        
         MatlabController proxy = MatlabController.getInstance();
         proxy.eval("addpath(genpath('"+matlabFilePath+"'))");
-        proxy.eval("buildDiasInDirectory('"+expRootDirectory+friedmanCDDiaDirectoryName+"', 0, "+FRIEDMANCDDIA_PVAL+")"); //friedman 
+        proxy.eval("buildDiasInDirectory('"+expRootDirectory+"/cdDias/"+friedmanCDDiaDirectoryName+"', 0, "+FRIEDMANCDDIA_PVAL+")"); //friedman 
         proxy.eval("clear");
         proxy.eval("buildDiasInDirectory('"+expRootDirectory+"/cdDias/"+pairwiseCDDiaDirectoryName+"', 1)");  //pairwise
         proxy.eval("clear"); 

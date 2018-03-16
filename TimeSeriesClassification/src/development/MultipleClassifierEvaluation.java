@@ -378,13 +378,26 @@ public class MultipleClassifierEvaluation implements DebugPrinting {
      * @return 
      */
     public MultipleClassifierEvaluation readInClassifier(String classifierName, String baseReadPath) throws Exception { 
+        return readInClassifier(classifierName, classifierName, baseReadPath);
+    }
+    
+    /**
+     * Read in the results from file classifier by classifier, can be used if results are in different locations 
+     * (e.g beast vs local)
+     * 
+     * @param classifierNameInStorage Should exactly match the directory name of the results to use
+     * @param classifierNameInOutput Can provide a different 'human' friendly or context-aware name if appropriate, to be printed in the output files/on images
+     * @param baseReadPath Should be a directory containing a subdirectory named [classifierName]
+     * @return 
+     */
+    public MultipleClassifierEvaluation readInClassifier(String classifierNameInStorage, String classifierNameInOutput, String baseReadPath) throws Exception { 
         if (datasets.size() == 0) 
             throw new Exception("No datasets set for evaluation");
 
         if (baseReadPath.charAt(baseReadPath.length()-1) != '/')
             baseReadPath += "/";
 
-        printlnDebug(classifierName + " reading");
+        printlnDebug(classifierNameInStorage + "(" + classifierNameInOutput + ") reading");
 
         int totalFnfs = 0;
         ErrorReport er = new ErrorReport("FileNotFoundExceptions thrown (### total):\n");
@@ -397,7 +410,7 @@ public class MultipleClassifierEvaluation implements DebugPrinting {
             for (int f = 0; f < numFolds; f++) {
                 
                 if (!testResultsOnly) {
-                    String trainFile = baseReadPath + classifierName + "/Predictions/" + datasets.get(d) + "/trainFold" + f + ".csv";
+                    String trainFile = baseReadPath + classifierNameInStorage + "/Predictions/" + datasets.get(d) + "/trainFold" + f + ".csv";
                     try {
                         results[0][d][f] = new ClassifierResults(trainFile);
                         results[0][d][f].findAllStatsOnce();
@@ -409,7 +422,7 @@ public class MultipleClassifierEvaluation implements DebugPrinting {
                     }
                 }
                 
-                String testFile = baseReadPath + classifierName + "/Predictions/" + datasets.get(d) + "/testFold" + f + ".csv";
+                String testFile = baseReadPath + classifierNameInStorage + "/Predictions/" + datasets.get(d) + "/testFold" + f + ".csv";
                 try {
                     results[1][d][f] = new ClassifierResults(testFile);
                     results[1][d][f].findAllStatsOnce();
@@ -425,9 +438,9 @@ public class MultipleClassifierEvaluation implements DebugPrinting {
         er.getLog().replace("###", totalFnfs+"");
         er.throwIfErrors();
 
-        printlnDebug(classifierName + " successfully read in");
+        printlnDebug(classifierNameInStorage + "(" + classifierNameInOutput + ") successfully read in");
 
-        classifiersResults.put(classifierName, results);
+        classifiersResults.put(classifierNameInOutput, results);
         return this;
     }
     /**
@@ -438,12 +451,27 @@ public class MultipleClassifierEvaluation implements DebugPrinting {
      * @return 
      */
     public MultipleClassifierEvaluation readInClassifiers(String[] classifierNames, String baseReadPath) throws Exception { 
+        return readInClassifiers(classifierNames, classifierNames, baseReadPath);
+    }
+    
+    /**
+     * Read in the results from file from a common base path
+     * 
+     * @param classifierName Should exactly match the directory name of the results to use
+     * @param baseReadPath Should be a directory containing subdirectories with the names in classifierNames 
+     * @return 
+     */
+    public MultipleClassifierEvaluation readInClassifiers(String[] classifierNamesInStorage, String[] classifierNamesInOutput, String baseReadPath) throws Exception { 
+        if (classifierNamesInOutput.length != classifierNamesInStorage.length)
+            throw new Exception("Sizes of the classifier names to read in and use in output differ: classifierNamesInStorage.length=" 
+                    + classifierNamesInStorage.length + ", classifierNamesInOutput.length="+classifierNamesInOutput.length);
+        
         ErrorReport er = new ErrorReport("Results files not found:\n");
-        for (int i = 0; i < classifierNames.length; i++) {
+        for (int i = 0; i < classifierNamesInStorage.length; i++) {
             try {
-                readInClassifier(classifierNames[i], baseReadPath);
+                readInClassifier(classifierNamesInStorage[i], classifierNamesInOutput[i], baseReadPath);
             } catch (Exception e) {
-                er.log("Classifier Errors: " + classifierNames[i] + "\n" + e);
+                er.log("Classifier Errors: " + classifierNamesInStorage[i] + "\n" + e);
             }
         }
         er.throwIfErrors();
