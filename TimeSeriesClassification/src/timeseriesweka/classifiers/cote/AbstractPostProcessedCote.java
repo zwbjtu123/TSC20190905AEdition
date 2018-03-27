@@ -78,14 +78,16 @@ public abstract class AbstractPostProcessedCote {
             }
             
             scan = new Scanner(testResult);
-            System.out.println("test results exist? "+testResult.exists());
             scan.useDelimiter("\n");
             scan.next();
             scan.next();
             testAccs[c] = Double.parseDouble(scan.next().trim());
             counter = 0;
-            while(scan.hasNext()){
+            while(scan.hasNext()){                
                 lineParts = scan.next().split(",");
+                if(lineParts.length==1){ //Tony's RISE files have rogue lines at the end (sometimes!)
+                    continue;
+                }
                 testPreds[c][counter] = Double.parseDouble(lineParts[1].trim());
                 for(int d = 0; d < numClassVals; d++){
                     testDists[c][counter][d] = Double.parseDouble(lineParts[d+3].trim());

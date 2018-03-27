@@ -1,5 +1,6 @@
 package timeseriesweka.classifiers.cote;
 
+import development.DataSets;
 import java.util.ArrayList;
 import timeseriesweka.classifiers.HiveCote;
 import static utilities.ClassifierTools.loadData;
@@ -10,6 +11,8 @@ import weka.core.Instances;
  * @author Jason Lines (j.lines@uea.ac.uk)
  */
 public class HiveCotePostProcessed extends AbstractPostProcessedCote{
+    
+    private double alpha = 1;
     
     {
         HiveCotePostProcessed.CLASSIFIER_NAME = "HIVE-COTE";
@@ -42,6 +45,11 @@ public class HiveCotePostProcessed extends AbstractPostProcessedCote{
         this.classifierNames = getDefaultClassifierNames();
     }
 
+    public void setAlpha(double alpha){
+        this.alpha = alpha;
+    }
+    
+    
     private ArrayList<String> getDefaultClassifierNames(){
         ArrayList<String> names = new ArrayList<>();
         names.add("EE");
@@ -64,7 +72,7 @@ public class HiveCotePostProcessed extends AbstractPostProcessedCote{
         
         for(int classifier = 0; classifier < testDists.length; classifier++){
             for(int classVal = 0; classVal < numClasses; classVal++){
-                outDist[classVal]+= testDists[classifier][testInstanceId][classVal]*this.cvAccs[classifier];
+                outDist[classVal]+= testDists[classifier][testInstanceId][classVal]*(Math.pow(this.cvAccs[classifier],alpha));
             }
             cvAccSum+=this.cvAccs[classifier];
         }
@@ -96,6 +104,8 @@ public class HiveCotePostProcessed extends AbstractPostProcessedCote{
         
         HiveCotePostProcessed hcpp = new HiveCotePostProcessed("hiveWritingProto/", datasetName);
         hcpp.writeTestSheet("hiveWritingProtoRewrite/");
+        
+        
     }
 
 }
