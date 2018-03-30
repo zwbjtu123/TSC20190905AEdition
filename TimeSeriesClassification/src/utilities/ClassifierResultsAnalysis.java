@@ -12,6 +12,9 @@ import java.io.FileFilter;
 import java.io.FileNotFoundException;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.MathContext;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -84,6 +87,7 @@ public class ClassifierResultsAnalysis {
     protected static final Function<ClassifierResults, Double> getAUROCs = (ClassifierResults cr) -> {return cr.meanAUROC;};
     protected static final Function<ClassifierResults, Double> getNLLs = (ClassifierResults cr) -> {return cr.nll;};
     protected static final Function<ClassifierResults, Double> getF1s = (ClassifierResults cr) -> {return cr.f1;};
+    protected static final Function<ClassifierResults, Double> getMCCs = (ClassifierResults cr) -> {return cr.mcc;};
     protected static final Function<ClassifierResults, Double> getPrecisions = (ClassifierResults cr) -> {return cr.precision;};
     protected static final Function<ClassifierResults, Double> getRecalls = (ClassifierResults cr) -> {return cr.recall;};
     protected static final Function<ClassifierResults, Double> getSensitivities = (ClassifierResults cr) -> {return cr.sensitivity;};
@@ -154,6 +158,17 @@ public class ClassifierResultsAnalysis {
         return stats;
     }
     
+    public static ArrayList<Pair<String, Function<ClassifierResults, Double>>> getDefaultStatistics_AndF1MCC() { 
+        ArrayList<Pair<String, Function<ClassifierResults, Double>>> stats = new ArrayList<>();
+        stats.add(new Pair<>("ACC", getAccs));
+        stats.add(new Pair<>("BALACC", getBalAccs));
+        stats.add(new Pair<>("AUROC", getAUROCs));
+        stats.add(new Pair<>("NLL", getNLLs));
+        stats.add(new Pair<>("F1", getF1s));
+        stats.add(new Pair<>("MCC", getMCCs));
+        return stats;
+    }
+    
         
     public static ArrayList<Pair<String, Function<ClassifierResults, Double>>> getAllStatistics() { 
         ArrayList<Pair<String, Function<ClassifierResults, Double>>> stats = new ArrayList<>();
@@ -162,6 +177,7 @@ public class ClassifierResultsAnalysis {
         stats.add(new Pair<>("AUROC", getAUROCs));
         stats.add(new Pair<>("NLL", getNLLs));
         stats.add(new Pair<>("F1", getF1s));
+        stats.add(new Pair<>("MCC", getMCCs));
         stats.add(new Pair<>("Prec", getPrecisions));
         stats.add(new Pair<>("Recall", getRecalls));
         stats.add(new Pair<>("Sens", getSensitivities));
@@ -712,12 +728,16 @@ public class ClassifierResultsAnalysis {
 //            buildDsetGroupingsSpreadsheet(outPath, expname, statistics);
         
         if(buildMatlabDiagrams) {
+            MatlabController proxy = MatlabController.getInstance();
+            proxy.eval("addpath(genpath('"+matlabFilePath+"'))");
             buildCDDias(expname, statNames, statCliques);
             buildPairwiseScatterDiagrams(outPath, expname, statNames, dsets);
         }
     }
     
     protected static void writeCliqueHelperFiles(String cdCSVpath, String expname, String stat, String cliques) {
+        (new File(cdCSVpath)).mkdirs();
+        
         //temp workaround, just write the cliques and readin again from matlab for ease of checking/editing for pairwise edge cases
         OutFile out = new OutFile (cdCSVpath + cdFileName(expname, stat) + "_cliques.txt");
         out.writeString(cliques);
@@ -726,7 +746,6 @@ public class ClassifierResultsAnalysis {
     
     protected static void buildCDDias(String expname, String[] stats, String[] cliques) {        
         MatlabController proxy = MatlabController.getInstance();
-        proxy.eval("addpath(genpath('"+matlabFilePath+"'))");
         proxy.eval("buildDiasInDirectory('"+expRootDirectory+"/cdDias/"+friedmanCDDiaDirectoryName+"', 0, "+FRIEDMANCDDIA_PVAL+")"); //friedman 
         proxy.eval("clear");
         proxy.eval("buildDiasInDirectory('"+expRootDirectory+"/cdDias/"+pairwiseCDDiaDirectoryName+"', 1)");  //pairwise
@@ -962,18 +981,37 @@ public class ClassifierResultsAnalysis {
         double[][] ranks = new double[accs.length][accs[0].length];
         
         for (int d = 0; d < accs[0].length; d++) {
-            Double[] a = new Double[accs.length];
+            Double[] orderedAccs = new Double[accs.length];
             for (int c = 0; c < accs.length; c++) 
-                a[c] = accs[c][d];
+                orderedAccs[c] = accs[c][d];
             
-            Arrays.sort(a, Collections.reverseOrder());
+            Arrays.sort(orderedAccs, Collections.reverseOrder());
             
-            int numTies = 0;
-            double lastAcc = -1;
-            for (int c1 = 0; c1 < accs.length; c1++) {
-                for (int c2 = 0; c2 < accs.length; c2++) {
-                    if (a[c1] == accs[c2][d]) {
-                        ranks[c2][d] = c1; //count from one
+//            //README - REDACTED, this problem is currently just being ignored, since it makes so many headaches and is so insignificant anyway
+//            //to create parity between this and the matlab critical difference diagram code,
+//            //rounding the *accuracies used to calculate ranks* to 15 digits (after the decimal) 
+//            //this affects the average rank summary statistic, but not e.g the average accuracy statistic
+//            //matlab has a max default precision of 16. in a tiny number of cases, there are differences 
+//            //in accuracy that are smaller than this maximum precision, which were being taken into
+//            //acount here (by declaring one as havign a higher rank than the other), but not being 
+//            //taken into account in matlab (which considered them a tie). 
+//            //one could argue the importance of a difference less than 1x10^-15 when comparing classifiers,
+//            //so for ranks only, will round to matlab's precision. rounding the accuracies everywhere
+//            //creates a number of headaches, therefore the tiny inconsistency as a result of this
+//            //will jsut have to be lived with
+//            final int DEFAULT_MATLAB_PRECISION = 15;
+//            for (int c = 0; c < accs.length; c++) {
+//                MathContext mc = new MathContext(DEFAULT_MATLAB_PRECISION, RoundingMode.DOWN);
+//                BigDecimal bd = new BigDecimal(orderedAccs[c],mc);
+//                orderedAccs[c] = bd.doubleValue();
+//            }
+            
+            
+            for (int rank = 0; rank < accs.length; rank++) {
+                for (int c = 0; c < accs.length; c++) {
+//                    if (orderedAccs[rank] == new BigDecimal(accs[c][d], new MathContext(DEFAULT_MATLAB_PRECISION, RoundingMode.DOWN)).doubleValue()) {
+                    if (orderedAccs[rank] == accs[c][d]) {
+                        ranks[c][d] = rank; //count from one
                     }
                 }
             }
@@ -1361,6 +1399,10 @@ public class ClassifierResultsAnalysis {
                         concat.append(c2name.replaceAll("_", "\\\\_"));
                         concat.append("'");
                         proxy.eval("labels = {" + concat.toString() + "}");
+                        
+//                        System.out.println("array = ["+ pwrt.toStringValues(false) + "];");
+//                        System.out.println("labels = {" + concat.toString() + "}");
+//                        System.out.println("pairedscatter('" + pwFolderName + pwsIndFileName(c1name, c2name, statName).replaceAll("\\.", "") + "',array(:,1),array(:,2),labels,'"+statName+"')");
                         
                         proxy.eval("pairedscatter('" + pwFolderName + pwsIndFileName(c1name, c2name, statName).replaceAll("\\.", "") + "',array(:,1),array(:,2),labels,'"+statName+"')");
                         proxy.eval("clear");

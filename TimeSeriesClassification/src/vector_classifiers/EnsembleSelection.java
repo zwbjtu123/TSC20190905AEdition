@@ -15,10 +15,12 @@ import java.util.Random;
 import java.util.TreeSet;
 import timeseriesweka.classifiers.ensembles.EnsembleModule;
 import timeseriesweka.classifiers.ensembles.voting.MajorityConfidence;
+import timeseriesweka.classifiers.ensembles.voting.MajorityVote;
 import timeseriesweka.classifiers.ensembles.weightings.EqualWeighting;
 import utilities.ClassifierResults;
 import utilities.ClassifierTools;
 import utilities.InstanceTools;
+import vector_classifiers.weightedvoters.HESCA_MajorityVote;
 import weka.core.Instances;
 
 /**
@@ -63,7 +65,8 @@ public class EnsembleSelection extends HESCA {
         
         //overwriting relevant parts 
         ensembleIdentifier = "EnsembleSelection"; 
-        votingScheme = new MajorityConfidence();
+//        votingScheme = new MajorityConfidence();
+        votingScheme = new MajorityVote();
         weightingScheme = new EqualWeighting();
         
         rng = new Random(0);
@@ -318,8 +321,8 @@ public class EnsembleSelection extends HESCA {
     }
     
     public static void main(String[] args) throws Exception {
-//        tests();
-        ana();
+        tests();
+//        ana();
     }
     
     public static void tests() { 
@@ -332,7 +335,7 @@ public class EnsembleSelection extends HESCA {
 //        String[] dsets = new String[] { "hayes-roth" };
         String[] skipDsets = new String[] { };
         
-        String classifier = "EnsembleSelectionHESCAClassifiers";
+        String classifier = "EnsembleSelectionAll22Classifiers_Preds";
         
         for (String dset : dsets) {          
             if (Arrays.asList(skipDsets).contains(dset))
@@ -355,11 +358,12 @@ public class EnsembleSelection extends HESCA {
                     EnsembleSelection c = new EnsembleSelection();
                     
                     //for full kitchen sink classifier list, use defaults (init with 2 classifiers per bag)
-//                    c.setClassifiers(null, PAPER_fullClassifierList, null);
+                    c.setClassifiers(null, PAPER_fullClassifierList, null);
                     
                     //for just the hesca models, set the init # models to 1 from each bag, since there's only 5 total, so 3 in each bag
-                    c.setClassifiers(null, PAPER_HESCA, null);
-                    c.setNumOfTopModelsToInitialiseBagWith(1);
+//                    c.setClassifiers(null, PAPER_HESCA, null);
+//                    c.setClassifiers(null, HESCA_MajorityVote.HESCAplus_V4_Classifiers, null);
+//                    c.setNumOfTopModelsToInitialiseBagWith(1);
                     
                     c.setBuildIndividualsFromResultsFiles(true);
                     c.setResultsFileLocationParameters(resPath, dset, fold);
@@ -386,6 +390,7 @@ public class EnsembleSelection extends HESCA {
             setDatasets(basePath + dsetGroup + ".txt").
 //            readInClassifiers(new String[] { "HESCAks", "EnsembleSelectionAll22Classifiers"}, basePath+dsetGroup+"Results/").
             readInClassifiers(new String[] { "HESCA", "EnsembleSelectionHESCAClassifiers"}, basePath+dsetGroup+"Results/").
+//            readInClassifiers(new String[] { "HESCA+", "EnsembleSelectionHESCA+Classifiers"}, basePath+dsetGroup+"Results/").
             runComparison(); 
     }
     

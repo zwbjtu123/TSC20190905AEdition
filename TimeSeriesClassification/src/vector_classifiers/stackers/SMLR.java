@@ -6,13 +6,16 @@ import development.DataSets;
 import static development.Experiments.singleClassifierAndFoldTrainTestSplit;
 import development.MultipleClassifierEvaluation;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import timeseriesweka.classifiers.ensembles.voting.stacking.StackingOnDists;
 import timeseriesweka.classifiers.ensembles.weightings.EqualWeighting;
 import utilities.ClassifierTools;
+import utilities.GenericTools;
 import utilities.InstanceTools;
 import vector_classifiers.HESCA;
 import vector_classifiers.MultiLinearRegression;
+import vector_classifiers.weightedvoters.HESCA_MajorityVote;
 import weka.classifiers.Classifier;
 import weka.core.Instances;
 
@@ -32,8 +35,8 @@ public class SMLR extends HESCA {
     }     
     
     public static void main(String[] args) throws Exception {
-//        exps();
-        ana();
+        exps();
+//        ana();
 //        cluster(args);
     }
     
@@ -55,14 +58,15 @@ public class SMLR extends HESCA {
     }
     
     public static void cluster(String[] args) {
-        String dset = args[0];
-        int fold = Integer.parseInt(args[1])-1;
+        String classifier = args[0];
+        String dset = args[1];
+        int fold = Integer.parseInt(args[2])-1;
         
         String resPath = "Results/UCIContinuous/";
         
-//        String classifier = "SMLR";
-        String classifier = "SMLRE";
-//        String classifier = "SMM5";
+////        String classifier = "SMLR";
+//        String classifier = "SMLRE";
+////        String classifier = "SMM5";
         
 
         Instances all = ClassifierTools.loadData("UCIContinuous/" + dset + "/" + dset + ".arff");
@@ -76,9 +80,22 @@ public class SMLR extends HESCA {
         if(!CollateResults.validateSingleFoldFile(predictions+"/testFold"+fold+".csv")){
             Instances[] data = InstanceTools.resampleInstances(all, fold, .5);
 
-//                    SMLR c = new SMLR();
-            SMLRE c = new SMLRE();
-//                    SMM5 c = new SMM5();
+////                    SMLR c = new SMLR();
+//            SMLRE c = new SMLRE();
+////                    SMM5 c = new SMM5();
+
+            
+            HESCA c = null;
+            try {
+                c = (HESCA) Class.forName("vector_classifiers.stackers." + classifier).newInstance();
+            } catch (Exception e) {
+                System.out.println("balls: " + e);
+                System.exit(1);
+            }
+
+            c.setClassifiers(null, HESCA_MajorityVote.HESCAplus_Classifiers, null);
+
+            
             c.setBuildIndividualsFromResultsFiles(true);
             c.setResultsFileLocationParameters(resPath, dset, fold);
             c.setRandSeed(fold);
@@ -91,53 +108,65 @@ public class SMLR extends HESCA {
     }
     
     
-    public static void exps() {
+    public static void exps() throws Exception {
         String resPath = "C:/JamesLPHD/HESCA/UCI/UCIResults/";
-        int numfolds = 30;
+        int numfolds = 5;
         
         ArrayList<String> plantdsets = new ArrayList<>();
         plantdsets.add("plant-margin");
         plantdsets.add("plant-shape");
         plantdsets.add("plant-texture"); //have lot of classes, makes smlr and smlre super slow, LOTS of regression
         
-        String[] dsets = DataSets.UCIContinuousFileNames;
+//        String[] dsets = DataSets.UCIContinuousFileNames;
+        String[] dsets = GenericTools.readFileLineByLineAsArray("C:/JamesLPHD/HESCA/UCI/UCI_4biggunsRemoved.txt");
+//        String[] dsets = { "zoo" };
         
-//        String classifier = "SMLR";
-        String classifier = "SMLRE";
-//        String classifier = "SMM5";
+//        String classifier = "SMLR_OverTunedClassifiers";
+        String classifier = "SMLRE_OverTunedClassifiers";
+//        String classifier = "SMM5_OverTunedClassifiers";
         
-        for (String dset : dsets) {
-            if (plantdsets.contains(dset))
-                continue;
-            
-            Instances all = ClassifierTools.loadData("C:/UCI Problems/" + dset + "/" + dset + ".arff");
-            
-            for (int fold = 0; fold < numfolds; fold++) {
-                String predictions = resPath+classifier+"/Predictions/"+dset;
-                File f=new File(predictions);
-                if(!f.exists())
-                    f.mkdirs();
+        System.out.println("\t" + classifier);
         
-                //Check whether fold already exists, if so, dont do it, just quit
-                if(!CollateResults.validateSingleFoldFile(predictions+"/testFold"+fold+".csv")){
-                    Instances[] data = InstanceTools.resampleInstances(all, fold, .5);
-                    
-                    
-//                    SMLR c = new SMLR();
-                    SMLRE c = new SMLRE();
+//        for (String dset : dsets) {
+//            if (plantdsets.contains(dset))
+//                continue;
+//            
+//            System.out.println(dset);
+//            
+//            Instances all = ClassifierTools.loadData("C:/UCI Problems/" + dset + "/" + dset + ".arff");
+//            
+//            for (int fold = 0; fold < numfolds; fold++) {
+//                String predictions = resPath+classifier+"/Predictions/"+dset;
+//                File f=new File(predictions);
+//                if(!f.exists())
+//                    f.mkdirs();
+//        
+//                //Check whether fold already exists, if so, dont do it, just quit
+//                if(!CollateResults.validateSingleFoldFile(predictions+"/testFold"+fold+".csv")){
+//                    Instances[] data = InstanceTools.resampleInstances(all, fold, .5);
+//                    
+//                    
+////                    SMLR c = new SMLR();
+////                    SMLRE c = new SMLRE();
 //                    SMM5 c = new SMM5();
-                    c.setBuildIndividualsFromResultsFiles(true);
-                    c.setResultsFileLocationParameters(resPath, dset, fold);
-                    c.setRandSeed(fold);
-                    c.setPerformCV(true);
-                    c.setResultsFileWritingLocation(resPath);
-                    
-                    singleClassifierAndFoldTrainTestSplit(data[0],data[1],c,fold,predictions);
-                }
-            }
-        }
+//
+//                    c.setClassifiers(null, HESCA_MajorityVote.tunedSingleClassifiers, null);
+//                    c.setResultsFileLocationParameters(HESCA_MajorityVote.tunedSingleClassifiersLocations, dset, fold);
+//                        
+//                    c.setBuildIndividualsFromResultsFiles(true);
+////                    c.setResultsFileLocationParameters(resPath, dset, fold);
+//                    c.setRandSeed(fold);
+//                    c.setPerformCV(true);
+//                    c.setResultsFileWritingLocation(resPath);
+//                    
+//                    singleClassifierAndFoldTrainTestSplit(data[0],data[1],c,fold,predictions);
+//                }
+//            }
+//        }
         for (String dset : plantdsets) {
             
+            System.out.println(dset);
+            
             Instances all = ClassifierTools.loadData("C:/UCI Problems/" + dset + "/" + dset + ".arff");
             
             for (int fold = 0; fold < numfolds; fold++) {
@@ -154,8 +183,12 @@ public class SMLR extends HESCA {
 //                    SMLR c = new SMLR();
                     SMLRE c = new SMLRE();
 //                    SMM5 c = new SMM5();
+
+                    c.setClassifiers(null, HESCA_MajorityVote.tunedSingleClassifiers, null);
+                    c.setResultsFileLocationParameters(HESCA_MajorityVote.tunedSingleClassifiersLocations, dset, fold);
+                    
                     c.setBuildIndividualsFromResultsFiles(true);
-                    c.setResultsFileLocationParameters(resPath, dset, fold);
+//                    c.setResultsFileLocationParameters(resPath, dset, fold);
                     c.setRandSeed(fold);
                     c.setPerformCV(true);
                     c.setResultsFileWritingLocation(resPath);

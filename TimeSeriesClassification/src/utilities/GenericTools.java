@@ -5,11 +5,15 @@
  */
 package utilities;
 
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Formatter;
+import java.util.List;
 import java.util.Locale;
 import java.util.Random;
+import java.util.Scanner;
 
 /**
  *
@@ -18,6 +22,20 @@ import java.util.Random;
 public class GenericTools {
     
     public static final DecimalFormat RESULTS_DECIMAL_FORMAT = new DecimalFormat("#.######");
+    
+    public static List<String> readFileLineByLineAsList(String filename) throws FileNotFoundException {
+        Scanner filein = new Scanner(new File(filename));
+        
+        List<String> dsets = new ArrayList<>();
+        while (filein.hasNextLine())
+            dsets.add(filein.nextLine());
+        
+        return dsets;
+    }
+    
+    public static String[] readFileLineByLineAsArray(String filename) throws FileNotFoundException {
+        return readFileLineByLineAsList(filename).toArray(new String[] { });
+    }
     
     public static double indexOfMin(double[] dist) {
         double min = dist[0];

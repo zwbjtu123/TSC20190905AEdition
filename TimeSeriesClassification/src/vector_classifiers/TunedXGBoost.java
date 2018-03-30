@@ -21,10 +21,16 @@ import weka.classifiers.AbstractClassifier;
 import weka.core.Instance;
 import weka.core.Instances;
 import development.CollateResults;
+import development.DataSets;
+import development.Experiments;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.Random;
+import utilities.ClassifierTools;
+import utilities.InstanceTools;
 import utilities.SaveParameterInfo;
+import weka.classifiers.Classifier;
 
 /**
  * Original code repo, around which this class wraps: https://github.com/dmlc/xgboost
@@ -575,11 +581,418 @@ public class TunedXGBoost extends AbstractClassifier implements SaveParameterInf
         return trainResults.acc;
     }
 
-    public static void main(String[] args) {
-        TunedXGBoost xg = new TunedXGBoost();
-        xg.setDebugPrinting(true);
-        for (int i = 1; i <= 625; i++) {
-            xg.setParametersFromIndex(i);
+    public static void main(String[] args) throws Exception {
+//        TunedXGBoost xg = new TunedXGBoost();
+//        xg.setDebugPrinting(true);
+//        for (int i = 1; i <= 625; i++) {
+//            xg.setParametersFromIndex(i);
+//        }
+
+
+//            Experiments.main(new String[] { "Z:/Data/UCIContinuous/", "Z:/Results/UCIContinuous/", "true", "TunedXGBoost", "miniboone", "5", "true"});            
+//
+//        int ind = Integer.parseInt(args[0]) % 6;
+//        int ind = 0;
+//        if (ind < 4)
+//            exps(ind);  
+//        else {
+//            Experiments.main(new String[] { "Z:/Data/UCIContinuous/", "Z:/Results/UCIContinuous/", "true", "TunedXGBoost", "plant-texture", ""+ind, "true"});            
+//        }
+//        
+//        ind = 2;
+//        if (ind < 4)
+//            exps(ind);  
+//        else {
+//            Experiments.main(new String[] { "Z:/Data/UCIContinuous/", "Z:/Results/UCIContinuous/", "true", "TunedXGBoost", "plant-texture", ""+ind, "true"});            
+//        }
+        
+
+        int initialInd = Integer.parseInt(args[0]) % numPCs;
+        
+        for (int maxFolds : new int[] { 10, 15, 20, 25, 30 }) {
+            int ind = initialInd;
+            for (int fold = 5; fold < maxFolds; fold++) 
+                fillerExps(ind, fold, true);
+
+            ind = (++ind) % numPCs;
+            for (int fold = 5; fold < maxFolds; fold++) 
+                fillerExps(ind, fold, false);
         }
+        
+        
+//        fillerExps(ind, 15);
+//        fillerExps(ind, 20);
+//        fillerExps(ind, 25);
+//        fillerExps(ind, 30);
     }
+    
+    static int numPCs = 7;
+    
+    public static void fillerExps(int ind, int nFolds, boolean order) throws Exception {
+//        String[] dsets = DataSets.UCIContinuousFileNames;
+        String[] dsets = {
+          "abalone",
+"acute-inflammation",
+"acute-nephritis",
+"annealing",
+"arrhythmia",
+"audiology-std",
+"balance-scale",
+"balloons",
+"bank",
+"blood",
+"breast-cancer",
+"breast-cancer-wisc",
+"breast-cancer-wisc-diag",
+"breast-cancer-wisc-prog",
+"breast-tissue",
+"car",
+"cardiotocography-3clases",
+"cardiotocography-10clases",
+"chess-krvkp",
+"congressional-voting",
+"conn-bench-sonar-mines-rocks",
+"conn-bench-vowel-deterding",
+"contrac",
+"credit-approval",
+"cylinder-bands",
+"dermatology",
+"echocardiogram",
+"ecoli",
+"energy-y1",
+"energy-y2",
+"fertility",
+"flags",
+"glass",
+"haberman-survival",
+"hayes-roth",
+"heart-cleveland",
+"heart-hungarian",
+"heart-switzerland",
+"heart-va",
+"hepatitis",
+"hill-valley",
+"horse-colic",
+"ilpd-indian-liver",
+"image-segmentation",
+"ionosphere",
+"iris",
+"led-display",
+"lenses",
+"letter",
+"libras",
+"low-res-spect",
+"lung-cancer",
+"lymphography",
+"magic",
+"mammographic",
+"molec-biol-promoter",
+"molec-biol-splice",
+"monks-1",
+"monks-2",
+"monks-3",
+"mushroom",
+"musk-1",
+"musk-2",
+"nursery",
+"oocytes_merluccius_nucleus_4d",
+"oocytes_merluccius_states_2f",
+"oocytes_trisopterus_nucleus_2f",
+"oocytes_trisopterus_states_5b",
+"optical",
+"ozone",
+"page-blocks",
+"parkinsons",
+"pendigits",
+"pima",
+"pittsburg-bridges-MATERIAL",
+"pittsburg-bridges-REL-L",
+"pittsburg-bridges-SPAN",
+"pittsburg-bridges-T-OR-D",
+"pittsburg-bridges-TYPE",
+"planning",
+"plant-margin",
+"plant-shape",
+"plant-texture",
+"post-operative",
+"primary-tumor",
+"ringnorm",
+"seeds",
+"semeion",
+"soybean",
+"spambase",
+"spect",
+"spectf",
+"statlog-australian-credit",
+"statlog-german-credit",
+"statlog-heart",
+"statlog-image",
+"statlog-landsat",
+"statlog-shuttle",
+"statlog-vehicle",
+"steel-plates",
+"synthetic-control",
+"teaching",
+"thyroid",
+"tic-tac-toe",
+"titanic",
+"trains",
+"twonorm",
+"vertebral-column-2clases",
+"vertebral-column-3clases",
+"wall-following",
+"waveform",
+"waveform-noise",
+"wine",
+"wine-quality-red",
+"wine-quality-white",
+"yeast",
+"zoo",
+  
+        };
+        
+        List<String> dsetsToSkip = Arrays.asList("adult", "chess-kvrk", "miniboone","magic");
+        
+        int dsetInc = (int)Math.ceil(dsets.length / numPCs);
+
+        //java -jar -Xmx${max_memory}m ${jarFile}.jar ${dataDir} ${resultsDir} ${generateTrainFiles} ${classifier} ${dataset} \$LSB_JOBINDEX ${checkpoint}" > tempexp2.bsub
+        if(order) {
+            for (int dset = ind*dsetInc; dset < (ind+1)*dsetInc && dset < dsets.length; dset++) {
+                if (!dsetsToSkip.contains(dsets[dset])) {
+                    for (int fold = 0; fold < nFolds; fold++) { 
+                        Experiments.main(new String[] { "Z:/Data/UCIContinuous/", "Z:/Results/UCIContinuous/", "true", "TunedXGBoost", dsets[dset], ""+(fold+1), "true"});
+                    }
+                }
+            }
+        }
+        else {
+            for (int dset = (ind+1)*dsetInc-1; dset >= (ind)*dsetInc && dset < dsets.length; dset--) {
+                if (!dsetsToSkip.contains(dsets[dset])) {
+                    for (int fold = 0; fold < nFolds; fold++) {
+                        Experiments.main(new String[] { "Z:/Data/UCIContinuous/", "Z:/Results/UCIContinuous/", "true", "TunedXGBoost", dsets[dset], ""+(fold+1), "true"});
+                    }
+                }
+            }
+        }  
+    }
+    
+    public static void exps(int ind) {
+        String resPath = "Z:/Results/TSCProblems/";
+        int numfolds = 30;
+        
+        String[] dsetsAll = {
+            "Adiac",
+            "ArrowHead",
+            "Beef",
+            "BeetleFly",
+            "BirdChicken",
+            "Car",
+            "CBF",
+            "ChlorineConcentration",
+            "CinCECGtorso",
+            "Coffee",
+            "Computers",
+            "CricketX",
+            "CricketY",
+            "CricketZ",
+            "DiatomSizeReduction",
+            "DistalPhalanxOutlineAgeGroup",
+            "DistalPhalanxOutlineCorrect",
+            "DistalPhalanxTW",
+            "Earthquakes",
+            "ECG200",
+            "ECG5000",
+            "ECGFiveDays",
+            "ElectricDevices",
+            "FaceAll",
+            "FaceFour",
+            "FacesUCR",
+            "fiftywords",
+            "fish",
+            "FordA",
+            "FordB",
+            "GunPoint",
+            "Ham",
+            "HandOutlines",
+            "Haptics",
+            "Herring",
+            "InlineSkate",
+            "InsectWingbeatSound",
+            "ItalyPowerDemand",
+            "LargeKitchenAppliances",
+            "Lightning2",
+            "Lightning7",
+            "MALLAT",
+            "Meat",
+            "MedicalImages",
+            "MiddlePhalanxOutlineAgeGroup",
+            "MiddlePhalanxOutlineCorrect",
+            "MiddlePhalanxTW",
+            "MoteStrain",
+            "NonInvasiveFatalECGThorax1",
+            "NonInvasiveFatalECGThorax2",
+            "OliveOil",
+            "OSULeaf",
+            "PhalangesOutlinesCorrect",
+            "Phoneme",
+            "Plane",
+            "ProximalPhalanxOutlineAgeGroup",
+            "ProximalPhalanxOutlineCorrect",
+            "ProximalPhalanxTW",
+            "RefrigerationDevices",
+            "ScreenType",
+            "ShapeletSim",
+            "ShapesAll",
+            "SmallKitchenAppliances",
+            "SonyAIBORobotSurface1",
+            "SonyAIBORobotSurface2",
+            "StarLightCurves",
+            "Strawberry",
+            "SwedishLeaf",
+            "Symbols",
+            "SyntheticControl",
+            "ToeSegmentation1",
+            "ToeSegmentation2",
+            "Trace",
+            "TwoLeadECG",
+            "TwoPatterns",
+            "UWaveGestureLibraryAll",
+            "UWaveGestureLibraryX",
+            "UWaveGestureLibraryY",
+            "UWaveGestureLibraryZ",
+            "wafer",
+            "Wine",
+            "WordSynonyms",
+            "Worms",
+            "WormsTwoClass",
+            "yoga",            
+        };
+        
+        String[][] dsets = {
+            { 
+                "Adiac",
+                "ArrowHead",
+                "Beef",
+                "BeetleFly",
+                "BirdChicken",
+                "Car",
+                "CBF",
+                "ChlorineConcentration",
+                "CinCECGtorso",
+                "Coffee",
+                "Computers",
+                "CricketX",
+                "CricketY",
+                "CricketZ",
+                "DiatomSizeReduction",
+                "DistalPhalanxOutlineAgeGroup",
+                "DistalPhalanxOutlineCorrect",
+                "DistalPhalanxTW",
+                "Earthquakes",
+                "ECG200",
+                "ECG5000",
+                "ECGFiveDays",
+                "ElectricDevices",
+                "FaceAll",
+                "FaceFour",
+                "FacesUCR",
+                "fiftywords",
+                "fish",
+                "FordA",
+            },
+            { 
+                "FordB",
+                "GunPoint",
+                "Ham",
+                "HandOutlines",
+                "Haptics",
+                "Herring",
+                "InlineSkate",
+                "InsectWingbeatSound",
+                "ItalyPowerDemand",
+                "LargeKitchenAppliances",
+                "Lightning2",
+                "Lightning7",
+                "MALLAT",
+                "Meat",
+                "MedicalImages",
+                "MiddlePhalanxOutlineAgeGroup",
+                "MiddlePhalanxOutlineCorrect",
+                "MiddlePhalanxTW",
+                "MoteStrain",
+            },
+            { 
+                "NonInvasiveFatalECGThorax1",
+                "NonInvasiveFatalECGThorax2",
+                "OliveOil",
+                "OSULeaf",
+                "PhalangesOutlinesCorrect",
+                "Phoneme",
+                "Plane",
+                "ProximalPhalanxOutlineAgeGroup",
+                "ProximalPhalanxOutlineCorrect",
+                "ProximalPhalanxTW",
+                "RefrigerationDevices",
+                "ScreenType",
+                "ShapeletSim",
+                "ShapesAll",
+                "SmallKitchenAppliances",
+                "SonyAIBORobotSurface1",
+                "SonyAIBORobotSurface2",
+            },
+            { 
+                "StarLightCurves",
+                "Strawberry",
+                "SwedishLeaf",
+                "Symbols",
+                "SyntheticControl",
+                "ToeSegmentation1",
+                "ToeSegmentation2",
+                "Trace",
+                "TwoLeadECG",
+                "TwoPatterns",
+                "UWaveGestureLibraryAll",
+                "UWaveGestureLibraryX",
+                "UWaveGestureLibraryY",
+                "UWaveGestureLibraryZ",
+                "wafer",
+                "Wine",
+                "WordSynonyms",
+                "Worms",
+                "WormsTwoClass",
+                "yoga",  
+            }
+        };
+        String classifier = "XGBoost";
+
+        System.out.println("\t" + classifier);
+
+        for (String dset : dsets[ind]) {
+
+            System.out.println(dset);
+
+            Instances train = ClassifierTools.loadData("Z:/Data/TSCProblems/" + dset + "/" + dset + "_TRAIN.arff");
+            Instances test = ClassifierTools.loadData("Z:/Data/TSCProblems/" + dset + "/" + dset + "_TEST.arff");
+
+            for (int fold = 0; fold < numfolds; fold++) {
+                System.out.print(fold + ",");
+                String predictions = resPath+classifier+"/Predictions/"+dset;
+                File f=new File(predictions);
+                if(!f.exists())
+                    f.mkdirs();
+
+                //Check whether fold already exists, if so, dont do it, just quit
+                if(!CollateResults.validateSingleFoldFile(predictions+"/testFold"+fold+".csv")){
+                    Instances[] data = InstanceTools.resampleTrainAndTestInstances(train, test, fold);
+
+                    Classifier c = Experiments.setClassifier(classifier, fold);
+
+                    Experiments.singleClassifierAndFoldTrainTestSplit(data[0],data[1],c,fold,predictions);
+                }
+            }
+            
+            System.out.println("");
+        }        
+    }
+    
 }

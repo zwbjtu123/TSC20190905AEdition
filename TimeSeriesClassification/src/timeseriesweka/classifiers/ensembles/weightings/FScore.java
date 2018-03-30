@@ -10,26 +10,50 @@ import timeseriesweka.classifiers.ensembles.EnsembleModule;
  */
 public class FScore extends ModuleWeightingScheme {
 
-    double beta;
+    private double beta = 1.0;
+    private double power = 1.0;
     
     public FScore() {
-        this.beta = 1;
         uniformWeighting = false;
         needTrainPreds = true;
     }
     
-    public FScore(double beta) {
+    public FScore(double power) {
+        this.power = power;
+        uniformWeighting = false;
+        needTrainPreds = true;
+    }
+    
+    public FScore(double power, double beta) {
+        this.power = power;
         this.beta = beta;
         uniformWeighting = false;
         needTrainPreds = true;
     }
     
+    public double getBeta() { 
+        return beta;
+    }
+    
+    public void setBeta(double beta) {
+        this.beta = beta;
+    }
+    
+    public double getPower() { 
+        return power;
+    }
+    
+    public void setPower(double power) {
+        this.power = power;
+    }
+    
     @Override
     public double[] defineWeighting(EnsembleModule module, int numClasses) {
         double[] weights = new double[numClasses];
-        for (int c = 0; c < numClasses; c++) 
-            weights[c] = computeFScore(module.trainResults.confusionMatrix, c);
-
+        for (int c = 0; c < numClasses; c++) {
+            double weight = computeFScore(module.trainResults.confusionMatrix, c);
+            weights[c] = Math.pow(weight, power);
+        }
         return weights;
     }
     
@@ -58,7 +82,6 @@ public class FScore extends ModuleWeightingScheme {
     
     @Override
     public String toString() {
-        return this.getClass().getSimpleName() + "(" + beta + ")";
+        return this.getClass().getSimpleName() + "(" + power + "," + beta + ")";
     }
-    
 }

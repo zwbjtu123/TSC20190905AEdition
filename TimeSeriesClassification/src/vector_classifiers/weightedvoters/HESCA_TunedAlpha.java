@@ -1,16 +1,26 @@
 
 package vector_classifiers.weightedvoters;
 
+import development.CollateResults;
 import development.DataSets;
+import static development.Experiments.singleClassifierAndFoldTrainTestSplit;
 import fileIO.OutFile;
+import java.io.File;
 import java.io.FileNotFoundException;
+import timeseriesweka.classifiers.ensembles.voting.BestIndividualOracle;
 import timeseriesweka.classifiers.ensembles.voting.BestIndividualTrain;
 import timeseriesweka.classifiers.ensembles.voting.MajorityConfidence;
+import timeseriesweka.classifiers.ensembles.voting.ModuleVotingScheme;
 import timeseriesweka.classifiers.ensembles.weightings.EqualWeighting;
 import timeseriesweka.classifiers.ensembles.weightings.TrainAcc;
 import utilities.ClassifierResults;
+import utilities.ClassifierTools;
+import utilities.GenericTools;
+import utilities.InstanceTools;
 import utilities.StatisticalUtilities;
 import vector_classifiers.HESCA;
+import static vector_classifiers.weightedvoters.HESCA_MajorityVote.HESCAUCR_Classifiers;
+import static vector_classifiers.weightedvoters.HESCA_MajorityVote.HESCAplus_Classifiers;
 import weka.core.Instances;
 
 /**
@@ -75,7 +85,7 @@ public class HESCA_TunedAlpha extends HESCA {
         //in case of ties, keeps earliest intentionally, i.e favours more evenly weighted ensemble 
         //(less chance of overfitting) than going towards pick best
         for (int i = 0; i < alphaParaRange.length; i++) {
-            initCominationSchemes(alphaParaRange[i]);
+            initCombinationSchemes(alphaParaRange[i]);
             alphaResults[i] = doEnsembleCV(data); 
             alphaParaAccs[i] = alphaResults[i].acc;
             
@@ -85,7 +95,7 @@ public class HESCA_TunedAlpha extends HESCA {
             }
         }
         this.alpha = alphaParaRange[maxAccInd];
-        initCominationSchemes(alpha);
+        initCombinationSchemes(alpha);
         ensembleTrainResults = alphaResults[maxAccInd];
         
         long buildTime = System.currentTimeMillis() - startTime; 
@@ -98,7 +108,7 @@ public class HESCA_TunedAlpha extends HESCA {
         this.testInstCounter = 0; //prep for start of testing
     }
     
-    protected void initCominationSchemes(int alphaVal) throws Exception {
+    protected void initCombinationSchemes(int alphaVal) throws Exception {
         if (alphaVal == 0) {
             weightingScheme = new EqualWeighting(); 
             votingScheme = new MajorityConfidence();
@@ -142,7 +152,10 @@ public class HESCA_TunedAlpha extends HESCA {
     
     
     public static void main(String[] args) throws Exception {
-        buildParaAnalysisFiles();
+//        buildParaAnalysisFiles();
+        
+//        alphaSensitivityExps();
+        tuningAlphaExps();
     }
     
     public static void buildParaAnalysisFiles() throws FileNotFoundException {
@@ -240,4 +253,188 @@ public class HESCA_TunedAlpha extends HESCA {
         outDsetStdDevOverFolds.closeFile();
         outDsetStdDevOverAlpha.closeFile(); 
     }
+    
+    
+    public static void alphaSensitivityExps() throws Exception {
+        String dsetGroup = "UCI";
+        
+        String resReadPath = "C:/JamesLPHD/HESCA/"+dsetGroup+"/"+dsetGroup+"Results/";
+        String resWritePath = "C:/JamesLPHD/HESCA/"+dsetGroup+"/"+dsetGroup+"Results/AlphaSensitivities/";
+        int numfolds = 30;
+        String[] dsets = GenericTools.readFileLineByLineAsArray("C:/JamesLPHD/HESCA/"+dsetGroup+"/"+dsetGroup+".txt");
+        
+
+        Instances all=null, train=null, test=null;
+        Instances[] data=null;
+
+        String[] cbases = { 
+//            "HESCA", 
+            "HESCA+", 
+//            "HESCAks" 
+        };
+        
+        int[] alphaVals = { 
+//            0, Integer.MAX_VALUE, //equal, pickbest
+            1,2,3,4,
+//            5,6,7,8,
+//            9,10,11,12,
+//            13,14,15,
+        }; 
+
+        for (String cbase : cbases) {
+            for (int alpha : alphaVals) {
+
+                String classifier = cbase + (alpha == Integer.MAX_VALUE ? "_pb" : alpha == 0 ? "_eq" : "_alpha=" + alpha);
+
+                System.out.println("\t" + classifier);
+
+                for (String dset : dsets) {
+
+                    System.out.println(dset);
+
+                    if (dsetGroup.equals("UCR")) {
+                        train = ClassifierTools.loadData("C:/TSC Problems/" + dset + "/" + dset + "_TRAIN.arff");
+                        test = ClassifierTools.loadData("C:/TSC Problems/" + dset + "/" + dset + "_TEST.arff");
+                    }
+                    else 
+                        all = ClassifierTools.loadData("C:/UCI Problems/" + dset + "/" + dset + ".arff");
+
+                    for (int fold = 0; fold < numfolds; fold++) {
+                        String predictions = resWritePath+classifier+"/Predictions/"+dset;
+                        File f=new File(predictions);
+                        if(!f.exists())
+                            f.mkdirs();
+
+                        //Check whether fold already exists, if so, dont do it, just quit
+                        if(!CollateResults.validateSingleFoldFile(predictions+"/testFold"+fold+".csv")){
+
+                            if (dsetGroup.equals("UCR"))
+                                data = InstanceTools.resampleTrainAndTestInstances(train, test, fold);
+                            else 
+                                data = InstanceTools.resampleInstances(all, fold, .5);
+
+                            HESCA c = new HESCA();
+
+                            if (alpha == 0) {
+                                c.setWeightingScheme(new EqualWeighting()); 
+                                c.setVotingScheme(new MajorityConfidence());
+                            }
+                            else if (alpha == Integer.MAX_VALUE) { 
+                                c.setWeightingScheme(new EqualWeighting()); //actual weighting is irrelevant
+                                c.setVotingScheme(new BestIndividualTrain()); //just copy over the results of the best individual
+                            } else {
+                                c.setWeightingScheme(new TrainAcc(alpha));
+                                c.setVotingScheme(new MajorityConfidence());
+                            }
+
+                            if (cbase.equals("HESCA")) {
+                                if (dsetGroup.equals("UCR"))
+                                    c.setClassifiers(null, HESCAUCR_Classifiers, null);
+                                //else default
+                            } else if (cbase.equals("HESCA+")) {
+                                c.setClassifiers(null, HESCAplus_Classifiers, null);
+                            }
+
+                            c.setBuildIndividualsFromResultsFiles(true);
+                            c.setResultsFileLocationParameters(resReadPath, dset, fold);
+                            c.setRandSeed(fold);
+                            c.setPerformCV(true);
+                            c.setResultsFileWritingLocation(resWritePath);
+
+                            singleClassifierAndFoldTrainTestSplit(data[0],data[1],c,fold,predictions);
+                        }
+                    }
+                }        
+            }
+        }
+    }
+    public static void tuningAlphaExps() throws Exception {
+        String dsetGroup = "UCI";
+        
+        String resPath = "C:/JamesLPHD/HESCA/"+dsetGroup+"/"+dsetGroup+"Results/AlphaSensitivities/";
+        int numfolds = 30;
+        String[] dsets = GenericTools.readFileLineByLineAsArray("C:/JamesLPHD/HESCA/"+dsetGroup+"/"+dsetGroup+".txt");
+        
+
+        Instances all=null, train=null, test=null;
+        Instances[] data=null;
+
+        String[] cbases = { 
+//            "HESCA", 
+            "HESCA+", 
+        };
+        
+        ModuleVotingScheme[] pickers = { 
+            new BestIndividualTrain(), 
+            new BestIndividualOracle() 
+        };
+        String[] labels = { 
+            "_bestAlphaTrain", 
+            "_bestAlphaTest" 
+        };
+        
+        for (String cbase : cbases) {
+            for (int i = 0; i < pickers.length; i++) {
+                ModuleVotingScheme picker = pickers[i];
+                String label = labels[i];
+                
+                String classifier = cbase + label;
+
+                System.out.println("\t" + classifier);
+
+                for (String dset : dsets) {
+
+                    System.out.println(dset);
+
+                    if (dsetGroup.equals("UCR")) {
+                        train = ClassifierTools.loadData("C:/TSC Problems/" + dset + "/" + dset + "_TRAIN.arff");
+                        test = ClassifierTools.loadData("C:/TSC Problems/" + dset + "/" + dset + "_TEST.arff");
+                    }
+                    else 
+                        all = ClassifierTools.loadData("C:/UCI Problems/" + dset + "/" + dset + ".arff");
+
+                    for (int fold = 0; fold < numfolds; fold++) {
+                        String predictions = resPath+classifier+"/Predictions/"+dset;
+                        File f=new File(predictions);
+                        if(!f.exists())
+                            f.mkdirs();
+
+                        //Check whether fold already exists, if so, dont do it, just quit
+                        if(!CollateResults.validateSingleFoldFile(predictions+"/testFold"+fold+".csv")){
+
+                            if (dsetGroup.equals("UCR"))
+                                data = InstanceTools.resampleTrainAndTestInstances(train, test, fold);
+                            else 
+                                data = InstanceTools.resampleInstances(all, fold, .5);
+
+                            HESCA c = new HESCA();
+                            c.setWeightingScheme(new EqualWeighting()); 
+                            c.setVotingScheme(picker);
+
+                            if (cbase.equals("HESCA"))
+                                c.setClassifiers(null, HESCAalphas, null);
+                            else
+                                c.setClassifiers(null, HESCAplusAlphas, null);
+                            
+                            c.setBuildIndividualsFromResultsFiles(true);
+                            c.setResultsFileLocationParameters(resPath, dset, fold);
+                            c.setRandSeed(fold);
+                            c.setPerformCV(true);
+                            c.setResultsFileWritingLocation(resPath);
+                            c.setEnsembleIdentifier(classifier);
+
+                            singleClassifierAndFoldTrainTestSplit(data[0],data[1],c,fold,predictions);
+                        }
+                    }
+                }      
+            }
+        }
+    }
+    
+    public static String[] HESCAalphas = {
+        "HESCA_alpha=1","HESCA_alpha=2","HESCA_alpha=3","HESCA_alpha=4","HESCA_alpha=5","HESCA_alpha=6","HESCA_alpha=7","HESCA_alpha=8","HESCA_alpha=9","HESCA_alpha=10","HESCA_alpha=11","HESCA_alpha=12","HESCA_alpha=13","HESCA_alpha=14","HESCA_alpha=15","HESCA_eq","HESCA_pb",	
+    };
+    public static String[] HESCAplusAlphas = {
+        "HESCA+_alpha=1","HESCA+_alpha=2","HESCA+_alpha=3","HESCA+_alpha=4","HESCA+_alpha=5","HESCA+_alpha=6","HESCA+_alpha=7","HESCA+_alpha=8","HESCA+_alpha=9","HESCA+_alpha=10","HESCA+_alpha=11","HESCA+_alpha=12","HESCA+_alpha=13","HESCA+_alpha=14","HESCA+_alpha=15","HESCA+_eq","HESCA+_pb",
+    };
 }

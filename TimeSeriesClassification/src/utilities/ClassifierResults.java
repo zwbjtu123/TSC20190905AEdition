@@ -35,6 +35,7 @@ public class ClassifierResults implements DebugPrinting {
     public double recall;
     
     public double f1; 
+    public double mcc; //mathews correlation coefficient
     public double nll; //the true-class only version
     public double meanAUROC;
     public double stddev; //across cv folds
@@ -331,7 +332,9 @@ public class ClassifierResults implements DebugPrinting {
             predictedClassProbabilities = new ArrayList<>();
             numInstances=0;
             acc=0;
-           while(line!=null){
+            
+            boolean firstLoop = true;
+           while(line!=null && !line.equals("")){
                String[] split=line.split(",");
                if(split.length>3){
 //GAVIN HACK
@@ -356,7 +359,24 @@ public class ClassifierResults implements DebugPrinting {
                     predictedClassProbabilities.add(probs);
                    numInstances++;
                }
+               else {
+                     if (firstLoop)
+                        printlnDebug("WARNING: Results file does not contain probabilities, " + path);
+                   
+                    double a=Double.valueOf(split[0]);
+                    double b=Double.valueOf(split[1]);
+                    actualClassValues.add(a);
+                    predictedClassValues.add(b);
+                    if(a==b)
+                        acc++;
+//                    double[] probs=new double[numClasses];
+//                    for(int i=0;i<probs.length;i++)
+//                          probs[i]=Double.valueOf(split[3+i].trim());
+//                    predictedClassProbabilities.add(probs);
+                    numInstances++;
+               }
                line=inf.readLine();
+               firstLoop = false;
            }
            acc/=numInstances;
            
@@ -386,6 +406,7 @@ public class ClassifierResults implements DebugPrinting {
 //Negative log likelihood
        nll=findNLL();
        meanAUROC=findMeanAUROC();
+       mcc = computeMCC(confusionMatrix);
        
        allStatsFound = true;
     }
@@ -438,7 +459,49 @@ public class ClassifierResults implements DebugPrinting {
         }
         return a;
     }
-       
+   
+    /**
+     * todo could easily be optimised further if really wanted
+     */
+    public double computeMCC(double[][] confusionMatrix) {
+        
+        double num=0.0;
+        for (int k = 0; k < confusionMatrix.length; ++k)
+            for (int l = 0; l < confusionMatrix.length; ++l)
+                for (int m = 0; m < confusionMatrix.length; ++m) 
+                    num += (confusionMatrix[k][k]*confusionMatrix[m][l])-
+                            (confusionMatrix[l][k]*confusionMatrix[k][m]);
+
+        if (num == 0.0)
+            return 0;
+        
+        double den1 = 0.0; 
+        double den2 = 0.0;
+        for (int k = 0; k < confusionMatrix.length; ++k) {
+            
+            double den1Part1=0.0;
+            double den2Part1=0.0;
+            for (int l = 0; l < confusionMatrix.length; ++l) {
+                den1Part1 += confusionMatrix[l][k];
+                den2Part1 += confusionMatrix[k][l];
+            }
+
+            double den1Part2=0.0;
+            double den2Part2=0.0;
+            for (int kp = 0; kp < confusionMatrix.length; ++kp)
+                if (kp!=k) {
+                    for (int lp = 0; lp < confusionMatrix.length; ++lp) {
+                        den1Part2 += confusionMatrix[lp][kp];
+                        den2Part2 += confusionMatrix[kp][lp];
+                    }
+                }
+                      
+            den1 += den1Part1 * den1Part2;
+            den2 += den2Part1 * den2Part2;
+        }
+        
+        return num / (Math.sqrt(den1)*Math.sqrt(den2));
+    }
    
 /**
  * Balanced accuracy: average of the accuracy for each class
@@ -601,6 +664,7 @@ base xi+1 to xi , that is, A
          str+="recall,"+recall+"\n"; 
          str+="specificity,"+specificity+"\n";         
          str+="f1,"+f1+"\n"; 
+         str+="mcc,"+mcc+"\n"; 
          str+="nll,"+nll+"\n"; 
          str+="meanAUROC,"+meanAUROC+"\n"; 
          str+="stddev,"+stddev+"\n"; 
