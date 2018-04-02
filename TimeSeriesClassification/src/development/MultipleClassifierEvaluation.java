@@ -412,7 +412,7 @@ public class MultipleClassifierEvaluation implements DebugPrinting {
         //then use this flag to determine whether to find the full stats or not
         boolean onlyAccsWanted = true;
         for (Pair<String, Function<ClassifierResults, Double>> statistic : statistics) {
-            if (!statistic.equals("ACC")) {
+            if (!statistic.var1.equals("ACC")) {
                 onlyAccsWanted = false;
                 break;
             }
