@@ -21,7 +21,7 @@ import vector_classifiers.TunedSVM;
 import weka.classifiers.lazy.IBk;
 import weka.classifiers.meta.RotationForest;
 import vector_classifiers.TunedRotationForest;
-import vector_classifiers.HESCA;
+import vector_classifiers.CAWPE;
 import timeseriesweka.classifiers.ensembles.SaveableEnsemble;
 import utilities.ClassifierResults;
 import utilities.CrossValidator;

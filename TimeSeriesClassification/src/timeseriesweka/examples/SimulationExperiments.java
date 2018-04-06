@@ -40,7 +40,7 @@ import utilities.SaveParameterInfo;
 import weka.classifiers.Classifier;
 import timeseriesweka.classifiers.FastDTW_1NN;
 import weka.classifiers.meta.RotationForest;
-import vector_classifiers.HESCA;
+import vector_classifiers.CAWPE;
 import timeseriesweka.classifiers.ensembles.SaveableEnsemble;
 import vector_classifiers.TunedRandomForest;
 import weka.core.Instances;
@@ -81,7 +81,7 @@ public class SimulationExperiments {
         Classifier c;
         switch(str){
             case "HESCA":
-                c=new HESCA();
+                c=new CAWPE();
                 break;
             case "RandF":
                 c=new TunedRandomForest();
@@ -142,7 +142,7 @@ public class SimulationExperiments {
             case "RISE_HESCA":
                 c=new RISE();
                 ((RISE)c).setTransformType("PS_ACF");
-                Classifier base=new HESCA();
+                Classifier base=new CAWPE();
                 ((RISE)c).setBaseClassifier(base);
                 ((RISE)c).setNosBaseClassifiers(20);
                 break;
@@ -307,7 +307,7 @@ public class SimulationExperiments {
         seriesLength=300;
         casesPerClass=new int[]{50,50};
         String[] classifiers={"RotF","DTW","FastShapelets","ST","BOSS"};
-//            "EE","HESCA","TSF","TSBF","FastShapelets","ST","LearnShapelets","BOP","BOSS","RISE","COTE"};
+//            "EE","CAWPE","TSF","TSBF","FastShapelets","ST","LearnShapelets","BOP","BOSS","RISE","COTE"};
         OutFile of=new OutFile("C:\\Temp\\ShapeletSimExperiment.csv");
         setStandardGlobalParameters("Shapelet");
         of.writeLine("Shapelet Sim, series length= "+seriesLength+" cases class 0 ="+casesPerClass[0]+" class 1"+casesPerClass[0]+" train proportion = "+trainProp);

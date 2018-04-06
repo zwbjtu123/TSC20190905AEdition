@@ -39,7 +39,7 @@ import utilities.SaveParameterInfo;
 import utilities.TrainAccuracyEstimate;
 import weka.classifiers.Classifier;
 import weka.classifiers.bayes.NaiveBayes;
-import vector_classifiers.HESCA;
+import vector_classifiers.CAWPE;
 import timeseriesweka.classifiers.ensembles.SaveableEnsemble;
 import weka.classifiers.trees.J48;
 import weka.core.Instance;
@@ -48,19 +48,19 @@ import weka.core.Instances;
 /**
  *
  * @author ajb
- * PLAN: 
- * 1. Run HESCA locally, see if it is feasible
- * 2. Set up HESCA to save its own and components predictions and probabilities. 
- * 3. Write code is change probabilities into a ROC curve
- * 4. Write wrapper for simple decision function
- * 5. Apply to unseen data
+ PLAN: 
+ 1. Run CAWPE locally, see if it is feasible
+ 2. Set up CAWPE to save its own and components predictions and probabilities. 
+ 3. Write code is change probabilities into a ROC curve
+ 4. Write wrapper for simple decision function
+ 5. Apply to unseen data
  * 
  */
 public class RedaProblem {
     
     public static void singleExperiment(){
         Instances train=ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\Data\\Reda Fungus Paths\\funguspaths_forfoundbubbles_improved");
-        Classifier c=new HESCA();
+        Classifier c=new CAWPE();
         double[][] d=ClassifierTools.crossValidationWithStats(c, train, 10);
         System.out.println("Accuracy of "+c.getClass().getName()+" = "+d[0][0]);
         OutFile of=new OutFile("C:\\Users\\ajb\\Dropbox\\Results\\Reda\\FungusResults.csv");

@@ -1,5 +1,9 @@
 package vector_classifiers;
 
+import development.CollateResults;
+import development.DataSets;
+import development.Experiments;
+import development.MultipleClassifierEvaluation;
 import timeseriesweka.classifiers.ensembles.weightings.EqualWeighting;
 import timeseriesweka.classifiers.ensembles.weightings.TrainAcc;
 import timeseriesweka.classifiers.ensembles.weightings.ModuleWeightingScheme;
@@ -46,11 +50,16 @@ import weka.classifiers.functions.MultilayerPerceptron;
 
 /**
  * Can be constructed and will be ready for use from the default constructor like any other classifier.
- * Default settings are equivalent to the HESCA in the paper. 
- * See exampleUseCase() for more detailed options on defining different component sets, ensemble schemes, and file handling
+ * Default settings are equivalent to the CAWPE in the paper. 
+ * See exampleCAWPEUsage() for more detailed options on defining different component sets, ensemble schemes, and file handling
+ * 
+ * ****************
+ * For examples of file creation and results analysis for reproduction purposes, see
+ * buildCAWPEPaper_AllResultsForFigure2()
+ * ****************
  * 
  * CLASSIFICATION SETTINGS:
- * Default setup is defined by setDefaultHESCASettings(), i.e:
+ * Default setup is defined by setDefaultCAWPESettings(), i.e:
  *   Comps: SVML, MLP, NN, Logistic, C4.5
  *   Weight: TrainAcc(4) (train accuracies to the power 4)
  *   Vote: MajorityConfidence (summing probability distributions)  
@@ -59,27 +68,28 @@ import weka.classifiers.functions.MultilayerPerceptron;
  *   Comps: NN, SVML, SVMQ, C4.5, NB, bayesNet, RotF, RandF
  *   Weight: TrainAcc
  *   Vote: MajorityVote
- *
+ * 
  * EXPERIMENTAL USAGE:
  * By default will build/cv members normally, and perform no file reading/writing. 
  * To turn on file handling of any kind, call
-          setResultsFileLocationParameters(...) 
- 1) Can build ensemble and classify from results files of its members, call 
-          setBuildIndividualsFromResultsFiles(true)
- 2) If members built from scratch, can write the results files of the individuals with 
-          setWriteIndividualsTrainResultsFiles(true)
-          and
-          writeIndividualTestFiles(...) after testing is complete
- 3) And can write the ensemble train/testing files with 
-          writeEnsembleTrainTestFiles(...) after testing is complete
- 
- There are a bunch of little intricacies if you want to do stuff other than a bog standard run  
+ *          setResultsFileLocationParameters(...) 
+ * 1) Can build ensemble and classify from results files of its members, call 
+ *          setBuildIndividualsFromResultsFiles(true)
+ * 2) If members built from scratch, can write the results files of the individuals with 
+ *          setWriteIndividualsTrainResultsFiles(true)
+ *          and
+ *          writeIndividualTestFiles(...) after testing is complete
+ * 3) And can write the ensemble train/testing files with 
+ *         writeEnsembleTrainTestFiles(...) after testing is complete
+ * 
+ * There are a bunch of little intricacies if you want to do stuff other than a bog standard run  
+ * Best bet will be to email me for any specific usage questions.
  * 
  * @author James Large (james.large@uea.ac.uk)
  *      
  */
 
-public class HESCA extends AbstractClassifier implements HiveCoteModule, SaveParameterInfo, DebugPrinting, TrainAccuracyEstimate {
+public class CAWPE extends AbstractClassifier implements HiveCoteModule, SaveParameterInfo, DebugPrinting, TrainAccuracyEstimate {
     
     protected ModuleWeightingScheme weightingScheme = new TrainAcc(4);
     protected ModuleVotingScheme votingScheme = new MajorityConfidence();
@@ -138,14 +148,14 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule, SavePar
      * write path not set, will simply pick the first one given. 
      */
     protected String writeResultsFilesDirectory = null;
-    protected String ensembleIdentifier = "HESCA";
+    protected String ensembleIdentifier = "CAWPE";
     protected int resampleIdentifier;
     protected String datasetName;
     
-    public HESCA() {
-        this.ensembleIdentifier = "HESCA";
+    public CAWPE() {
+        this.ensembleIdentifier = "CAWPE";
         this.transform = null;
-        this.setDefaultHESCASettings();
+        this.setDefaultCAWPESettings();
     }
     
     public Classifier[] getClassifiers(){
@@ -156,11 +166,11 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule, SavePar
     }
     
     /**
-     * If building HESCA from scratch, the minimum requirement for running is the
-     * classifiers array, the others could be left null. 
+     * If building CAWPE from scratch, the minimum requirement for running is the
+ classifiers array, the others could be left null. 
      * 
-     * If building HESCA from the results files of individuals, the minimum requirement for 
-     * running is the classifierNames list. 
+     * If building CAWPE from the results files of individuals, the minimum requirement for 
+ running is the classifierNames list. 
      *  
      * @param classifiers array of classifiers to use 
      * @param classifierNames if null, will use the classifiers' class names by default  
@@ -194,6 +204,8 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule, SavePar
      * Comps: NN, SVML, SVMQ, C4.5, NB, BN, RotF, RandF
      * Weight: TrainAcc
      * Vote: MajorityVote
+     * 
+     * As used originally in ST_HESCA, COTE. 
      */
     public final void setOriginalHESCASettings(){
         this.weightingScheme = new TrainAcc();
@@ -263,7 +275,7 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule, SavePar
      * Weight: TrainAcc(4) (train accuracies to the power 4)
      * Vote: MajorityConfidence (summing probability distributions)
      */
-    public final void setDefaultHESCASettings(){
+    public final void setDefaultCAWPESettings(){
         this.weightingScheme = new TrainAcc(4);
         this.votingScheme = new MajorityConfidence();
         
@@ -315,14 +327,14 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule, SavePar
     
     @Override
     public void buildClassifier(Instances data) throws Exception {
-        printlnDebug("**HESCA TRAIN**");
+        printlnDebug("**CAWPE TRAIN**");
         
         
         //housekeeping
         if (resultsFilesParametersInitialised) {
             if (readResultsFilesDirectories.length > 1)
                 if (readResultsFilesDirectories.length != modules.length)
-                    throw new Exception("HESCA.buildClassifier: more than one results path given, but number given does not align with the number of classifiers/modules.");
+                    throw new Exception("CAWPE.buildClassifier: more than one results path given, but number given does not align with the number of classifiers/modules.");
 
             if (writeResultsFilesDirectory == null)
                 writeResultsFilesDirectory = readResultsFilesDirectories[0];
@@ -404,7 +416,7 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule, SavePar
         //having that creates many, many, many annoying issues, especially when classifying test cases
         if (readIndividualsResults) {
             if (!resultsFilesParametersInitialised)
-                throw new Exception("Trying to load HESCA modules from file, but parameters for results file reading have not been initialised");
+                throw new Exception("Trying to load CAWPE modules from file, but parameters for results file reading have not been initialised");
             loadModules(); //will throw exception if a module cannot be loaded (rather than e.g training that individual instead)
         } 
         else 
@@ -532,7 +544,7 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule, SavePar
     protected void writeResultsFile(String classifierName, String parameters, ClassifierResults results, String trainOrTest) throws IOException {                
         StringBuilder st = new StringBuilder();
         st.append(this.datasetName).append(",").append(this.ensembleIdentifier).append(classifierName).append(","+trainOrTest+"\n");
-        st.append(parameters + "\n"); //st.append("internalHesca\n");
+        st.append(parameters + "\n"); //st.append("internalCAWPE\n");
         st.append(results.acc).append("\n");
         st.append(results.writeInstancePredictions());
         
@@ -955,7 +967,7 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule, SavePar
             test = temp[1];
         }
 
-        HESCA h = new HESCA();
+        CAWPE h = new CAWPE();
         if(classifiers != null) 
             h.setClassifiers(classifiers, cNames, null);
         h.setTransform(transform);
@@ -981,57 +993,57 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule, SavePar
     }
     
     
-    public static void exampleUseCase() throws Exception {
+    public static void exampleCAWPEUsage() throws Exception {
         String datasetName = "ItalyPowerDemand";
         
         Instances train = ClassifierTools.loadData("c:/tsc problems/"+datasetName+"/"+datasetName+"_TRAIN");
         Instances test = ClassifierTools.loadData("c:/tsc problems/"+datasetName+"/"+datasetName+"_TEST");
         
-        HESCA hesca = new HESCA(); //Using predefined default settings. This is the HESCA classifier in the paper, equivalent to setDefaultHESCASettings()
+        CAWPE cawpe = new CAWPE(); //Using predefined default settings. This is the CAWPE classifier in the paper, equivalent to setDefaultCAWPESettings()
         
-        //Setting a transform (not used in HESCA paper, mostly for COTE/HiveCOTE or particular applications)
+        //Setting a transform (not used in CAWPE paper, mostly for COTE/HiveCOTE or particular applications)
         SimpleBatchFilter transform = new SAX();
-        hesca.setTransform(transform);
-        hesca.setTransform(null); //back to null for this example
+        cawpe.setTransform(transform);
+        cawpe.setTransform(null); //back to null for this example
         
         //Setting member classifiers 
         Classifier[] classifiers = new Classifier[] { new kNN() };
         String [] names = new String[] { "NN" };
         String [] params = new String[] { "k=1" };
-        hesca.setClassifiers(classifiers, names, params); //see setClassifiers(...) javadoc 
+        cawpe.setClassifiers(classifiers, names, params); //see setClassifiers(...) javadoc 
         
         //Setting ensemble schemes
-        hesca.setWeightingScheme(new TrainAccByClass()); //or set new methods
-        hesca.setVotingScheme(new MajorityVote()); //some voting schemes require dist for inst to be defined
+        cawpe.setWeightingScheme(new TrainAccByClass()); //or set new methods
+        cawpe.setVotingScheme(new MajorityVote()); //some voting schemes require dist for inst to be defined
         
-        //Using predefined default settings. This is the HESCA classifier in the paper, equivalent to default constructor
-        hesca.setDefaultHESCASettings();
+        //Using predefined default settings. This is the CAWPE classifier in the paper, equivalent to default constructor
+        cawpe.setDefaultCAWPESettings();
         
         int resampleID = 0;
-        hesca.setRandSeed(resampleID);
+        cawpe.setRandSeed(resampleID);
         
         //File handling
-        hesca.setResultsFileLocationParameters("hescaTest/", datasetName, resampleID); //use this to set the location for any results file reading/writing
+        cawpe.setResultsFileLocationParameters("CAWPETest/", datasetName, resampleID); //use this to set the location for any results file reading/writing
         
-        hesca.setBuildIndividualsFromResultsFiles(true); //turns on file reading, will read from location provided in setResultsFileLocationParameters(...)
-        hesca.setWriteIndividualsTrainResultsFiles(true); //include this to turn on file writing for individuals trainFold# files 
+        cawpe.setBuildIndividualsFromResultsFiles(true); //turns on file reading, will read from location provided in setResultsFileLocationParameters(...)
+        cawpe.setWriteIndividualsTrainResultsFiles(true); //include this to turn on file writing for individuals trainFold# files 
         //can only have one of these (or neither) set to true at any one time (internally, setting one to true 
         //will automatically set the other to false)
         
         //Then build/test as normal
-        hesca.buildClassifier(train);
-        System.out.println(ClassifierTools.accuracy(test, hesca));
+        cawpe.buildClassifier(train);
+        System.out.println(ClassifierTools.accuracy(test, cawpe));
         
         //Call these after testing is complete for fill writing of the individuals test files, and ensemble train AND test files. 
         boolean throwExceptionOnFileParamsNotSetProperly = false;
-        hesca.writeIndividualTestFiles(test.attributeToDoubleArray(test.classIndex()), throwExceptionOnFileParamsNotSetProperly);
-        hesca.writeEnsembleTrainTestFiles(test.attributeToDoubleArray(test.classIndex()), throwExceptionOnFileParamsNotSetProperly);
+        cawpe.writeIndividualTestFiles(test.attributeToDoubleArray(test.classIndex()), throwExceptionOnFileParamsNotSetProperly);
+        cawpe.writeEnsembleTrainTestFiles(test.attributeToDoubleArray(test.classIndex()), throwExceptionOnFileParamsNotSetProperly);
     }
     
     public String buildEnsembleReport(boolean printPreds, boolean builtFromFile) {
         StringBuilder sb = new StringBuilder();
         
-        sb.append("HESCA REPORT");
+        sb.append("CAWPE REPORT");
         sb.append("\nname: ").append(ensembleIdentifier);
         sb.append("\nmodules: ").append(modules[0].getModuleName());
         for (int i = 1; i < modules.length; i++) 
@@ -1131,7 +1143,7 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule, SavePar
     public static void testBuildingInds(int testID) throws Exception {
         System.out.println("testBuildingInds()");
         
-        (new File("C:/JamesLPHD/hescaTests"+testID+"/")).mkdirs();
+        (new File("C:/JamesLPHD/CAWPETests"+testID+"/")).mkdirs();
         
         int numFolds = 5;
         
@@ -1147,33 +1159,33 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule, SavePar
             Instances train = insts[0];
             Instances test = insts[1];
 
-            HESCA hesca = new HESCA();
-            hesca.setResultsFileLocationParameters("C:/JamesLPHD/hescaTests"+testID+"/", dataset, fold);
-            hesca.setWriteIndividualsTrainResultsFiles(true);
-            hesca.setPerformCV(true); //now defaults to true
-            hesca.setRandSeed(fold);
+            CAWPE cawpe = new CAWPE();
+            cawpe.setResultsFileLocationParameters("C:/JamesLPHD/CAWPETests"+testID+"/", dataset, fold);
+            cawpe.setWriteIndividualsTrainResultsFiles(true);
+            cawpe.setPerformCV(true); //now defaults to true
+            cawpe.setRandSeed(fold);
             
-            hesca.buildClassifier(train);
+            cawpe.buildClassifier(train);
 
             double acc = .0;
             for (Instance instance : test) {
-                if (instance.classValue() == hesca.classifyInstance(instance))
+                if (instance.classValue() == cawpe.classifyInstance(instance))
                     acc++;
             }
             acc/=test.numInstances();
 
-            hesca.writeIndividualTestFiles(test.attributeToDoubleArray(test.classIndex()), true);
-            hesca.writeEnsembleTrainTestFiles(test.attributeToDoubleArray(test.classIndex()), true);
+            cawpe.writeIndividualTestFiles(test.attributeToDoubleArray(test.classIndex()), true);
+            cawpe.writeEnsembleTrainTestFiles(test.attributeToDoubleArray(test.classIndex()), true);
             
-            System.out.println("TrainAcc="+hesca.getTrainResults().acc);
-            System.out.println("TestAcc="+hesca.getTestResults().acc);
+            System.out.println("TrainAcc="+cawpe.getTrainResults().acc);
+            System.out.println("TestAcc="+cawpe.getTestResults().acc);
         }
     }
     
     public static void testLoadingInds(int testID) throws Exception {
         System.out.println("testBuildingInds()");
         
-        (new File("C:/JamesLPHD/hescaTests"+testID+"/")).mkdirs();
+        (new File("C:/JamesLPHD/CAWPETests"+testID+"/")).mkdirs();
         
         int numFolds = 5;
         
@@ -1189,77 +1201,237 @@ public class HESCA extends AbstractClassifier implements HiveCoteModule, SavePar
             Instances train = insts[0];
             Instances test = insts[1];
 
-            HESCA hesca = new HESCA();
-            hesca.setResultsFileLocationParameters("C:/JamesLPHD/hescaTests"+testID+"/", dataset, fold);
-            hesca.setBuildIndividualsFromResultsFiles(true);
-            hesca.setPerformCV(true); //now defaults to true
-            hesca.setRandSeed(fold);
+            CAWPE cawpe = new CAWPE();
+            cawpe.setResultsFileLocationParameters("C:/JamesLPHD/CAWPETests"+testID+"/", dataset, fold);
+            cawpe.setBuildIndividualsFromResultsFiles(true);
+            cawpe.setPerformCV(true); //now defaults to true
+            cawpe.setRandSeed(fold);
             
-            hesca.buildClassifier(train);
+            cawpe.buildClassifier(train);
 
             double acc = .0;
             for (Instance instance : test) {
-                if (instance.classValue() == hesca.classifyInstance(instance))
+                if (instance.classValue() == cawpe.classifyInstance(instance))
                     acc++;
             }
             acc/=test.numInstances();
-            hesca.finaliseEnsembleTestResults(test.attributeToDoubleArray(test.classIndex()));
+            cawpe.finaliseEnsembleTestResults(test.attributeToDoubleArray(test.classIndex()));
             
-            System.out.println("TrainAcc="+hesca.getTrainResults().acc);
-            System.out.println("TestAcc="+hesca.getTestResults().acc);
+            System.out.println("TrainAcc="+cawpe.getTrainResults().acc);
+            System.out.println("TestAcc="+cawpe.getTestResults().acc);
+        }
+    }
+    
+    
+    
+    
+    
+    
+    
+    
+    /**
+     * This will build all the base classifier results
+     * 
+     * @param dataHeaders e.g { "UCI", "UCR" }
+     * @param dataPaths e.g { "C:/Data/UCI/", "C:/Data/UCR/" }
+     * @param datasetNames for each datapath, a list of the dataset names located there to be used [archive][dsetnames]
+     * @param classifiers the names of classifiers that can all be found in Experiments.setClassifier(...)
+     * @param baseWritePath e.g { "C:/Results/" }
+     */
+    public static void buildCAWPEPaper_BuildClassifierResultsFiles(String baseWritePath, String[] dataHeaders, String[] dataPaths, 
+                                                            String[][] datasetNames, String[] classifiers, int numFolds) throws Exception {
+        for (int archive = 0; archive < dataHeaders.length; archive++) {
+            for (String classifier : classifiers) {
+                System.out.println("\t" + classifier);
+
+                for (String dset : datasetNames[archive]) {
+                    System.out.println(dset);
+                    for (int fold = 0; fold < numFolds; fold++) {
+                          /*1: Problem path args[0]
+                            2. Results path args[1]
+                            3. booleanwWhether to CV to generate train files (true/false)
+                            4. Classifier =args[3];
+                            5. String problem=args[4];
+                            6. int fold=Integer.parseInt(args[5])-1;
+                        Optional:  
+                            7. boolean whether to checkpoint parameter search for applicable tuned classifiers (true/false)
+                            8. integer for specific parameter search (0 indicates ignore this) 
+                            */  
+                        Experiments.main(new String[] { dataPaths[archive], baseWritePath+dataHeaders[archive]+"/", "true", classifier, dset, ""+(fold+1)});
+                    }
+                }        
+            }
         }
     }
     
     /**
-     * This method builds results files for the components of HESCA and HESCA itself on the 121 UCI archive datasets. 
-     * It would take a long time to run. 
+     * This method would build all the results files leading up to figure 2,
+     * the heterogeneous ensemble comparison on the basic classifiers. 
+     * 
+     * It would take a long time to run, almost all of which is comprised of 
+     * building the base classifiers.
      * 
      * The experiments and results presented in the paper were distributed on the HPC cluster at UEA, 
-     * this method is only to demonstrate the experimental procedure and to provide a base to copy/edit for 
-     * results reproduction.  
+     * this method is to demonstrate the experimental procedure and to provide a base to copy/edit for 
+     * full results reproduction of everything in the paper.
+     * 
+     * There are also cases that can't be entirely captured neatly in a method like this, despite 
+     * my best efforts. For example, while we can call matlab code from here to build diagrams for 
+     * the analysis, the implementation of the DNN requires that to be run separately. Likewise, while 
+     * a lot of the legwork of analysis is done programmatically, the deeper exploratory analysis 
+     * cannot really be done automatically. 
+     * 
+     * Still, the idea of getting as close a possible to being able to reproduce the entirety
+     * of a paper's results and statistics in a single function call is nice, especially for a 
+     * paper as extensive and empirically-driven as CAWPE's.
+     * 
+     * For inquiries into specific details of reproduction, best bet is to email us 
+     * james.large@uea.ac.uk
+     * anthony.bagnall@uea.ac.uk
      */
-    public static void buildHESCAPaperResultsFiles(String dataPath, String writePath) throws Exception {
-        System.out.println("buildPaperResultsFiles()");
-        
-        (new File(writePath)).mkdirs();
-        
+    public static void buildCAWPEPaper_AllResultsForFigure2() throws Exception {
+        //init, edit the paths for local running ofc
+//        String[] dataHeaders = { "UCI", };
+//        String[] dataPaths = { "Z:/Data/UCIContinuous/", };
+//        String[][] datasets = { { "hayes-roth", "pittsburg-bridges-T-OR-D", "teaching", "wine" } };
+//        String writePathBase = "Z:/Results/CAWPEReproducabiltyTest/";
+//        String writePathResults =  writePathBase + "Results/";
+//        String writePathAnalysis =  writePathBase + "Analysis/";
+//        int numFolds = 5;
+        String[] dataHeaders = { "UCI", };
+        String[] dataPaths = { "Z:/Data/UCIContinuous/", };
+        String[][] datasets = { DataSets.UCIContinuousFileNames, };
+        String writePathBase = "Z:/Results/CAWPEReproducabiltyTest/";
+        String writePathResults =  writePathBase + "Results/";
+        String writePathAnalysis =  writePathBase + "Analysis/";
         int numFolds = 30;
         
-        String[] UCIdatasets={"abalone","acute-inflammation","acute-nephritis","adult","annealing","arrhythmia",
-            "audiology-std","balance-scale","balloons","bank","blood","breast-cancer","breast-cancer-wisc","breast-cancer-wisc-diag",
-            "breast-cancer-wisc-prog","breast-tissue","car","cardiotocography-10clases","cardiotocography-3clases",
-            "chess-krvk","chess-krvkp","congressional-voting","conn-bench-sonar-mines-rocks","conn-bench-vowel-deterding",
-            "connect-4","contrac","credit-approval","cylinder-bands","dermatology","echocardiogram","ecoli","energy-y1","energy-y2",
-            "fertility","flags","glass","haberman-survival","hayes-roth","heart-cleveland","heart-hungarian","heart-switzerland","heart-va",
-            "hepatitis","hill-valley","horse-colic","ilpd-indian-liver","image-segmentation","ionosphere","iris","led-display","lenses",
-            "letter","libras","low-res-spect","lung-cancer","lymphography","magic","mammographic","miniboone","molec-biol-promoter",
-            "molec-biol-splice","monks-1","monks-2","monks-3","mushroom","musk-1","musk-2","nursery","oocytes_merluccius_nucleus_4d",
-            "oocytes_merluccius_states_2f","oocytes_trisopterus_nucleus_2f","oocytes_trisopterus_states_5b","optical","ozone","page-blocks",
-            "parkinsons","pendigits","pima","pittsburg-bridges-MATERIAL","pittsburg-bridges-REL-L","pittsburg-bridges-SPAN",
-            "pittsburg-bridges-T-OR-D","pittsburg-bridges-TYPE","planning","plant-margin","plant-shape","plant-texture","post-operative",
-            "primary-tumor","ringnorm","seeds","semeion","soybean","spambase","spect","spectf","statlog-australian-credit","statlog-german-credit",
-            "statlog-heart","statlog-image","statlog-landsat","statlog-shuttle","statlog-vehicle","steel-plates","synthetic-control",
-            "teaching","thyroid","tic-tac-toe","titanic","trains","twonorm","vertebral-column-2clases","vertebral-column-3clases",
-            "wall-following","waveform","waveform-noise","wine","wine-quality-red","wine-quality-white","yeast","zoo"
+        //build the base classifiers
+        String[] baseClassifiers = { "NN", "C45", "MLP", "Logistic", "SVML" }; 
+        buildCAWPEPaper_BuildClassifierResultsFiles(writePathResults, dataHeaders, dataPaths, datasets, baseClassifiers, numFolds);
+        
+        //build the ensembles
+        String[] ensembleIDsInStorage = {
+            "CAWPE_BasicClassifiers", 
+            "EnsembleSelection_BasicClassifiers", 
+            "SMLR_BasicClassifiers", 
+            "SMLRE_BasicClassifiers", 
+            "SMM5_BasicClassifiers", 
+            "PickBest_BasicClassifiers", 
+            "MajorityVote_BasicClassifiers", 
+            "WeightMajorityVote_BasicClassifiers", 
+            "RecallCombiner_BasicClassifiers", 
+            "NaiveBayesCombiner_BasicClassifiers"
         };
-                  
-        for (String dataset : UCIdatasets) {
-            System.out.println(dataset);
-            for (int f = 0; f < numFolds; f++) {
-                System.out.println("\tFold " + f);
+    
+        String[] ensembleIDsOnFigures = {
+            "CAWPE", "ES", "SMLR", "SMLRE", "SMM5", 
+            "PB", "MV", "WMV", "RC", "NBC"
+        };
+        
+        Class[] ensembleClasses = { 
+            Class.forName("vector_classifiers.CAWPE"),
+            Class.forName("vector_classifiers.EnsembleSelection"),
+            Class.forName("vector_classifiers.stackers.SMLR"),
+            Class.forName("vector_classifiers.stackers.SMLRE"),
+            Class.forName("vector_classifiers.stackers.SMM5"),
+            Class.forName("vector_classifiers.weightedvoters.CAWPE_PickBest"),
+            Class.forName("vector_classifiers.weightedvoters.CAWPE_MajorityVote"),
+            Class.forName("vector_classifiers.weightedvoters.CAWPE_WeightedMajorityVote"),
+            Class.forName("vector_classifiers.weightedvoters.CAWPE_RecallCombiner"),
+            Class.forName("vector_classifiers.weightedvoters.CAWPE_NaiveBayesCombiner"),
+        };
 
-                Instances allData = ClassifierTools.loadData(dataPath + dataset + "/" + dataset);
-                Instances[] split = InstanceTools.resampleInstances(allData, f, 0.5);
-
-                HESCA.buildAndWriteFullIndividualTrainTestResults(split[0], split[1], writePath, dataset, "HESCA", f, null, null, null, true, false, true);
-            }
+        for (int ensemble = 0; ensemble < ensembleIDsInStorage.length; ensemble++) 
+            buildCAWPEPaper_BuildEnsembleFromResultsFiles(writePathResults, dataHeaders, dataPaths, datasets, baseClassifiers, numFolds, ensembleIDsInStorage[ensemble], ensembleClasses[ensemble]);
+        
+        
+        
+        //build the results analysis sheets and figures
+        for (int archive = 0; archive < dataHeaders.length; archive++) {
+            String analysisName = dataHeaders[archive] + "CAWPEvsHeteroEnsembles_BasicClassifiers";
+            buildCAWPEPaper_BuildResultsAnalysis(writePathResults+dataHeaders[archive]+"/", writePathAnalysis, 
+                                       analysisName, ensembleIDsInStorage, ensembleIDsOnFigures, datasets[archive], numFolds);
         }
-            
+        
+        //done!
     }
     
+    public static void buildCAWPEPaper_BuildResultsAnalysis(String resultsReadPath, String analysisWritePath, 
+                                       String analysisName, String[] classifiersInStorage, String[] classifiersOnFigs, String[] datasets, int numFolds) throws Exception {
+        System.out.println("buildCAWPEPaper_BuildResultsAnalysis");
+        
+        new MultipleClassifierEvaluation(analysisWritePath, analysisName, numFolds).
+            setTestResultsOnly(false).
+            setBuildMatlabDiagrams(true).
+            setDatasets(datasets).
+            readInClassifiers(classifiersInStorage, classifiersOnFigs, resultsReadPath).
+            runComparison(); 
+    }
+    
+    public static void buildCAWPEPaper_BuildEnsembleFromResultsFiles(String baseWritePath, String[] dataHeaders, String[] dataPaths, String[][] datasetNames, 
+                                                                String[] baseClassifiers, int numFolds, String ensembleID, Class ensembleClass) throws Exception {
+
+        Instances train = null, test = null, all = null; //UCR has predefined train/test splits, UCI data just comes as a whole, so are loaded/resampled differently 
+        Instances[] data = null; //however it's loaded/resampled, will eventually end up here, { train, test }
+        
+        for (int archive = 0; archive < dataHeaders.length; archive++) {
+            String writePath = baseWritePath + dataHeaders[archive] + "/";
+            
+            for (String dset : datasetNames[archive]) {
+                System.out.println(dset);
+                
+                if (dataHeaders[archive].equals("UCI"))
+                    all = ClassifierTools.loadData(dataPaths[archive] + dset + "/" + dset + ".arff");
+                else if ((dataHeaders[archive].contains("UCR"))) {
+                    train = ClassifierTools.loadData(dataPaths[archive] + dset + "/" + dset + "_TRAIN.arff");
+                    test = ClassifierTools.loadData(dataPaths[archive] + dset + "/" + dset + "_TEST.arff");
+                }
+
+                for (int fold = 0; fold < numFolds; fold++) {
+                    //building particular ensembles with different parameters is a bit 
+                    //more involved so we skip some of the automated stages (especically setClassifier(...) in the 
+                    //experiments class to build the particular format wanted.
+                    //in this example code, i've jsut assumed that default parameters
+                    //(aside from the base classifiers) are being used. 
+                    //this code could ofc be editted to build whatever particular classifiers
+                    //you want, instead of using the janky reflection
+
+                    String predictions = writePath+ensembleID+"/Predictions/"+dset;
+                    File f=new File(predictions);
+                    if(!f.exists())
+                        f.mkdirs();
+
+                    //Check whether fold already exists, if so, dont do it, just quit
+                    if(!CollateResults.validateSingleFoldFile(predictions+"/testFold"+fold+".csv")){
+                        if (dataHeaders[archive].equals("UCI"))
+                            data = InstanceTools.resampleInstances(all, fold, .5);
+                        else if ((dataHeaders[archive].contains("UCR")))
+                            data = InstanceTools.resampleTrainAndTestInstances(train, test, fold);
+
+                        //cawpe is the base class from which all the heterogeneous ensembles are implemented, since this 
+                        //already has the base classifier file reading/writing built in etcetc.
+                        CAWPE c = (CAWPE) ensembleClass.getConstructor().newInstance();
+
+                        c.setClassifiers(null, baseClassifiers, null);
+                        c.setBuildIndividualsFromResultsFiles(true);
+                        c.setResultsFileLocationParameters(writePath, dset, fold);
+                        c.setRandSeed(fold);
+                        c.setPerformCV(true);
+
+                        //'custom' classifier built, now put it back in the normal experiments pipeline
+                        Experiments.singleClassifierAndFoldTrainTestSplit(data[0],data[1],c,fold,predictions);
+                    }
+                }
+            }        
+        }       
+    }
+    
+    
     public static void main(String[] args) throws Exception {
-        exampleUseCase();
-//        buildHESCAPaperResultsFiles("Z:/Data/UCIContinuous/", "C:/Temp/someFolder/");
+//        exampleCAWPEUsage();
+
+        buildCAWPEPaper_AllResultsForFigure2();
 
 //        testBuildingInds(3);
 //        testLoadingInds(2);

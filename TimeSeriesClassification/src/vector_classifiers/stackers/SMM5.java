@@ -3,7 +3,7 @@ package vector_classifiers.stackers;
 
 import timeseriesweka.classifiers.ensembles.voting.stacking.StackingOnDists;
 import timeseriesweka.classifiers.ensembles.weightings.EqualWeighting;
-import vector_classifiers.HESCA;
+import vector_classifiers.CAWPE;
 import vector_classifiers.MultiResponseModelTrees;
 
 /**
@@ -12,7 +12,7 @@ import vector_classifiers.MultiResponseModelTrees;
  * 
  * @author James Large (james.large@uea.ac.uk)
  */
-public class SMM5 extends HESCA {
+public class SMM5 extends CAWPE {
     public SMM5() { 
         super(); //sets default classifiers etc 
         

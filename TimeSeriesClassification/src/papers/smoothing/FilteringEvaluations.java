@@ -2,6 +2,7 @@
 package papers.smoothing;
 
 import development.DataSets;
+import development.Experiments;
 import development.MultipleClassifierEvaluation;
 import fileIO.OutFile;
 import java.io.File;
@@ -18,7 +19,7 @@ import utilities.MultipleClassifierResultsCollection;
 import utilities.StatisticalUtilities;
 import vector_classifiers.ChooseClassifierFromFile;
 import vector_classifiers.ChooseDatasetFromFile;
-import vector_classifiers.HESCA;
+import vector_classifiers.CAWPE;
 import weka.core.Instances;
 
 /**
@@ -110,12 +111,14 @@ public class FilteringEvaluations {
     };   
     
     public static void main(String[] args) throws Exception {
-//        performStandardClassifierComparisonWithFilteredAndUnfilteredDatasets();
-//        selectFilterAndWriteResults();
 //        selectFilterParametersAndWriteResults();
-//        performSomeSimpleStatsOnWhetherFilteringIsAtAllReasonableWithTestData();
+        selectFilterAndWriteResults();
         extractFilterParameterSelectionsFromOptimisedFoldFiles();
-//        whatIfWeJustEnsembleOverOptimisedFilters();
+        whatIfWeJustEnsembleOverOptimisedFilters();
+//        performStandardClassifierComparisonWithFilteredAndUnfilteredDatasets();
+
+        
+//        performSomeSimpleStatsOnWhetherFilteringIsAtAllReasonableWithTestData();
 
 //        //just wanted to double check none where missing
 //        MultipleClassifierResultsCollection mcrc = new MultipleClassifierResultsCollection(
@@ -124,6 +127,9 @@ public class FilteringEvaluations {
 //                30, 
 //                "C:/JamesLPHD/TSC_Smoothing/Results/TSCProblems_MovingAverage/", 
 //                true, true, false);
+
+
+
     }
     
     
@@ -207,6 +213,7 @@ public class FilteringEvaluations {
             "_SGFiltered", 
             "_PCAFiltered", 
             "_MAFiltered",
+            "_GFiltered",
 //            "_Sieved"
         }; 
         String[] filterResultsPaths = { 
@@ -216,6 +223,7 @@ public class FilteringEvaluations {
             baseReadPath+"TSC_SavitzkyGolay", 
             baseReadPath+"TSCProblems_PCA_smoothed", 
             baseReadPath+"TSCProblems_MovingAverage", 
+            baseReadPath+"TSCProblems_Gaussian", 
 //            baseReadPath+"Paul" 
         }; 
         
@@ -231,7 +239,7 @@ public class FilteringEvaluations {
 
                 for (int fold = 0; fold < numFolds; fold++) {
                     ChooseClassifierFromFile ccff = new ChooseClassifierFromFile();
-                    ccff.setName(classifier + "_FILTERED2");
+                    ccff.setName(classifier + "_FILTERED3");
                     ccff.setClassifiers(classifierNames);
                     ccff.setRelationName(baseDset);
                     ccff.setResultsPath(filterResultsPaths);
@@ -262,8 +270,8 @@ public class FilteringEvaluations {
         
         String unfilteredReadPath = baseReadPath + "TSC_Unfiltered/";
         
-        String[] filterSuffixes = { "_DFTFiltered", "_EXPFiltered", "_SGFiltered", "_PCAFiltered", "_MAFiltered"  }; //
-        String[] filterResultsPaths = { "TSC_FFT_zeroed", "TSC_Exponential", "TSC_SavitzkyGolay", "TSCProblems_PCA_smoothed", "TSCProblems_MovingAverage" }; //
+        String[] filterSuffixes = { "_GFiltered", };//  "_DFTFiltered", "_EXPFiltered", "_SGFiltered", "_PCAFiltered", "_MAFiltered"  }; //
+        String[] filterResultsPaths = { "TSCProblems_Gaussian", }; //"TSC_FFT_zeroed", "TSC_Exponential", "TSC_SavitzkyGolay", "TSCProblems_PCA_smoothed", "TSCProblems_MovingAverage" }; //
         
         for (int i = 0; i < filterResultsPaths.length; i++) {
             String filterReadPath = baseReadPath + filterResultsPaths[i] + "/";
@@ -398,8 +406,8 @@ public class FilteringEvaluations {
         
         String unfilteredReadPath = baseReadPath + "TSC_Unfiltered/";
         
-        String[] filterSuffixes = { "_DFTFiltered", "_EXPFiltered", "_SGFiltered", "_PCAFiltered", "_MAFiltered"  }; //
-        String[] filterResultsPaths = { "TSC_FFT_zeroed", "TSC_Exponential", "TSC_SavitzkyGolay", "TSCProblems_PCA_smoothed", "TSCProblems_MovingAverage" }; //
+        String[] filterSuffixes = { "_DFTFiltered", "_EXPFiltered", "_SGFiltered", "_PCAFiltered", "_MAFiltered", "_GFiltered"  }; //
+        String[] filterResultsPaths = { "TSC_FFT_zeroed", "TSC_Exponential", "TSC_SavitzkyGolay", "TSCProblems_PCA_smoothed", "TSCProblems_MovingAverage", "TSCProblems_Gaussian" }; //
         
         ArrayList<String> tssColumnHeaders = new ArrayList<>();
         ArrayList<String> tssRowHeaders = new ArrayList<>();
@@ -607,6 +615,7 @@ public class FilteringEvaluations {
                 classifier + "_SGFiltered", 
                 classifier + "_PCAFiltered", 
                 classifier + "_MAFiltered",
+                classifier + "_GFiltered",
             }; 
             String[] filterResultsPaths = { 
                 baseReadPath + "TSC_Unfiltered/", 
@@ -615,6 +624,7 @@ public class FilteringEvaluations {
                 baseReadPath + "TSC_SavitzkyGolay/", 
                 baseReadPath + "TSCProblems_PCA_smoothed/", 
                 baseReadPath + "TSCProblems_MovingAverage/", 
+                baseReadPath + "TSCProblems_Gaussian/", 
             }; 
 
             for (int dset = 0; dset < numBaseDatasets; dset++) {
@@ -628,7 +638,7 @@ public class FilteringEvaluations {
  
                     Instances[] data = InstanceTools.resampleTrainAndTestInstances(train, test, fold);
 
-                    HESCA hesca = new HESCA();
+                    CAWPE hesca = new CAWPE();
                     hesca.setEnsembleIdentifier(classifier + "_" + filteredClassifiers.length + "FilterEnsemble");
                     hesca.setBuildIndividualsFromResultsFiles(true);
                     hesca.setClassifiers(null, filteredClassifiers, null);

@@ -19,7 +19,7 @@ import weka.classifiers.functions.SMO;
 import weka.classifiers.functions.supportVector.PolyKernel;
 import weka.classifiers.meta.RotationForest;
 import utilities.ClassifierResults;
-import vector_classifiers.HESCA;
+import vector_classifiers.CAWPE;
 import timeseriesweka.classifiers.ensembles.SaveableEnsemble;
 import vector_classifiers.PLSNominalClassifier;
 import vector_classifiers.SaveEachParameter;
@@ -118,8 +118,8 @@ public class Large17ForgedAlcohol{
                 c= new Logistic();
                 break;
             case "HESCA":
-                c=new HESCA();
-                ((HESCA)c).setRandSeed(fold);
+                c=new CAWPE();
+                ((CAWPE)c).setRandSeed(fold);
                 break;
             case "TSF":
                 c=new TSF();
@@ -304,7 +304,7 @@ Optional
         
         String[] samplingMethods = { "LOBO", "LOBOPCA", "RandomBottle" };
         int numFolds = 44;
-        String [] classifiers = {"C45"};//,"RotF","RandF","SVML","SVMQ","SVMRBF","HESCA","RISE","BOSS","TSF","Logistic","MLP","1NN","PLSNominalClassifier"};
+        String [] classifiers = {"C45"};//,"RotF","RandF","SVML","SVMQ","SVMRBF","CAWPE","RISE","BOSS","TSF","Logistic","MLP","1NN","PLSNominalClassifier"};
         String[] datasets = { "AlcoholForgeryEthanol", "AlcoholForgeryMethanol" };
         
         for (String samplingMethod : samplingMethods) {

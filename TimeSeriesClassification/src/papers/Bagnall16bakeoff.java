@@ -45,7 +45,7 @@ import weka.classifiers.functions.supportVector.PolyKernel;
 import timeseriesweka.classifiers.FastDTW_1NN;
 import weka.classifiers.lazy.kNN;
 import weka.classifiers.meta.RotationForest;
-import vector_classifiers.HESCA;
+import vector_classifiers.CAWPE;
 import timeseriesweka.classifiers.ensembles.SaveableEnsemble;
 import weka.classifiers.trees.J48;
 import weka.classifiers.trees.RandomForest;
@@ -112,7 +112,7 @@ public class Bagnall16bakeoff {
                 c= new Logistic();
                 break;
             case "HESCA":
-                c=new HESCA();
+                c=new CAWPE();
                 break;
 //ELASTIC CLASSIFIERS                
             case "DTW":

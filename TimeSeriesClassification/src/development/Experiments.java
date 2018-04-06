@@ -60,7 +60,7 @@ import weka.classifiers.lazy.IBk;
 import weka.classifiers.meta.RotationForest;
 import vector_classifiers.TunedRotationForest;
 import utilities.ClassifierResults;
-import vector_classifiers.HESCA;
+import vector_classifiers.CAWPE;
 import timeseriesweka.classifiers.ensembles.SaveableEnsemble;
 import timeseriesweka.classifiers.FastWWS.FastDTWWrapper;
 import utilities.GenericTools;
@@ -73,6 +73,8 @@ import vector_classifiers.TunedMLP;
 import vector_classifiers.TunedTwoLayerMLP;
 import vector_classifiers.TunedXGBoost;
 import weka.classifiers.functions.supportVector.RBFKernel;
+import weka.classifiers.lazy.kNN;
+import weka.core.EuclideanDistance;
 import weka.core.Instances;
 
 
@@ -85,7 +87,7 @@ public class Experiments implements Runnable{
     static int numCVFolds = 10;
     static boolean debug=true;
     static boolean checkpoint=false;
-    static boolean generateTrainFiles=false;
+    static boolean generateTrainFiles=true;
     static Integer parameterNum=0;
     static boolean singleFile=false;
     static boolean foldsInFile=false;
@@ -278,9 +280,16 @@ public static String[] laptop={
             case "Logistic":
                 c= new Logistic();
                 break;
+            case "NN":
+                kNN k=new kNN(100);
+                k.setCrossValidate(true);
+                k.normalise(false);
+                k.setDistanceFunction(new EuclideanDistance());
+                return k;
             case "HESCA":
-                c=new HESCA();
-                ((HESCA)c).setRandSeed(fold);
+            case "CAWPE":
+                c=new CAWPE();
+                ((CAWPE)c).setRandSeed(fold);
                 break;
 //ELASTIC CLASSIFIERS     
             case "EE": case "ElasticEnsemble":
@@ -380,6 +389,10 @@ public static String[] laptop={
                 ((TunedXGBoost)c).setDebugPrinting(false);
                 ((TunedXGBoost)c).setTuneParameters(true);
                  break;
+            case "RotFDefault":
+                c = new RotationForest();
+                ((RotationForest)c).setSeed(fold);
+                return c;
            default:
                 System.out.println("UNKNOWN CLASSIFIER "+classifier);
                 System.exit(0);
@@ -445,7 +458,7 @@ Optional
 
         
     }
-    
+       
     public static void main(String[] args) throws Exception{
 
 //IF args are passed, it is a cluster run. Otherwise it is a local run, either threaded or not

@@ -22,7 +22,7 @@ import java.util.Random;
 import timeseriesweka.filters.shapelet_transforms.ShapeletTransform;
 import timeseriesweka.filters.shapelet_transforms.ShapeletTransformTimingUtilities;
 import utilities.ClassifierTools;
-import vector_classifiers.HESCA;
+import vector_classifiers.CAWPE;
 import weka.core.Instance;
 import weka.core.Instances;
 import weka.core.TechnicalInformation;
@@ -56,17 +56,17 @@ public class FlatCote extends AbstractClassifierWithTrainingData{
     // Flat-COTE includes 35 constituent classifiers:
     //  -   11 from the Elastic Ensemble
     //  -   8 from the Shapelet Transform Ensemble
-    //  -   8 from HESCA (ACF transformed)
-    //  -   8 from HESCA (PS transformed)
+    //  -   8 from CAWPE (ACF transformed)
+    //  -   8 from CAWPE (PS transformed)
     
     private enum EnsembleType{EE,ST,ACF,PS};
     private Instances train;
     
     
     private ElasticEnsemble ee;
-    private HESCA st;
-    private HESCA acf;
-    private HESCA ps;
+    private CAWPE st;
+    private CAWPE acf;
+    private CAWPE ps;
     
 //    private ShapeletTransform shapeletTransform;
     private double[][] cvAccs;
@@ -85,15 +85,15 @@ public class FlatCote extends AbstractClassifierWithTrainingData{
         //ShapeletTransform shapeletTransform = ShapeletTransformFactory.createTransform(train);
         ShapeletTransform shapeletTransform = ShapeletTransformTimingUtilities.createTransformWithTimeLimit(train, 24); // now defaults to max of 24 hours
         shapeletTransform.supressOutput();
-        st = new HESCA();
+        st = new CAWPE();
         st.setTransform(shapeletTransform);
         st.buildClassifier(train);
         
-        acf = new HESCA();
+        acf = new CAWPE();
         acf.setTransform(new ACF());
         acf.buildClassifier(train);
 
-        ps = new HESCA();
+        ps = new CAWPE();
         ps.setTransform(new PowerSpectrum());
         ps.buildClassifier(train);
         

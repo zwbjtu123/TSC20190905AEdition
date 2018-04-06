@@ -27,7 +27,7 @@ import vector_classifiers.TunedSVM;
 import weka.classifiers.lazy.IBk;
 import weka.classifiers.meta.RotationForest;
 import vector_classifiers.TunedRotationForest;
-import vector_classifiers.HESCA;
+import vector_classifiers.CAWPE;
 import timeseriesweka.classifiers.ensembles.SaveableEnsemble;
 import timeseriesweka.classifiers.ensembles.elastic_ensemble.ED1NN;
 import weka.classifiers.trees.RandomForest;
@@ -79,7 +79,7 @@ public class July2017Experiments{
                 c[0]=new IBk();
                 c[1]=new IBk();
                 c[2]=new IBk();
-                HESCA h = new HESCA();
+                CAWPE h = new CAWPE();
                 h.setClassifiers(c, names, null);
                 h.setDebug(true);
                 return h;    
@@ -163,10 +163,10 @@ public class July2017Experiments{
       //      of.writeString(problem+","); );
             if(c instanceof TrainAccuracyEstimate)
                 ((TrainAccuracyEstimate)c).writeCVTrainToFile(predictions+"/trainFold"+fold+".csv");
-            if(c instanceof HESCA){
+            if(c instanceof CAWPE){
                 System.out.println("Turning on file read ");
-                  ((HESCA)c).setResultsFileLocationParameters(DataSets.resultsPath, problem, fold);
-                  ((HESCA)c).setBuildIndividualsFromResultsFiles(true);
+                  ((CAWPE)c).setResultsFileLocationParameters(DataSets.resultsPath, problem, fold);
+                  ((CAWPE)c).setBuildIndividualsFromResultsFiles(true);
             }
             double acc =singleClassifierAndFoldSingleDataSet(split[0],split[1],c,fold,predictions);
             System.out.println(classifier+","+problem+","+fold+","+acc);

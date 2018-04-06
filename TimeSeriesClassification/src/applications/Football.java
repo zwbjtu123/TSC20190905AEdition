@@ -56,7 +56,7 @@ import weka.classifiers.lazy.IBk;
 import weka.classifiers.meta.RotationForest;
 import vector_classifiers.TunedRotationForest;
 import utilities.ClassifierResults;
-import vector_classifiers.HESCA;
+import vector_classifiers.CAWPE;
 import timeseriesweka.classifiers.ensembles.SaveableEnsemble;
 import vector_classifiers.SaveEachParameter;
 import weka.classifiers.trees.J48;
@@ -186,7 +186,7 @@ public class Football{
                 c= new Logistic();
                 break;
             case "HESCA":
-                c=new HESCA();
+                c=new CAWPE();
                 break;
 //ELASTIC CLASSIFIERS     
             case "EE": case "ElasticEnsemble":

@@ -60,7 +60,7 @@ import weka.classifiers.functions.supportVector.PolyKernel;
 import weka.classifiers.functions.supportVector.RBFKernel;
 import weka.classifiers.lazy.IBk;
 import weka.classifiers.meta.RotationForest;
-import vector_classifiers.HESCA;
+import vector_classifiers.CAWPE;
 import timeseriesweka.classifiers.ensembles.SaveableEnsemble;
 import weka.classifiers.trees.J48;
 import weka.classifiers.trees.RandomForest;
@@ -393,7 +393,7 @@ public class UCIExperiments{
                 c=c5;
                break;
             case "HESCA":
-                c=new HESCA();
+                c=new CAWPE();
                 break;
             case "C45":
                 c=new J48();

@@ -18,7 +18,7 @@ import timeseriesweka.filters.shapelet_transforms.ShapeletTransformTimingUtiliti
 import timeseriesweka.classifiers.cote.HiveCoteModule;
 import utilities.ClassifierTools;
 import weka.classifiers.Classifier;
-import vector_classifiers.HESCA;
+import vector_classifiers.CAWPE;
 import weka.core.Instance;
 import weka.core.Instances;
 
@@ -58,7 +58,7 @@ public class HiveCote extends AbstractClassifierWithTrainingData{
         names = new ArrayList<>();
         
         classifiers.add(new ElasticEnsemble());
-        HESCA h = new HESCA();
+        CAWPE h = new CAWPE();
         h.setTransform(new DefaultShapeletTransformPlaceholder());
         classifiers.add(h); // to get around the issue of needinf training data 
         RISE rise = new RISE();
@@ -101,13 +101,13 @@ public class HiveCote extends AbstractClassifierWithTrainingData{
         
         for(int i = 0; i < classifiers.size(); i++){
             
-            if(classifiers.get(i) instanceof HESCA){
-                if(((HESCA)classifiers.get(i)).getTransform() instanceof DefaultShapeletTransformPlaceholder){
+            if(classifiers.get(i) instanceof CAWPE){
+                if(((CAWPE)classifiers.get(i)).getTransform() instanceof DefaultShapeletTransformPlaceholder){
                     classifiers.remove(i);
                     ShapeletTransform shoutyThing = ShapeletTransformTimingUtilities.createTransformWithTimeLimit(train, 24);
                     shoutyThing.supressOutput();
                     
-                    HESCA h = new HESCA();
+                    CAWPE h = new CAWPE();
                     h.setTransform(shoutyThing);
                     classifiers.add(i, h);
                 }
@@ -115,7 +115,7 @@ public class HiveCote extends AbstractClassifierWithTrainingData{
             
             
             // if classifier is an implementation of HiveCoteModule, no need to cv for ensemble accuracy as it can self-report
-            // e.g. of the default modules, EE, HESCA, and BOSS should all have this fucntionality (group a); RISE and TSF do not currently (group b) so must manualy cv
+            // e.g. of the default modules, EE, CAWPE, and BOSS should all have this fucntionality (group a); RISE and TSF do not currently (group b) so must manualy cv
             if(classifiers.get(i) instanceof HiveCoteModule){
                 optionalOutputLine("training (group a): "+this.names.get(i));
                 classifiers.get(i).buildClassifier(train);

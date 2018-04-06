@@ -39,7 +39,7 @@ import utilities.SaveParameterInfo;
 import weka.classifiers.Classifier;
 import timeseriesweka.classifiers.FastDTW_1NN;
 import weka.classifiers.meta.RotationForest;
-import vector_classifiers.HESCA;
+import vector_classifiers.CAWPE;
 import timeseriesweka.classifiers.ensembles.SaveableEnsemble;
 import timeseriesweka.classifiers.ensembles.elastic_ensemble.DTW1NN;
 import timeseriesweka.filters.MatrixProfile;
@@ -151,7 +151,7 @@ public class MatrixProfileExperiments {
                 c=new kNN(1);
                 break;
             case "HESCA":
-                c=new HESCA();
+                c=new CAWPE();
                 break;
             case "RandF": case "MP_RotF":
                 c=new TunedRandomForest();
@@ -213,7 +213,7 @@ public class MatrixProfileExperiments {
             case "RISE_HESCA":
                 c=new RISE();
                 ((RISE)c).setTransformType("PS_ACF");
-                Classifier base=new HESCA();
+                Classifier base=new CAWPE();
                 ((RISE)c).setBaseClassifier(base);
                 ((RISE)c).setNosBaseClassifiers(20);
                 break;

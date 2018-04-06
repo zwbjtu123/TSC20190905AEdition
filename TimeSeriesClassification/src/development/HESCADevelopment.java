@@ -6,8 +6,8 @@ what exactly does EnhancedRandomForest do? Make it so that it can recover
 all thats necessary for rebuild from train (individual train preds and 
 overall CV weight)
 
-HESCA: Add in final build to the buildClassifier, missing in original
-    Result: Compare vs HESCA. Continue with this as baseline
+CAWPE: Add in final build to the buildClassifier, missing in original
+    Result: Compare vs CAWPE. Continue with this as baseline
 HESCAV1: Simple rule based to set folds as 10x for larger problems
     Result: Compare vs HESCAV1 
 HESCAV2: Switch RandForest to use OOB error
@@ -15,7 +15,7 @@ HESCAV2: Switch RandForest to use OOB error
 OK, works, but need to make it keep CVPredictions
 
 
-HESCA Development:
+CAWPE Development:
 1. ADD MORE CLASSIFIERS
     Other ensembles: AdaBoost etc
 2. Optimize existing:
@@ -39,7 +39,7 @@ import utilities.ClassifierTools;
 import utilities.InstanceTools;
 import weka.classifiers.Classifier;
 import weka.classifiers.meta.RotationForest;
-import vector_classifiers.HESCA;
+import vector_classifiers.CAWPE;
 import weka.classifiers.trees.RandomForest;
 import weka.core.Instances;
 
@@ -56,7 +56,7 @@ public class HESCADevelopment {
         Instances test = ClassifierTools.loadData("c:/tsc problems/ItalyPowerDemand/ItalyPowerDemand_TEST");
         
 //        buildAndWriteFullIndividualTrainTestResults(train, test, "hescatest/", "ItalyPowerDemand", "htest", 0, null);
-        HESCA h = new HESCA();
+        CAWPE h = new CAWPE();
         h.setRandSeed(0);
         h.setDebug(true);
         h.setResultsFileLocationParameters(DataSets.resultsPath,"ItalyPowerDemand", 0);
@@ -72,7 +72,7 @@ public class HESCADevelopment {
     
      public static void timingExperimentInTrainSize() throws Exception{
         OutFile out=new OutFile("C:\\Users\\ajb\\Dropbox\\Results\\SimulationExperiments\\HESCATest\\HescaBasicTimingTrainSizeV123.csv");
-          HESCA hesca=new HESCA();
+          CAWPE hesca=new CAWPE();
         Classifier[] classifierNames=hesca.getClassifiers();
         for(int c = 0; c < classifierNames.length; c++)
             out.writeString(","+classifierNames[c].getClass().getName());
@@ -84,19 +84,19 @@ public class HESCADevelopment {
             Instances d= SimulationExperiments.simulateData("Interval",0);
             out.writeString("\n"+s+",");
             System.out.println(" s ="+s+"   ");
-            hesca=new HESCA();
+            hesca=new CAWPE();
             long start=System.nanoTime();
             hesca.buildClassifier(d);
             long end=System.nanoTime();
             out.writeString(","+(end-start));
             System.out.println(hesca.getClass().getName()+"::"+((end-start)/1000000000.0)+"  ");
-            hesca=new HESCA();
+            hesca=new CAWPE();
             start=System.nanoTime();
             hesca.buildClassifier(d);
             end=System.nanoTime();
             out.writeString(","+(end-start));
             System.out.println(hesca.getClass().getName()+"::"+((end-start)/1000000000.0)+"  ");
-            hesca=new HESCA();
+            hesca=new CAWPE();
             start=System.nanoTime();
             hesca.buildClassifier(d);
             end=System.nanoTime();
@@ -107,7 +107,7 @@ public class HESCADevelopment {
     } 
     public static void timingExperimentInSeriesLength() throws Exception{
         OutFile out=new OutFile("C:\\Users\\ajb\\Dropbox\\Results\\SimulationExperiments\\HESCATest\\HescaBasicTimingSeriesLengthV123.csv");
-          HESCA hesca=new HESCA();
+          CAWPE hesca=new CAWPE();
         Classifier[] classifierNames=hesca.getClassifiers();
         for(int c = 0; c < classifierNames.length; c++)
             out.writeString(","+classifierNames[c].getClass().getName());
@@ -117,19 +117,19 @@ public class HESCADevelopment {
             Instances d= SimulationExperiments.simulateData("Interval",0);
             out.writeString("\n"+s+",");
             System.out.println(" s ="+s+"   ");
-            hesca=new HESCA();
+            hesca=new CAWPE();
             long start=System.nanoTime();
             hesca.buildClassifier(d);
             long end=System.nanoTime();
             out.writeString(","+(end-start));
             System.out.println(hesca.getClass().getName()+"::"+((end-start)/1000000000.0)+"  ");
-            hesca=new HESCA();
+            hesca=new CAWPE();
             start=System.nanoTime();
             hesca.buildClassifier(d);
             end=System.nanoTime();
             out.writeString(","+(end-start));
             System.out.println(hesca.getClass().getName()+"::"+((end-start)/1000000000.0)+"  ");
-            hesca=new HESCA();
+            hesca=new CAWPE();
             start=System.nanoTime();
             hesca.buildClassifier(d);
             end=System.nanoTime();
@@ -145,7 +145,7 @@ public class HESCADevelopment {
  */
     public static void randomForestTimes() throws Exception{
         OutFile out=new OutFile("C:/Temp/randomForest.csv");
-          HESCA hesca=new HESCA();
+          CAWPE hesca=new CAWPE();
         out.writeString(", CV,OOB\n");
         for(int s=100;s<=1000;s+=100){
             MatrixProfileExperiments.seriesLength=s;
@@ -168,7 +168,7 @@ public class HESCADevelopment {
             end=System.nanoTime();
             out.writeString(","+(end-start));
             System.out.println("Rand F oob time "+((end-start)/1000000000.0)+"  ");
-            hesca=new HESCA();
+            hesca=new CAWPE();
             start=System.nanoTime();
             hesca.buildClassifier(d);
             end=System.nanoTime();
@@ -297,7 +297,7 @@ rotationForestTimesForL();
 //        timingExperimentWithCV();
     }
 /*    
-    public static class HESCAV1 extends HESCA{
+    public static class HESCAV1 extends CAWPE{
         public static int FOLDS1=20;
         public static int FOLDS2=10;
     @Override
@@ -544,7 +544,7 @@ rotationForestTimesForL();
     
     }
 
-    public static class HESCAV2 extends HESCA{
+    public static class HESCAV2 extends CAWPE{
         public static int FOLDS1=20;
         public static int FOLDS2=10;
     @Override

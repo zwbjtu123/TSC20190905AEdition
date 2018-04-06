@@ -16,7 +16,7 @@ import utilities.ClassifierTools;
 import utilities.InstanceTools;
 import utilities.SaveParameterInfo;
 import weka.classifiers.AbstractClassifier;
-import vector_classifiers.HESCA;
+import vector_classifiers.CAWPE;
 import weka.core.Instance;
 import weka.core.Instances;
 import static timeseriesweka.filters.shapelet_transforms.ShapeletTransformTimingUtilities.nanoToOp;
@@ -41,7 +41,7 @@ public class ST_HESCA  extends AbstractClassifier implements HiveCoteModule, Sav
     private boolean preferShortShapelets = false;
     private String shapeletOutputPath;
     
-    private HESCA hesca=new HESCA();
+    private CAWPE hesca=new CAWPE();
 ;
     private ShapeletTransform transform;
     private Instances format;
@@ -69,7 +69,7 @@ public class ST_HESCA  extends AbstractClassifier implements HiveCoteModule, Sav
         hesca.writeCVTrainToFile(train);
     }
 
-    /*//if you want HESCA to perform CV.
+    /*//if you want CAWPE to perform CV.
     public void setPerformCV(boolean b) {
         hesca.setPerformCV(b);
     }*/

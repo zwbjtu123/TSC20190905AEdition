@@ -4,7 +4,6 @@ package vector_classifiers;
 import development.CollateResults;
 import development.DataSets;
 import static development.Experiments.singleClassifierAndFoldTrainTestSplit;
-import development.MultipleClassifierEvaluation;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -12,42 +11,40 @@ import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
-import java.util.TreeSet;
 import timeseriesweka.classifiers.ensembles.EnsembleModule;
-import timeseriesweka.classifiers.ensembles.voting.MajorityConfidence;
 import timeseriesweka.classifiers.ensembles.voting.MajorityVote;
 import timeseriesweka.classifiers.ensembles.weightings.EqualWeighting;
 import utilities.ClassifierResults;
 import utilities.ClassifierTools;
 import utilities.InstanceTools;
-import vector_classifiers.weightedvoters.HESCA_MajorityVote;
 import weka.core.Instances;
 
 /**
  * Implementation of ensemble selection
  * 
- * @inproceedings{caruana2004ensemble,
-    title={Ensemble selection from libraries of models},
-    author={Caruana, Rich and Niculescu-Mizil, Alexandru and Crew, Geoff and Ksikes, Alex},
-    booktitle={Proceedings of the twenty-first international conference on Machine learning},
-    pages={18},
-    year={2004},
-    organization={ACM}
-  }
+ *  @inproceedings{caruana2004ensemble,
+ *    title={Ensemble selection from libraries of models},
+ *    author={Caruana, Rich and Niculescu-Mizil, Alexandru and Crew, Geoff and Ksikes, Alex},
+ *    booktitle={Proceedings of the twenty-first international conference on Machine learning},
+ *    pages={18},
+ *    year={2004},
+ *    organization={ACM}
+ *  }
  * 
  * 
  * Built on top of hesca for it's classifierresults file building/handling capabilities.
  * In this relatively naive implementation, the ensemble after build classifier still actually has the entire library in it,
  * however one or more of the models may have a (PRIOR) weighting of 0
- * For the purposes we will be using this for (with something on the order of a few dozen classifiers) this will work fine 
+ * For the purposes we will be using this for (with something on the order of a couple dozen classifiers at most) this will work fine 
  * in terms of runtime etc. 
  * 
- * However in the future refactors for optimisation purposes may occur if e.g we intend to handle much larger libraries
+ * However in the future refactors for optimisation purposes may occur if e.g we intend to handle much larger libraries (e.g, ensembling 
+ * over large para-space searched results)
  * 
  * 
  * @author James Large (james.large@uea.ac.uk)
  */
-public class EnsembleSelection extends HESCA {
+public class EnsembleSelection extends CAWPE {
     
 //    Integer numBags = null; //default 2 * floor(log(sizeOfLibrary)), i.e 22 classifiers gives 8 bags. Paper says 20 bags from 2000 models, so definitely seems fair
     Integer numBags = null; //default 10. Paper says 20 bags from 2000 models, so definitely seems fair
@@ -164,7 +161,7 @@ public class EnsembleSelection extends HESCA {
         if (propOfModelsInEachBag == null)
             propOfModelsInEachBag = .5;
         if (numOfTopModelsToInitialiseBagWith == null)
-            numOfTopModelsToInitialiseBagWith = 2; // log(sizeOfBag) ? 
+            numOfTopModelsToInitialiseBagWith = 1; // log(sizeOfBag) ? 
         
         int numModelsInEachBag = Math.max(1, (int)Math.round(propOfModelsInEachBag * modules.length));
         
@@ -265,8 +262,7 @@ public class EnsembleSelection extends HESCA {
     }
     
     public List<EnsembleModule> sample(final EnsembleModule[] pool, int numToPick) {
-        
-        //urgh...
+        //todo refactor...
         LinkedList<EnsembleModule> pooll = new LinkedList<>();
         for (EnsembleModule module : pool)
             pooll.add(module);
@@ -277,18 +273,7 @@ public class EnsembleSelection extends HESCA {
             int toRemove = rng.nextInt(pooll.size());
             res.add(pooll.remove(toRemove));
         }
-            
-        
         return res;
-        
-//        TreeSet<EnsembleModule> picked = new TreeSet<>(new SortByTrainAcc());
-//        
-//        int numPicked = 0;
-//        while (numPicked < numToPick)
-//            if (picked.add(pool[rng.nextInt(pool.length)])) 
-//                numPicked++;
-//        
-//        return Arrays.asList(picked.toArray(new EnsembleModule[] { })); //todo refactor...
     }
     
     public static class SortByTrainAcc implements Comparator<EnsembleModule> {
@@ -296,7 +281,6 @@ public class EnsembleSelection extends HESCA {
         public int compare(EnsembleModule o1, EnsembleModule o2) {
             return Double.compare(o1.trainResults.acc, o2.trainResults.acc);
         }
-    
     }
     
     public ClassifierResults combinePredictions(final ClassifierResults ensembleSoFarResults, int ensembleSizeSoFar, final ClassifierResults newModelResults) throws Exception {
@@ -357,13 +341,13 @@ public class EnsembleSelection extends HESCA {
                     
                     EnsembleSelection c = new EnsembleSelection();
                     
-                    //for full kitchen sink classifier list, use defaults (init with 2 classifiers per bag)
-                    c.setClassifiers(null, PAPER_fullClassifierList, null);
+                    //for full kitchen sink classifier list, set the init # models to 2 from each bag, there's only 22 total, so 11 in each bag
+                    c.setClassifiers(null, CAWPE_bigClassifierList, null);
+                    c.setNumOfTopModelsToInitialiseBagWith(2);
                     
-                    //for just the hesca models, set the init # models to 1 from each bag, since there's only 5 total, so 3 in each bag
+                    //for just the hesca models, use default of 1
 //                    c.setClassifiers(null, PAPER_HESCA, null);
-//                    c.setClassifiers(null, HESCA_MajorityVote.HESCAplus_V4_Classifiers, null);
-//                    c.setNumOfTopModelsToInitialiseBagWith(1);
+//                    c.setClassifiers(null, CAWPE_MajorityVote.HESCAplus_V4_Classifiers, null);
                     
                     c.setBuildIndividualsFromResultsFiles(true);
                     c.setResultsFileLocationParameters(resPath, dset, fold);
@@ -377,24 +361,7 @@ public class EnsembleSelection extends HESCA {
         }
     }
     
-    public static void ana() throws Exception {
-        String dsetGroup = "UCI";
-        
-        String basePath = "C:/JamesLPHD/HESCA/"+dsetGroup+"/";
-//        String[] datasets = (new File(basePath + "Results/DTWCV/Predictions/")).list();
-        
-        new MultipleClassifierEvaluation(basePath+"XGBoostAnalysis/", dsetGroup+"ensembleselectionvshesca", 30).
-            setTestResultsOnly(true).
-//            setBuildMatlabDiagrams(true).
-//            setDatasets(dsetGroup.equals("UCI") ? development.DataSets.UCIContinuousFileNames : development.DataSets.fileNames).
-            setDatasets(basePath + dsetGroup + ".txt").
-//            readInClassifiers(new String[] { "HESCAks", "EnsembleSelectionAll22Classifiers"}, basePath+dsetGroup+"Results/").
-            readInClassifiers(new String[] { "HESCA", "EnsembleSelectionHESCAClassifiers"}, basePath+dsetGroup+"Results/").
-//            readInClassifiers(new String[] { "HESCA+", "EnsembleSelectionHESCA+Classifiers"}, basePath+dsetGroup+"Results/").
-            runComparison(); 
-    }
-    
-    public static String[] PAPER_HESCA = new String[] { 
+    public static String[] CAWPE_basic = new String[] { 
         "NN",
         "SVML",
         "C4.5",
@@ -402,7 +369,7 @@ public class EnsembleSelection extends HESCA {
         "MLP"
     };
     
-    public static String[] PAPER_fullClassifierList= new String[] { 
+    public static String[] CAWPE_bigClassifierList= new String[] { 
         //original 
         "RotFDefault", 
         "RandF",

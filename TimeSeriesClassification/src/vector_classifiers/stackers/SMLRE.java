@@ -3,7 +3,7 @@ package vector_classifiers.stackers;
 
 import timeseriesweka.classifiers.ensembles.voting.stacking.StackingOnExtendedSetOfFeatures;
 import timeseriesweka.classifiers.ensembles.weightings.EqualWeighting;
-import vector_classifiers.HESCA;
+import vector_classifiers.CAWPE;
 import vector_classifiers.MultiLinearRegression;
 
 /**
@@ -11,7 +11,7 @@ import vector_classifiers.MultiLinearRegression;
  * 
  * @author James Large (james.large@uea.ac.uk)
  */
-public class SMLRE extends HESCA{
+public class SMLRE extends CAWPE{
     public SMLRE() { 
         super(); //sets default classifiers etc 
         
