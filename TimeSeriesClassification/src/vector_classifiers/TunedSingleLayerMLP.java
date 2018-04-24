@@ -44,7 +44,7 @@ import weka.core.Instances;
  *
  * @author ajb
  */
-public class TunedMLP extends MultilayerPerceptron implements SaveParameterInfo,TrainAccuracyEstimate,SaveEachParameter,ParameterSplittable{
+public class TunedSingleLayerMLP extends MultilayerPerceptron implements SaveParameterInfo,TrainAccuracyEstimate,SaveEachParameter,ParameterSplittable{
     protected boolean tuneParameters=true;
     protected String[] paraSpace1;//number of nodes
     protected double[] paraSpace2;//LearningRate
@@ -65,7 +65,7 @@ public class TunedMLP extends MultilayerPerceptron implements SaveParameterInfo,
     protected boolean saveEachParaAcc=false;
     private static int MAX_PER_PARA=10;
     
-    public TunedMLP(){
+    public TunedSingleLayerMLP(){
         super();
         rng=new Random();
         seed=0;
@@ -236,7 +236,7 @@ public class TunedMLP extends MultilayerPerceptron implements SaveParameterInfo,
                                 }
                             }
                         }
-                        TunedMLP model = new TunedMLP();
+                        TunedSingleLayerMLP model = new TunedSingleLayerMLP();
                         model.tuneParameters(false);
                         model.findTrainAcc=false;
                         model.setHiddenLayers(p1);
@@ -420,7 +420,7 @@ this gives the option of finding one. It is inefficient
    
     public static void main(String[] args) {
 //        jamesltests();
-        TunedMLP t=new TunedMLP();
+        TunedSingleLayerMLP t=new TunedSingleLayerMLP();
         t.debug=true;
         for(int i=1;i<=1000;i++)
             t.setParametersFromIndex(i);
@@ -431,7 +431,7 @@ this gives the option of finding one. It is inefficient
             String dset = "balloons";             
            Instances all=ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\UCI Problems\\"+dset+"\\"+dset);        
             Instances[] split=InstanceTools.resampleInstances(all,1,0.5);
-                TunedMLP rf=new TunedMLP();
+                TunedSingleLayerMLP rf=new TunedSingleLayerMLP();
                 rf.debug(true);
                 rf.tuneParameters(true);
                rf.buildClassifier(split[0]);

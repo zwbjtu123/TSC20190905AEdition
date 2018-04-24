@@ -10,9 +10,9 @@ import weka.core.*;
 
 /**
  *
- * @author Aaron
+ * @author Aaron. Implementation 
  */
-public class RandomizedSphereCover extends AbstractClassifier implements Randomizable{
+public class RSC extends AbstractClassifier implements Randomizable{
     private int alpha;
     private NormalizableDistance distanceFunc;
     private TreeSet<Instance> uncoveredCases;
@@ -25,11 +25,11 @@ public class RandomizedSphereCover extends AbstractClassifier implements Randomi
 
     private boolean crossValidateAlpha=false;
     
-    public RandomizedSphereCover() {
+    public RSC() {
         crossValidate(true);
         distanceFunc = new EuclideanDistance();
     }
-    public RandomizedSphereCover(int a) {
+    public RSC(int a) {
         this.alpha = a;
         distanceFunc = new EuclideanDistance();
     }
@@ -56,11 +56,11 @@ public class RandomizedSphereCover extends AbstractClassifier implements Randomi
 // Spheres are recalculated for every single fold!            
             double bestAccuracy=0;
             int maxAlpha=inst.numInstances()/10;
-            RandomizedSphereCover r;
+            RSC r;
             int folds=10;
             for(int a=1;a<maxAlpha;a++){
 //Eval                
-               r=new RandomizedSphereCover(1);
+               r=new RSC(1);
                try{
                     Evaluation e=new Evaluation(inst);
                     e.crossValidateModel(r, inst, folds, random);

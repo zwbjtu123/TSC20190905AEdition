@@ -69,7 +69,7 @@ import vector_classifiers.SaveEachParameter;
 import weka.classifiers.trees.J48;
 import weka.classifiers.trees.RandomForest;
 import vector_classifiers.TunedRandomForest;
-import vector_classifiers.TunedMLP;
+import vector_classifiers.TunedSingleLayerMLP;
 import vector_classifiers.TunedTwoLayerMLP;
 import vector_classifiers.TunedXGBoost;
 import weka.classifiers.functions.supportVector.RBFKernel;
@@ -260,7 +260,7 @@ public static String[] laptop={
                 c= svm;
                 break;
             case "TunedSingleLayerMLP":
-                TunedMLP mlp=new TunedMLP();
+                TunedSingleLayerMLP mlp=new TunedSingleLayerMLP();
                 mlp.setParamSearch(true);
                 mlp.setTrainingTime(200);
                 mlp.setSeed(fold);

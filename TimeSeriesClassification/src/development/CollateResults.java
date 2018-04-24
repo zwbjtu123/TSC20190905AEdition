@@ -631,12 +631,12 @@ public static void basicSummaryComparisons(){
 
     
    public static void jamesStats() throws Exception{
-       MultipleClassifierEvaluation m=new MultipleClassifierEvaluation("//cmptscsvr.cmp.uea.ac.uk/ueatsc/Results/FinalisedUCIContinuousAnalysis/", "TreeVsSVM", 30);
+       MultipleClassifierEvaluation m=new MultipleClassifierEvaluation("//cmptscsvr.cmp.uea.ac.uk/ueatsc/Results/FinalisedUCIContinuousAnalysis/", "SVMvsTumedSVM", 30);
        m.setBuildMatlabDiagrams(true);
        m.setDebugPrinting(true);
        m.setUseAllStatistics();
        m.setDatasets(Arrays.copyOfRange(development.DataSets.UCIContinuousFileNames, 0, 121)); 
-       m.readInClassifiers(new String[] {"TunedRandF", "TunedRotF","TunedSVMRBF","TunedSVMPolynomial"}, "//cmptscsvr.cmp.uea.ac.uk/ueatsc/Results/FinalisedUCIContinuous/");
+       m.readInClassifiers(new String[] {"SVML","TunedSVMPolynomial"}, "//cmptscsvr.cmp.uea.ac.uk/ueatsc/Results/FinalisedUCIContinuous/");
        m.runComparison(); 
        
        
@@ -648,8 +648,8 @@ public static void basicSummaryComparisons(){
 //Next x arguments: x Classifiers to collate    
 //Next x arguments: number of numParas stored for each classifier    
     public static void main(String[] args) throws Exception {
-//        jamesStats();\\cmptscsvr.cmp.uea.ac.uk\\Results\UCIContinuous
-//       System.exit(0);
+        jamesStats();
+       System.exit(0);
         String classifier="FastDTWWrapper";
         String parameters="2";
         if(args.length>1)
