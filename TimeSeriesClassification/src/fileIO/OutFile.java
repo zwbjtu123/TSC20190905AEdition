@@ -5,22 +5,24 @@ public class OutFile{
 
 	private FileWriter fw;
 	private BufferedWriter bw;
-	private PrintWriter outFile;
+	protected PrintWriter outFile;
+        protected String name;
 	private char delimit;
 
 	public OutFile(String name)
 	{
-		try
-		{
-			fw = new FileWriter(name);
-			bw = new BufferedWriter(fw);
-			outFile = new PrintWriter(fw);
-			delimit=' ';
-		}
-		catch(IOException exception)
-		{	
-			System.err.println(exception+" File "+ name+" Not found");
-		}
+            this.name=name;
+            try
+            {
+                    fw = new FileWriter(name);
+                    bw = new BufferedWriter(fw);
+                    outFile = new PrintWriter(fw);
+                    delimit=' ';
+            }
+            catch(IOException exception)
+            {	
+                    System.err.println(exception+" File "+ name+" Not found");
+            }
 	}
 	public OutFile(String name, char delimiter)
 	{

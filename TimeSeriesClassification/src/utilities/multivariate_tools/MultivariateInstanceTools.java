@@ -363,5 +363,105 @@ public class MultivariateInstanceTools {
     public static int channelLength(Instances multiInstances){
         return channelLength(multiInstances.firstInstance());
     }
-    
+//Tony Added:
+/**
+ Converts a standard Instances into a multivariate Instances. Assumes each dimension
+ * is simply concatenated, so the first dimension is in positions 0 to length-1,
+ * second in length to 2*length-1 etc. 
+ * First check is that the number of attributes is divisible by length
+ */
+  public static Instances convertUnivariateToMultivariate(Instances flat, int length){
+      int numAtts=flat.numAttributes()-1;
+      if(numAtts%length!=0){
+          System.out.println("Error, wrong number of attributes "+numAtts+" for problem of length "+length);
+          return null;
+      }
+      int d=numAtts/length;
+      System.out.println("Number of atts ="+numAtts+" num dimensions ="+d);
+        FastVector attributes = new FastVector();
+        //construct relational attribute.#
+        Instances relationHeader = createRelationHeader(length,d);
+//                System.out.println(relationHeader);
+
+        relationHeader.setRelationName("relationalAtt");
+        Attribute relational_att = new Attribute("relationalAtt", relationHeader, length);        
+        attributes.addElement(relational_att);
+        //clone the class values over. 
+        Attribute target = flat.attribute(flat.classIndex());
+        FastVector vals = new FastVector(target.numValues());
+        for (int i = 0; i < target.numValues(); i++) {
+            vals.addElement(target.value(i));
+        }
+        attributes.addElement(new Attribute(flat.attribute(flat.classIndex()).name(), vals));       
+        Instances output = new Instances(flat.relationName(), attributes, flat.numInstances());
+        for(int i=0; i < flat.numInstances(); i++){
+            //create each row.
+            //only two attribtues, relational and class.
+            output.add(new DenseInstance(2));
+            
+            double[][] data = new double[d][length];
+            for(int j=0; j<d; j++){
+                for(int k=0; k<length; k++){                    
+                    data[j][k] = flat.get(i).value(j*d+k);
+                }
+            }            
+            //set relation for the dataset/
+            Instances relational = createRelationFrom(relationHeader, data);
+            
+            int index = output.instance(i).attribute(0).addRelation(relational);
+            output.instance(i).setValue(0, index);           
+            
+            //set class value.
+            output.instance(i).setValue(1, flat.get(i).classValue());
+        }
+        
+        output.setClassIndex(output.numAttributes()-1);
+        return output;          
+    }
+//Especially for phil :)
+  public static Instances transposeRelationalData(Instances data){
+       Instances test=data.instance(0).relationalValue(0);
+        System.out.println("Number of cases ="+data.numInstances()+" Number of dimensions ="+test.numInstances()+" number of attributes ="+test.numAttributes());
+        int d=test.numAttributes();
+        int m=test.numInstances();
+        int count=0;
+        FastVector attributes = new FastVector();
+        Instances relationHeader=MultivariateInstanceTools.createRelationHeader(m,d);
+        
+         //construct relational attribute.#
+        relationHeader.setRelationName("relationalAtt");
+        Attribute relational_att = new Attribute("relationalAtt", relationHeader, m);        
+        attributes.addElement(relational_att);
+        //clone the class values over. 
+        Attribute target = data.attribute(data.classIndex());
+        FastVector vals = new FastVector(target.numValues());
+        for (int i = 0; i < target.numValues(); i++) {
+            vals.addElement(target.value(i));
+        }
+        attributes.addElement(new Attribute(data.attribute(data.classIndex()).name(), vals));       
+        Instances output = new Instances(data.relationName(), attributes, data.numInstances());
+        for(int i=0; i < data.numInstances(); i++){
+            output.add(new DenseInstance(2));
+            double[][] raw=new double[d][m];
+            test=data.instance(i).relationalValue(0);
+            for(int j=0;j<test.numInstances();j++){
+                for(int k=0;k<test.instance(j).numAttributes();k++){
+                    raw[k][j]=test.instance(j).value(k);//6 dimensions, need to be put in
+                }
+            }
+            //set relation for the dataset/
+            Instances relational = createRelationFrom(relationHeader, raw);
+            
+            int index = output.instance(i).attribute(0).addRelation(relational);
+            output.instance(i).setValue(0, index);           
+            
+            //set class value.
+            output.instance(i).setValue(1, data.get(i).classValue());
+        }
+        output.setClassIndex(output.numAttributes()-1);
+        //System.out.println(relational);
+        return output;              
+  
+  }
+        
 }

@@ -34,6 +34,21 @@ public class DataSets {
     public static String resultsPath=path+"Results/";
     public static String uciPath=path+"UCIContinuous";
     
+//Multivariate TSC data sets  
+    static String[] mtscProblems={
+        "SpokenArabicDigits",
+        "Epilepsy",
+        "Cricket",
+        "ArticularyWordRecognition",
+        "Handwriting",
+        "BasicMotions",
+        "RacketSports",
+        "KickVsPunch",
+        "SelfRegulationSCP1",
+        "SelfRegulationSCP2",
+        "FingerMovements"
+};    
+    
   //ALL of our TSC data sets  
     //<editor-fold defaultstate="collapsed" desc="fileNames: The new 85 UCR datasets">    
 		public static String[] allFileNames={	

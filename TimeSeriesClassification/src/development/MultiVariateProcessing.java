@@ -7,8 +7,11 @@ for TSC, the basic univariate syntax is
  */
 package development;
 
+import fileIO.InFile;
 import fileIO.OutFile;
 import utilities.ClassifierTools;
+import utilities.InstanceTools;
+import utilities.multivariate_tools.MultivariateInstanceTools;
 import weka.classifiers.trees.J48;
 import weka.core.Instance;
 import weka.core.Instances;
@@ -19,10 +22,294 @@ import weka.core.Instances;
  */
 public class MultiVariateProcessing {
     
+    public static void formatPhilData(){
+        Instances multi=ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\Data\\Multivariate TSC Problems\\FinalMulti");
+        Instances trans=MultivariateInstanceTools.transposeRelationalData(multi);
+//       double[][] rawData=
+        
+        
+//        Instances temp=ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\Data\\Multivariate TSC Problems\\FinalUni");
+//        System.out.println(" Uni: num cases "+temp.numInstances()+" num atts ="+temp.numAttributes());
+//        Instances mtsc=MultivariateInstanceTools.convertUnivariateToMultivariate(temp,30);
+        OutFile out=new OutFile("C:\\Users\\ajb\\Dropbox\\Data\\Multivariate TSC Problems\\RacketSports.arff");
+        out.writeString(trans.toString());
+        Instances test=ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\Data\\Multivariate TSC Problems\\RacketSports.arff");
+        System.out.println("New data = "+test);
+        Instances[] split=InstanceTools.resampleInstances(test, 0, 0.5);
+        OutFile train=new OutFile("C:\\Users\\ajb\\Dropbox\\Data\\Multivariate TSC Problems\\RacketSports\\RacketSports_TRAIN.arff");
+        train.writeString(split[0].toString());
+        OutFile testF=new OutFile("C:\\Users\\ajb\\Dropbox\\Data\\Multivariate TSC Problems\\RacketSports\\RacketSports_TEST.arff");
+        testF.writeString(split[1].toString());
+    }
+
+    public static void summariseData(){
+        String path="C:\\Users\\ajb\\Dropbox\\Data\\Multivariate TSC Problems\\";
+        OutFile out=new OutFile("C:\\Users\\ajb\\Dropbox\\Data\\Multivariate TSC Problems\\SummaryData.csv");
+        out.writeLine("problem,numTrainCases,numTestCases,numDimensions,seriesLength,numClasses");
+        for(String prob: DataSets.mtscProblems){
+            Instances train =ClassifierTools.loadData(path+prob+"\\"+prob+"_TRAIN");
+            Instances test =ClassifierTools.loadData(path+prob+"\\"+prob+"_TEST");
+            System.out.println("PROBLEM "+prob);        
+            System.out.println("Num test instances ="+test.numInstances());
+            System.out.println("Num train instances ="+train.numInstances());
+            System.out.println("num attributes (should be 2!)="+train.numAttributes());
+            Instance temp=train.instance(0);
+            Instances x= temp.relationalValue(0);
+            System.out.println(" number of dimensions "+x.numInstances());
+            System.out.println(" number of attributes per dimension "+x.numAttributes());
+            out.writeLine(prob+","+train.numInstances()+","+test.numInstances()+","+x.numInstances()+","+x.numAttributes()+","+train.numClasses());
+
+//            System.out.println(" Object type ="+x);
+
+        }
+        
+        
+        
+    }
+//1. Format into a standard flat ARFF, then make into a multivariate problem.  BCI II data set ia  
+  public static void formatSelfRegulationSCP1() throws Exception {
+      
+    String path="C:\\Users\\ajb\\Dropbox\\Data\\BCI Competition 2\\Data Set 1a\\";
+    InFile class1=new InFile(path+"Traindata_0.txt");
+    InFile class2=new InFile(path+"Traindata_1.txt");
+    OutFile arff=new OutFile(path+"SelfRegulationSCPUni_TRAIN.arff");
     
+    int numC1=135;
+    int numC2=133;
+    int d=6;
+        int m=896;
+        
+    
+    arff.writeLine("@relation SelfRegulationSCP1");
+    for(int i=1;i<=d*m;i++)
+        arff.writeLine("@attribute att"+i+" real");
+    arff.writeLine("@attribute cortical {negativity,positivity}");
+   arff.writeLine("@data");
+     
+      for(int i=0;i<numC1;i++){
+          String line=class1.readLine();
+          String[] split=line.split("\\s+");
+          for(int j=1;j<=d*m;j++)
+              arff.writeString(split[j]+",");
+          arff.writeLine("negativity");
+          
+      }
+
+      for(int i=0;i<numC2;i++){
+          String line=class2.readLine();
+          String[] split=line.split("\\s+");
+          for(int j=1;j<=d*m;j++)
+              arff.writeString(split[j]+",");
+          arff.writeLine("positivity");
+      }
+      arff.closeFile();
+      Instances temp=ClassifierTools.loadData(path+"SelfRegulationSCP1Uni_TRAIN.arff");
+      Instances multi=MultivariateInstanceTools.convertUnivariateToMultivariate(temp,896);
+      System.out.println("Num instances "+multi.numInstances());
+      System.out.println("Num atts "+multi.numAttributes());
+      arff=new OutFile(path+"SelfRegulationSCP1_TRAIN.arff");
+      arff.writeLine(multi.toString());
+      
+        int testSize=293;   
+     InFile test=new InFile(path+"TestData.txt");
+    arff=new OutFile(path+"SelfRegulationSCP1Uni_TEST.arff");
+    arff.writeLine("@relation SelfRegulationSCP1");
+    for(int i=1;i<=d*m;i++)
+        arff.writeLine("@attribute att"+i+" real");
+    arff.writeLine("@attribute cortical {negativity,positivity}");
+   arff.writeLine("@data");
+     
+      for(int i=0;i<testSize;i++){
+          String line=test.readLine();
+          String[] split=line.split("\\s+");
+          for(int j=1;j<=d*m;j++)
+              arff.writeString(split[j]+",");
+          if(split[0].equals("0.00"))
+              arff.writeLine("negativity");
+          else
+              arff.writeLine("positivity");
+      }
+       temp=ClassifierTools.loadData(path+"SelfRegulationSCPUni_TEST.arff");
+      multi=MultivariateInstanceTools.convertUnivariateToMultivariate(temp,896);
+      System.out.println("Num instances "+multi.numInstances());
+      System.out.println("Num atts "+multi.numAttributes());
+      arff=new OutFile(path+"SelfRegulationSCP1_TEST.arff");
+      arff.writeLine(multi.toString());
+      
+    
+        
+        
+  }    
+    
+
+//1. Format into a standard flat ARFF, then make into a multivariate problem.  BCI II data set ib  
+  public static void formatSelfRegulationSCP2() throws Exception {
+      
+    String path="C:\\Users\\ajb\\Dropbox\\Data\\BCI Competition 2\\Data Set 1b\\";
+    InFile class1=new InFile(path+"Traindata_0.txt");
+    InFile class2=new InFile(path+"Traindata_1.txt");
+    OutFile arff=new OutFile(path+"SelfRegulationSCP2Uni_TRAIN.arff");
+    
+    int numC1=100;
+    int numC2=100;
+    int d=7;
+        int m=1152;
+        
+    
+    arff.writeLine("@relation SelfRegulationSCP2");
+    for(int i=1;i<=d*m;i++)
+        arff.writeLine("@attribute att"+i+" real");
+    arff.writeLine("@attribute cortical {negativity,positivity}");
+   arff.writeLine("@data");
+     
+      for(int i=0;i<numC1;i++){
+          String line=class1.readLine();
+          String[] split=line.split("\\s+");
+          for(int j=1;j<=d*m;j++)
+              arff.writeString(split[j]+",");
+          arff.writeLine("negativity");
+          
+      }
+
+      for(int i=0;i<numC2;i++){
+          String line=class2.readLine();
+          String[] split=line.split("\\s+");
+          for(int j=1;j<=d*m;j++)
+              arff.writeString(split[j]+",");
+          arff.writeLine("positivity");
+      }
+      arff.closeFile();
+      Instances temp=ClassifierTools.loadData(path+"SelfRegulationSCP2Uni_TRAIN.arff");
+      Instances multi=MultivariateInstanceTools.convertUnivariateToMultivariate(temp,m);
+      System.out.println("Num instances "+multi.numInstances());
+      System.out.println("Num atts "+multi.numAttributes());
+      arff=new OutFile(path+"SelfRegulationSCP2_TRAIN.arff");
+      arff.writeLine(multi.toString());
+      
+        int testSize=180;   
+     InFile test=new InFile(path+"TestData.txt");
+    arff=new OutFile(path+"SelfRegulationSCP2Uni_TEST.arff");
+    arff.writeLine("@relation SelfRegulationSCP2");
+    for(int i=1;i<=d*m;i++)
+        arff.writeLine("@attribute att"+i+" real");
+    arff.writeLine("@attribute cortical {negativity,positivity}");
+   arff.writeLine("@data");
+     
+      for(int i=0;i<testSize;i++){
+          String line=test.readLine();
+          String[] split=line.split("\\s+");
+          for(int j=1;j<=d*m;j++)
+              arff.writeString(split[j]+",");
+          if(split[0].equals("0.00"))
+              arff.writeLine("negativity");
+          else
+              arff.writeLine("positivity");
+      }
+       temp=ClassifierTools.loadData(path+"SelfRegulationSCP2Uni_TEST.arff");
+      multi=MultivariateInstanceTools.convertUnivariateToMultivariate(temp,m);
+      System.out.println("Num instances "+multi.numInstances());
+      System.out.println("Num atts "+multi.numAttributes());
+      arff=new OutFile(path+"SelfRegulationSCP2_TEST.arff");
+      arff.writeLine(multi.toString());
+      
+    
+        
+        
+  }    
+    
+
+//1. Format into a standard flat ARFF, then make into a multivariate problem.  BCI II data set IV 
+  public static void formatFingerMovements() throws Exception {
+      
+    String path="C:\\Users\\ajb\\Dropbox\\Data\\BCI Competition 2\\Data Set IV\\";
+    InFile train=new InFile(path+"sp1s_aa_train.txt");
+    OutFile arffTrain=new OutFile(path+"FingerMovementsUni_TRAIN.arff");
+    int d=28;
+    int m=50;
+    int trainSize=316;  
+    int testSize=100;   
+    
+    arffTrain.writeLine("@relation FingerMovements");
+    for(int i=1;i<=d*m;i++)
+        arffTrain.writeLine("@attribute att"+i+" real");
+    arffTrain.writeLine("@attribute hand {left,right}");
+    arffTrain.writeLine("@data");
+     
+      for(int i=0;i<trainSize;i++){
+          String line=train.readLine();
+          String[] split=line.split("\\s+");
+          for(int j=1;j<=d*m;j++)
+              arffTrain.writeString(split[j]+",");
+          if(split[0].equals("0.00"))
+              arffTrain.writeLine("left");
+          else
+              arffTrain.writeLine("right");
+      }
+      Instances temp=ClassifierTools.loadData(path+"FingerMovementsUni_TRAIN.arff");
+      Instances multi=MultivariateInstanceTools.convertUnivariateToMultivariate(temp,m);
+      System.out.println("Num instances "+multi.numInstances());
+      System.out.println("Num atts "+multi.numAttributes());
+      arffTrain=new OutFile(path+"FingerMovements_TRAIN.arff");
+      arffTrain.writeLine(multi.toString());
+      
+          InFile test=new InFile(path+"sp1s_aa_test.txt");
+    OutFile arffTest=new OutFile(path+"FingerMovementsUni_TEST.arff");
+      
+     arffTest.writeLine("@relation FingerMovements");
+    for(int i=1;i<=d*m;i++)
+        arffTest.writeLine("@attribute att"+i+" real");
+    arffTest.writeLine("@attribute hand {left,right}");
+    arffTest.writeLine("@data");
+     
+      for(int i=0;i<testSize;i++){
+          String line=test.readLine();
+          String[] split=line.split("\\s+");
+          for(int j=1;j<=d*m;j++)
+              arffTest.writeString(split[j]+",");
+          if(split[0].equals("0.00"))
+              arffTest.writeLine("left");
+          else
+              arffTest.writeLine("right");
+      }
+      temp=ClassifierTools.loadData(path+"FingerMovementsUni_TEST.arff");
+      multi=MultivariateInstanceTools.convertUnivariateToMultivariate(temp,m);
+      System.out.println("Num instances "+multi.numInstances());
+      System.out.println("Num atts "+multi.numAttributes());
+      arffTrain=new OutFile(path+"FingerMovements_TEST.arff");
+      arffTrain.writeLine(multi.toString());
+    
+        
+        
+  }    
+    
+  
+  public static void formatCharacterTrajectories() throws Exception {
+//#classes=  20, d=3, length=109-205, train 6600, test 2200
+
+        
+        InFile train = new InFile("");
+        InFile test = new InFile("");
+        OutFile trainarff = new OutFile("");
+        OutFile testarff = new OutFile("");
+        String line=train.readLine();
+        while(line!=null){
+//            String[] split
+            
+        }
+        
+        
+    }
+
     public static void main(String[] args) throws Exception {
+ //       formatFingerMovements();
+        //formatSelfRegulationSCP1();
+ //       formatSelfRegulationSCP2();
+        //        formatPhilData();
+        
+        summariseData();        
+
         //gettingStarted();
-        mergeEpilepsy();
+       // mergeEpilepsy();
     }
     public static void mergeEpilepsy(){
         Instances x,y,z;
