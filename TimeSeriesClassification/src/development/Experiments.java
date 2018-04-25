@@ -156,6 +156,13 @@ public static String[] laptop={
             case "MLP":
                 c=new MultilayerPerceptron();
                 break;
+            case "TwoLayerMLP":
+                TunedTwoLayerMLP twolayer=new TunedTwoLayerMLP();
+                twolayer.setParamSearch(false);
+                twolayer.setSeed(fold);
+                c= twolayer;
+                break;
+                
             case "RandFOOB":
                 c= new TunedRandomForest();
                 ((RandomForest)c).setNumTrees(500);

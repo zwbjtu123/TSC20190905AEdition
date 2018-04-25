@@ -70,6 +70,8 @@ public class TunedTwoLayerMLP extends MultilayerPerceptron implements SaveParame
         rng=new Random();
         seed=0;
         accuracy=new ArrayList<>();
+        setHiddenLayers("a,a");
+        
         
     }   
 //SaveParameterInfo    
@@ -191,7 +193,7 @@ public class TunedTwoLayerMLP extends MultilayerPerceptron implements SaveParame
 //TO DO: Write the other stats        
         return res;
     }        
-    protected final void setStandardParaSearchSpace(int m){
+    public final void setStandardParaSearchSpace(int m){
         paraSpace1=new String[8]; //# hidden layers
         paraSpace1[0]="a";// =(m_numAttributes + m_numClasses) / 2;
         paraSpace1[1]="i";//=m_numAttributes;
@@ -382,8 +384,10 @@ public class TunedTwoLayerMLP extends MultilayerPerceptron implements SaveParame
          }     
     }
 
-     @Override
+   
+    @Override
     public void buildClassifier(Instances data) throws Exception{
+        
 //        res.buildTime=System.currentTimeMillis(); //removed with cv changes  (jamesl) 
         long startTime=System.currentTimeMillis(); 
         //now calced separately from any instance on ClassifierResults, and added on at the end
@@ -455,7 +459,7 @@ this gives the option of finding one. It is inefficient
        
     }
    
-    static class ResultsHolder{
+    public static class ResultsHolder{
         String nodes;
         double lRate,mRate;
         boolean decay;

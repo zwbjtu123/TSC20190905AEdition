@@ -631,12 +631,12 @@ public static void basicSummaryComparisons(){
 
     
    public static void jamesStats() throws Exception{
-       MultipleClassifierEvaluation m=new MultipleClassifierEvaluation("//cmptscsvr.cmp.uea.ac.uk/ueatsc/Results/FinalisedUCIContinuousAnalysis/", "SVMvsTumedSVM", 30);
+       MultipleClassifierEvaluation m=new MultipleClassifierEvaluation("//cmptscsvr.cmp.uea.ac.uk/ueatsc/Results/FinalisedUCIContinuousAnalysis/", "UntunedForRotFPaper", 30);
        m.setBuildMatlabDiagrams(true);
        m.setDebugPrinting(true);
        m.setUseAllStatistics();
        m.setDatasets(Arrays.copyOfRange(development.DataSets.UCIContinuousFileNames, 0, 121)); 
-       m.readInClassifiers(new String[] {"SVML","TunedSVMPolynomial"}, "//cmptscsvr.cmp.uea.ac.uk/ueatsc/Results/FinalisedUCIContinuous/");
+       m.readInClassifiers(new String[] {"SVML","SVMQ","MLP","RandomForest","RotationForest","XGBoost"}, "//cmptscsvr.cmp.uea.ac.uk/ueatsc/Results/FinalisedUCIContinuous/");
        m.runComparison(); 
        
        
