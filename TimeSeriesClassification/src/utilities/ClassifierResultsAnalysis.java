@@ -82,6 +82,10 @@ public class ClassifierResultsAnalysis {
     public static boolean buildMatlabDiagrams = false;
     public static boolean testResultsOnly = false;
     
+    static boolean doStats = true; //the ultimate in hacks and spaghetti 
+    //brought in with buildtime compilation, turns off stat code while 
+    //making those files, thisll be cleaned up with time
+    
     protected static final Function<ClassifierResults, Double> getAccs = (ClassifierResults cr) -> {return cr.acc;};
     protected static final Function<ClassifierResults, Double> getBalAccs = (ClassifierResults cr) -> {return cr.balancedAcc;};
     protected static final Function<ClassifierResults, Double> getAUROCs = (ClassifierResults cr) -> {return cr.meanAUROC;};
@@ -92,6 +96,12 @@ public class ClassifierResultsAnalysis {
     protected static final Function<ClassifierResults, Double> getRecalls = (ClassifierResults cr) -> {return cr.recall;};
     protected static final Function<ClassifierResults, Double> getSensitivities = (ClassifierResults cr) -> {return cr.sensitivity;};
     protected static final Function<ClassifierResults, Double> getSpecificities = (ClassifierResults cr) -> {return cr.specificity;};
+    
+//    //NOTE TODO BUG CHECK: due to double precision, this cast (long to double) may end up causing problems in the future. 
+//    //if we were assume for now buildtime is no longer than a week, this won't cause problems
+//    //some post processed ensembles (e.g HIVE COTE) might break this assumption though
+//    //if the builtimes of it's members are summed
+    protected static final Function<ClassifierResults, Double> getBuildTimes = (ClassifierResults cr) -> {return (double)cr.buildTime;};
 
     private static final String testLabel = "TEST";
     private static final String trainLabel = "TRAIN";
@@ -307,36 +317,38 @@ public class ClassifierResultsAnalysis {
         dsetVals = order(dsetVals, ordering);
         stddevsFoldVals = order(stddevsFoldVals, ordering);
         
-        if (evalSet.equalsIgnoreCase("TEST")) {
-            //qol for cd dia creation, make a copy of all the raw test stat files in a common folder, one for pairwise, one for freidman
-            String cdFolder = expRootDirectory + cdDiaPath;
-            (new File(cdFolder)).mkdirs();
-            OutFile out = new OutFile(cdFolder+"readme.txt");
-            out.writeLine("remember that nlls are auto-negated now for cd dia ordering\n");
-            out.writeLine("and that basic notepad wont show the line breaks properly, view (cliques especially) in notepad++");
-            out.closeFile();
-            for (String subFolder : new String[] { pairwiseCDDiaDirectoryName, friedmanCDDiaDirectoryName }) {
-                (new File(cdFolder+subFolder+"/")).mkdirs();
-                String cdName = cdFolder+subFolder+"/"+cdFileName(filename,statName)+".csv";
-                //meta hack for qol, negate the nll (sigh...) for correct ordering on dia
-                if (statName.contains("NLL")) {
-                    double[][] negatedDsetVals = new double[dsetVals.length][dsetVals[0].length];
-                    for (int i = 0; i < dsetVals.length; i++) {
-                        for (int j = 0; j < dsetVals[i].length; j++) {
-                            negatedDsetVals[i][j] = dsetVals[i][j] * -1;
+        if (doStats) {
+            if (evalSet.equalsIgnoreCase("TEST")) {
+                //qol for cd dia creation, make a copy of all the raw test stat files in a common folder, one for pairwise, one for freidman
+                String cdFolder = expRootDirectory + cdDiaPath;
+                (new File(cdFolder)).mkdirs();
+                OutFile out = new OutFile(cdFolder+"readme.txt");
+                out.writeLine("remember that nlls are auto-negated now for cd dia ordering\n");
+                out.writeLine("and that basic notepad wont show the line breaks properly, view (cliques especially) in notepad++");
+                out.closeFile();
+                for (String subFolder : new String[] { pairwiseCDDiaDirectoryName, friedmanCDDiaDirectoryName }) {
+                    (new File(cdFolder+subFolder+"/")).mkdirs();
+                    String cdName = cdFolder+subFolder+"/"+cdFileName(filename,statName)+".csv";
+                    //meta hack for qol, negate the nll (sigh...) for correct ordering on dia
+                    if (statName.contains("NLL")) {
+                        double[][] negatedDsetVals = new double[dsetVals.length][dsetVals[0].length];
+                        for (int i = 0; i < dsetVals.length; i++) {
+                            for (int j = 0; j < dsetVals[i].length; j++) {
+                                negatedDsetVals[i][j] = dsetVals[i][j] * -1;
+                            }
                         }
-                    }
-                    writeTableFileRaw(cdName, negatedDsetVals, cnames);
-                } else {
-                    writeTableFileRaw(cdName, dsetVals, cnames);
-                } 
-            } //end qol
-            
-            //qol for pairwisescatter dia creation, make a copy of the test stat files 
-            String pwsFolder = expRootDirectory + pairwiseScatterDiaPath;
-            (new File(pwsFolder)).mkdirs();
-            String pwsName = pwsFolder+pwsFileName(filename,statName)+".csv";
-            writeTableFileRaw(pwsName, dsetVals, cnames);
+                        writeTableFileRaw(cdName, negatedDsetVals, cnames);
+                    } else {
+                        writeTableFileRaw(cdName, dsetVals, cnames);
+                    } 
+                } //end qol
+
+                //qol for pairwisescatter dia creation, make a copy of the test stat files 
+                String pwsFolder = expRootDirectory + pairwiseScatterDiaPath;
+                (new File(pwsFolder)).mkdirs();
+                String pwsName = pwsFolder+pwsFileName(filename,statName)+".csv";
+                writeTableFileRaw(pwsName, dsetVals, cnames);
+            }
         }
         
         writeTableFile(outPath+filename+"_"+evalSet+statName+"RANKS.csv", evalSet+statName+"RANKS", ranks, cnames, dsets);
@@ -345,14 +357,19 @@ public class ClassifierResultsAnalysis {
         writeTableFile(outPath+filename+"_"+evalSet+statName+"STDDEVS.csv", evalSet+statName+"STDDEVS", stddevsFoldVals, cnames, dsets);
         
         String[] groupingSummary = { "" };
-        if (dsetGroupings != null && dsetGroupings.size() != 0)
-            groupingSummary = writeDatasetGroupingsFiles(outPath, filename, evalSet, statName, foldVals, cnames, dsets, dsetGroupings);
+        if (doStats)
+            if (dsetGroupings != null && dsetGroupings.size() != 0)
+                groupingSummary = writeDatasetGroupingsFiles(outPath, filename, evalSet, statName, foldVals, cnames, dsets, dsetGroupings);
         
         
-        String[] summaryStrings = writeStatisticSummaryFile(outPath, filename, evalSet+statName, foldVals, dsetVals, ranks, stddevsFoldVals, cnames, dsets); 
+        String[] summaryStrings = {};
+        if (doStats) {
+            summaryStrings = writeStatisticSummaryFile(outPath, filename, evalSet+statName, foldVals, dsetVals, ranks, stddevsFoldVals, cnames, dsets); 
+
+            //write these even if not actually making the dias this execution
+            writeCliqueHelperFiles(expRootDirectory + cdDiaPath + pairwiseCDDiaDirectoryName, filename, statName, summaryStrings[2]); 
+        }
         
-        //write these even if not actually making the dias this execution
-        writeCliqueHelperFiles(expRootDirectory + cdDiaPath + pairwiseCDDiaDirectoryName, filename, statName, summaryStrings[2]); 
         
         //this really needs cleaning up at some point... jsut make it a list and stop circlejerking to arrays
         String[] summaryStrings2 = new String[summaryStrings.length+groupingSummary.length];
@@ -669,6 +686,36 @@ public class ClassifierResultsAnalysis {
     }
     
     /**
+     * TODO this is a quick edit in to get some buildtime info out, needs to be merged in properly 
+     * part of problem is that we want to do this *iff* train data is available
+     * other part is that buildtimes are in longs, converting to doubles can be a pain as described above
+     * at the lambda definition
+     */
+    protected static String[] writeBuildTimeFiles(String outPath, String filename, ArrayList<ClassifierEvaluation> results, String[] cnames, String[] dsets, Map<String, Map<String, String[]>> dsetGroupings) throws FileNotFoundException {
+        if (results.get(0).testResults[0][0].buildTime <= 0) { //is not present. TODO god forbid naive bayes on balloons takes less than a millisecond...
+            System.out.println("Warning: No buildTimes found, or buildtimes == 0");
+            return null;
+        }
+        
+        //future proofing the spaghetti, if dostats was already false becuase of something else
+        //we can leave it as it was.
+        boolean prevStateOfDoStats = doStats;
+        doStats = false; 
+        
+        Function<ClassifierResults, Double> stat = getBuildTimes;
+        String statName = "BuildTimes";
+        outPath += statName + "/";
+        new File(outPath).mkdirs();        
+        
+        double[][][] testFolds = getInfo(results, stat, testLabel);
+        
+        String[] res = writeStatisticOnSplitFiles(outPath, filename, null, testLabel, statName, testFolds, cnames, dsets, dsetGroupings);
+
+        doStats = prevStateOfDoStats;
+        return res;
+    }
+    
+    /**
      * for legacy code, will call the overloaded version with acc,balacc,nll,auroc as the default statisitics
      */
     public static void writeAllEvaluationFiles(String outPath, String expname, ArrayList<ClassifierEvaluation> results, String[] dsets) {  
@@ -721,11 +768,17 @@ public class ClassifierResultsAnalysis {
         
         bigSummary.closeFile();
         smallSummary.closeFile();
-        
+                
         buildResultsSpreadsheet(outPath, expname, statistics);
         
-//        if (dsetGroupings != null && dsetGroupings.size() != 0)
-//            buildDsetGroupingsSpreadsheet(outPath, expname, statistics);
+        //the hacky include of buildtime files
+        try { 
+            writeBuildTimeFiles(outPath, expname, results, cnames, dsets, dsetGroupings);
+        } catch (FileNotFoundException fnf) {
+            System.out.println("Buildtime files couldnt be made");
+            fnf.printStackTrace();
+            System.exit(0);
+        }
         
         if(buildMatlabDiagrams) {
             MatlabController proxy = MatlabController.getInstance();
