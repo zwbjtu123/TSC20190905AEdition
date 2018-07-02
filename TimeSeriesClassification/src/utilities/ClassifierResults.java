@@ -1,23 +1,27 @@
-
 package utilities;
 
 import fileIO.InFile;
 import fileIO.OutFile;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 
 /**
- * Simple container class for the results of a classifier (module) on a dataset
+ * This class has morphed over time. At it's base form, it's a simple container class for the 
+ * results of a classifier on a single resample of a dataset. 
+ * 
  * It can be used in batch mode (add them all in at once) or online (add in one at a time).
- * The former is sensible for storing training set results, the latter for test results
+ * The former is sensible for storing training set results, the latter for test results.
+ * 
+ * Supports reading/writing of results to file, in the 'classifier results file format'
+ * 
+ * Also supports the calculation of various evaluative stats based on the results (accuracy, 
+ * auroc, nll etc.) which are used in the MultipleClassifierEvaluation pipeline
  * 
  * 
- * @author James Large
+ * @author James Large (james.large@uea.ac.uk) + edits from jsut about everybody
  */
 public class ClassifierResults implements DebugPrinting {
     public long buildTime;
@@ -26,20 +30,20 @@ public class ClassifierResults implements DebugPrinting {
     private int numInstances;
     private String name;
     private String paras;
-    
+
     public double acc; 
     public double balancedAcc; 
     public double sensitivity;
     public double specificity;
     public double precision;
     public double recall;
-    
+
     public double f1; 
     public double mcc; //mathews correlation coefficient
     public double nll; //the true-class only version
     public double meanAUROC;
     public double stddev; //across cv folds
-    
+
     public double[][] confusionMatrix; //[actual class][predicted class]
     public double[] countPerClass;
 //Used to avoid infinite NLL scores when prob of true class =0 or 
@@ -47,14 +51,10 @@ public class ClassifierResults implements DebugPrinting {
     public ArrayList<Double> actualClassValues;
     public ArrayList<Double> predictedClassValues;
     public ArrayList<double[]> predictedClassProbabilities;
-    
+
     private boolean finalised = false;
     private boolean allStatsFound = false;
     
-    /**
-     * for building results one by one while testing, call finaliseResults
- to populate the ClassifierResults object once testing is finished
-     */
     public ClassifierResults() {
         actualClassValues= new ArrayList<>();
         predictedClassValues = new ArrayList<>();
@@ -67,10 +67,6 @@ public class ClassifierResults implements DebugPrinting {
         loadFromFile(filePathAndName);
     }
     
-    /**
-     * for building results one by one while testing, call finaliseResults
- to populate the ClassifierResults object once testing is finished
-     */
     public ClassifierResults(int numClasses) {
         actualClassValues= new ArrayList<>();
         predictedClassValues = new ArrayList<>();
@@ -79,7 +75,6 @@ public class ClassifierResults implements DebugPrinting {
         this.numClasses = numClasses;
         finalised = false;
     }
-    
     
     //for if we are only storing the cv accuracy in the context of SaveCVAccuracy
     public ClassifierResults(double cvacc, int numClasses) {
@@ -91,6 +86,7 @@ public class ClassifierResults implements DebugPrinting {
     
     public ClassifierResults(double acc, double[] classVals, double[] preds, double[][] distsForInsts, int numClasses) {        
         this();
+        
         for(double d:preds)
             predictedClassValues.add(d);
         this.acc = acc;
@@ -98,12 +94,11 @@ public class ClassifierResults implements DebugPrinting {
             predictedClassProbabilities.add(d);
  
         this.numClasses = numClasses;
-       for(double d:classVals)
+        for(double d:classVals)
            actualClassValues.add(d);
         this.confusionMatrix = buildConfusionMatrix();
         
         this.stddev = -1; //not defined 
-        
         finalised = true;
     }
     
@@ -164,8 +159,9 @@ public class ClassifierResults implements DebugPrinting {
         }
         return matrix;
     }
+    
     public void addAllResults(double[] classVals, double[] preds, double[][] distsForInsts, int numClasses){
-//Overwrites previous        
+        //Overwrites previous        
         actualClassValues= new ArrayList<>();
         predictedClassValues = new ArrayList<>();
         predictedClassProbabilities = new ArrayList<>();
@@ -176,14 +172,15 @@ public class ClassifierResults implements DebugPrinting {
             predictedClassProbabilities.add(d);
  
         this.numClasses = numClasses;
-       for(double d:classVals)
+        for(double d:classVals)
            actualClassValues.add(d);
         this.confusionMatrix = buildConfusionMatrix();
         
         this.stddev = -1; //not defined 
         
     }
- //Pass the probability estimates for each class, but need the true class too
+    
+    //Pass the probability estimates for each class, but need the true class too
     public void storeSingleResult(double[] dist) {        
         double max = dist[0];
         double maxInd = 0;
@@ -231,13 +228,17 @@ public class ClassifierResults implements DebugPrinting {
         double correct = .0;
         for (int inst = 0; inst < predictedClassValues.size(); inst++) {
             if (testClassVals[inst] == predictedClassValues.get(inst))
-                    ++correct;
+                ++correct;
         }
         acc = correct/testClassVals.length;
         
         finalised = true;
     }
-    public int numInstances(){ return predictedClassValues.size();}
+    
+    public int numInstances() { 
+        return predictedClassValues.size();
+    }
+    
     public double[] getTrueClassVals(){
         double[] d=new double[actualClassValues.size()];
         int i=0;
@@ -245,41 +246,45 @@ public class ClassifierResults implements DebugPrinting {
             d[i++]=x;
         return d;
     }
-   public double[] getPredClassVals(){
+    
+    public double[] getPredClassVals(){
         double[] d=new double[predictedClassValues.size()];
         int i=0;
         for(double x:predictedClassValues)
             d[i++]=x;
         return d;
     }
-   public double getPredClassValue(int index){
+    
+    public double getPredClassValue(int index){
         return predictedClassValues.get(index);
     }
-   public double getTrueClassValue(int index){
+    
+    public double getTrueClassValue(int index){
         return actualClassValues.get(index);
     }
-   public double[] getDistributionForInstance(int i){
+    
+    public double[] getDistributionForInstance(int i){
        if(i<predictedClassProbabilities.size())
             return predictedClassProbabilities.get(i);
        return null;
-   }
-   public String writeInstancePredictions(){
-       if(numInstances()>0 &&(predictedClassProbabilities.size()==actualClassValues.size()&& predictedClassProbabilities.size()==predictedClassValues.size())){
-           StringBuilder sb=new StringBuilder("");
-           for(int i=0;i<numInstances();i++){
-               sb.append(actualClassValues.get(i).intValue()).append(",");
-               sb.append(predictedClassValues.get(i).intValue()).append(",");
-               double[] probs=predictedClassProbabilities.get(i);
-               for(double d:probs)
-                   sb.append(",").append(GenericTools.RESULTS_DECIMAL_FORMAT.format(d));
-               if(i<numInstances()-1)
-                   sb.append("\n");
-           }
-           return sb.toString();
-       }
-       else
+    }
+    
+    public String writeInstancePredictions(){
+        if(numInstances()>0 &&(predictedClassProbabilities.size()==actualClassValues.size()&& predictedClassProbabilities.size()==predictedClassValues.size())){
+             StringBuilder sb=new StringBuilder("");
+            for(int i=0;i<numInstances();i++){
+                sb.append(actualClassValues.get(i).intValue()).append(",");
+                sb.append(predictedClassValues.get(i).intValue()).append(",");
+                double[] probs=predictedClassProbabilities.get(i);
+                for(double d:probs)
+                    sb.append(",").append(GenericTools.RESULTS_DECIMAL_FORMAT.format(d));
+                if(i<numInstances()-1)
+                    sb.append("\n");
+            }
+            return sb.toString();
+        }
+        else
            return "No Instance Prediction Information";
-       
    }
    
    public String writeResultsFileToString() throws IOException {                
@@ -289,58 +294,45 @@ public class ClassifierResults implements DebugPrinting {
         st.append(acc).append("\n");
   
         st.append(writeInstancePredictions());
-//        if (predictedClassValues != null) {
-//            for(int i = 0; i < predictedClassValues.size();i++) {
-//                st.append(actualClassValues.get(i)).append(",").append(predictedClassValues.get(i)).append(","); //pred
-//                
-//                double[] distForInst=getDistributionForInstance(i);
-//                if (distForInst != null)
-//                    for (int j = 0; j < distForInst.length; j++)
-//                        st.append("," + distForInst[j]);
-//
-//                st.append("\n");
-//            }
-//        }
-        
         return st.toString();
     }
    
    public void loadFromFile(String path) throws FileNotFoundException{
-       File f=new File(path);
-       if(f.exists() && f.length()>0){
-           InFile inf=new InFile(path);
-           name = inf.readLine();
-           paras= inf.readLine();
-           
-           //handle buildtime, taking it out of the generic paras string and putting 
-           //the value into the actual field
-           String[] parts = paras.split(",");
-           if (parts.length > 0 && parts[0].contains("BuildTime")) {
-               buildTime = (long)Double.parseDouble(parts[1].trim());
-                if (parts.length > 2) { //actual paras too, rebuild this string without buildtime
-                    paras = parts[2];
-                    for (int i = 3; i < parts.length; i++) {
-                        paras += "," + parts[i];
-                    }
-                }
-           }
-           
-           double testAcc=inf.readDouble();
-           String line=inf.readLine();
+        File f=new File(path);
+        if(f.exists() && f.length()>0){
+            InFile inf=new InFile(path);
+            name = inf.readLine();
+            paras= inf.readLine();
+
+            //handle buildtime, taking it out of the generic paras string and putting 
+            //the value into the actual field
+            String[] parts = paras.split(",");
+            if (parts.length > 0 && parts[0].contains("BuildTime")) {
+                buildTime = (long)Double.parseDouble(parts[1].trim());
+                 if (parts.length > 2) { //actual paras too, rebuild this string without buildtime
+                     paras = parts[2];
+                     for (int i = 3; i < parts.length; i++) {
+                         paras += "," + parts[i];
+                     }
+                 }
+            }
+
+            double testAcc=Double.parseDouble(inf.readLine());
+            String line=inf.readLine();
             actualClassValues= new ArrayList<>();
             predictedClassValues = new ArrayList<>();
             predictedClassProbabilities = new ArrayList<>();
             numInstances=0;
             acc=0;
-            
+
             boolean firstLoop = true;
-           while(line!=null && !line.equals("")){
-               String[] split=line.split(",");
-               if(split.length>3){
-//GAVIN HACK
-//                   double a=Double.valueOf(split[0])-1;
-//                    double b=Double.valueOf(split[1])-1;
-                   double a=Double.valueOf(split[0]);
+            while(line!=null && !line.equals("")){
+                String[] split=line.split(",");
+                if(split.length>3){
+ //GAVIN HACK
+ //                   double a=Double.valueOf(split[0])-1;
+ //                    double b=Double.valueOf(split[1])-1;
+                    double a=Double.valueOf(split[0]);
                     double b=Double.valueOf(split[1]);
                     actualClassValues.add(a);
                     predictedClassValues.add(b);
@@ -357,37 +349,33 @@ public class ClassifierResults implements DebugPrinting {
 //                        probs[i]=Double.valueOf(split[2+i].trim());
                           probs[i]=Double.valueOf(split[3+i].trim());
                     predictedClassProbabilities.add(probs);
-                   numInstances++;
-               }
-               else {
-                     if (firstLoop)
-                        printlnDebug("WARNING: Results file does not contain probabilities, " + path);
-                   
+                    numInstances++;
+                }
+                else {
+                    if (firstLoop)
+                       printlnDebug("WARNING: Results file does not contain probabilities, " + path);
+
                     double a=Double.valueOf(split[0]);
                     double b=Double.valueOf(split[1]);
                     actualClassValues.add(a);
                     predictedClassValues.add(b);
                     if(a==b)
-                        acc++;
-//                    double[] probs=new double[numClasses];
-//                    for(int i=0;i<probs.length;i++)
-//                          probs[i]=Double.valueOf(split[3+i].trim());
-//                    predictedClassProbabilities.add(probs);
-                    numInstances++;
-               }
-               line=inf.readLine();
-               firstLoop = false;
-           }
-           acc/=numInstances;
-           
-           finalised = true;
-       }
-       else
-           throw new FileNotFoundException("File "+path+" NOT FOUND");
+                       acc++;
+                   numInstances++;
+                }
+                line=inf.readLine();
+                firstLoop = false;
+            }
+            acc/=numInstances;
+
+            finalised = true;
+        }
+        else
+            throw new FileNotFoundException("File "+path+" NOT FOUND");
    }
 /**
  * Find: Accuracy, Balanced Accuracy, F1 (1 vs All averaged?), 
- * Sensitivity, Specificity, AUROC, negative log likelihood  
+ * Sensitivity, Specificity, AUROC, negative log likelihood, MCC
  */   
    public void findAllStats(){
        confusionMatrix=buildConfusionMatrix();
@@ -509,14 +497,14 @@ public class ClassifierResults implements DebugPrinting {
  * @return 
  */   
     public double findBalancedAcc(double[][] cm){
-       double[] accPerClass=new double[cm.length];
-       for(int i=0;i<cm.length;i++)
-           accPerClass[i]=cm[i][i]/countPerClass[i];
-       double b=accPerClass[0];
-       for(int i=1;i<cm.length;i++)
-          b+=accPerClass[i]; 
-       b/=cm.length;
-       return b;
+        double[] accPerClass=new double[cm.length];
+        for(int i=0;i<cm.length;i++)
+            accPerClass[i]=cm[i][i]/countPerClass[i];
+        double b=accPerClass[0];
+        for(int i=1;i<cm.length;i++)
+            b+=accPerClass[i]; 
+        b/=cm.length;
+        return b;
     }
  /**
   * F1: If it is a two class problem we use the minority class
@@ -657,27 +645,27 @@ base xi+1 to xi , that is, A
     } 
     
     public String writeAllStats(){
-         String str="Acc,"+acc+"\n";
-         str+="BalancedAcc,"+balancedAcc+"\n"; 
-         str+="sensitivity,"+sensitivity+"\n"; 
-         str+="precision,"+precision+"\n"; 
-         str+="recall,"+recall+"\n"; 
-         str+="specificity,"+specificity+"\n";         
-         str+="f1,"+f1+"\n"; 
-         str+="mcc,"+mcc+"\n"; 
-         str+="nll,"+nll+"\n"; 
-         str+="meanAUROC,"+meanAUROC+"\n"; 
-         str+="stddev,"+stddev+"\n"; 
-         str+="Count per class:\n";
-         for(int i=0;i<countPerClass.length;i++)
-             str+="Class "+i+","+countPerClass[i]+"\n";
-         str+="Confusion Matrix:\n";
-         for(int i=0;i<confusionMatrix.length;i++){
-             for(int j=0;j<confusionMatrix[i].length;j++)
-                 str+=confusionMatrix[i][j]+",";
-             str+="\n";
-         }
-         return str;
+        String str="Acc,"+acc+"\n";
+        str+="BalancedAcc,"+balancedAcc+"\n"; 
+        str+="sensitivity,"+sensitivity+"\n"; 
+        str+="precision,"+precision+"\n"; 
+        str+="recall,"+recall+"\n"; 
+        str+="specificity,"+specificity+"\n";         
+        str+="f1,"+f1+"\n"; 
+        str+="mcc,"+mcc+"\n"; 
+        str+="nll,"+nll+"\n"; 
+        str+="meanAUROC,"+meanAUROC+"\n"; 
+        str+="stddev,"+stddev+"\n"; 
+        str+="Count per class:\n";
+        for(int i=0;i<countPerClass.length;i++)
+            str+="Class "+i+","+countPerClass[i]+"\n";
+        str+="Confusion Matrix:\n";
+        for(int i=0;i<confusionMatrix.length;i++){
+            for(int j=0;j<confusionMatrix[i].length;j++)
+                str+=confusionMatrix[i][j]+",";
+            str+="\n";
+        }
+        return str;
     }
    
     boolean hasInstanceData(){ return numInstances()!=0;}

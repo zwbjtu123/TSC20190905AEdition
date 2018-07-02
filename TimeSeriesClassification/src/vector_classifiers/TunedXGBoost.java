@@ -686,6 +686,11 @@ public class TunedXGBoost extends AbstractClassifier implements SaveParameterInf
     
     
     public static void main(String[] args) throws Exception {
+//        StringBuilder sb = new StringBuilder();
+//        listInvalidFiles("Z:\\Results\\TunedXGBoost\\Predictions\\",sb);
+//        System.out.println(sb.toString());
+//        System.exit(0);
+        
 //        TunedXGBoost xg = new TunedXGBoost();
 //        xg.setDebugPrinting(true);
 //        for (int i = 1; i <= 625; i++) {
@@ -713,7 +718,8 @@ public class TunedXGBoost extends AbstractClassifier implements SaveParameterInf
         int numFolds = 30;
         if (args.length > 1)
             numFolds = Integer.parseInt(args[1]);
-        uciexps(ind, numFolds);
+        uciexpsIncomps(ind, numFolds);
+//        uciexps(ind, numFolds);
         
 //        int[] maxFoldsThresholds = new int[] { 5, 10, 15, 20, 25, 30 };
 //        
@@ -735,6 +741,7 @@ public class TunedXGBoost extends AbstractClassifier implements SaveParameterInf
     
     public static void uciexps(int ind, int nFolds) throws Exception {
 //        String[] dsets = DataSets.UCIContinuousFileNames;
+
         String[] dsets = {
             "abalone",
             "acute-inflammation",
@@ -863,6 +870,85 @@ public class TunedXGBoost extends AbstractClassifier implements SaveParameterInf
         for (int fold = 0; fold < nFolds; fold++) { 
             for (int dset = ind*dsetInc; dset < (ind+1)*dsetInc && dset < dsets.length; dset++) {
                 Experiments.main(new String[] { "Z:/Data/UCIContinuous/", "Z:/Results/", "true", "TunedXGBoost", dsets[dset], ""+(fold+1), "true"});
+            }
+        }
+    }
+    
+    public static void listInvalidFiles(String base, StringBuilder sb){     
+        File[] files = (new File(base)).listFiles();
+        if (files.length == 0)
+            return;
+        
+        for (File file : files) {
+            if (file.isDirectory())
+                listInvalidFiles(base + file.getName(), sb);
+            else {
+                try {
+                    new ClassifierResults(file.getAbsolutePath());
+                }catch (Exception e) {
+                    System.out.println(file.getAbsolutePath());
+//                    sb.append(file.getAbsolutePath()).append("\n");
+                }
+            }
+        } 
+    }
+    
+    public static void uciexpsIncomps(int ind, int nFolds) throws Exception {
+//        String[] dsets = DataSets.UCIContinuousFileNames;
+
+        String[] dsets = {
+            "abalone",
+            "acute-inflammation",
+            "acute-nephritis",
+            "annealing",
+            "arrhythmia",
+            "audiology-std",
+            "balance-scale",
+            "balloons",
+            "bank",
+            "blood",
+            "breast-cancer",
+            "haberman-survival",
+            "ionosphere",
+            "iris",
+            "led-display",
+            "lenses",
+            "letter",
+            "libras",
+            "low-res-spect",
+            "lung-cancer",
+            "lymphography",
+            "mammographic",
+            "pendigits",
+            "statlog-shuttle",
+            "waveform",
+            "waveform-noise",
+            "wine",
+            "wine-quality-red",
+            "wine-quality-white",
+            "yeast",
+            "zoo",
+        };
+        
+        List<String> individualDsets = Arrays.asList(
+            "connect-4"
+        );
+        
+        if (ind > 2) {
+            ind-=3;
+            int dsetInc = (int)Math.ceil(dsets.length / (numPCs-3));
+
+            //java -jar -Xmx${max_memory}m ${jarFile}.jar ${dataDir} ${resultsDir} ${generateTrainFiles} ${classifier} ${dataset} \$LSB_JOBINDEX ${checkpoint}" > tempexp2.bsub
+            for (int fold = 0; fold < nFolds; fold++) { 
+                for (int dset = ind*dsetInc; dset < (ind+1)*dsetInc && dset < dsets.length; dset++) {
+                    Experiments.main(new String[] { "Z:/Data/UCIContinuous/", "Z:/Results/", "true", "TunedXGBoost", dsets[dset], ""+(fold+1), "true"});
+                }
+            }
+        }
+        else {
+            int start = 9 + (7 * ind);
+            for (int fold = start; fold < start+7; fold++) { 
+                Experiments.main(new String[] { "Z:/Data/UCIContinuous/", "Z:/Results/", "true", "TunedXGBoost", individualDsets.get(0), ""+(fold+1), "true"});
             }
         }
     }

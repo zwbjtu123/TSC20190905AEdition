@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import statistics.tests.TwoSampleTests;
 import utilities.ClassifierResults;
 import utilities.ClassifierTools;
@@ -77,7 +78,7 @@ public class FilteringEvaluations {
         "MoteStrain", // 20,1252,84,2
         "OliveOil", // 30,30,570,4
         "OSULeaf", // 200,242,427,6
-        "PhalangesOutlinesCorrect", // 1800,858,80,2
+//        "PhalangesOutlinesCorrect", // 1800,858,80,2      ED SIEVE DID NOT HAVE THIS INCLUDED, SO JUST DROPPING IT 
         "Phoneme",//1896,214, 1024
         "Plane", // 105,105,144,7
         "ProximalPhalanxOutlineCorrect", // 600,291,80,2
@@ -111,10 +112,18 @@ public class FilteringEvaluations {
     };   
     
     public static void main(String[] args) throws Exception {
+//        extractDefaultParaResults();
+//        defaultParameterComparisonPerClassifier();
+//        tunedParameterComparisonPerClassifier();
+//        extractFilterParameterSelectionsFromOptimisedFoldFiles();
+
+        
+        tunedParameterComparisonPerClassifier_WITHOUT_NO_SMOOTHING_OPTION();
+                
 //        selectFilterParametersAndWriteResults();
-        selectFilterAndWriteResults();
-        extractFilterParameterSelectionsFromOptimisedFoldFiles();
-        whatIfWeJustEnsembleOverOptimisedFilters();
+//        selectFilterAndWriteResults();
+//        extractFilterParameterSelectionsFromOptimisedFoldFiles();
+//        whatIfWeJustEnsembleOverOptimisedFilters();
 //        performStandardClassifierComparisonWithFilteredAndUnfilteredDatasets();
 
         
@@ -186,6 +195,260 @@ public class FilteringEvaluations {
 //            mce.readInClassifier(baseClassifier + filters[i], baseResultsPath + filterResultsFolders[i]);
         
         mce.runComparison(); 
+    }
+    
+    
+    public static void defaultParameterComparisonPerClassifier() throws Exception { 
+        //note atm the matlab proxy will disconnect itself after the first run in the loop
+        //just run one at a time mb 
+        for (String classifier : new String [] { 
+            "ED", 
+//            "DTWCV", 
+//            "RotF" 
+        }) { 
+            String expName = classifier+"vs"+classifier+"WithDefaultFilters";
+    //        String expName = "RotFvsRotFwith(DFT_EXP_SG)vsRotFFilterANDParaSelected";
+
+            String basePath = "C:/JamesLPHD/TSC_Smoothing/";
+            String analysisPath = basePath + "Analysis/";
+            String baseResultsPath = basePath + "Results/";
+            String unfilteredResultsPath = baseResultsPath + "TSC_Unfiltered/";     
+            String[] filterSuffixes = { 
+                //(unfiltered),
+                "-DFT_1-", 
+                "-EXP_5-", 
+                "-SG_d0_n2_m5-", 
+                "-MA_5-",
+                "-Gauss_5-",
+                "_Sieved_5th"
+            }; 
+            
+            String[] cleanFilterNames = {
+                //(unfiltered),
+                "-DFT", 
+                "-EXP", 
+                "-SG", 
+                "-MA",
+                "-GF",
+                "-SIV"
+            };
+            
+
+            MultipleClassifierEvaluation mce = new MultipleClassifierEvaluation(analysisPath, expName, 10);
+            mce.setBuildMatlabDiagrams(true);
+    //            setUseAllStatistics().
+            mce.setDatasets(UCRDsetsNoPigs);
+
+//            mce.setPerformPostHocDsetResultsClustering(true);
+//            mce.addAllDatasetGroupingsInDirectory("Z:/Data/DatasetGroupings/UCRUEAGroupings_77Dsets_Nonpigs/");
+
+            mce.readInClassifier(classifier, unfilteredResultsPath);
+            for (int i = 0; i < filterSuffixes.length; i++)
+                mce.readInClassifier(classifier + filterSuffixes[i], classifier + cleanFilterNames[i], baseResultsPath + "DefaultParaResults/");
+            mce.runComparison(); 
+        }
+    }    
+    
+    
+    public static void tunedParameterComparisonPerClassifier() throws Exception { 
+        //note atm the matlab proxy will disconnect itself after the first run in the loop
+        //just run one at a time mb 
+        for (String classifier : new String [] { 
+                "ED", 
+//                "DTWCV", 
+//                "RotF" 
+        }) { 
+            String expName = classifier+"vs"+classifier+"WithTunedFilters";
+    //        String expName = "RotFvsRotFwith(DFT_EXP_SG)vsRotFFilterANDParaSelected";
+
+            String basePath = "C:/JamesLPHD/TSC_Smoothing/";
+            String analysisPath = basePath + "Analysis/";
+            String baseResultsPath = basePath + "Results/";
+            String unfilteredResultsPath = baseResultsPath + "TSC_Unfiltered/";     
+            String[] filterSuffixes = { 
+                //(unfiltered),
+                "_DFTFiltered", 
+                "_EXPFiltered", 
+                "_SGFiltered", 
+                "_MAFiltered",
+                "_GFiltered",
+                "_Sieved"
+            }; 
+            String[] cleanFilterNames = {
+                //(unfiltered),
+                "-DFT", 
+                "-EXP", 
+                "-SG", 
+                "-MA",
+                "-GF",
+                "-SIV"
+            };
+            
+
+            MultipleClassifierEvaluation mce = new MultipleClassifierEvaluation(analysisPath, expName, 10);
+            mce.setBuildMatlabDiagrams(true);
+    //            setUseAllStatistics().
+            mce.setDatasets(UCRDsetsNoPigs);
+
+            mce.setPerformPostHocDsetResultsClustering(true);
+            mce.addAllDatasetGroupingsInDirectory("Z:/Data/DatasetGroupings/UCRUEAGroupings_76Dsets_Nonpigs_NoPhalanges/");
+
+            mce.setUseAccuracyOnly();
+
+            mce.readInClassifier(classifier, unfilteredResultsPath);
+            for (int i = 0; i < filterSuffixes.length; i++)
+                mce.readInClassifier(classifier + filterSuffixes[i], classifier + cleanFilterNames[i], baseResultsPath + "FilterTuned/");
+
+            mce.runComparison(); 
+        }
+    }    
+    public static void tunedParameterComparisonPerClassifier_WITHOUT_NO_SMOOTHING_OPTION() throws Exception { 
+        //note atm the matlab proxy will disconnect itself after the first run in the loop
+        //just run one at a time mb 
+        for (String classifier : new String [] { 
+                "ED", 
+//                "DTWCV", 
+//                "RotF" 
+        }) { 
+            String expName = classifier+"vs"+classifier+"WithTunedFilters_No'None'Option";
+    //        String expName = "RotFvsRotFwith(DFT_EXP_SG)vsRotFFilterANDParaSelected";
+
+            String basePath = "C:/JamesLPHD/TSC_Smoothing/";
+            String analysisPath = basePath + "Analysis/";
+            String baseResultsPath = basePath + "Results/";
+//            String unfilteredResultsPath = baseResultsPath + "TSC_Unfiltered/";     
+            String[] filterSuffixes = { 
+                "_DFTFiltered_No'None'Option",
+                "_EXPFiltered_No'None'Option",
+                "_SGFiltered_No'None'Option", 
+                "_MAFiltered_No'None'Option", 
+                "_GFiltered_No'None'Option", 
+                "_Sieved_No'None'Option"  
+            }; 
+            String[] cleanFilterNames = {
+                //(unfiltered),
+                "-DFT", 
+                "-EXP", 
+                "-SG", 
+                "-MA",
+                "-GF",
+                "-SIV"
+            };
+            
+
+            MultipleClassifierEvaluation mce = new MultipleClassifierEvaluation(analysisPath, expName, 10);
+            mce.setBuildMatlabDiagrams(true);
+    //            setUseAllStatistics().
+            mce.setDatasets(UCRDsetsNoPigs);
+
+//            mce.setPerformPostHocDsetResultsClustering(true);
+//            mce.addAllDatasetGroupingsInDirectory("Z:/Data/DatasetGroupings/UCRUEAGroupings_77Dsets_Nonpigs/");
+
+            mce.setUseAccuracyOnly();
+
+//            mce.readInClassifier(classifier, unfilteredResultsPath);
+            for (int i = 0; i < filterSuffixes.length; i++)
+                mce.readInClassifier(classifier + filterSuffixes[i], classifier + cleanFilterNames[i], baseResultsPath + "FilterTunedNo'None'Filter/");
+
+            mce.runComparison(); 
+        }
+    }    
+    
+    public static void extractDefaultParaResults() throws Exception {
+        String baseReadPath = "C:/JamesLPHD/TSC_Smoothing/Results/";
+        String baseWritePath = "C:/JamesLPHD/TSC_Smoothing/Results/DefaultParaResults/";
+//        String baseReadPath = "Z:/Results/SmoothingExperiments/";
+        String[] baseDatasets = UCRDsetsNoPigs;
+//        String[] baseDatasets = new String[] { "Worms" };
+        int numBaseDatasets = baseDatasets.length;
+        int numFolds = 10;
+        
+//        String unfilteredResultsPath = "TSC_Unfiltered";
+//        String unfilteredReadPath = baseReadPath + unfilteredResultsPath + "/";
+        
+    
+        //TODO. THE PARA NUMBERS SUFFIXED TO THE DATASETS ARE UNEVEN, AND I DON'T KNOW THE FUNCTION 
+        //THERE ARE 15 PARAS PER DATASET THOUGH, SO FOR NOW, JUST TAKING THE 5TH PARA FOR EACH DATASET
+        //WHATEVER THAT IS
+        final int SIEVE_PARA_NUMBER = 5;
+
+
+        String[] filterSuffixes = { 
+//            "-DFT_1-", 
+//            "-EXP_5-", 
+//            "-SG_d0_n2_m5-", 
+//            "-MA_5-",
+//            "-Gauss_5-",
+            "_Sieved_" + SIEVE_PARA_NUMBER + "th"
+        }; 
+        String[] filterResultsPaths = { 
+//            baseReadPath+"TSC_FFT_zeroed/",
+//            baseReadPath+"TSC_Exponential/", 
+//            baseReadPath+"TSC_SavitzkyGolay/",  
+//            baseReadPath+"TSCProblems_MovingAverage/", 
+//            baseReadPath+"TSCProblems_Gaussian/", 
+            "Z:/Results/SmoothingExperiments/TSC_Sieved/"
+        }; 
+        
+        for (String classifier : new String [] { "ED", "DTWCV", "RotF" }) { 
+            for (int filterid = 0; filterid < filterResultsPaths.length; filterid++) {
+                String classifierName = classifier + filterSuffixes[filterid];
+                String classifierTargetDir = baseWritePath+classifierName+"/Predictions/";
+                (new File(classifierTargetDir)).mkdirs();
+                
+                String classifierSourceDir = filterResultsPaths[filterid] + classifier + "/Predictions/";
+                
+                for (int dset = 0; dset < numBaseDatasets; dset++) {
+                    String baseDset = baseDatasets[dset];
+
+                    String datasetTargetDir = classifierTargetDir+baseDset+"/";
+                    (new File(datasetTargetDir)).mkdirs();
+                    
+                    String datasetSourceDir = "";
+                    if (filterSuffixes[filterid].contains("Sieved"))
+                        try {
+                            datasetSourceDir = classifierSourceDir + baseDset + getSieveDefaultPara(classifierSourceDir,baseDset,SIEVE_PARA_NUMBER) + "/";
+                        }catch(Exception e) {
+                            System.out.println(baseDset);
+                            continue;
+                        }
+                    else
+                        datasetSourceDir = classifierSourceDir + baseDset + filterSuffixes[filterid] + "/";
+                    
+                    for (int fold = 0; fold < numFolds; fold++) {
+                        for (String split : new String[] { "train", "test" }) {
+                            String fname = split+"Fold"+fold+".csv";
+                            
+                            File sourceFile = new File(datasetSourceDir + fname);
+                            File targetFile = new File(datasetTargetDir + fname);
+                            Files.copy(sourceFile.toPath(), targetFile.toPath());
+                        }
+                        
+                    }
+                }   
+            }
+        }
+        
+    }
+
+    public static String getSieveDefaultPara(String folder, String baseDset, int paraNumberOutOf15){
+        String[] datasets = (new File(folder)).list(new FilenameFilter() {
+            @Override
+            public boolean accept(File dir, String name) {
+                //e.g CricketZ-PCA_95-     =>    CricketZ
+                //the "_" split is included jsut as future proofing. non of the datasetnames include _
+                //...he said confidently
+                return name.split("_")[0].equals(baseDset);
+            }
+        });
+        
+        ArrayList<Integer> paras = new ArrayList<>(datasets.length);
+        for (String datasetPara : datasets)
+            paras.add(Integer.parseInt(datasetPara.split("_")[2]));
+        
+        Collections.sort(paras);
+        
+        return "_Sieved_" + paras.get(paraNumberOutOf15);
     }
     
     /**
@@ -260,18 +523,19 @@ public class FilteringEvaluations {
      * to mirror a single classifier on single dataset (the chosen filtered-version)
      */
     public static  void selectFilterParametersAndWriteResults() throws Exception {
-        String baseReadPath = "C:/JamesLPHD/TSC_Smoothing/Results/";
-//        String baseReadPath = "Z:/Results/SmoothingExperiments/";
+        String baseReadPath = "Z:/Results/SmoothingExperiments/";
 //        String[] baseDatasets = DataSets.fileNames;
-        String[] baseDatasets = UCRDsetsNoPigs;
+        String[] baseDatasets = { "WordSynonyms" };//UCRDsetsNoPigs;
 //        String[] baseDatasets = new String[] { "Worms" };
         int numBaseDatasets = baseDatasets.length;
-        int numFolds = 30;
+        int numFolds = 10;
         
         String unfilteredReadPath = baseReadPath + "TSC_Unfiltered/";
+        boolean INCLUDE_NOSMOOTHING_OPTION = false;
         
-        String[] filterSuffixes = { "_GFiltered", };//  "_DFTFiltered", "_EXPFiltered", "_SGFiltered", "_PCAFiltered", "_MAFiltered"  }; //
-        String[] filterResultsPaths = { "TSCProblems_Gaussian", }; //"TSC_FFT_zeroed", "TSC_Exponential", "TSC_SavitzkyGolay", "TSCProblems_PCA_smoothed", "TSCProblems_MovingAverage" }; //
+        
+        String[] filterSuffixes = { /*"_GFiltered_No'None'Option", "_DFTFiltered_No'None'Option", "_EXPFiltered_No'None'Option", "_SGFiltered_No'None'Option", "_MAFiltered_No'None'Option",*/ "_Sieved_No'None'Option"  }; //"_PCAFiltered_No'None'Option",
+        String[] filterResultsPaths = { /*"TSCProblems_Gaussian", "TSC_FFT_zeroed", "TSC_Exponential", "TSC_SavitzkyGolay", "TSCProblems_MovingAverage",*/ "TSC_Sieved" }; //"TSCProblems_PCA_smoothed"
         
         for (int i = 0; i < filterResultsPaths.length; i++) {
             String filterReadPath = baseReadPath + filterResultsPaths[i] + "/";
@@ -285,18 +549,20 @@ public class FilteringEvaluations {
                     //COPYING BASE DATASET OVER TO FILTERED RESULTS DIRECTORY
                     File sourceLocation = new File(unfilteredReadPath + classifier + "/Predictions/" + baseDset + "/");
                     File targetLocation = new File(filterReadPath + classifier + "/Predictions/" + baseDset + "/");
-                    targetLocation.mkdirs();
-                    for (File foldFile : sourceLocation.listFiles())
-                        Files.copy(foldFile.toPath(), (new File(targetLocation.getAbsolutePath() + "/" + foldFile.getName())).toPath());
+                    if (INCLUDE_NOSMOOTHING_OPTION) {
+                        targetLocation.mkdirs();
+                        for (File foldFile : sourceLocation.listFiles())
+                            Files.copy(foldFile.toPath(), (new File(targetLocation.getAbsolutePath() + "/" + foldFile.getName())).toPath());    
+                    }
                     //END
-
 
                     for (int fold = 0; fold < numFolds; fold++) {
                         ChooseDatasetFromFile cdff = new ChooseDatasetFromFile();
                         cdff.setName(classifier + filterSuffix);
                         cdff.setClassifier(classifier);
                         cdff.setFinalRelationName(baseDset);
-                        cdff.setResultsPath(filterReadPath);
+                        cdff.setResultsPath(baseReadPath + filterResultsPaths[i] + "/");
+//                        cdff.setResultsPath(filterReadPath);
                         cdff.setFold(fold);
 
                         String[] datasets = (new File(filterReadPath + classifier + "/Predictions/")).list(new FilenameFilter() {
@@ -309,21 +575,22 @@ public class FilteringEvaluations {
                             }
                         });
                         Arrays.sort(datasets);
-                        if (!datasets[0].equals(baseDset))
-                            throw new Exception("hwut" + baseDset  +"/n" + Arrays.toString(datasets));
+                        if (INCLUDE_NOSMOOTHING_OPTION) {
+                            if (!datasets[0].equals(baseDset))
+                                throw new Exception("hwut" + baseDset  +"/n" + Arrays.toString(datasets));
+                        }
                         cdff.setRelationNames(datasets);
 
                         cdff.buildClassifier(null);
                     }
                     
-                    
                     //DELETING COPIED BASE DATASET FROM FILERED RESULTS DIRECTORY        
+                    if (INCLUDE_NOSMOOTHING_OPTION) {
                         for (File foldFile : targetLocation.listFiles())
                             foldFile.delete();
-                        targetLocation.delete();
+                        targetLocation.delete();                        
+                    }
                     //END
-
-
                 }
             }
         }
@@ -402,12 +669,13 @@ public class FilteringEvaluations {
         String baseReadPath = "C:/JamesLPHD/TSC_Smoothing/Results/";
         String[] baseDatasets = UCRDsetsNoPigs;
         int numBaseDatasets = baseDatasets.length;
-        int numFolds = 30;
+        int numFolds = 10;
         
         String unfilteredReadPath = baseReadPath + "TSC_Unfiltered/";
         
-        String[] filterSuffixes = { "_DFTFiltered", "_EXPFiltered", "_SGFiltered", "_PCAFiltered", "_MAFiltered", "_GFiltered"  }; //
-        String[] filterResultsPaths = { "TSC_FFT_zeroed", "TSC_Exponential", "TSC_SavitzkyGolay", "TSCProblems_PCA_smoothed", "TSCProblems_MovingAverage", "TSCProblems_Gaussian" }; //
+        String[] filterSuffixes = { "_DFTFiltered", "_EXPFiltered", "_SGFiltered", "_Sieved", "_MAFiltered", "_GFiltered"  }; //"_PCAFiltered"
+//        String[] filterResultsPaths = { "TSC_FFT_zeroed", "TSC_Exponential", "TSC_SavitzkyGolay", "TSCProblems_PCA_smoothed", "TSCProblems_MovingAverage", "TSCProblems_Gaussian" }; //
+        String[] filterResultsPaths = { "FilterTuned", "FilterTuned", "FilterTuned", "FilterTuned", "FilterTuned", "FilterTuned" }; //
         
         ArrayList<String> tssColumnHeaders = new ArrayList<>();
         ArrayList<String> tssRowHeaders = new ArrayList<>();
@@ -484,9 +752,9 @@ public class FilteringEvaluations {
         }
         
         //texassharpshooterstyle columns = classifier, rows = dset/fold combo as list. group columns by filter method
-        OutFile allTrainAccs = new OutFile(baseReadPath+"AllFilters_BESTTRAINACCS_TSSStyle.csv");
-        OutFile allTestAccs = new OutFile(baseReadPath+"AllFilters_TESTACCS_TSSStyle.csv");
-        OutFile allParas = new OutFile(baseReadPath+"AllFilters_PARASSELECTED_TSSStyle.csv");
+        OutFile allTrainAccs = new OutFile(baseReadPath+"FilterTuned/AllFilters_BESTTRAINACCS_TSSStyle.csv");
+        OutFile allTestAccs = new OutFile(baseReadPath+"FilterTuned/AllFilters_TESTACCS_TSSStyle.csv");
+        OutFile allParas = new OutFile(baseReadPath+"FilterTuned/AllFilters_PARASSELECTED_TSSStyle.csv");
         
         allTrainAccs.writeString("dset_fold");
         allTestAccs.writeString("dset_fold");
@@ -546,10 +814,15 @@ public class FilteringEvaluations {
         
         //e.g CricketZ-PCA_95-  =>    PCA
         String[] temp =  datasetName.split("-");
-        if (temp.length == 1)
-            return "0"; //no filtering
+        String filterTitle ="";
         
-        String filterTitle =temp[1].split("_")[0];
+        if (temp.length == 1)
+            if (datasetName.contains("Sieved"))
+                filterTitle = "Sieved";
+            else 
+                return "0"; //no filtering
+        else 
+            filterTitle =temp[1].split("_")[0];
         
         if (filterTitle.equals("PCA")) {
             //e.g CricketZ-PCA_95-            =>          0.99
@@ -576,21 +849,25 @@ public class FilteringEvaluations {
             //e.g CricketY-DFT_log2-           =>        log2
             //e.g CricketY-DFT_25-           =>        0.25
             
-            if (filterTitle.equals("log2"))
+            if (datasetName.contains("log2"))
                 return "log2";
-            if (datasetName.equals("sqrt"))
+            if (datasetName.contains("sqrt"))
                 return "sqrt";
             
             parts = datasetName.split("_");
             return "0." + parts[1].replace("-", "");
         } 
         else if (filterTitle.equals("Sieved")) {
-            return "unsupported so far";
+            //Acsf1_Sieved_1     =>     1
+            return datasetName.split("_")[2];
         } 
-//        else if (datasetName.equals("Gauss")) { 
-//            return "unsupported so far";
-//        } 
+        else if (filterTitle.equals("Gauss")) { 
+            // e.g CricketZ-Gauss_11-        =>            11
+            parts = datasetName.split("_");
+            return parts[1].replace("-", "");
+        } 
         else {
+            System.out.println("Unrecognised filter");
             return "0"; //no filtering occured
         }       
     }
