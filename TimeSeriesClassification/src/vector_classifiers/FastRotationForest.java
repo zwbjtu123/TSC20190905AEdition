@@ -78,20 +78,7 @@ public class FastRotationForest extends RandomizableIteratedSingleClassifierEnha
         
         //Make copy of data.
         trainingData = new Instances(data, 0, data.numInstances());
-        
-        //Attribute selection
-//        AttributeSelection attSelect = new AttributeSelection();
-//        ASSearch search = new IntervalForwardIterationNO();
-//        WrapperSubsetEval eval = new WrapperSubsetEval();
-//        eval.setFolds(10);
-//        eval.setClassifier(new kNN());
-//        attSelect.setEvaluator(eval);
-//        attSelect.setSearch(search);
-//        attSelect.SelectAttributes(trainingData);
-//        trainingData = attSelect.reduceDimensionality(trainingData);
-        //-------------------
-        
-        
+     
         super.buildClassifier(trainingData);
         OOBErrors = new ArrayList<>();
         bagMatrix = new boolean[m_NumIterations][trainingData.size()];

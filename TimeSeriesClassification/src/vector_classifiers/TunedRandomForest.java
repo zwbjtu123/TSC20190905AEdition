@@ -408,7 +408,7 @@ public class TunedRandomForest extends RandomForest implements SaveParameterInfo
         if(folds>data.numInstances())
             folds=data.numInstances();
         super.setSeed(seed);
-        
+        super.setNumFeatures((int)Math.sqrt(data.numAttributes()-1));
 /******* 2. Tune parameters if required: 
  * 
  * NOTE: the number of trees could be found incrementally, just start with the smallest
@@ -432,11 +432,15 @@ public class TunedRandomForest extends RandomForest implements SaveParameterInfo
         m_bagger = new EnhancedBagging();
         RandomTree rTree = new RandomTree();
         // set up the random tree options
+        
+        
         if(m_numFeatures>data.numAttributes()-1)
             m_numFeatures=data.numAttributes()-1;
         if(m_MaxDepth>data.numAttributes()-1)
             m_MaxDepth=0;
-        m_KValue = m_numFeatures;//Who knows why this is duplicated? From RandomForest
+        m_KValue = m_numFeatures;
+//the value in m_numFeatures is not actually used 
+//its only role is setting m_KValue
         rTree.setKValue(m_KValue);
         rTree.setMaxDepth(getMaxDepth());
         // set up the bagger and build the forest

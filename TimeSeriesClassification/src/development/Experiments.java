@@ -66,6 +66,7 @@ import timeseriesweka.classifiers.FastWWS.FastDTWWrapper;
 import utilities.GenericTools;
 import vector_classifiers.RotationForestBootstrap;
 import vector_classifiers.SaveEachParameter;
+import vector_classifiers.TunedMultiLayerPerceptron;
 import weka.classifiers.trees.J48;
 import weka.classifiers.trees.RandomForest;
 import vector_classifiers.TunedRandomForest;
@@ -173,14 +174,23 @@ public static String[] laptop={
                 ((TunedRandomForest)c).setDebug(debug);
                 
                 break;
-            case "RandF":
+            case "RandF": case "RandomForest": case "RandF500": case "RandomForest500":
                 c= new TunedRandomForest();
                 ((RandomForest)c).setNumTrees(500);
                 ((TunedRandomForest)c).tuneParameters(false);
                 ((TunedRandomForest)c).setCrossValidate(true);
                 ((TunedRandomForest)c).setSeed(fold);
                 break;
-            case "RotF":
+            case "RandF10000":
+                c= new TunedRandomForest();
+                ((RandomForest)c).setNumTrees(10000);
+                ((TunedRandomForest)c).tuneParameters(false);
+                ((TunedRandomForest)c).setCrossValidate(false);
+                ((TunedRandomForest)c).setSeed(fold);
+                break;
+
+
+            case "RotF": case "RotationForest": case "RotF200": case "RotationForest200":
                 c= new TunedRotationForest();
                 ((RotationForest)c).setNumIterations(200);
                 ((TunedRotationForest)c).tuneParameters(false);
@@ -278,6 +288,14 @@ public static String[] laptop={
                 mlp2.setParamSearch(true);
                 mlp2.setSeed(fold);
                 c= mlp2;
+                break;
+            case "TunedMultiLayerPerceptron":
+                TunedMultiLayerPerceptron mlp3=new TunedMultiLayerPerceptron();
+               
+                mlp3.setParamSearch(true);
+                mlp3.setSeed(fold);
+                mlp3.setTrainingTime(200);
+                c= mlp3;
                 break;
             case "RandomRotationForest1":
                 c= new RotationForestLimitedAttributes();
@@ -400,6 +418,80 @@ public static String[] laptop={
                 c = new RotationForest();
                 ((RotationForest)c).setSeed(fold);
                 return c;
+//Hacky bit for paper
+            case "RotF10": 
+                c= new TunedRotationForest();
+                ((RotationForest)c).setNumIterations(10);
+                ((TunedRotationForest)c).tuneParameters(false);
+                ((TunedRotationForest)c).setSeed(fold);
+                ((TunedRotationForest)c).estimateAccFromTrain(false);
+                break;
+            case "RotF50": 
+                c= new TunedRotationForest();
+                ((RotationForest)c).setNumIterations(50);
+                ((TunedRotationForest)c).tuneParameters(false);
+                ((TunedRotationForest)c).setSeed(fold);
+                ((TunedRotationForest)c).estimateAccFromTrain(false);
+                break;
+            case "RotF100": 
+                c= new TunedRotationForest();
+                ((RotationForest)c).setNumIterations(100);
+                ((TunedRotationForest)c).tuneParameters(false);
+                ((TunedRotationForest)c).setSeed(fold);
+                ((TunedRotationForest)c).estimateAccFromTrain(false);
+                break;
+            case "RotF150": 
+                c= new TunedRotationForest();
+                ((RotationForest)c).setNumIterations(150);
+                ((TunedRotationForest)c).tuneParameters(false);
+                ((TunedRotationForest)c).setSeed(fold);
+                ((TunedRotationForest)c).estimateAccFromTrain(false);
+                break;
+            case "RotF250": 
+                c= new TunedRotationForest();
+                ((RotationForest)c).setNumIterations(250);
+                ((TunedRotationForest)c).tuneParameters(false);
+                ((TunedRotationForest)c).setSeed(fold);
+                ((TunedRotationForest)c).estimateAccFromTrain(false);
+                break;
+            case "RotF300": 
+                c= new TunedRotationForest();
+                ((RotationForest)c).setNumIterations(300);
+                ((TunedRotationForest)c).tuneParameters(false);
+                ((TunedRotationForest)c).setSeed(fold);
+                ((TunedRotationForest)c).estimateAccFromTrain(false);
+                break;
+            case "RotF350": 
+                c= new TunedRotationForest();
+                ((RotationForest)c).setNumIterations(350);
+                ((TunedRotationForest)c).tuneParameters(false);
+                ((TunedRotationForest)c).setSeed(fold);
+                ((TunedRotationForest)c).estimateAccFromTrain(false);
+                break;
+            case "RotF400": 
+                c= new TunedRotationForest();
+                ((RotationForest)c).setNumIterations(400);
+                ((TunedRotationForest)c).tuneParameters(false);
+                ((TunedRotationForest)c).setSeed(fold);
+                ((TunedRotationForest)c).estimateAccFromTrain(false);
+                break;
+            case "RotF450": 
+                c= new TunedRotationForest();
+                ((RotationForest)c).setNumIterations(450);
+                ((TunedRotationForest)c).tuneParameters(false);
+                ((TunedRotationForest)c).setSeed(fold);
+                ((TunedRotationForest)c).estimateAccFromTrain(false);
+                break;
+            case "RotF500": 
+                c= new TunedRotationForest();
+                ((RotationForest)c).setNumIterations(450);
+                ((TunedRotationForest)c).tuneParameters(false);
+                ((TunedRotationForest)c).setSeed(fold);
+                ((TunedRotationForest)c).estimateAccFromTrain(false);
+                break;
+                
+                
+                
            default:
                 System.out.println("UNKNOWN CLASSIFIER "+classifier);
                 System.exit(0);
@@ -655,7 +747,8 @@ Optional
             f.mkdirs();
         
         //Check whether fold already exists, if so, dont do it, just quit
-        if(!CollateResults.validateSingleFoldFile(predictions+"/testFold"+fold+".csv")){
+        if(!CollateResults.validateSingleFoldFile(predictions+"/testFold"+fold+".csv"))
+        {
             Classifier c=setClassifier(classifier,fold);
             
             //Sample the dataset

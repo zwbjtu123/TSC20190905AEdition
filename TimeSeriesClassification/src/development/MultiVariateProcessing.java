@@ -41,18 +41,26 @@ public class MultiVariateProcessing {
         OutFile testF=new OutFile("C:\\Users\\ajb\\Dropbox\\Data\\Multivariate TSC Problems\\RacketSports\\RacketSports_TEST.arff");
         testF.writeString(split[1].toString());
     }
-
+    public static void splitData(String path,String prob){
+        Instances all=ClassifierTools.loadData(path+prob+"\\"+prob);
+        Instances[] split=InstanceTools.resampleInstances(all, 0, 0.5);
+        OutFile out=new OutFile(path+prob+"\\"+prob+"_TRAIN.arff");
+        out.writeLine(split[0].toString());
+         out=new OutFile(path+prob+"\\"+prob+"_TEST.arff");
+        out.writeLine(split[1].toString());
+    }
     public static void summariseData(){
-        String path="C:\\Users\\ajb\\Dropbox\\Data\\Multivariate TSC Problems\\";
-        OutFile out=new OutFile("C:\\Users\\ajb\\Dropbox\\Data\\Multivariate TSC Problems\\SummaryData.csv");
+        String path="Z:\\Data\\Multivariate TSC Problems\\";
+        OutFile out=new OutFile("Z:\\Data\\Multivariate TSC Problems\\SummaryData.csv");
         out.writeLine("problem,numTrainCases,numTestCases,numDimensions,seriesLength,numClasses");
         for(String prob: DataSets.mtscProblems){
             Instances train =ClassifierTools.loadData(path+prob+"\\"+prob+"_TRAIN");
             Instances test =ClassifierTools.loadData(path+prob+"\\"+prob+"_TEST");
             System.out.println("PROBLEM "+prob);        
-            System.out.println("Num test instances ="+test.numInstances());
             System.out.println("Num train instances ="+train.numInstances());
+            System.out.println("Num test instances ="+test.numInstances());
             System.out.println("num attributes (should be 2!)="+train.numAttributes());
+            System.out.println("num classes="+train.numClasses());
             Instance temp=train.instance(0);
             Instances x= temp.relationalValue(0);
             System.out.println(" number of dimensions "+x.numInstances());
@@ -299,14 +307,80 @@ public class MultiVariateProcessing {
         
         
     }
-
+  //BCI 3 Dataset 1
+    public static void formatMotorImagery(){
+//Each channel is on a different line in the text file.   
+//Labels in a separate text file
+        int m=3000;
+        int d=64;
+        int trainSize=278;
+        int testSize=100;
+        InFile trainCSV=new InFile("C:\\Users\\ajb\\Dropbox\\Data\\BCI Competition 3\\Data Set 1\\Competition_train_cnt.csv");
+        InFile testCSV=new InFile("C:\\Users\\ajb\\Dropbox\\Data\\BCI Competition 3\\Data Set 1\\Competition_test_cnt.csv");
+        InFile trainLabels=new InFile("C:\\Users\\ajb\\Dropbox\\Data\\BCI Competition 3\\Data Set 1\\Competition_train_lab.txt");
+        InFile testLabels=new InFile("C:\\Users\\ajb\\Dropbox\\Data\\BCI Competition 3\\Data Set 1\\Test Set Labels.txt");
+        String arffP="C:\\Users\\ajb\\Dropbox\\Data\\BCI Competition 3\\Data Set 1\\MotorImageryUni_TRAIN.arff";
+        String arffP2="C:\\Users\\ajb\\Dropbox\\Data\\BCI Competition 3\\Data Set 1\\MotorImageryUni_TEST.arff";
+        OutFile arffTrain=new OutFile(arffP);
+        arffTrain.writeLine("@relation MotorImagery");
+        for(int i=1;i<=d*m;i++)
+            arffTrain.writeLine("@attribute att"+i+" real");
+        arffTrain.writeLine("@attribute motion{finger,tongue}");
+        arffTrain.writeLine("@data");
+        for(int i=0;i<trainSize;i++){
+            for(int j=0;j<d;j++)
+                arffTrain.writeString(trainCSV.readLine()+",");
+            int label=trainLabels.readInt();
+            if(label==-1)
+                arffTrain.writeLine("finger");
+            else
+                arffTrain.writeLine("tongue");
+        }
+        arffTrain.closeFile();
+        Instances tr=ClassifierTools.loadData(arffP);
+        System.out.println("Num instances ="+tr.numInstances()+" num atts ="+tr.numAttributes());
+       Instances multi=MultivariateInstanceTools.convertUnivariateToMultivariate(tr,m);
+      System.out.println("Num instances "+multi.numInstances());
+      System.out.println("Num atts "+multi.numAttributes());
+      arffTrain=new OutFile("C:\\Users\\ajb\\Dropbox\\Data\\BCI Competition 3\\Data Set 1\\MotorImagery_TRAIN.arff");
+      arffTrain.writeLine(multi.toString());
+       
+         OutFile arffTest=new OutFile(arffP2);
+        arffTest.writeLine("@relation MotorImagery");
+        for(int i=1;i<=d*m;i++)
+            arffTest.writeLine("@attribute att"+i+" real");
+        arffTest.writeLine("@attribute motion{finger,tongue}");
+        arffTest.writeLine("@data");
+        for(int i=0;i<testSize;i++){
+            for(int j=0;j<d;j++)
+                arffTest.writeString(testCSV.readLine()+",");
+            int label=testLabels.readInt();
+            if(label==-1)
+                arffTest.writeLine("finger");
+            else
+                arffTest.writeLine("tongue");
+        }
+        arffTest.closeFile();
+        Instances te=ClassifierTools.loadData(arffP2);
+        System.out.println("Num instances ="+te.numInstances()+" num atts ="+te.numAttributes());
+        multi=MultivariateInstanceTools.convertUnivariateToMultivariate(te,m);
+      System.out.println("Num instances "+multi.numInstances());
+      System.out.println("Num atts "+multi.numAttributes());
+      arffTest=new OutFile("C:\\Users\\ajb\\Dropbox\\Data\\BCI Competition 3\\Data Set 1\\MotorImagery_TEST.arff");
+      arffTest.writeLine(multi.toString());
+        
+        
+        System.out.println("TEST Num instances ="+te.numInstances()+" num atts ="+te.numAttributes());
+       
+    }
     public static void main(String[] args) throws Exception {
+//        formatMotorImagery();
  //       formatFingerMovements();
         //formatSelfRegulationSCP1();
  //       formatSelfRegulationSCP2();
         //        formatPhilData();
-        
-        summariseData();        
+ //       splitData("\\\\cmptscsvr.cmp.uea.ac.uk\\ueatsc\\Data\\Multivariate Working Area\\Michael_Unfinalised\\","Phoneme");
+       summariseData();        
 
         //gettingStarted();
        // mergeEpilepsy();

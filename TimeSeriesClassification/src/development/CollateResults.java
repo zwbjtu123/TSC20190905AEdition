@@ -628,19 +628,95 @@ public static void basicSummaryComparisons(){
         basicSummaryComparisons();        
         
     }
+   public static void untunedVsTuned() throws Exception{
+       MultipleClassifierEvaluation m=new MultipleClassifierEvaluation("E://Results//UCI//Analysis//", "XBBoost", 5);
+       m.setBuildMatlabDiagrams(true);
+       m.setDebugPrinting(true);
+       m.setUseAllStatistics();
+       m.setDatasets(Arrays.copyOfRange(development.DataSets.UCIContinuousWithoutBigFour, 0, 117)); 
+       m.readInClassifiers(new String[] {"XGBoost"},
+               "E://Results//UCI//Untuned");
+       m.readInClassifiers(new String[] {"TunedXGBoost"}, 
+               "E://Results//UCI//Tuned");
+           m.runComparison(); 
+       
+   }
 
-    
-   public static void jamesStats() throws Exception{
-       MultipleClassifierEvaluation m=new MultipleClassifierEvaluation("//cmptscsvr.cmp.uea.ac.uk/ueatsc/Results/FinalisedUCIContinuousAnalysis/", "UntunedForRotFPaper", 30);
+   public static void collateTuned() throws Exception{
+       MultipleClassifierEvaluation m=new MultipleClassifierEvaluation("E://Results//UCI//Analysis//", "Tuned", 5);
+       m.setBuildMatlabDiagrams(true);
+       m.setDebugPrinting(true);
+       m.setUseAllStatistics();
+       m.setDatasets(Arrays.copyOfRange(development.DataSets.UCIContinuousWithoutBigFour, 0, 117)); 
+       m.readInClassifiers(new String[] {"MLP2","SVMRBF","SVMP","RandF","RotF","XGBoost"}, 
+               "E://Results/UCI/Tuned");
+       
+       
+//       m.readInClassifiers(new String[] {"TunedSVMPolynomial","TunedSVMRBF","TunedXGBoost","TunedMLP","TunedSingleLayerMLP","TunedTWoLayerMLP","TunedRandF","TunedRotF","RotF"}, 
+//               "E://Results//UCI//Tuned");
+       m.runComparison(); 
+
+       
+   }
+   public static void collateUntuned() throws Exception{
+       MultipleClassifierEvaluation m=new MultipleClassifierEvaluation(
+               "E://Results//UCI//Analysis//", "RandF10000", 30);
        m.setBuildMatlabDiagrams(true);
        m.setDebugPrinting(true);
        m.setUseAllStatistics();
        m.setDatasets(Arrays.copyOfRange(development.DataSets.UCIContinuousFileNames, 0, 121)); 
-       m.readInClassifiers(new String[] {"SVML","SVMQ","MLP","RandomForest","RotationForest","XGBoost"}, "//cmptscsvr.cmp.uea.ac.uk/ueatsc/Results/FinalisedUCIContinuous/");
-       m.runComparison(); 
        
+       m.readInClassifiers(new String[] {"RandF","RotF","RandF10000"},//"SVMRBF","UBMLP 
+               "E://Results//UCI//Untuned");
+
+       m.runComparison(); 
+
        
    }
+   public static void ucrComparison() throws Exception{
+       MultipleClassifierEvaluation m=new MultipleClassifierEvaluation("E://Results//UCR//Analysis//", "RotFvsRandF", 30);
+       m.setBuildMatlabDiagrams(true);
+       m.setDebugPrinting(true);
+       m.setUseAllStatistics();
+       m.setDatasets(Arrays.copyOfRange(development.DataSets.fileNames, 0, 85)); 
+       m.readInClassifiers(new String[] {"RotF","RandF"},"E://Results//UCR//Untuned");
+//       m.readInClassifiers(new String[] {"DTWCV"},"E://Results//UCR//Tuned");
+       m.setTestResultsOnly(true);
+           m.runComparison(); 
+       
+   }
+   public static void stucrComparison() throws Exception{
+       MultipleClassifierEvaluation m=new MultipleClassifierEvaluation("E://Results//STUCR//Analysis//", "STRotFvsRandF", 30);
+       m.setBuildMatlabDiagrams(true);
+       m.setDebugPrinting(true);
+       m.setUseAllStatistics();
+       m.setDatasets(Arrays.copyOfRange(development.DataSets.fileNames, 0, 85)); 
+       m.readInClassifiers(new String[] {"RotF","RandF","SVMQ"},"E://Results//STUCR");
+//       m.readInClassifiers(new String[] {"DTWCV"},"E://Results//UCR//Tuned");
+       m.setTestResultsOnly(true);
+           m.runComparison(); 
+       
+   }
+
+   public static void tunedVuntuned() throws Exception{
+       String classifier ="SVMRBF";
+       MultipleClassifierEvaluation m=new MultipleClassifierEvaluation("E://Results//UCI//Analysis//", classifier, 30);
+       m.setBuildMatlabDiagrams(true);
+       m.setDebugPrinting(true);
+       m.setUseAllStatistics();
+       m.setDatasets(Arrays.copyOfRange(development.DataSets.UCIContinuousFileNames, 0, 121)); 
+       m.readInClassifiers(new String[] {classifier},"E://Results//UCI//Untuned");
+       m.readInClassifiers(new String[] {"Tuned"+classifier},"E://Results//UCI//Tuned");
+               
+               
+               
+               //"//cmptscsvr.cmp.uea.ac.uk/ueatsc/Results/FinalisedUCIContinuous/");
+       m.setTestResultsOnly(true);
+           m.runComparison(); 
+       
+   }
+   
+   
     
 //First argument: String path to results directories
 //Second argument: path to directory with problem allStats to look for
@@ -648,19 +724,71 @@ public static void basicSummaryComparisons(){
 //Next x arguments: x Classifiers to collate    
 //Next x arguments: number of numParas stored for each classifier    
     public static void main(String[] args) throws Exception {
-        jamesStats();
-       System.exit(0);
-        String classifier="FastDTWWrapper";
-        String parameters="2";
+//ucrRotFvsRandFtestOnly();
+        collateUntuned();
+//       collateTuned();
+//     ucrComparison();
+//        jamesStats();
+//  reformatUBMLP();
+//ucrComparison();
+//stucrComparison();
+//BMLPtunedVuntuned();
+//untunedVsTuned();
+
+ System.exit(0);
+        String classifier="TBMLP1";
+        String parameters="1";
         if(args.length>1)
             collate(args);
         else{ 
-            String[] str={"//cmptscsvr.cmp.uea.ac.uk/ueatsc/Results/TSCProblems/","//cmptscsvr.cmp.uea.ac.uk/ueatsc/Data/TSCProblems/","1","false",classifier,parameters};
+            String[] str={"//cmptscsvr.cmp.uea.ac.uk/ueatsc/Results/FinalisedUCIContinuous/","//cmptscsvr.cmp.uea.ac.uk/ueatsc/Data/UCIContinuous/","30","false",classifier,parameters};
             
             
             collate(str);
         
         }
     }
-    
+    public static void reformatUBMLP()//Insert an extra comma
+    {
+        int folds=30;
+        String source="E:\\Results\\UCI\\Untuned\\UBMLP_OLD\\Predictions";
+        String dest="E:\\Results\\UCI\\Untuned\\UBMLP\\Predictions";
+        
+        for(String str:DataSets.UCIContinuousFileNames){
+            for(int i=0;i<folds;i++){
+                System.out.println("Formatting "+str+" fold "+i);
+                InFile infTest=new InFile(source+"/"+str+"/testFold"+i+".csv");
+                InFile infTrain=new InFile(source+"/"+str+"/trainFold"+i+".csv");
+                File out=new File(dest+"/"+str);
+                if(!out.isDirectory())
+                    out.mkdirs();
+                OutFile outfTest=new OutFile(dest+"/"+str+"/testFold"+i+".csv");
+                OutFile outfTrain=new OutFile(dest+"/"+str+"/trainFold"+i+".csv");
+                for(int j=0;j<3;j++){
+                    outfTest.writeLine(infTest.readLine());
+                    outfTrain.writeLine(infTrain.readLine());
+                }
+                String line = infTest.readLine();
+                while(line!=null){
+                    String[] split=line.split(",");
+                    outfTest.writeString(split[0]+","+split[1]+",");
+                    for(int j=2;j<split.length;j++)
+                        outfTest.writeString(","+split[j]);
+                    outfTest.writeString("\n");
+                    line = infTest.readLine();
+                }
+                 line = infTrain.readLine();
+                while(line!=null){
+                    String[] split=line.split(",");
+                    outfTrain.writeString(split[0]+","+split[1]+",");
+                    for(int j=2;j<split.length;j++)
+                        outfTrain.writeString(","+split[j]);
+                    outfTrain.writeString("\n");
+                    line = infTrain.readLine();
+                }
+            }
+                    
+        }
+        
+    }    
 }

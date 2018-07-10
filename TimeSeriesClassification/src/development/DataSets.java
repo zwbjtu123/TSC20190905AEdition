@@ -36,17 +36,29 @@ public class DataSets {
     
 //Multivariate TSC data sets  
     static String[] mtscProblems={
-        "SpokenArabicDigits",
-        "Epilepsy",
-        "Cricket",
         "ArticularyWordRecognition",
-        "Handwriting",
+        "AtrialFibrilation",
         "BasicMotions",
-        "RacketSports",
+        "CharacterTrajectories",
+        "Cricket",
+        "ECGActivities",
+        "EigenWorms",
+        "Epilepsy",
+        "ERing",
+        "FingerMovements",
+        "Handwriting",
+        "Heartbeat",
         "KickVsPunch",
+        "MotorImagery",
+        "NATOPS",
+        "PEMS-SF",
+        "Phoneme",
+        "RacketSports",
         "SelfRegulationSCP1",
         "SelfRegulationSCP2",
-        "FingerMovements"
+        "SpokenArabicDigits",
+        "UWaveGestureLibrary"
+            
 };    
     
   //ALL of our TSC data sets  
@@ -672,6 +684,12 @@ tiianic
         "connect-4","contrac","credit-approval","cylinder-bands","dermatology","echocardiogram","ecoli","energy-y1","energy-y2","fertility","flags","glass","haberman-survival","hayes-roth","heart-cleveland","heart-hungarian","heart-switzerland","heart-va","hepatitis","hill-valley","horse-colic","ilpd-indian-liver","image-segmentation","ionosphere","iris","led-display","lenses","letter","libras","low-res-spect","lung-cancer","lymphography","magic","mammographic",
         "miniboone","molec-biol-promoter","molec-biol-splice","monks-1","monks-2","monks-3","mushroom","musk-1","musk-2","nursery","oocytes_merluccius_nucleus_4d","oocytes_merluccius_states_2f","oocytes_trisopterus_nucleus_2f","oocytes_trisopterus_states_5b","optical","ozone","page-blocks","parkinsons","pendigits","pima","pittsburg-bridges-MATERIAL","pittsburg-bridges-REL-L","pittsburg-bridges-SPAN","pittsburg-bridges-T-OR-D","pittsburg-bridges-TYPE","planning","plant-margin","plant-shape","plant-texture","post-operative","primary-tumor","ringnorm","seeds","semeion","soybean","spambase","spect","spectf","statlog-australian-credit","statlog-german-credit","statlog-heart","statlog-image","statlog-landsat","statlog-shuttle","statlog-vehicle","steel-plates","synthetic-control","teaching","thyroid","tic-tac-toe","titanic","trains","twonorm","vertebral-column-2clases","vertebral-column-3clases","wall-following","waveform","waveform-noise","wine","wine-quality-red","wine-quality-white","yeast","zoo"};
 
+    public static String[] UCIContinuousWithoutBigFour={"abalone","acute-inflammation","acute-nephritis","adult","annealing","arrhythmia","audiology-std","balance-scale","balloons","bank","blood","breast-cancer","breast-cancer-wisc","breast-cancer-wisc-diag","breast-cancer-wisc-prog","breast-tissue","car","cardiotocography-10clases","cardiotocography-3clases",
+        "chess-krvkp","congressional-voting","conn-bench-sonar-mines-rocks","conn-bench-vowel-deterding",
+        "contrac","credit-approval","cylinder-bands","dermatology","echocardiogram","ecoli","energy-y1","energy-y2","fertility","flags","glass","haberman-survival","hayes-roth","heart-cleveland","heart-hungarian","heart-switzerland","heart-va","hepatitis","hill-valley","horse-colic","ilpd-indian-liver","image-segmentation","ionosphere","iris","led-display","lenses","letter","libras","low-res-spect","lung-cancer","lymphography","mammographic",
+        "molec-biol-promoter","molec-biol-splice","monks-1","monks-2","monks-3","mushroom","musk-1","musk-2","nursery","oocytes_merluccius_nucleus_4d","oocytes_merluccius_states_2f","oocytes_trisopterus_nucleus_2f","oocytes_trisopterus_states_5b","optical","ozone","page-blocks","parkinsons","pendigits","pima","pittsburg-bridges-MATERIAL","pittsburg-bridges-REL-L","pittsburg-bridges-SPAN","pittsburg-bridges-T-OR-D","pittsburg-bridges-TYPE","planning","plant-margin","plant-shape","plant-texture","post-operative","primary-tumor","ringnorm","seeds","semeion","soybean","spambase","spect","spectf","statlog-australian-credit","statlog-german-credit","statlog-heart","statlog-image","statlog-landsat","statlog-shuttle","statlog-vehicle","steel-plates","synthetic-control","teaching","thyroid","tic-tac-toe","titanic","trains","twonorm","vertebral-column-2clases","vertebral-column-3clases","wall-following","waveform","waveform-noise","wine","wine-quality-red","wine-quality-white","yeast","zoo"};
+
+ 
  
     
     
@@ -985,6 +1003,11 @@ public static void makeTable(String means, String stdDev,String outfile){
 
 
 public static void main(String[] args) throws Exception{
+    
+    problemPath="Z://Data/UCIContinuous/";
+ //   dataDescription(fileNames);
+   dataDescriptionDataNotSplit(UCIContinuousFileNames);
+    System.exit(0);
     System.out.println("Problem path ="+problemPath);
     dataDescription(allFileNames);
     for(String s: allFileNames){
@@ -993,7 +1016,6 @@ public static void main(String[] args) throws Exception{
         Instances test = ClassifierTools.loadData(problemPath+s+"/"+s+"_TEST");
         System.out.println(s+" load ok ");
     }
-    System.exit(0);
   
 //    dataDescription(uciFileNames);
 /*    for(String s:uciFileNames){

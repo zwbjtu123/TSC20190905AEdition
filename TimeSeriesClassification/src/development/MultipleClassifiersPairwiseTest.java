@@ -38,7 +38,8 @@ public class MultipleClassifiersPairwiseTest {
     static int nosProblems;
     static String[] names;
     
-    public static void loadData(String file, PrintStream out){
+/** Assumes classifier names in the first line and problem names in the first column
+ */ public static void loadData(String file, PrintStream out){
         InFile data=new InFile(file);
         nosProblems=data.countLines()-1;
         data=new InFile(file);
@@ -407,6 +408,8 @@ public class MultipleClassifiersPairwiseTest {
 //        String[] allSimulators={"WholeSeriesElastic","Interval","Shapelet","Dictionary","ARMA","All"};
 //        for(String s:allSimulators)
         String input="C:\\Users\\ajb\\Dropbox\\For Eamonn\\MPvsBenchmark.csv";
+        
+        input="C:\\Users\\ajb\\Dropbox\\Working docs\\Research\\RotF Paper\\Results Standard RotF\\Shapelet Results\\Results.csv";
 //        String input="C:\\Research\\Results\\RepoResults\\HIVE Results";
 ////
 //        input="C:\\Research\\Papers\\2017\\PKDD BOP to BOSS\\Results\\vsCNN";

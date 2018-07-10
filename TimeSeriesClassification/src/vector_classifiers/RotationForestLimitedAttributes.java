@@ -45,12 +45,8 @@ public class RotationForestLimitedAttributes extends TunedRotationForest{
     public void setMaxNumAttributes(int m){
         if(m<100)
             maxNumAttributes=m;
-        else if(m<400)
-            maxNumAttributes=m/2;
-        else
-            maxNumAttributes=m/4;
-        if(m<1)
-            maxNumAttributes=1;
+        else 
+           maxNumAttributes=(int)Math.sqrt((double)m);
     }
     @Override
     protected int [] attributesPermutation(int numAttributes, int classAttribute,
