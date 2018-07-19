@@ -7,6 +7,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Scanner;
 
 /**
  * This class has morphed over time. At it's base form, it's a simple container class for the 
@@ -300,9 +301,11 @@ public class ClassifierResults implements DebugPrinting {
    public void loadFromFile(String path) throws FileNotFoundException{
         File f=new File(path);
         if(f.exists() && f.length()>0){
-            InFile inf=new InFile(path);
-            name = inf.readLine();
-            paras= inf.readLine();
+            Scanner inf = new Scanner(new File(path));
+            
+            //InFile inf=new InFile(path);
+            name = inf.nextLine();
+            paras= inf.nextLine();
 
             //handle buildtime, taking it out of the generic paras string and putting 
             //the value into the actual field
@@ -317,8 +320,7 @@ public class ClassifierResults implements DebugPrinting {
                  }
             }
 
-            double testAcc=Double.parseDouble(inf.readLine());
-            String line=inf.readLine();
+            double testAcc=Double.parseDouble(inf.nextLine());
             actualClassValues= new ArrayList<>();
             predictedClassValues = new ArrayList<>();
             predictedClassProbabilities = new ArrayList<>();
@@ -326,7 +328,11 @@ public class ClassifierResults implements DebugPrinting {
             acc=0;
 
             boolean firstLoop = true;
-            while(line!=null && !line.equals("")){
+            while(inf.hasNext()){
+                String line=inf.nextLine();
+                if (line==null || line.equals(""))
+                    break;
+                
                 String[] split=line.split(",");
                 if(split.length>3){
  //GAVIN HACK
@@ -363,7 +369,6 @@ public class ClassifierResults implements DebugPrinting {
                        acc++;
                    numInstances++;
                 }
-                line=inf.readLine();
                 firstLoop = false;
             }
             acc/=numInstances;
