@@ -92,6 +92,7 @@ public class Experiments implements Runnable{
     static Integer parameterNum=0;
     static boolean singleFile=false;
     static boolean foldsInFile=false;
+    static boolean useBagsSampling=false;//todo is a hack for bags project experiments 
     
 public static String threadClassifier="ED";    
 public static String[] cmpv2264419={
@@ -750,38 +751,13 @@ Optional
         if(!CollateResults.validateSingleFoldFile(predictions+"/testFold"+fold+".csv"))
         {
             Classifier c=setClassifier(classifier,fold);
-            
-            //Sample the dataset
-            Instances train,test;
             Instances[] data;
-//Shapelet special case, hard coded,because all folds are pre-generated             
-            if(foldsInFile){
-                f=new File(DataSets.problemPath+problem+"/"+problem+fold+"_TRAIN.arff");
-                File f2=new File(DataSets.problemPath+problem+"/"+problem+fold+"_TEST.arff");
-                if(!f.exists()||!f2.exists())
-                    throw new Exception(" Problem files "+DataSets.problemPath+problem+"/"+problem+fold+"_TRAIN.arff not found");
-                train=ClassifierTools.loadData(DataSets.problemPath+problem+"/"+problem+fold+"_TRAIN");
-                test=ClassifierTools.loadData(DataSets.problemPath+problem+"/"+problem+fold+"_TEST");
-                data=new Instances[2];
-                data[0]=train;
-                data[1]=test;
+            if (useBagsSampling) 
+                data = ExperimentsBagsLOOCV.sampleDataset(problem, fold);
+            else 
+                data = sampleDataset(problem, fold);
+            
 
-            }
-            else{
-    //If there is a train test split, use that. Otherwise, randomly split 50/50            
-                f=new File(DataSets.problemPath+problem+"/"+problem+"_TRAIN.arff");
-                File f2=new File(DataSets.problemPath+problem+"/"+problem+"_TEST.arff");
-                if(!f.exists()||!f2.exists())
-                    singleFile=true;
-                if(singleFile){
-                    Instances all = ClassifierTools.loadData(DataSets.problemPath+problem+"/"+problem);
-                    data = InstanceTools.resampleInstances(all, fold, .5);            
-                }else{
-                    train=ClassifierTools.loadData(DataSets.problemPath+problem+"/"+problem+"_TRAIN");
-                    test=ClassifierTools.loadData(DataSets.problemPath+problem+"/"+problem+"_TEST");
-                    data=InstanceTools.resampleTrainAndTestInstances(train, test, fold);
-                }
-            }
             if(parameterNum>0 && c instanceof ParameterSplittable)//Single parameter fold
             {
                 checkpoint=false;
@@ -795,6 +771,36 @@ Optional
             double acc = singleClassifierAndFoldTrainTestSplit(data[0],data[1],c,fold,predictions);
             System.out.println("Classifier="+classifier+", Problem="+problem+", Fold="+fold+", Test Acc,"+acc);
         }
+    }
+    
+    public static Instances[] sampleDataset(String problem, int fold) throws Exception {
+        File f = null;
+        Instances[] data = new Instances[2];
+//Shapelet special case, hard coded,because all folds are pre-generated             
+        if(foldsInFile){
+            f=new File(DataSets.problemPath+problem+"/"+problem+fold+"_TRAIN.arff");
+            File f2=new File(DataSets.problemPath+problem+"/"+problem+fold+"_TEST.arff");
+            if(!f.exists()||!f2.exists())
+                throw new Exception(" Problem files "+DataSets.problemPath+problem+"/"+problem+fold+"_TRAIN.arff not found");
+            data[0]=ClassifierTools.loadData(DataSets.problemPath+problem+"/"+problem+fold+"_TRAIN");
+            data[1]=ClassifierTools.loadData(DataSets.problemPath+problem+"/"+problem+fold+"_TEST");
+        }
+        else{
+//If there is a train test split, use that. Otherwise, randomly split 50/50            
+            f=new File(DataSets.problemPath+problem+"/"+problem+"_TRAIN.arff");
+            File f2=new File(DataSets.problemPath+problem+"/"+problem+"_TEST.arff");
+            if(!f.exists()||!f2.exists())
+                singleFile=true;
+            if(singleFile){
+                Instances all = ClassifierTools.loadData(DataSets.problemPath+problem+"/"+problem);
+                data = InstanceTools.resampleInstances(all, fold, .5);            
+            }else{
+                data[0]=ClassifierTools.loadData(DataSets.problemPath+problem+"/"+problem+"_TRAIN");
+                data[1]=ClassifierTools.loadData(DataSets.problemPath+problem+"/"+problem+"_TEST");
+                data=InstanceTools.resampleTrainAndTestInstances(data[0], data[1], fold);
+            }
+        }
+        return data;
     }
 /**
  * 
