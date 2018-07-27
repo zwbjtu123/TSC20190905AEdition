@@ -21,7 +21,7 @@ public class ExperimentsBagsLOOCV {//extends Experiments {
 //            "true",
 //            "ED",
 //            "BagsTwoClassHistogramProblem",
-//            "1"
+//            "45"
 //        });
         
         
@@ -92,7 +92,7 @@ public class ExperimentsBagsLOOCV {//extends Experiments {
         //go from back to front over the inds so i dont need to worry about indices changing as i remove elements
         //but always adding to front of test insts, so that object order is maintained
         for (int i = testInds.length-1; i >= 0; i--)
-            data[1].add(0, all.remove(testInds[i]));
+            data[1].add(0, all.remove(testInds[i] - 1)); //indexing from 1 with the row ids, -1 to fix
         data[0] = all;
 
         return data;
