@@ -753,7 +753,7 @@ Optional
             Classifier c=setClassifier(classifier,fold);
             Instances[] data;
             if (useBagsSampling) 
-                data = ExperimentsBagsLOOCV.sampleDataset(problem, fold);
+                data = ExperimentsBags.sampleDataset(problem, fold);
             else 
                 data = sampleDataset(problem, fold);
             

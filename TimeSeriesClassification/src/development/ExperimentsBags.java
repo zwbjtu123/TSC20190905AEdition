@@ -6,10 +6,13 @@ import utilities.ClassifierTools;
 import weka.core.Instances;
 
 /**
- *
+ * The main experiments class for the bags project - main difference is the sampling method 
+ * which assumes a leave-one-bag-out sampling system
+ * 
+ * 
  * @author James Large (james.large@uea.ac.uk)
  */
-public class ExperimentsBagsLOOCV {//extends Experiments {
+public class ExperimentsBags {//extends Experiments {
     
     public static void main(String[] args) throws Exception{
         Experiments.useBagsSampling = true;
@@ -79,22 +82,28 @@ public class ExperimentsBagsLOOCV {//extends Experiments {
         if (fold < 0 || fold >= bagIndices.length)
             throw new Exception("[ExperimentsBagsLOOCV.sampleDataset] Given foldid greater than number of bags to sample from, fold="+fold+", numBags="+bagIndices.length);
         
-        File f = null;
         Instances[] data = new Instances[2];
+        
+        File trainFile = new File(DataSets.problemPath+problem+"/"+problem+fold+"_TRAIN.arff");
+        File testFile = new File(DataSets.problemPath+problem+"/"+problem+fold+"_TEST.arff");
+        if(trainFile.exists() && testFile.exists()) {
+            data[0] = ClassifierTools.loadData(trainFile.getAbsolutePath());
+            data[1] = ClassifierTools.loadData(testFile.getAbsolutePath());
+        }
+        else { //make the folds from the full dataset
+            int[] testInds = bagIndices[fold];
 
-        Instances all = ClassifierTools.loadData(DataSets.problemPath+problem+"/"+problem);
-        
-        int[] testInds = bagIndices[fold];
-        
-        data[1] = new Instances(all, 0);
-        
-        //todo should technically sort in descending and iterate normally
-        //go from back to front over the inds so i dont need to worry about indices changing as i remove elements
-        //but always adding to front of test insts, so that object order is maintained
-        for (int i = testInds.length-1; i >= 0; i--)
-            data[1].add(0, all.remove(testInds[i] - 1)); //indexing from 1 with the row ids, -1 to fix
-        data[0] = all;
+            Instances all = ClassifierTools.loadData(DataSets.problemPath+problem+"/"+problem);
+            data[1] = new Instances(all, 0);
 
+            //todo should technically sort in descending and iterate normally
+            //go from back to front over the inds so i dont need to worry about indices changing as i remove elements
+            //but always adding to front of test insts, so that object order is maintained
+            for (int i = testInds.length-1; i >= 0; i--)
+                data[1].add(0, all.remove(testInds[i] - 1)); //indexing from 1 with the row ids, -1 to fix
+            data[0] = all;
+        }
+            
         return data;
     }
 }
