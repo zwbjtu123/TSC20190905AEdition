@@ -774,29 +774,32 @@ Optional
     }
     
     public static Instances[] sampleDataset(String problem, int fold) throws Exception {
-        File f = null;
         Instances[] data = new Instances[2];
+        
+        File trainFile=new File(DataSets.problemPath+problem+"/"+problem+fold+"_TRAIN.arff");
+        File testFile=new File(DataSets.problemPath+problem+"/"+problem+fold+"_TEST.arff");
+        
+        foldsInFile = foldsInFile || (trainFile.exists() && testFile.exists());
+        
 //Shapelet special case, hard coded,because all folds are pre-generated             
         if(foldsInFile){
-            f=new File(DataSets.problemPath+problem+"/"+problem+fold+"_TRAIN.arff");
-            File f2=new File(DataSets.problemPath+problem+"/"+problem+fold+"_TEST.arff");
-            if(!f.exists()||!f2.exists())
+            if(!trainFile.exists()||!testFile.exists())
                 throw new Exception(" Problem files "+DataSets.problemPath+problem+"/"+problem+fold+"_TRAIN.arff not found");
             data[0]=ClassifierTools.loadData(DataSets.problemPath+problem+"/"+problem+fold+"_TRAIN");
             data[1]=ClassifierTools.loadData(DataSets.problemPath+problem+"/"+problem+fold+"_TEST");
         }
         else{
 //If there is a train test split, use that. Otherwise, randomly split 50/50            
-            f=new File(DataSets.problemPath+problem+"/"+problem+"_TRAIN.arff");
-            File f2=new File(DataSets.problemPath+problem+"/"+problem+"_TEST.arff");
-            if(!f.exists()||!f2.exists())
+            trainFile=new File(DataSets.problemPath+problem+"/"+problem+"_TRAIN.arff");
+            testFile=new File(DataSets.problemPath+problem+"/"+problem+"_TEST.arff");
+            if(!trainFile.exists()||!testFile.exists())
                 singleFile=true;
             if(singleFile){
                 Instances all = ClassifierTools.loadData(DataSets.problemPath+problem+"/"+problem);
                 data = InstanceTools.resampleInstances(all, fold, .5);            
             }else{
-                data[0]=ClassifierTools.loadData(DataSets.problemPath+problem+"/"+problem+"_TRAIN");
-                data[1]=ClassifierTools.loadData(DataSets.problemPath+problem+"/"+problem+"_TEST");
+                data[0]=ClassifierTools.loadData(trainFile.getAbsolutePath());
+                data[1]=ClassifierTools.loadData(testFile.getAbsolutePath());
                 data=InstanceTools.resampleTrainAndTestInstances(data[0], data[1], fold);
             }
         }
