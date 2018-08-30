@@ -20,6 +20,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import multivariate_timeseriesweka.classifiers.*;
 import timeseriesweka.classifiers.BOSS;
 import timeseriesweka.classifiers.BagOfPatterns;
 import timeseriesweka.classifiers.DD_DTW;
@@ -35,7 +36,7 @@ import timeseriesweka.classifiers.NN_CID;
 import timeseriesweka.classifiers.ParameterSplittable;
 import timeseriesweka.classifiers.RISE;
 import timeseriesweka.classifiers.SAXVSM;
-import timeseriesweka.classifiers.ST_HESCA;
+import timeseriesweka.classifiers.ShapeletTransformClassifier;
 import timeseriesweka.classifiers.SlowDTW_1NN;
 import timeseriesweka.classifiers.TSBF;
 import timeseriesweka.classifiers.TSF;
@@ -93,7 +94,7 @@ public class Experiments implements Runnable{
     static boolean singleFile=false;
     static boolean foldsInFile=false;
     static boolean useBagsSampling=false;//todo is a hack for bags project experiments 
-    
+    static double SPLITPROP=0.5;    
 public static String threadClassifier="ED";    
 public static String[] cmpv2264419={
 "adult",
@@ -115,6 +116,19 @@ public static String[] laptop={
         Classifier c=null;
         TunedSVM svm=null;
         switch(classifier){
+//Multivariate classifiers
+            case "ED_I":
+                c=new NN_ED_I();
+                break;
+            case "DTW_I":
+                c=new NN_DTW_I();
+                break;
+            case "DTW_D":
+                c=new NN_DTW_D();
+                break;
+            case "DTW_A":
+                c=new NN_DTW_A();
+                break;
 //TIME DOMAIN CLASSIFIERS   
             
             case "ED":
@@ -364,10 +378,11 @@ public static String[] laptop={
             case "FastShapelets": case "FS":
                 c=new FastShapelets();
                 break;
-            case "ShapeletTransform": case "ST": case "ST_Ensemble":
-                c=new ST_HESCA();
+            case "ShapeletTransform": case "ST": case "ST_Ensemble": case "ShapeletTransformClassifier":
+                c=new ShapeletTransformClassifier();
 //Default to 1 day max run: could do this better
-                ((ST_HESCA)c).setOneDayLimit();
+                ((ShapeletTransformClassifier)c).setOneDayLimit();
+                ((ShapeletTransformClassifier)c).setSeed(fold);
                 
                 break;
             case "TSF":
@@ -398,8 +413,9 @@ public static String[] laptop={
              case "FlatCOTE":
                 c=new FlatCote();
                 break; 
-             case "HiveCOTE":
+             case "HiveCOTE": case "HIVECOTE": case "HiveCote": case "Hive-COTE":
                 c=new HiveCote();
+                ((HiveCote)c).setContract(24);
                 break; 
             case "XGBoost":
                  c=new TunedXGBoost();
@@ -490,8 +506,170 @@ public static String[] laptop={
                 ((TunedRotationForest)c).setSeed(fold);
                 ((TunedRotationForest)c).estimateAccFromTrain(false);
                 break;
+//1000 attributes per group (10 values) 3; 4; : : : ; 12g
+            case "RotFG3": 
+                c= new TunedRotationForest();
+                ((RotationForest)c).setMinGroup(3);
+                ((RotationForest)c).setMaxGroup(3);
+                ((TunedRotationForest)c).tuneParameters(false);
+                ((TunedRotationForest)c).setSeed(fold);
+                ((TunedRotationForest)c).estimateAccFromTrain(false);
+                break;
+            case "RotFG4": 
+                c= new TunedRotationForest();
+                ((RotationForest)c).setMinGroup(4);
+                ((RotationForest)c).setMaxGroup(4);
+                ((TunedRotationForest)c).tuneParameters(false);
+                ((TunedRotationForest)c).setSeed(fold);
+                ((TunedRotationForest)c).estimateAccFromTrain(false);
+                break;
+            case "RotFG5": 
+                c= new TunedRotationForest();
+                ((RotationForest)c).setMinGroup(5);
+                ((RotationForest)c).setMaxGroup(5);
+                ((TunedRotationForest)c).tuneParameters(false);
+                ((TunedRotationForest)c).setSeed(fold);
+                ((TunedRotationForest)c).estimateAccFromTrain(false);
+                break;
+            case "RotFG6": 
+                c= new TunedRotationForest();
+                ((RotationForest)c).setMinGroup(6);
+                ((RotationForest)c).setMaxGroup(6);
+                ((TunedRotationForest)c).tuneParameters(false);
+                ((TunedRotationForest)c).setSeed(fold);
+                ((TunedRotationForest)c).estimateAccFromTrain(false);
+                break;
+            case "RotFG7": 
+                c= new TunedRotationForest();
+                ((RotationForest)c).setMinGroup(7);
+                ((RotationForest)c).setMaxGroup(7);
+                ((TunedRotationForest)c).tuneParameters(false);
+                ((TunedRotationForest)c).setSeed(fold);
+                ((TunedRotationForest)c).estimateAccFromTrain(false);
+                break;
+            case "RotFG8": 
+                c= new TunedRotationForest();
+                ((RotationForest)c).setMinGroup(8);
+                ((RotationForest)c).setMaxGroup(8);
+                ((TunedRotationForest)c).tuneParameters(false);
+                ((TunedRotationForest)c).setSeed(fold);
+                ((TunedRotationForest)c).estimateAccFromTrain(false);
+                break;
+            case "RotFG9": 
+                c= new TunedRotationForest();
+                ((RotationForest)c).setMinGroup(9);
+                ((RotationForest)c).setMaxGroup(9);
+                ((TunedRotationForest)c).tuneParameters(false);
+                ((TunedRotationForest)c).setSeed(fold);
+                ((TunedRotationForest)c).estimateAccFromTrain(false);
+                break;
+            case "RotFG10": 
+                c= new TunedRotationForest();
+                ((RotationForest)c).setMinGroup(10);
+                ((RotationForest)c).setMaxGroup(10);
+                ((TunedRotationForest)c).tuneParameters(false);
+                ((TunedRotationForest)c).setSeed(fold);
+                ((TunedRotationForest)c).estimateAccFromTrain(false);
+                break;
+            case "RotFG11": 
+                c= new TunedRotationForest();
+                ((RotationForest)c).setMinGroup(11);
+                ((RotationForest)c).setMaxGroup(11);
+                ((TunedRotationForest)c).tuneParameters(false);
+                ((TunedRotationForest)c).setSeed(fold);
+                ((TunedRotationForest)c).estimateAccFromTrain(false);
+                break;
+            case "RotFG12": 
+                c= new TunedRotationForest();
+                ((RotationForest)c).setMinGroup(12);
+                ((RotationForest)c).setMaxGroup(12);
+                ((TunedRotationForest)c).tuneParameters(false);
+                ((TunedRotationForest)c).setSeed(fold);
+                ((TunedRotationForest)c).estimateAccFromTrain(false);
+                break;
                 
                 
+//combinations sampling proportion (10 values) f0:1; 0:2; : : : ; 1:0g                
+            case "RotRP1": 
+                c= new TunedRotationForest();
+                ((RotationForest)c).setRemovedPercentage(0);
+                ((RotationForest)c).setMaxGroup(3);
+                ((TunedRotationForest)c).tuneParameters(false);
+                ((TunedRotationForest)c).setSeed(fold);
+                ((TunedRotationForest)c).estimateAccFromTrain(false);
+                break;                
+            case "RotRP2": 
+                c= new TunedRotationForest();
+                ((RotationForest)c).setRemovedPercentage(10);
+                ((RotationForest)c).setMaxGroup(3);
+                ((TunedRotationForest)c).tuneParameters(false);
+                ((TunedRotationForest)c).setSeed(fold);
+                ((TunedRotationForest)c).estimateAccFromTrain(false);
+                break;                
+            case "RotRP3": 
+                c= new TunedRotationForest();
+                ((RotationForest)c).setRemovedPercentage(20);
+                ((RotationForest)c).setMaxGroup(3);
+                ((TunedRotationForest)c).tuneParameters(false);
+                ((TunedRotationForest)c).setSeed(fold);
+                ((TunedRotationForest)c).estimateAccFromTrain(false);
+                break;                
+            case "RotRP4": 
+                c= new TunedRotationForest();
+                ((RotationForest)c).setRemovedPercentage(30);
+                ((RotationForest)c).setMaxGroup(3);
+                ((TunedRotationForest)c).tuneParameters(false);
+                ((TunedRotationForest)c).setSeed(fold);
+                ((TunedRotationForest)c).estimateAccFromTrain(false);
+                break;                
+            case "RotRP5": 
+                c= new TunedRotationForest();
+                ((RotationForest)c).setRemovedPercentage(40);
+                ((RotationForest)c).setMaxGroup(3);
+                ((TunedRotationForest)c).tuneParameters(false);
+                ((TunedRotationForest)c).setSeed(fold);
+                ((TunedRotationForest)c).estimateAccFromTrain(false);
+                break;                
+            case "RotRP6": 
+                c= new TunedRotationForest();
+                ((RotationForest)c).setRemovedPercentage(50);
+                ((RotationForest)c).setMaxGroup(3);
+                ((TunedRotationForest)c).tuneParameters(false);
+                ((TunedRotationForest)c).setSeed(fold);
+                ((TunedRotationForest)c).estimateAccFromTrain(false);
+                break;                
+            case "RotRP7": 
+                c= new TunedRotationForest();
+                ((RotationForest)c).setRemovedPercentage(60);
+                ((RotationForest)c).setMaxGroup(3);
+                ((TunedRotationForest)c).tuneParameters(false);
+                ((TunedRotationForest)c).setSeed(fold);
+                ((TunedRotationForest)c).estimateAccFromTrain(false);
+                break;                
+            case "RotRP8": 
+                c= new TunedRotationForest();
+                ((RotationForest)c).setRemovedPercentage(70);
+                ((RotationForest)c).setMaxGroup(3);
+                ((TunedRotationForest)c).tuneParameters(false);
+                ((TunedRotationForest)c).setSeed(fold);
+                ((TunedRotationForest)c).estimateAccFromTrain(false);
+                break;                
+            case "RotRP9": 
+                c= new TunedRotationForest();
+                ((RotationForest)c).setRemovedPercentage(80);
+                ((RotationForest)c).setMaxGroup(3);
+                ((TunedRotationForest)c).tuneParameters(false);
+                ((TunedRotationForest)c).setSeed(fold);
+                ((TunedRotationForest)c).estimateAccFromTrain(false);
+                break;                
+            case "RotRP10": 
+                c= new TunedRotationForest();
+                ((RotationForest)c).setRemovedPercentage(90);
+                ((RotationForest)c).setMaxGroup(3);
+                ((TunedRotationForest)c).tuneParameters(false);
+                ((TunedRotationForest)c).setSeed(fold);
+                ((TunedRotationForest)c).estimateAccFromTrain(false);
+                break;                
                 
            default:
                 System.out.println("UNKNOWN CLASSIFIER "+classifier);
@@ -568,7 +746,7 @@ Optional
         for(String str:args)
             System.out.println(str);
         if(args.length<6){
-            boolean threaded=false;
+            boolean threaded=true;
             if(debug){
                 debugExperiment();
             }
@@ -580,13 +758,13 @@ Optional
     //Arg 3 argument is whether to cross validate or not and produce train files
                 newArgs[2]="false";
     // Arg 4,5,6 Classifier, Problem, Fold             
-                newArgs[3]="FastDTWWrapper";
+                newArgs[3]="RISE";
 //These are set in the localX method
 //              newArgs[4]="Adiac";
 //                newArgs[5]="1";
-                String[] problems=DataSets.fileNames;
-///                problems=new String[]{"Distal"};
-                int folds=1;
+//                String[] problems=DataSets.fileNames;
+                String[] problems=new String[]{"Phoneme"};
+                int folds=100;
                 if(threaded){//Do problems listed threaded 
                     localThreadedRun(newArgs,problems,folds);
                     
@@ -789,14 +967,14 @@ Optional
             data[1]=ClassifierTools.loadData(DataSets.problemPath+problem+"/"+problem+fold+"_TEST");
         }
         else{
-//If there is a train test split, use that. Otherwise, randomly split 50/50            
+//If there is a train test split, use that. Otherwise, randomly split by split proportion            
             trainFile=new File(DataSets.problemPath+problem+"/"+problem+"_TRAIN.arff");
             testFile=new File(DataSets.problemPath+problem+"/"+problem+"_TEST.arff");
             if(!trainFile.exists()||!testFile.exists())
                 singleFile=true;
             if(singleFile){
                 Instances all = ClassifierTools.loadData(DataSets.problemPath+problem+"/"+problem);
-                data = InstanceTools.resampleInstances(all, fold, .5);            
+                data = InstanceTools.resampleInstances(all, fold, SPLITPROP);            
             }else{
                 data[0]=ClassifierTools.loadData(trainFile.getAbsolutePath());
                 data[1]=ClassifierTools.loadData(testFile.getAbsolutePath());

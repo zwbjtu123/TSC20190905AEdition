@@ -2,6 +2,8 @@
  * NOTE: consider this code experimental. This is a first pass and may not be final; 
  * it has been informally tested but awaiting rigorous testing before being signed off.
  * Also note that file writing/reading from file is not currently supported (will be added soon)
+ * 
+ * CODE PRIOR TO ALTERATIONS MADE BY AJB SUMMER 2018
  */
 
 
@@ -23,45 +25,19 @@ import weka.classifiers.Classifier;
 import vector_classifiers.CAWPE;
 import weka.core.Instance;
 import weka.core.Instances;
-import weka.core.TechnicalInformation;
 
 /**
  *
  * @author Jason Lines (j.lines@uea.ac.uk)
- * 
- * Basic use case
- *  HiveCote hc=new HiveCote();
- *  hc.buildClassifier(data);
-
-DEVELOPMENT NOTES for any users added by ajb on 23/7/18: 
-* 1. Hive COTE defaults to shouty mode (prints out stuff). To turn off, call 
-*   hc.setShouty(false)
-* 2. Hive COTE can be used with existing results as a post processor, or built all in one. 
-* For larger problems we advise building the components individually as it makes it easier to control
-* The mechanism for doing this is to use HiveCotePostProcessed in the cote package (NOTE could be tidied).
-* 3. Full Hive COTE is very slow, but a huge amount of the computation is unnecessary. 
-* The slowest module is the shapelet transform, when
-* set to do a full enumeration of the shapelet space. However, this is never necessary.
-* You can contract ST to only search for a fixed time. We are making all the components contract classifiers
-* By default, we set the sequential build time to 7 days. This is APPROXIMATE and OPTIMISTIC. So we advise set lower to start then increase
-* change hours amount with, e.g.
-* hc.setDayLimit(int), hc.setHourLimit(int), hc.setMinuteLimit(int)
-* or by default, to set hours,
-* hc.setTimeLimit(long) //breaking aarons interface, soz
-* to remove any limits, call
-* hc.setContract(false)
-*
-* 
-* To review: whole file writing thing. 
-
-*/
-public class HiveCote extends AbstractClassifierWithTrainingData implements ContractClassifier{
+ */
+//public class HiveCote extends AbstractClassifier implements SaveTrainingPredictions{
+public class HiveCote23_7_18 extends AbstractClassifierWithTrainingData implements ContractClassifier{
 
 
     private ArrayList<Classifier> classifiers;
     private ArrayList<String> names;
     private ConstituentHiveEnsemble[] modules;
-    private boolean verbose = true;
+    private boolean verbose = false;
     private int maxCvFolds = 10;// note: this only affects manual CVs from this class using the crossvalidate method. This will not affect internal classifier cv's if they are set within those classes
     
 //    private boolean writeEnsembleTrainingPredictions = false;
@@ -71,45 +47,16 @@ public class HiveCote extends AbstractClassifierWithTrainingData implements Cont
     private String fileOutputDir;
     private String fileOutputDataset;
     private String fileOutputResampleId;
-    private boolean contractTime=true;
-    private static int MAXCONTRACTHOURS=7*24;
-    private int contractHours=MAXCONTRACTHOURS;  //Default to maximum 7 days run time
     
-    public HiveCote(){
+    public HiveCote23_7_18(){
         this.setDefaultEnsembles();
     }
     
-    public HiveCote(ArrayList<Classifier> classifiers, ArrayList<String> classifierNames){
+    public HiveCote23_7_18(ArrayList<Classifier> classifiers, ArrayList<String> classifierNames){
         this.classifiers = classifiers;
         this.names = classifierNames;
-        if(contractTime){
-            setTimeLimit(TimeLimit.HOUR,contractHours);
-        }
     }
-    public TechnicalInformation getTechnicalInformation() {
-        TechnicalInformation 	result;
-        result = new TechnicalInformation(TechnicalInformation.Type.ARTICLE);
-        result.setValue(TechnicalInformation.Field.AUTHOR, "J. Lines, S. Taylor and A. Bagnall");
-        result.setValue(TechnicalInformation.Field.TITLE, "Time Series Classification with HIVE-COTE: The Hierarchical Vote Collective of Transformation-Based Ensembles");
-        result.setValue(TechnicalInformation.Field.JOURNAL, "ACM Transactions on Knowledge Discovery from Data");
-        result.setValue(TechnicalInformation.Field.VOLUME, "12");
-        result.setValue(TechnicalInformation.Field.NUMBER, "5");
-        
-        result.setValue(TechnicalInformation.Field.PAGES, "52");
-        result.setValue(TechnicalInformation.Field.YEAR, "2018");
-        return result;
-    }    
-    public void setContract(boolean b){
-        contractTime=b;
-        contractHours=MAXCONTRACTHOURS;
-    }
-    public void setContract(int hours){
-        contractTime=true;
-        contractHours=hours;
-    }
-    
-    
-    
+
     private void setDefaultEnsembles(){
         
         classifiers = new ArrayList<>();
@@ -117,12 +64,7 @@ public class HiveCote extends AbstractClassifierWithTrainingData implements Cont
         
         classifiers.add(new ElasticEnsemble());
         CAWPE h = new CAWPE();
-        DefaultShapeletTransformPlaceholder st= new DefaultShapeletTransformPlaceholder();
-        if(contractTime){
-            setTimeLimit(TimeLimit.HOUR,contractHours);
-        }
-        h.setTransform(st);
-        
+        h.setTransform(new DefaultShapeletTransformPlaceholder());
         classifiers.add(h); // to get around the issue of needing training data 
         RISE rise = new RISE();
         rise.setTransformType(RISE.Filter.PS_ACF);
@@ -164,6 +106,18 @@ public class HiveCote extends AbstractClassifierWithTrainingData implements Cont
         
         for(int i = 0; i < classifiers.size(); i++){
             
+            if(classifiers.get(i) instanceof CAWPE){
+                if(((CAWPE)classifiers.get(i)).getTransform() instanceof DefaultShapeletTransformPlaceholder){
+                    classifiers.remove(i);
+                    ShapeletTransform shoutyThing = ShapeletTransformTimingUtilities.createTransformWithTimeLimit(train, 24);
+                    shoutyThing.supressOutput();
+                    
+                    CAWPE h = new CAWPE();
+                    h.setTransform(shoutyThing);
+                    classifiers.add(i, h);
+                }
+            }
+            
             
             // if classifier is an implementation of HiveCoteModule, no need to cv for ensemble accuracy as it can self-report
             // e.g. of the default modules, EE, CAWPE, and BOSS should all have this fucntionality (group a); RISE and TSF do not currently (group b) so must manualy cv
@@ -185,7 +139,6 @@ public class HiveCote extends AbstractClassifierWithTrainingData implements Cont
                 optionalOutputLine("crossval (group b): "+this.names.get(i));
                 ensembleAcc = crossValidateWithFileWriting(classifiers.get(i), train, maxCvFolds,this.names.get(i));
                 optionalOutputLine("training (group b): "+this.names.get(i));
-
                 classifiers.get(i).buildClassifier(train);                
                 modules[i] = new ConstituentHiveEnsemble(this.names.get(i), this.classifiers.get(i), ensembleAcc);
                 
@@ -336,9 +289,6 @@ public class HiveCote extends AbstractClassifierWithTrainingData implements Cont
     
     public void makeShouty(){
         this.verbose = true;
-    }
-    public void setShouty(boolean b){
-        this.verbose = b;
     }
     
     private void optionalOutputLine(String message){
@@ -595,54 +545,23 @@ public class HiveCote extends AbstractClassifierWithTrainingData implements Cont
 
     }
 
-/** Assumes default time set to hours. It is set up to set it in millisecs,
- * but who the hell thinks in millisecs, except Aaron? :)
- * 
- * @param time in HOURS
- */    
     @Override
     public void setTimeLimit(long time) {
-//Split the time up equally if contracted, if not we have no control  
-        contractTime=true;
-        contractHours=(int)time;
-        long used=0;
         for(Classifier c:classifiers){
             if(c instanceof ContractClassifier)
-                ((ContractClassifier) c).setTimeLimit(TimeLimit.HOUR,(int)(time/classifiers.size()));
-            used+=time/classifiers.size();    
-        }
-        long remaining = time-used;
-//Give any extra to first contracted, for no real reason othe than simplicity. 
-        if(remaining>0){
-            for(Classifier c:classifiers){
-                if(c instanceof ContractClassifier){
-                    ((ContractClassifier) c).setTimeLimit(TimeLimit.HOUR,(int)(time/classifiers.size()+remaining));
-                    break;
-                }
-            }
+                ((ContractClassifier) c).setTimeLimit(time);
         }
     }
+
     @Override
     public void setTimeLimit(TimeLimit time, int amount) {
-//Split the time up equally if contracted, if not we have no control    
-        contractTime=true;
-        int used=0;
         for(Classifier c:classifiers){
             if(c instanceof ContractClassifier)
-                ((ContractClassifier) c).setTimeLimit(time, amount/classifiers.size());
-            used+=amount/classifiers.size();    
+                ((ContractClassifier) c).setTimeLimit(time, amount);
         }
-        int remaining = amount-used;
-//Give any extra to first contracted, 
-//for no real reason othe than simplicity and to avoid hidden randomization.       
-        if(remaining>0){
-            for(Classifier c:classifiers){
-                if(c instanceof ContractClassifier){
-                    ((ContractClassifier) c).setTimeLimit(time, amount/classifiers.size()+remaining);
-                    break;
-                }
-            }
-        }
+//        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        
+        
     }
 
 
@@ -671,7 +590,7 @@ public class HiveCote extends AbstractClassifierWithTrainingData implements Cont
         Instances train = ClassifierTools.loadData("C:/users/sjx07ngu/dropbox/tsc problems/"+datasetName+"/"+datasetName+"_TRAIN");
         Instances test = ClassifierTools.loadData("C:/users/sjx07ngu/dropbox/tsc problems/"+datasetName+"/"+datasetName+"_TEST");
 
-        HiveCote hive = new HiveCote();
+        HiveCote23_7_18 hive = new HiveCote23_7_18();
         hive.makeShouty();
         
         hive.buildClassifier(train);

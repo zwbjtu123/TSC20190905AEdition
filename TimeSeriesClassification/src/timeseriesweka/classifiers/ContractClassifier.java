@@ -1,7 +1,8 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+ Interface that allows the user to impose a time contract of a classifier that 
+implements this interface
+
+known classifiers: ShapeletTransformClassifier, RISE (not tested) HiveCote (partial)
  */
 package timeseriesweka.classifiers;
 

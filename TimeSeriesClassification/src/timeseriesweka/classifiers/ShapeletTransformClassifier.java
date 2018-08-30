@@ -26,36 +26,58 @@ import timeseriesweka.filters.shapelet_transforms.search_functions.ShapeletSearc
 import timeseriesweka.filters.shapelet_transforms.search_functions.ShapeletSearch.SearchType;
 import timeseriesweka.filters.shapelet_transforms.search_functions.ShapeletSearchOptions;
 import timeseriesweka.classifiers.cote.HiveCoteModule;
+import timeseriesweka.classifiers.ensembles.voting.MajorityConfidence;
+import timeseriesweka.classifiers.ensembles.weightings.TrainAcc;
 import utilities.ClassifierResults;
 import utilities.TrainAccuracyEstimate;
+import weka.classifiers.Classifier;
+import weka.classifiers.bayes.NaiveBayes;
+import weka.classifiers.functions.SMO;
+import weka.classifiers.functions.supportVector.PolyKernel;
+import weka.classifiers.lazy.IBk;
+import weka.classifiers.meta.RotationForest;
+import weka.classifiers.trees.J48;
+import weka.classifiers.trees.RandomForest;
 
 /**
  *
  * @author raj09hxu
+ * By default, performs a shapelet transform through full enumeration (max 2000 shapelets selected)
+ *  then classifies with the heterogeneous ensemble CAWPE, using randF, rotF and SVMQ.
+ * If can be contracted to a maximum run time for shapelets, and can be configured for a different 
+ * 
  */
-public class ST_HESCA  extends AbstractClassifier implements HiveCoteModule, SaveParameterInfo, TrainAccuracyEstimate, ContractClassifier{
+public class ShapeletTransformClassifier  extends AbstractClassifier implements HiveCoteModule, SaveParameterInfo, TrainAccuracyEstimate, ContractClassifier, CheckpointClassifier{
 
     //Minimum number of instances per class in the train set
     public static final int minimumRepresentation = 25;
-    
+    private static int MAXTRANSFORMSIZE=1000; //Default number in transform
+
     private boolean preferShortShapelets = false;
     private String shapeletOutputPath;
-    
-    private CAWPE hesca=new CAWPE();
-;
+    private CAWPE ensemble;
     private ShapeletTransform transform;
     private Instances format;
     int[] redundantFeatures;
     private boolean doTransform=true;
-    
-    
+    private long transformBuildTime;
+    protected ClassifierResults res =new ClassifierResults();
+    int numShapeletsInTransform = MAXTRANSFORMSIZE;
     private SearchType searchType = SearchType.IMP_RANDOM;
-    
     private long numShapelets = 0;
     private long seed = 0;
+    private boolean setSeed=false;
     private long timeLimit = Long.MAX_VALUE;
+    private String checkpointFullPath; //location to check point 
+    private boolean checkpoint=false;
+
+    public void ShapeletTransformClassifier(){
+        configureDefaultEnsemble();
+    }
+
     
     public void setSeed(long sd){
+        setSeed=true;
         seed = sd;
     }
     
@@ -66,34 +88,34 @@ public class ST_HESCA  extends AbstractClassifier implements HiveCoteModule, Sav
 
     @Override
     public void writeCVTrainToFile(String train) {
-        hesca.writeCVTrainToFile(train);
+        ensemble.writeCVTrainToFile(train);
     }
 
     /*//if you want CAWPE to perform CV.
     public void setPerformCV(boolean b) {
-        hesca.setPerformCV(b);
+        ensemble.setPerformCV(b);
     }*/
     
     @Override
     public ClassifierResults getTrainResults() {
-        return  hesca.getTrainResults();
+        return  ensemble.getTrainResults();
     }
         
     @Override
     public String getParameters(){
         String paras=transform.getParameters();
-        String ensemble=hesca.getParameters();
-        return paras+",timeLimit"+timeLimit+","+ensemble;
+        String ensemble=this.ensemble.getParameters();
+        return "BuildTime,"+res.buildTime+",CVAcc,"+res.acc+",TransformBuildTime,"+transformBuildTime+",timeLimit,"+timeLimit+",TransformParas,"+paras+",EnsembleParas,"+ensemble;
     }
     
     @Override
     public double getEnsembleCvAcc() {
-        return hesca.getEnsembleCvAcc();
+        return ensemble.getEnsembleCvAcc();
     }
 
     @Override
     public double[] getEnsembleCvPreds() {
-        return hesca.getEnsembleCvPreds();
+        return ensemble.getEnsembleCvPreds();
     }
     
     public void doSTransform(boolean b){
@@ -132,14 +154,131 @@ public class ST_HESCA  extends AbstractClassifier implements HiveCoteModule, Sav
     
     @Override
     public void buildClassifier(Instances data) throws Exception {
-        format = doTransform ? createTransformData(data, timeLimit) : data;
-        
-        hesca.setRandSeed((int) seed);
-                
-        redundantFeatures=InstanceTools.removeRedundantTrainAttributes(format);
+        if(checkpoint){
+            buildCheckpointClassifier(data);
+        }
+        else{
+            long startTime=System.currentTimeMillis(); 
+            format = doTransform ? createTransformData(data, timeLimit) : data;
+            transformBuildTime=System.currentTimeMillis()-startTime;
+            if(setSeed)
+                ensemble.setRandSeed((int) seed);
 
-        hesca.buildClassifier(format);
-        format=new Instances(data,0);
+            redundantFeatures=InstanceTools.removeRedundantTrainAttributes(format);
+
+            ensemble.buildClassifier(format);
+            format=new Instances(data,0);
+            res.buildTime=System.currentTimeMillis()-startTime;
+        }
+    }
+    private void  buildCheckpointClassifier(Instances data) throws Exception {   
+//Load file if one exists
+
+//Set timer options
+
+//Sample shapelets until checkpoint time
+
+//Save to file
+
+//When finished, build classifier
+            ensemble.buildClassifier(format);
+            format=new Instances(data,0);
+//            res.buildTime=System.currentTimeMillis()-startTime;
+
+    }
+/**
+ * Classifiers used in the HIVE COTE paper
+ */    
+    public void configureDefaultEnsemble(){
+//HIVE_SHAPELET_SVMQ    HIVE_SHAPELET_RandF    HIVE_SHAPELET_RotF    
+//HIVE_SHAPELET_NN    HIVE_SHAPELET_NB    HIVE_SHAPELET_C45    HIVE_SHAPELET_SVML   
+        ensemble=new CAWPE();
+        ensemble.setWeightingScheme(new TrainAcc(4));
+        ensemble.setVotingScheme(new MajorityConfidence());
+        Classifier[] classifiers = new Classifier[7];
+        String[] classifierNames = new String[7];
+        
+        SMO smo = new SMO();
+        smo.turnChecksOff();
+        smo.setBuildLogisticModels(true);
+        PolyKernel kl = new PolyKernel();
+        kl.setExponent(2);
+        smo.setKernel(kl);
+        if (setSeed)
+            smo.setRandomSeed((int)seed);
+        classifiers[0] = smo;
+        classifierNames[0] = "SVMQ";
+
+        RandomForest r=new RandomForest();
+        r.setNumTrees(500);
+        if(setSeed)
+           r.setSeed((int)seed);            
+        classifiers[1] = r;
+        classifierNames[1] = "RandF";
+            
+            
+        RotationForest rf=new RotationForest();
+        rf.setNumIterations(100);
+        if(setSeed)
+           rf.setSeed((int)seed);
+        classifiers[2] = rf;
+        classifierNames[2] = "RotF";
+        IBk nn=new IBk();
+        classifiers[3] = nn;
+        classifierNames[3] = "NN";
+        NaiveBayes nb=new NaiveBayes();
+        classifiers[4] = nb;
+        classifierNames[4] = "NB";
+        J48 c45=new J48();
+        classifiers[5] = c45;
+        classifierNames[5] = "C45";
+        SMO svml = new SMO();
+        svml.turnChecksOff();
+        svml.setBuildLogisticModels(true);
+        PolyKernel k2 = new PolyKernel();
+        k2.setExponent(1);
+        smo.setKernel(k2);
+        classifiers[6] = svml;
+        classifierNames[6] = "SVML";
+        ensemble.setClassifiers(classifiers, classifierNames, null);
+    }
+//This sets up the ensemble to work within the time constraints of the problem    
+    public void configureEnsemble(){
+        ensemble.setWeightingScheme(new TrainAcc(4));
+        ensemble.setVotingScheme(new MajorityConfidence());
+        
+        Classifier[] classifiers = new Classifier[3];
+        String[] classifierNames = new String[3];
+        
+        SMO smo = new SMO();
+        smo.turnChecksOff();
+        smo.setBuildLogisticModels(true);
+        PolyKernel kl = new PolyKernel();
+        kl.setExponent(2);
+        smo.setKernel(kl);
+        if (setSeed)
+            smo.setRandomSeed((int)seed);
+        classifiers[0] = smo;
+        classifierNames[0] = "SVMQ";
+
+        RandomForest r=new RandomForest();
+        r.setNumTrees(500);
+        if(setSeed)
+           r.setSeed((int)seed);            
+        classifiers[1] = r;
+        classifierNames[1] = "RandF";
+            
+            
+        RotationForest rf=new RotationForest();
+        rf.setNumIterations(100);
+        if(setSeed)
+           rf.setSeed((int)seed);
+        classifiers[2] = rf;
+        classifierNames[2] = "RotF";
+        
+        
+       ensemble.setClassifiers(classifiers, classifierNames, null);        
+        
     }
     
      @Override
@@ -153,7 +292,7 @@ public class ST_HESCA  extends AbstractClassifier implements HiveCoteModule, Sav
         
         Instance test  = temp.get(0);
         format.remove(0);
-        return hesca.classifyInstance(test);
+        return ensemble.classifyInstance(test);
     }
      @Override
     public double[] distributionForInstance(Instance ins) throws Exception{
@@ -166,7 +305,7 @@ public class ST_HESCA  extends AbstractClassifier implements HiveCoteModule, Sav
         
         Instance test  = temp.get(0);
         format.remove(0);
-        return hesca.distributionForInstance(test);
+        return ensemble.distributionForInstance(test);
     }
     
     public void setShapeletOutputFilePath(String path){
@@ -180,7 +319,12 @@ public class ST_HESCA  extends AbstractClassifier implements HiveCoteModule, Sav
     public Instances createTransformData(Instances train, long time){
         int n = train.numInstances();
         int m = train.numAttributes()-1;
-
+//Set the number of shapelets to keep, max is MAXTRANSFORMSIZE (500)
+//numShapeletsInTransform
+//    n > 2000 ? 2000 : n;   
+        if(n*m<numShapeletsInTransform)
+            numShapeletsInTransform=n*m;
+        
         //construct the options for the transform.
         ShapeletTransformFactoryOptions.Builder optionsBuilder = new ShapeletTransformFactoryOptions.Builder();
         optionsBuilder.setDistanceType(SubSeqDistance.DistanceType.IMP_ONLINE);
@@ -197,8 +341,6 @@ public class ST_HESCA  extends AbstractClassifier implements HiveCoteModule, Sav
         searchBuilder.setMin(3);
         searchBuilder.setMax(m);
 
-        //clamp K to 2000.
-        int K = n > 2000 ? 2000 : n;   
         
         //how much time do we have vs. how long our algorithm will take.
         BigInteger opCountTarget = new BigInteger(Long.toString(time / nanoToOp));
@@ -215,15 +357,16 @@ public class ST_HESCA  extends AbstractClassifier implements HiveCoteModule, Sav
             }
              
              //we need to find atleast one shapelet in every series.
-            searchBuilder.setSeed(seed);
+            if(setSeed)
+                searchBuilder.setSeed(seed);
             searchBuilder.setSearchType(searchType);
             searchBuilder.setNumShapelets(numShapelets);
             
             // can't have more final shapelets than we actually search through.
-            K =  numShapelets > K ? K : (int) numShapelets;
+            numShapeletsInTransform =  numShapelets > numShapeletsInTransform ? numShapeletsInTransform : (int) numShapelets;
         }
 
-        optionsBuilder.setKShapelets(K);
+        optionsBuilder.setKShapelets(numShapeletsInTransform);
         optionsBuilder.setSearchOptions(searchBuilder.build());
         transform = new ShapeletTransformFactory(optionsBuilder.build()).getTransform();
         transform.supressOutput();
@@ -250,7 +393,7 @@ public class ST_HESCA  extends AbstractClassifier implements HiveCoteModule, Sav
         String testS=saveLocation+datasetName+File.separator+"TestPreds.csv";
         String preds=saveLocation+datasetName;
 
-        ST_HESCA st= new ST_HESCA();
+        ShapeletTransformClassifier st= new ShapeletTransformClassifier();
         //st.saveResults(trainS, testS);
         st.doSTransform(true);
         st.setOneMinuteLimit();
@@ -258,5 +401,37 @@ public class ST_HESCA  extends AbstractClassifier implements HiveCoteModule, Sav
         double accuracy = utilities.ClassifierTools.accuracy(test, st);
         
         System.out.println("accuracy: " + accuracy);
-    }    
+    }
+/**
+ * Checkpoint methods
+ */
+    public void setSavePath(String path){
+        checkpointFullPath=path;
+    }
+    public void copyFromSerObject(Object obj) throws Exception{
+        if(!(obj instanceof ShapeletTransformClassifier))
+            throw new Exception("Not a ShapeletTransformClassifier object");
+//Copy meta data
+        ShapeletTransformClassifier st=(ShapeletTransformClassifier)obj;
+//We assume the classifiers have not been built, so are basically copying over the set up
+        ensemble=st.ensemble;
+        preferShortShapelets = st.preferShortShapelets;
+        shapeletOutputPath=st.shapeletOutputPath;
+        transform=st.transform;
+        format=st.format;
+        int[] redundantFeatures=st.redundantFeatures;
+        doTransform=st.doTransform;
+        transformBuildTime=st.transformBuildTime;
+        res =st.res;
+        numShapeletsInTransform =st.numShapeletsInTransform;
+        searchType =st.searchType;
+        numShapelets  =st.numShapelets;
+        seed =st.seed;
+        setSeed=st.setSeed;
+        timeLimit =st.timeLimit;
+
+        
+    }
+
+    
 }

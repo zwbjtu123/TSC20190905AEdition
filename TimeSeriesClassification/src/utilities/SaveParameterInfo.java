@@ -1,7 +1,6 @@
 
 package utilities;
 
-import weka.core.Instances;
 
 /**
  *

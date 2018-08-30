@@ -24,7 +24,7 @@ import timeseriesweka.classifiers.BOSS;
 import timeseriesweka.classifiers.RISE;
 import timeseriesweka.classifiers.LPS;
 import timeseriesweka.classifiers.SAXVSM;
-import timeseriesweka.classifiers.ST_HESCA;
+import timeseriesweka.classifiers.ShapeletTransformClassifier;
 import timeseriesweka.classifiers.DD_DTW;
 import timeseriesweka.classifiers.BagOfPatterns;
 import development.DataSets;
@@ -148,7 +148,7 @@ public class ClassificationExamples {
                 c=new FastShapelets();
                 break;
             case "ShapeletTransform": case "ST": case "ST_Ensemble":
-                c=new ST_HESCA();
+                c=new ShapeletTransformClassifier();
                 break;
             case "TSF":
                 c=new TSF();

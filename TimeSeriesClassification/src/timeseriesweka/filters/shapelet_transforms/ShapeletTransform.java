@@ -471,7 +471,7 @@ public class ShapeletTransform extends SimpleBatchFilter implements SaveParamete
 
     protected void trainShapelets(Instances data) {
         //we might round robin the data in here. So we need to override the input data with the new ordering.
-        inputData = initDataSouce(data);
+        inputData = initDataSource(data);
         
         searchFunction.setComparator(shapeletComparator);
         searchFunction.init(inputData);
@@ -488,7 +488,7 @@ public class ShapeletTransform extends SimpleBatchFilter implements SaveParamete
         //we don't need to undo the roundRobin because we clone the data into a different order.
     }
     
-    private Instances initDataSouce(Instances data) {
+    private Instances initDataSource(Instances data) {
 
         int dataSize = data.numInstances();
         // shapelets discovery has not yet been caried out, so this must be training data
@@ -637,7 +637,7 @@ public class ShapeletTransform extends SimpleBatchFilter implements SaveParamete
         classValue.init(data);
         //setup subseqDistance
         subseqDistance.init(data);
-        initDataSouce(data);
+        initDataSource(data);
         return findBestKShapeletsCache(data);
     }
 

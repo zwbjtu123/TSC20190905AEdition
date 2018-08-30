@@ -11,7 +11,7 @@ import timeseriesweka.classifiers.TSF;
 import timeseriesweka.classifiers.DTD_C;
 import timeseriesweka.classifiers.BOSS;
 import timeseriesweka.classifiers.RISE;
-import timeseriesweka.classifiers.ST_HESCA;
+import timeseriesweka.classifiers.ShapeletTransformClassifier;
 import timeseriesweka.classifiers.LPS;
 import timeseriesweka.classifiers.ElasticEnsemble;
 import timeseriesweka.classifiers.DD_DTW;
@@ -185,12 +185,12 @@ public class SimulationExperiments {
                 c=new FastShapelets();
                 break;
             case "ST":
-                c=new ST_HESCA();
+                c=new ShapeletTransformClassifier();
                 if(local)
-                    ((ST_HESCA)c).setOneMinuteLimit();
+                    ((ShapeletTransformClassifier)c).setOneMinuteLimit();
                 else
-                   ((ST_HESCA)c).setOneHourLimit();
-//                ((ST_HESCA)c).setOneMinuteLimit();//DEBUG
+                   ((ShapeletTransformClassifier)c).setOneHourLimit();
+//                ((ShapeletTransformClassifier)c).setOneMinuteLimit();//DEBUG
                 break;
             case "BOP":
                 c=new BagOfPatterns();
@@ -549,8 +549,8 @@ public class SimulationExperiments {
                         c=new FastShapelets();
                         break;
                     case "ST":
-                        c=new ST_HESCA();
-                            ((ST_HESCA)c).setOneMinuteLimit();
+                        c=new ShapeletTransformClassifier();
+                            ((ShapeletTransformClassifier)c).setOneMinuteLimit();
                         break;
                     case "LearnShapelets":
                         c=new LearnShapelets();

@@ -658,6 +658,42 @@ public static void basicSummaryComparisons(){
 
        
    }
+      public static void collateRotFSensitivity() throws Exception{
+       MultipleClassifierEvaluation m=new MultipleClassifierEvaluation("E://Results//UCI//Analysis//", "RotFGroupSize", 30);
+       m.setBuildMatlabDiagrams(true);
+       m.setDebugPrinting(true);
+       m.setUseAllStatistics();
+       m.setDatasets(Arrays.copyOfRange(development.DataSets.UCIContinuousWithoutBigFour, 0, 117)); 
+       m.readInClassifiers(new String[] {
+           "RotFG3","RotFG4","RotFG5","RotFG6","RotFG7","RotFG8","RotFG9","RotFG10","RotFG11","RotFG12"}, 
+               "E://Results/UCI/RotFSize");
+       
+       
+//       m.readInClassifiers(new String[] {"TunedSVMPolynomial","TunedSVMRBF","TunedXGBoost","TunedMLP","TunedSingleLayerMLP","TunedTWoLayerMLP","TunedRandF","TunedRotF","RotF"}, 
+//               "E://Results//UCI//Tuned");
+       m.runComparison(); 
+
+       
+   }
+
+      public static void collateRotFSensitivity2() throws Exception{
+       MultipleClassifierEvaluation m=new MultipleClassifierEvaluation("E://Results//UCI//Analysis//", "RotFProp", 30);
+       m.setBuildMatlabDiagrams(true);
+       m.setDebugPrinting(true);
+       m.setUseAllStatistics();
+       m.setDatasets(Arrays.copyOfRange(development.DataSets.UCIContinuousWithoutBigFour, 0, 117)); 
+       m.readInClassifiers(new String[] {
+           "RotRP1","RotRP2","RotRP3","RotRP4","RotRP5","RotRP6","RotRP7","RotRP8","RotRP9"}, 
+               "E://Results/UCI/RotFPercentRemoved");
+       
+       
+//       m.readInClassifiers(new String[] {"TunedSVMPolynomial","TunedSVMRBF","TunedXGBoost","TunedMLP","TunedSingleLayerMLP","TunedTWoLayerMLP","TunedRandF","TunedRotF","RotF"}, 
+//               "E://Results//UCI//Tuned");
+       m.runComparison(); 
+
+       
+   }
+
    public static void collateUntuned() throws Exception{
        MultipleClassifierEvaluation m=new MultipleClassifierEvaluation(
                "E://Results//UCI//Analysis//", "RandF10000", 30);
@@ -715,17 +751,50 @@ public static void basicSummaryComparisons(){
            m.runComparison(); 
        
    }
-   
-   
-    
+    public static void collateBags() {
+         int folds=45;
+         String[] classifiers={"BOSS","DTWCV","ED","EE","RandF","RISE","RotF","ST","TSF"};
+         for(String str:classifiers){   
+            String source="E:/Results/Bags/BagsTwoClassHistogramProblem/"+str+"/Predictions/BagsTwoClassHistogramProblem";
+            String dest="E:/Results/Bags/BagsTwoClassHistogramProblem/"+str+"/Predictions/BagsTwoClassHistogramProblem";
+            OutFile outfTest=new OutFile(dest+"/"+str+"TestAll.csv");
+            OutFile outfTrain=new OutFile(dest+"/"+str+"TrainAll.csv");
+            for(int i=0;i<folds;i++){
+                System.out.println("Formatting "+str+" fold "+i);
+                InFile infTest=new InFile(source+"/testFold"+i+".csv");
+                InFile infTrain=new InFile(source+"/trainFold"+i+".csv");
+                String line = infTest.readLine();
+                line = infTest.readLine();
+                line = infTest.readLine();
+                line = infTest.readLine();
+                while(line!=null){
+                    outfTest.writeLine(line);
+                    line = infTest.readLine();
+                }
+                 line = infTrain.readLine();
+                 line = infTrain.readLine();
+                 line = infTrain.readLine();
+                 line = infTrain.readLine();
+                while(line!=null){
+                    outfTrain.writeLine(line);
+                    line = infTrain.readLine();
+                }
+            }
+        }
+    }  
+ 
 //First argument: String path to results directories
 //Second argument: path to directory with problem allStats to look for
 //Third argument: number of folds    
 //Next x arguments: x Classifiers to collate    
 //Next x arguments: number of numParas stored for each classifier    
     public static void main(String[] args) throws Exception {
-//ucrRotFvsRandFtestOnly();
-        collateUntuned();
+ //collateRotFSensitivity();
+ collateRotFSensitivity2();
+ System.exit(0);
+collateBags();
+ //ucrRotFvsRandFtestOnly();
+//        collateUntuned();
 //       collateTuned();
 //     ucrComparison();
 //        jamesStats();

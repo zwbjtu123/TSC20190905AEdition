@@ -9,6 +9,7 @@ package development;
 
 import fileIO.InFile;
 import fileIO.OutFile;
+import java.io.File;
 import utilities.ClassifierTools;
 import utilities.InstanceTools;
 import utilities.multivariate_tools.MultivariateInstanceTools;
@@ -22,6 +23,108 @@ import weka.core.Instances;
  */
 public class MultiVariateProcessing {
     
+    public static void makeUnivariateFiles(){
+        String path="Z:\\Data\\Multivariate TSC Problems\\";
+        String dest="Z:\\Data\\UnivariateMTSC\\";
+        OutFile out=new OutFile(path+"SummaryData.csv");
+        out.writeLine("problem,numTrainCases,numTestCases,numDimensions,seriesLength,numClasses");
+        String[] probs={"BasicMotions"};
+        for(String prob:DataSets.mtscProblems){
+            File t1=new File(dest+prob+"\\"+prob+"_TRAIN.arff");
+            File t2=new File(dest+prob+"\\"+prob+"_TRAIN.arff");
+            if(!(t1.exists()||t2.exists())){
+                Instances train =ClassifierTools.loadData(path+prob+"\\"+prob+"_TRAIN");
+                Instances test =ClassifierTools.loadData(path+prob+"\\"+prob+"_TEST");
+                System.out.println("PROBLEM "+prob);        
+                System.out.println("Num train instances ="+train.numInstances());
+                System.out.println("Num test instances ="+test.numInstances());
+                System.out.println("num train attributes (should be 2!)="+train.numAttributes());
+                System.out.println("num classes="+train.numClasses());
+                Instance temp=train.instance(0);
+                Instances x= temp.relationalValue(0);
+                System.out.println("train number of dimensions "+x.numInstances());
+                System.out.println("train number of attributes per dimension "+x.numAttributes());
+                 temp=test.instance(0);
+                x= temp.relationalValue(0);
+                System.out.println("test number of dimensions "+x.numInstances());
+                System.out.println("test number of attributes per dimension "+x.numAttributes());
+                out.writeLine(prob+","+train.numInstances()+","+test.numInstances()+","+x.numInstances()+","+x.numAttributes()+","+train.numClasses());
+                
+                int numAtts=x.numInstances()*x.numAttributes();
+                System.out.println(" Total number of attributes ="+numAtts);
+    //Build a new train test file of concatenated attributes
+                File f= new File(dest+prob);
+                f.mkdirs();
+                OutFile uniTrain=new OutFile(dest+prob+"\\"+prob+"_TRAIN.arff");
+                OutFile uniTest=new OutFile(dest+prob+"\\"+prob+"_TEST.arff");;
+                String header="@relation "+prob+"\n";
+                for(int i=0;i<numAtts;i++){
+                    header+="@attribute att"+i+" numeric \n";
+                }
+                header+="@attribute "+train.classAttribute().name()+ " {";
+                for(int i=0;i<train.numClasses()-1;i++)
+                    header+=i+",";
+                header+=train.numClasses()-1+"}\n";
+                header+="@data \n";
+                uniTrain.writeString(header);
+                uniTest.writeString(header);
+                for(int i=0;i<train.numInstances();i++){
+                    temp=train.instance(i);
+                    x= temp.relationalValue(0);
+                    for(Instance y:x){//Each dimension
+                        for(int j=0;j<y.numAttributes();j++)
+                            uniTrain.writeString(y.value(j)+",");
+                    }
+                    uniTrain.writeString((int)temp.classValue()+"\n");
+                }    
+                for(int i=0;i<test.numInstances();i++){
+                    temp=test.instance(i);
+                    x= temp.relationalValue(0);
+                    for(Instance y:x){//Each dimension
+                        for(int j=0;j<y.numAttributes();j++)
+                            uniTest.writeString(y.value(j)+",");
+                    }
+                    uniTest.writeString((int)temp.classValue()+"\n");
+                }    
+
+    //            System.out.println(" Object type ="+x);
+                train = ClassifierTools.loadData(dest+prob+"\\"+prob+"_TRAIN");
+                System.out.println("Can load univariate "+dest+prob+"\\"+prob+"_TRAIN");
+                test = ClassifierTools.loadData(dest+prob+"\\"+prob+"_TEST");
+                System.out.println("Can load univariate "+dest+prob+"\\"+prob+"_TEST");
+
+            }
+            else
+                System.out.println("Already done "+prob);
+        }
+        
+        
+    }
+
+
+    public static void checkUnivariateFiles(){
+        String dest="Z:\\Data\\UnivariateMTSC\\";
+        for(String prob:DataSets.mtscProblems){
+               
+//            System.out.println(" Object type ="+x);
+            try{
+                Instances train = ClassifierTools.loadData(dest+prob+"\\"+prob+"_TRAIN");
+            System.out.println("Can load univariate "+dest+prob+"\\"+prob+"_TRAIN");
+            }catch(Exception e){
+                System.out.println("UNABLE TO  LOAD :"+prob+" TRAIN FILE: EXCEPTION "+e);   
+            }
+            
+            try{
+                Instances test = ClassifierTools.loadData(dest+prob+"\\"+prob+"_TEST");
+            System.out.println("Can load univariate "+dest+prob+"\\"+prob+"_TEST");
+            }catch(Exception e){
+                System.out.println("UNABLE TO LOAD :"+prob+" TEST FILE: EXCEPTION "+e);   
+            }
+        }
+        
+        
+    }
+
     public static void formatPhilData(){
         Instances multi=ClassifierTools.loadData("C:\\Users\\ajb\\Dropbox\\Data\\Multivariate TSC Problems\\FinalMulti");
         Instances trans=MultivariateInstanceTools.transposeRelationalData(multi);
@@ -374,13 +477,25 @@ public class MultiVariateProcessing {
        
     }
     public static void main(String[] args) throws Exception {
+        makeUnivariateFiles();
+        String prob="UWaveGestureLibrary";
+        String dest="Z:\\Data\\UnivariateMTSC\\";
+        String path="Z:\\Data\\Multivariate TSC Problems\\";
+        Instances test = ClassifierTools.loadData(path+prob+"\\"+prob+"_TEST");
+    Instances train = ClassifierTools.loadData(path+prob+"\\"+prob+"_TRAIN");
+        
+       Instances test2 = ClassifierTools.loadData(dest+prob+"\\"+prob+"_TEST");
+  Instances train2 = ClassifierTools.loadData(dest+prob+"\\"+prob+"_TRAIN");
+
+        
+ //       checkUnivariateFiles();
 //        formatMotorImagery();
  //       formatFingerMovements();
         //formatSelfRegulationSCP1();
  //       formatSelfRegulationSCP2();
         //        formatPhilData();
  //       splitData("\\\\cmptscsvr.cmp.uea.ac.uk\\ueatsc\\Data\\Multivariate Working Area\\Michael_Unfinalised\\","Phoneme");
-       summariseData();        
+     //  summariseData();        
 
         //gettingStarted();
        // mergeEpilepsy();

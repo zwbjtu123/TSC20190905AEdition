@@ -13,7 +13,7 @@ import multivariate_timeseriesweka.classifiers.ConcatenateClassifier;
 import timeseriesweka.classifiers.BOSS;
 import timeseriesweka.classifiers.ElasticEnsemble;
 import timeseriesweka.classifiers.LearnShapelets;
-import timeseriesweka.classifiers.ST_HESCA;
+import timeseriesweka.classifiers.ShapeletTransformClassifier;
 
 /**
  *
@@ -33,7 +33,7 @@ public class ConcatenationClassifiers {
     
     
     public static ConcatenateClassifier createST_HESCA_concat(){
-        ST_HESCA st = new ST_HESCA();
+        ShapeletTransformClassifier st = new ShapeletTransformClassifier();
         st.setDayLimit(1);
         return new ConcatenateClassifier(st);
     }   

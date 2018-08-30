@@ -67,7 +67,7 @@ public class ClassifierTools {
 		catch(IOException e)
 		{
 			System.out.println("Unable to load data on path "+fullPath+" Exception thrown ="+e);
-			System.exit(0);
+//			System.exit(0);
 		}
 		return d;
 	}

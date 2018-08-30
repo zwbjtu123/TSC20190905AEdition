@@ -18,7 +18,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
-import timeseriesweka.classifiers.ST_HESCA;
+import timeseriesweka.classifiers.ShapeletTransformClassifier;
 import utilities.InstanceTools;
 import utilities.generic_storage.Pair;
 import weka.core.Instances;
@@ -407,14 +407,14 @@ public class ShapeletTransformTimingUtilities
         return Math.min(result.doubleValue(), 1.0); //return the proportion of n.
     }
     
-    // added by JAL - both edited versions of ST_HESCA.createTransformData
+    // added by JAL - both edited versions of ShapeletTransformClassifier.createTransformData
     // param changed to hours from nanos to make it human readable
-    // seed included; set to 0 by default in ST_HESCA, so same behaviour included unless specified
+    // seed included; set to 0 by default in ShapeletTransformClassifier, so same behaviour included unless specified
     public static ShapeletTransform createTransformWithTimeLimit(Instances train, double hours){
         return createTransformWithTimeLimit(train, hours, 0);
     }
     public static ShapeletTransform createTransformWithTimeLimit(Instances train, double hours, int seed){
-        int minimumRepresentation = ST_HESCA.minimumRepresentation;
+        int minimumRepresentation = ShapeletTransformClassifier.minimumRepresentation;
         long nanoPerHour = 3600000000000l;
         long time = (long)(nanoPerHour*hours);
         
