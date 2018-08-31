@@ -260,10 +260,18 @@ public class ForestHybrid extends AbstractClassifier implements SaveParameterInf
     public double[] distributionForInstance(Instance instance) throws Exception{
         if(transformation == 0){
             double [] sums = new double[instance.numClasses()], newProbs;
+            Instance temp = null;
             for (int i = 0; i < this.numTrees; i++) {
-                newProbs = classifiers[i].distributionForInstance(instance);
-                for (int j = 0; j < newProbs.length; j++)
-                sums[j] += newProbs[j];
+                if(featureSpace == 0 && classifier.equalsIgnoreCase("J48")){
+                    temp = produceIntervalInstance(instance, i);
+                    newProbs = classifiers[i].distributionForInstance(temp);
+                    for (int j = 0; j < newProbs.length; j++)
+                        sums[j] += newProbs[j];
+                }else{
+                    newProbs = classifiers[i].distributionForInstance(instance);
+                    for (int j = 0; j < newProbs.length; j++)
+                        sums[j] += newProbs[j];
+                }  
             }
             Utils.normalize(sums);
             return sums;
@@ -281,12 +289,17 @@ public class ForestHybrid extends AbstractClassifier implements SaveParameterInf
 
             for (int i = 0; i < classifiers.length; i++) {
                 
-                if(transformation == 0){
-                    instance = produceIntervalInstance(instance, i);
+                Instance convertedInstance = convertInstance(instance, i);
+                
+                if(featureSpace == 0){
+
+                    if(classifier.equalsIgnoreCase("J48")){
+                        convertedInstance = produceIntervalInstance(convertedInstance, i);
+                    }   
+
                 }
                 
-                Instance convertedInstance = convertInstance(instance, i);
-                if (instance.classAttribute().isNumeric() == true) {
+                if (convertedInstance.classAttribute().isNumeric() == true) {
                     sums[0] += classifiers[i].classifyInstance(convertedInstance);
                 } else {
                     newProbs = classifiers[i].distributionForInstance(convertedInstance);
