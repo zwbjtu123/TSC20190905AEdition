@@ -23,10 +23,11 @@ Decide on threshold.
 
 Version 2 will. Impose bagging and work out OOB Error
  */
-package vector_classifiers;
+package development;
 
 import java.util.Random;
 import weka.classifiers.meta.RotationForest;
+import vector_classifiers.TunedRotationForest;
 import vector_classifiers.TunedRotationForest;
 import weka.core.Instances;
 

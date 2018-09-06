@@ -11,7 +11,7 @@ package timeseriesweka.classifiers;
  * @author raj09hxu
  */
 public interface ContractClassifier {
-
+    public static double CHECKPOINTINTERVAL=2.0;    //Minimum interval between checkpoointing
     public enum TimeLimit {MINUTE, HOUR, DAY};
 
     public default void setOneDayLimit(){

@@ -28,6 +28,7 @@ import timeseriesweka.filters.shapelet_transforms.search_functions.ShapeletSearc
 import timeseriesweka.classifiers.cote.HiveCoteModule;
 import timeseriesweka.classifiers.ensembles.voting.MajorityConfidence;
 import timeseriesweka.classifiers.ensembles.weightings.TrainAcc;
+import timeseriesweka.filters.shapelet_transforms.DefaultShapeletOptions;
 import utilities.ClassifierResults;
 import utilities.TrainAccuracyEstimate;
 import weka.classifiers.Classifier;
@@ -70,7 +71,28 @@ public class ShapeletTransformClassifier  extends AbstractClassifier implements 
     private long timeLimit = Long.MAX_VALUE;
     private String checkpointFullPath; //location to check point 
     private boolean checkpoint=false;
-
+    enum TransformType{UNI,MULTI_D,MULTI_I};
+    TransformType type=TransformType.UNI;
+    
+    public void setTransformType(TransformType t){
+        type=t;
+    }
+    public void setTransformType(String t){
+        t=t.toLowerCase();
+        switch(t){
+            case "univariate": case "uni":
+                type=TransformType.UNI;
+                break;
+            case "shapeletd": case "shapelet_d": case "dependent":
+                type=TransformType.MULTI_D;
+                break;
+            case "shapeleti": case "shapelet_i":
+                type=TransformType.MULTI_I;
+                break;
+                
+        }
+    }
+    
     public void ShapeletTransformClassifier(){
         configureDefaultEnsemble();
     }
@@ -315,7 +337,12 @@ public class ShapeletTransformClassifier  extends AbstractClassifier implements 
     public void preferShortShapelets(){
         preferShortShapelets = true;
     }
-
+/**
+ * ADAPT FOR MTSC
+ * @param train
+ * @param time
+ * @return 
+ */
     public Instances createTransformData(Instances train, long time){
         int n = train.numInstances();
         int m = train.numAttributes()-1;
@@ -324,7 +351,8 @@ public class ShapeletTransformClassifier  extends AbstractClassifier implements 
 //    n > 2000 ? 2000 : n;   
         if(n*m<numShapeletsInTransform)
             numShapeletsInTransform=n*m;
-        
+
+
         //construct the options for the transform.
         ShapeletTransformFactoryOptions.Builder optionsBuilder = new ShapeletTransformFactoryOptions.Builder();
         optionsBuilder.setDistanceType(SubSeqDistance.DistanceType.IMP_ONLINE);

@@ -430,7 +430,10 @@ public class TunedRandomForest extends RandomForest implements SaveParameterInfo
  Bagging changed to EnhancedBagging and default size changed
 */
         m_bagger = new EnhancedBagging();
+//Test with C4.5 rather than RT        
         RandomTree rTree = new RandomTree();
+//        J48 rTree = new J48();
+
         // set up the random tree options
         
         

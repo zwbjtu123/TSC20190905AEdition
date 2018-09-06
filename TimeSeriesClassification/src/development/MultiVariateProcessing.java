@@ -14,6 +14,7 @@ import utilities.ClassifierTools;
 import utilities.InstanceTools;
 import utilities.multivariate_tools.MultivariateInstanceTools;
 import weka.classifiers.trees.J48;
+import weka.core.Attribute;
 import weka.core.Instance;
 import weka.core.Instances;
 
@@ -477,6 +478,8 @@ public class MultiVariateProcessing {
        
     }
     public static void main(String[] args) throws Exception {
+        debugFormat();
+        System.exit(0);
         makeUnivariateFiles();
         String prob="UWaveGestureLibrary";
         String dest="Z:\\Data\\UnivariateMTSC\\";
@@ -499,6 +502,24 @@ public class MultiVariateProcessing {
 
         //gettingStarted();
        // mergeEpilepsy();
+    }
+    public static void debugFormat(){
+//        ECGActivities
+        Instances train,test;
+        train=ClassifierTools.loadData("Z:\\Data\\MultivariateTSCProblems\\ECGActivities\\ECGActivities_TRAIN");
+        test=ClassifierTools.loadData("Z:\\Data\\MultivariateTSCProblems\\ECGActivities\\ECGActivities_TEST");
+        
+//        Instances[] split=InstanceTools.resampleTrainAndTestInstances(train, test, 1);
+        Instances[] split=MultivariateInstanceTools.resampleMultivariateTrainAndTestInstances(train, test, 1);
+        System.out.println("IS it relational ? "+split[0].checkForAttributeType(Attribute.RELATIONAL));
+        System.out.println("IS it relational ? "+split[0].checkForAttributeType(Attribute.RELATIONAL));
+
+        System.out.println("Fold 1 TRAIN num instances "+split[0].numInstances()+" Num atts ="+(split[0].numAttributes()-1));
+//        System.out.println(split[0]+"");
+        System.out.println("Fold 1 TRAIN  instance 1 num dimensions "+split[0].instance(0).relationalValue(0).numInstances()+" series length "+split[0].instance(0).relationalValue(0).numAttributes());
+        for(Instance ins:split[0])
+        System.out.println("Fold TRAIN  instance num dimensions "+ins.relationalValue(0).numInstances()+" series length "+ins.relationalValue(0).numAttributes());
+
     }
     public static void mergeEpilepsy(){
         Instances x,y,z;

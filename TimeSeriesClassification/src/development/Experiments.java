@@ -7,7 +7,6 @@
 */
 package development;
 
-import vector_classifiers.RotationForestLimitedAttributes;
 import fileIO.InFile;
 import fileIO.OutFile;
 import java.io.File;
@@ -64,7 +63,10 @@ import utilities.ClassifierResults;
 import vector_classifiers.CAWPE;
 import timeseriesweka.classifiers.ensembles.SaveableEnsemble;
 import timeseriesweka.classifiers.FastWWS.FastDTWWrapper;
+import timeseriesweka.filters.shapelet_transforms.ShapeletTransformTimingUtilities;
 import utilities.GenericTools;
+import utilities.multivariate_tools.MultivariateInstanceTools;
+import vector_classifiers.ContractRotationForest;
 import vector_classifiers.RotationForestBootstrap;
 import vector_classifiers.SaveEachParameter;
 import vector_classifiers.TunedMultiLayerPerceptron;
@@ -76,6 +78,7 @@ import vector_classifiers.TunedTwoLayerMLP;
 import vector_classifiers.TunedXGBoost;
 import weka.classifiers.functions.supportVector.RBFKernel;
 import weka.classifiers.lazy.kNN;
+import weka.core.Attribute;
 import weka.core.EuclideanDistance;
 import weka.core.Instances;
 
@@ -95,28 +98,58 @@ public class Experiments implements Runnable{
     static boolean foldsInFile=false;
     static boolean useBagsSampling=false;//todo is a hack for bags project experiments 
     static double SPLITPROP=0.5;    
-public static String threadClassifier="ED";    
-public static String[] cmpv2264419={
-"adult",
-};
-public static String[] ajb17pc={
-"abalone"
-};    
-public static String[] cmpv2202398={
-"adult"
-};
-//TODO
-/*
+    public static String threadClassifier="ED";    
+    public static String[] cmpv2264419={
+    "adult",
+    };
+    public static String[] ajb17pc={
+    "abalone"
+    };    
+    public static String[] cmpv2202398={
+    "adult"
+    };
+    //TODO
+    /*
 
-*/
-public static String[] laptop={
-"balloons"  
-};
+    */
+    public static String[] laptop={
+    "balloons"  
+    };
+/** This method is now too bloated
+ * 
+ * @param classifier
+ * @param fold
+ * @return 
+ */    
     public static Classifier setClassifier(String classifier, int fold){
         Classifier c=null;
         TunedSVM svm=null;
         switch(classifier){
+            case "ContractRotationForest":
+                c= new ContractRotationForest();
+//THIS NEEDS FIXING< HACKED FOR DEBUGGING
+                ((ContractRotationForest)c).setSavePath("C:/temp/");
+                
+                break;
+            
 //Multivariate classifiers
+            case "ShapeletD": case "Shapelet_D": //Multivariate version 1
+                c=new ShapeletTransformClassifier();
+//Default to 1 day max run: could do this better
+                ((ShapeletTransformClassifier)c).setOneDayLimit();
+                ((ShapeletTransformClassifier)c).setSeed(fold);
+                
+                break;
+            case "ShapeletI": case "Shapelet_I": //Multivariate version 2
+                c=new ShapeletTransformClassifier();
+//Default to 1 day max run: could do this better
+                ((ShapeletTransformClassifier)c).setOneDayLimit();
+                ((ShapeletTransformClassifier)c).setSeed(fold);
+                
+                break;
+                
+                
+                
             case "ED_I":
                 c=new NN_ED_I();
                 break;
@@ -383,8 +416,6 @@ public static String[] laptop={
 //Default to 1 day max run: could do this better
                 ((ShapeletTransformClassifier)c).setOneDayLimit();
                 ((ShapeletTransformClassifier)c).setSeed(fold);
-                
-                break;
             case "TSF":
                 c=new TSF();
                 break;
@@ -746,7 +777,7 @@ Optional
         for(String str:args)
             System.out.println(str);
         if(args.length<6){
-            boolean threaded=true;
+            boolean threaded=false;
             if(debug){
                 debugExperiment();
             }
@@ -758,13 +789,13 @@ Optional
     //Arg 3 argument is whether to cross validate or not and produce train files
                 newArgs[2]="false";
     // Arg 4,5,6 Classifier, Problem, Fold             
-                newArgs[3]="RISE";
+                newArgs[3]="ContractRotationForest";
 //These are set in the localX method
 //              newArgs[4]="Adiac";
 //                newArgs[5]="1";
 //                String[] problems=DataSets.fileNames;
                 String[] problems=new String[]{"Phoneme"};
-                int folds=100;
+                int folds=2;
                 if(threaded){//Do problems listed threaded 
                     localThreadedRun(newArgs,problems,folds);
                     
@@ -974,11 +1005,18 @@ Optional
                 singleFile=true;
             if(singleFile){
                 Instances all = ClassifierTools.loadData(DataSets.problemPath+problem+"/"+problem);
-                data = InstanceTools.resampleInstances(all, fold, SPLITPROP);            
+                if(all.checkForAttributeType(Attribute.RELATIONAL))
+                    data = MultivariateInstanceTools.resampleMultivariateInstances(all, fold, SPLITPROP);            
+                else
+                    data = InstanceTools.resampleInstances(all, fold, SPLITPROP);            
+                    
             }else{
                 data[0]=ClassifierTools.loadData(trainFile.getAbsolutePath());
                 data[1]=ClassifierTools.loadData(testFile.getAbsolutePath());
-                data=InstanceTools.resampleTrainAndTestInstances(data[0], data[1], fold);
+                if(data[0].checkForAttributeType(Attribute.RELATIONAL))
+                    data = MultivariateInstanceTools.resampleMultivariateTrainAndTestInstances(data[0],data[1], fold);                            
+                else
+                    data=InstanceTools.resampleTrainAndTestInstances(data[0], data[1], fold);
             }
         }
         return data;

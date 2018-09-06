@@ -3,7 +3,6 @@
 */
 package development;
 
-import vector_classifiers.RotationForestLimitedAttributes;
 import fileIO.InFile;
 import fileIO.OutFile;
 import java.io.File;

@@ -204,7 +204,7 @@ public class MultivariateInstanceTools {
         return output; 
     }
     
-    //function which returns the seperate channels of a multivariate problem as Instances[].
+    //function which returns the separate channels of a multivariate problem as Instances[].
     public static Instances[] splitMultivariateInstances(Instances multiInstances){
         Instances[] output = new Instances[numChannels(multiInstances)];
         

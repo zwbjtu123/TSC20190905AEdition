@@ -1004,9 +1004,9 @@ public static void makeTable(String means, String stdDev,String outfile){
 
 public static void main(String[] args) throws Exception{
     
-    problemPath="Z://Data/UCIContinuous/";
- //   dataDescription(fileNames);
-   dataDescriptionDataNotSplit(UCIContinuousFileNames);
+    problemPath="Z://Data/UnivariateMTSC/";
+    dataDescription(mtscProblems);
+ //  dataDescriptionDataNotSplit(UCIContinuousFileNames);
     System.exit(0);
     System.out.println("Problem path ="+problemPath);
     dataDescription(allFileNames);

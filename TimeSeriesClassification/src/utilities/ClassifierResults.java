@@ -5,6 +5,7 @@ import fileIO.OutFile;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Scanner;
@@ -24,7 +25,7 @@ import java.util.Scanner;
  * 
  * @author James Large (james.large@uea.ac.uk) + edits from jsut about everybody
  */
-public class ClassifierResults implements DebugPrinting {
+public class ClassifierResults implements DebugPrinting, Serializable{
     public long buildTime;
     public long memory;
     private int numClasses;
