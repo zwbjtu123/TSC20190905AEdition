@@ -1,8 +1,9 @@
 /*
 Shaplet transform with the weighted ensemble
  */
-package timeseriesweka.classifiers;
+package multivariate_timeseriesweka.classifiers;
 
+import timeseriesweka.classifiers.*;
 import timeseriesweka.filters.shapelet_transforms.ShapeletTransformFactory;
 import timeseriesweka.filters.shapelet_transforms.ShapeletTransform;
 import timeseriesweka.filters.shapelet_transforms.Shapelet;
@@ -12,6 +13,8 @@ import java.io.File;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.MathContext;
+import java.util.Map;
+import java.util.function.Function;
 import utilities.ClassifierTools;
 import utilities.InstanceTools;
 import utilities.SaveParameterInfo;
@@ -48,7 +51,7 @@ import weka.classifiers.trees.RandomForest;
  * If can be contracted to a maximum run time for shapelets, and can be configured for a different 
  * 
  */
-public class ShapeletTransformClassifier  extends AbstractClassifier implements HiveCoteModule, SaveParameterInfo, TrainAccuracyEstimate, ContractClassifier, CheckpointClassifier{
+public class MultivariateShapeletTransformClassifier  extends AbstractClassifier implements HiveCoteModule, SaveParameterInfo, TrainAccuracyEstimate, ContractClassifier, CheckpointClassifier{
 
     //Minimum number of instances per class in the train set
     public static final int minimumRepresentation = 25;
@@ -71,8 +74,8 @@ public class ShapeletTransformClassifier  extends AbstractClassifier implements 
     private long timeLimit = Long.MAX_VALUE;
     private String checkpointFullPath; //location to check point 
     private boolean checkpoint=false;
-    enum TransformType{UNI,MULTI_D,MULTI_I};
-    TransformType type=TransformType.UNI;
+    enum TransformType{INDEP,MULTI_D,MULTI_I};
+    TransformType type=TransformType.MULTI_D;
     
     public void setTransformType(TransformType t){
         type=t;
@@ -80,20 +83,20 @@ public class ShapeletTransformClassifier  extends AbstractClassifier implements 
     public void setTransformType(String t){
         t=t.toLowerCase();
         switch(t){
-            case "univariate": case "uni":
-                type=TransformType.UNI;
-                break;
             case "shapeletd": case "shapelet_d": case "dependent":
                 type=TransformType.MULTI_D;
                 break;
             case "shapeleti": case "shapelet_i":
                 type=TransformType.MULTI_I;
                 break;
+            case "indep": case "shapelet_indep":
+                type=TransformType.INDEP;
+                break;
                 
         }
     }
     
-    public ShapeletTransformClassifier(){
+    public MultivariateShapeletTransformClassifier(){
         configureDefaultEnsemble();
     }
 
@@ -347,72 +350,36 @@ public class ShapeletTransformClassifier  extends AbstractClassifier implements 
         int n = train.numInstances();
         int m = train.numAttributes()-1;
 //Set the number of shapelets to keep, max is MAXTRANSFORMSIZE (500)
-//numShapeletsInTransform
+//numShapeletsInTransform 
 //    n > 2000 ? 2000 : n;   
         if(n*m<numShapeletsInTransform)
             numShapeletsInTransform=n*m;
-
-
-        //construct the options for the transform.
-        ShapeletTransformFactoryOptions.Builder optionsBuilder = new ShapeletTransformFactoryOptions.Builder();
-        optionsBuilder.setDistanceType(SubSeqDistance.DistanceType.IMP_ONLINE);
-        optionsBuilder.setQualityMeasure(ShapeletQuality.ShapeletQualityChoice.INFORMATION_GAIN);
-        if(train.numClasses() > 2){
-            optionsBuilder.useBinaryClassValue();
-            optionsBuilder.useClassBalancing();
+//All hard coded for now to 1 day and whatever Aaron's defaults are!
+        ShapeletTransformFactoryOptions options;
+        switch(type){
+            case INDEP:
+                options = DefaultShapeletOptions.TIMED_FACTORY_OPTIONS.get("INDEPENDENT").apply(train, ShapeletTransformTimingUtilities.dayNano,seed);
+                break;                
+            case MULTI_D:
+                options = DefaultShapeletOptions.TIMED_FACTORY_OPTIONS.get("SHAPELET_D").apply(train, ShapeletTransformTimingUtilities.dayNano,seed);
+                break;
+            case MULTI_I: default:
+                options = DefaultShapeletOptions.TIMED_FACTORY_OPTIONS.get("SHAPELET_I").apply(train, ShapeletTransformTimingUtilities.dayNano,seed);
+                break;
         }
-        optionsBuilder.useRoundRobin();
-        optionsBuilder.useCandidatePruning();
         
-        //create our search options.
-        ShapeletSearchOptions.Builder searchBuilder = new ShapeletSearchOptions.Builder();
-        searchBuilder.setMin(3);
-        searchBuilder.setMax(m);
-
-        
-        //how much time do we have vs. how long our algorithm will take.
-        BigInteger opCountTarget = new BigInteger(Long.toString(time / nanoToOp));
-        BigInteger opCount = ShapeletTransformTimingUtilities.calculateOps(n, m, 1, 1);
-        if(opCount.compareTo(opCountTarget) == 1){
-            BigDecimal oct = new BigDecimal(opCountTarget);
-            BigDecimal oc = new BigDecimal(opCount);
-            BigDecimal prop = oct.divide(oc, MathContext.DECIMAL64);
-            
-            //if we've not set a shapelet count, calculate one, based on the time set.
-            if(numShapelets == 0){
-                numShapelets = ShapeletTransformTimingUtilities.calculateNumberOfShapelets(n,m,3,m);
-                numShapelets *= prop.doubleValue();
-            }
-             
-             //we need to find atleast one shapelet in every series.
-            if(setSeed)
-                searchBuilder.setSeed(seed);
-            searchBuilder.setSearchType(searchType);
-            searchBuilder.setNumShapelets(numShapelets);
-            
-            // can't have more final shapelets than we actually search through.
-            numShapeletsInTransform =  numShapelets > numShapeletsInTransform ? numShapeletsInTransform : (int) numShapelets;
-        }
-
-        optionsBuilder.setKShapelets(numShapeletsInTransform);
-        optionsBuilder.setSearchOptions(searchBuilder.build());
-        transform = new ShapeletTransformFactory(optionsBuilder.build()).getTransform();
-        transform.supressOutput();
-        
+        transform = new ShapeletTransformFactory(options).getTransform();
         if(shapeletOutputPath != null)
             transform.setLogOutputFile(shapeletOutputPath);
-        
-        if(preferShortShapelets)
-            transform.setShapeletComparator(new Shapelet.ShortOrder());
         
         return transform.process(train);
     }
     
     public static void main(String[] args) throws Exception {
-        String dataLocation = "C:\\Temp\\TSC\\";
+        String dataLocation = "C:\\Temp\\MTSC\\";
         //String dataLocation = "..\\..\\resampled transforms\\BalancedClassShapeletTransform\\";
-        String saveLocation = "C:\\Temp\\TSC\\";
-        String datasetName = "ItalyPowerDemand";
+        String saveLocation = "C:\\Temp\\MTSC\\";
+        String datasetName = "ERing";
         int fold = 0;
         
         Instances train= ClassifierTools.loadData(dataLocation+datasetName+File.separator+datasetName+"_TRAIN");
@@ -421,16 +388,16 @@ public class ShapeletTransformClassifier  extends AbstractClassifier implements 
         String testS=saveLocation+datasetName+File.separator+"TestPreds.csv";
         String preds=saveLocation+datasetName;
 
-        ShapeletTransformClassifier st= new ShapeletTransformClassifier();
+        MultivariateShapeletTransformClassifier st= new MultivariateShapeletTransformClassifier();
         //st.saveResults(trainS, testS);
         st.doSTransform(true);
-        st.setShapeletOutputFilePath(saveLocation+datasetName+"Shapelets.csv");
         st.setOneMinuteLimit();
         st.buildClassifier(train);
 
         double accuracy = utilities.ClassifierTools.accuracy(test, st);
         
-        System.out.println("accuracy: " + accuracy);    }
+        System.out.println("accuracy: " + accuracy);
+    }
 /**
  * Checkpoint methods
  */
@@ -438,10 +405,10 @@ public class ShapeletTransformClassifier  extends AbstractClassifier implements 
         checkpointFullPath=path;
     }
     public void copyFromSerObject(Object obj) throws Exception{
-        if(!(obj instanceof ShapeletTransformClassifier))
+        if(!(obj instanceof MultivariateShapeletTransformClassifier))
             throw new Exception("Not a ShapeletTransformClassifier object");
 //Copy meta data
-        ShapeletTransformClassifier st=(ShapeletTransformClassifier)obj;
+        MultivariateShapeletTransformClassifier st=(MultivariateShapeletTransformClassifier)obj;
 //We assume the classifiers have not been built, so are basically copying over the set up
         ensemble=st.ensemble;
         preferShortShapelets = st.preferShortShapelets;

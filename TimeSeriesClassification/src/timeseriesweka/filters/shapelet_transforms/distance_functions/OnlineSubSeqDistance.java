@@ -125,7 +125,7 @@ public class OnlineSubSeqDistance extends SubSeqDistance {
      * @param sum2
      * @return a z-normalised version of input
      */
-    protected double[] zNormalise(double[] input, boolean classValOn, DoubleWrapper sum, DoubleWrapper sum2) {
+    final double[] zNormalise(double[] input, boolean classValOn, DoubleWrapper sum, DoubleWrapper sum2) {
         double mean;
         double stdv;
 

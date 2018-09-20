@@ -39,7 +39,7 @@ public class SubSeqDistance implements Serializable{
         count =0;
     }
     
-    protected void incrementCount(){ count++;}
+    final void incrementCount(){ count++;}
     
     public long getCount() {return count;}
     
@@ -105,7 +105,7 @@ public class SubSeqDistance implements Serializable{
             for (int j = 0; j < length; j++)
             {
                 //count ops
-                incrementCount();
+                count++;
                 temp = (cand.getShapeletContent()[j] - subseq[j]);
                 sum = sum + (temp * temp);
             }
@@ -128,7 +128,7 @@ public class SubSeqDistance implements Serializable{
      * (e.g. an full instance might, a candidate shapelet wouldn't)
      * @return a z-normalised version of input
      */
-    public double[] zNormalise(double[] input, boolean classValOn)
+    final public double[] zNormalise(double[] input, boolean classValOn)
     {
         double mean;
         double stdv;

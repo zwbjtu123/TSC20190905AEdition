@@ -71,7 +71,7 @@ public class ShapeletTransform extends SimpleBatchFilter implements SaveParamete
     }
 
     //this int is used to serliase our position when iterating through a dataset.
-    public int dataSet;
+    public int casesSoFar;
     
     protected boolean supressOutput; // defaults to print in System.out AS WELL as file, set to true to stop printing to console
     protected int numShapelets;
@@ -211,7 +211,7 @@ public class ShapeletTransform extends SimpleBatchFilter implements SaveParamete
         this.m_FirstBatchDone = false;
         this.useCandidatePruning = false;
         this.supressOutput = false;
-        this.dataSet = 0;
+        this.casesSoFar = 0;
         this.recordShapelets = true; // default action is to write an output file
         this.roundRobin = false;
         this.useRoundRobin = false;
@@ -564,18 +564,18 @@ public class ShapeletTransform extends SimpleBatchFilter implements SaveParamete
         int dataSize = data.numInstances();
         
         //for all possible time series.
-        for(; dataSet < dataSize; dataSet++) {
-            outputPrint("data : " + dataSet);
+        for(; casesSoFar < dataSize; casesSoFar++) {
+            outputPrint("data : " + casesSoFar);
 
             //set the worst Shapelet so far, as long as the shapelet set is full.
             worstShapelet = kShapelets.size() == numShapelets ? kShapelets.get(numShapelets - 1) : null;
 
             //set the series we're working with.
-            subseqDistance.setSeries(dataSet);
+            subseqDistance.setSeries(casesSoFar);
             //set the clas value of the series we're working with.
-            classValue.setShapeletValue(data.get(dataSet));
+            classValue.setShapeletValue(data.get(casesSoFar));
            
-            seriesShapelets = searchFunction.SearchForShapeletsInSeries(data.get(dataSet), this::checkCandidate);
+            seriesShapelets = searchFunction.SearchForShapeletsInSeries(data.get(casesSoFar), this::checkCandidate);
 
             if(seriesShapelets != null){
                 Collections.sort(seriesShapelets, shapeletComparator);
@@ -775,7 +775,7 @@ public class ShapeletTransform extends SimpleBatchFilter implements SaveParamete
 
             double distance = 0.0;
             //don't compare the shapelet to the the time series it came from because we know it's 0.
-            if (i != dataSet) {
+            if (i != casesSoFar) {
                 distance = subseqDistance.calculate(inputData.instance(i), i);
             }
 
@@ -789,7 +789,7 @@ public class ShapeletTransform extends SimpleBatchFilter implements SaveParamete
             quality.updateOrderLine(orderline.get(orderline.size() - 1));
         }
 
-        Shapelet shapelet = new Shapelet(subseqDistance.getCandidate(), dataSourceIDs[dataSet], start, quality.getQualityMeasure());
+        Shapelet shapelet = new Shapelet(subseqDistance.getCandidate(), dataSourceIDs[casesSoFar], start, quality.getQualityMeasure());
         
         //this class distribution could be binarised or normal.
         shapelet.calculateQuality(orderline, classValue.getClassDistributions());

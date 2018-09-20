@@ -1,7 +1,5 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+ AArons Shapelet Transform class. 
  */
 package timeseriesweka.filters.shapelet_transforms;
 
@@ -30,7 +28,7 @@ public class BalancedClassShapeletTransform extends ShapeletTransform implements
      */
     @Override
     public ArrayList<Shapelet> findBestKShapeletsCache(Instances data){
-        ArrayList<Shapelet> seriesShapelets;                                    // temp store of all shapelets for each time series
+        ArrayList<Shapelet> seriesShapelets; // temp store of all shapelets for each time series
         //construct a map for our K-shapelets lists, on for each classVal.
         
         if(kShapeletsMap == null){
@@ -48,12 +46,12 @@ public class BalancedClassShapeletTransform extends ShapeletTransform implements
 
         int dataSize = data.numInstances();
         //for all possible time series.
-        while(dataSet < dataSize)
+        while(casesSoFar < dataSize)
         {
-            outputPrint("data : " + dataSet);
+            outputPrint("data : " + casesSoFar);
             
             //get the Shapelets list based on the classValue of our current time series.
-            kShapelets = kShapeletsMap.get(data.get(dataSet).classValue());
+            kShapelets = kShapeletsMap.get(data.get(casesSoFar).classValue());
 
             //we only want to pass in the worstKShapelet if we've found K shapelets. but we only care about this class values worst one.
             //this is due to the way we represent each classes shapelets in the map.
@@ -61,11 +59,11 @@ public class BalancedClassShapeletTransform extends ShapeletTransform implements
             worstShapelet = kShapelets.size() == proportion ? kShapelets.get(kShapelets.size()-1) : null;
 
             //set the series we're working with.
-            subseqDistance.setSeries(dataSet);
+            subseqDistance.setSeries(casesSoFar);
             //set the clas value of the series we're working with.
-            classValue.setShapeletValue(data.get(dataSet));
+            classValue.setShapeletValue(data.get(casesSoFar));
             
-            seriesShapelets = searchFunction.SearchForShapeletsInSeries(data.get(dataSet), this::checkCandidate);
+            seriesShapelets = searchFunction.SearchForShapeletsInSeries(data.get(casesSoFar), this::checkCandidate);
             
             if(seriesShapelets != null){
                 Collections.sort(seriesShapelets, shapeletComparator);
@@ -76,9 +74,9 @@ public class BalancedClassShapeletTransform extends ShapeletTransform implements
             }
             
             //re-update the list because it's changed now. 
-            kShapeletsMap.put(data.get(dataSet).classValue(), kShapelets);
+            kShapeletsMap.put(data.get(casesSoFar).classValue(), kShapelets);
             
-            dataSet++;
+            casesSoFar++;
             
             createSerialFile();
         }
