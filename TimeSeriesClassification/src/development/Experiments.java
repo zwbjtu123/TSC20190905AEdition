@@ -66,18 +66,12 @@ import timeseriesweka.classifiers.FastWWS.FastDTWWrapper;
 import timeseriesweka.filters.shapelet_transforms.ShapeletTransformTimingUtilities;
 import utilities.GenericTools;
 import utilities.multivariate_tools.MultivariateInstanceTools;
-import vector_classifiers.ContractRotationForest;
-import vector_classifiers.RotationForestBootstrap;
-import vector_classifiers.SaveEachParameter;
-import vector_classifiers.TunedMultiLayerPerceptron;
+import vector_classifiers.*;
 import weka.classifiers.trees.J48;
 import weka.classifiers.trees.RandomForest;
-import vector_classifiers.TunedRandomForest;
-import vector_classifiers.TunedSingleLayerMLP;
-import vector_classifiers.TunedTwoLayerMLP;
-import vector_classifiers.TunedXGBoost;
 import weka.classifiers.functions.supportVector.RBFKernel;
 import weka.classifiers.lazy.kNN;
+import weka.classifiers.trees.RandomTree;
 import weka.core.Attribute;
 import weka.core.EuclideanDistance;
 import weka.core.Instances;
@@ -127,29 +121,52 @@ public class Experiments implements Runnable{
         switch(classifier){
             case "ContractRotationForest":
                 c= new ContractRotationForest();
-//THIS NEEDS FIXING< HACKED FOR DEBUGGING
-                ((ContractRotationForest)c).setSavePath("C:/temp/");
+                ((ContractRotationForest)c).setDayLimit(5);
+                ((ContractRotationForest)c).setSeed(fold);
                 
+                break;
+            case "ContractRotationForest1Day":
+                c= new ContractRotationForest();
+                ((ContractRotationForest)c).setHourLimit(24);
+                ((ContractRotationForest)c).setSeed(fold);
+                break;
+            case "ContractRotationForest5Minutes":
+                c= new ContractRotationForest();
+                ((ContractRotationForest)c).setMinuteLimit(5);
+                ((ContractRotationForest)c).setSeed(fold);
+                break;
+            case "ContractRotationForest30Minutes":
+                c= new ContractRotationForest();
+                ((ContractRotationForest)c).setMinuteLimit(30);
+                ((ContractRotationForest)c).setSeed(fold);
+                break;
+            case "ContractRotationForest1Hour":
+                c= new ContractRotationForest();
+                ((ContractRotationForest)c).setHourLimit(1);
+                ((ContractRotationForest)c).setSeed(fold);
+                break;
+            case "ContractRotationForest2Hour":
+                c= new ContractRotationForest();
+                ((ContractRotationForest)c).setHourLimit(2);
+                break;
+            case "ContractRotationForest3Hour":
+                c= new ContractRotationForest();
+                ((ContractRotationForest)c).setHourLimit(3);
+                ((ContractRotationForest)c).setSeed(fold);
+                break;
+            case "ContractRotationForest12Hour":
+                c= new ContractRotationForest();
+                ((ContractRotationForest)c).setHourLimit(12);
+                ((ContractRotationForest)c).setSeed(fold);
                 break;
             
-//Multivariate classifiers
-            case "ShapeletD": case "Shapelet_D": //Multivariate version 1
-                c=new ShapeletTransformClassifier();
+            case "ShapeletI": case "Shapelet_I": case "ShapeletD": case "Shapelet_D": case  "Shapelet_Indep"://Multivariate version 1
+                c=new MultivariateShapeletTransformClassifier();
 //Default to 1 day max run: could do this better
-                ((ShapeletTransformClassifier)c).setOneDayLimit();
-                ((ShapeletTransformClassifier)c).setSeed(fold);
-                
+                ((MultivariateShapeletTransformClassifier)c).setOneDayLimit();
+                ((MultivariateShapeletTransformClassifier)c).setSeed(fold);
+                ((MultivariateShapeletTransformClassifier)c).setTransformType(classifier);
                 break;
-            case "ShapeletI": case "Shapelet_I": //Multivariate version 2
-                c=new ShapeletTransformClassifier();
-//Default to 1 day max run: could do this better
-                ((ShapeletTransformClassifier)c).setOneDayLimit();
-                ((ShapeletTransformClassifier)c).setSeed(fold);
-                
-                break;
-                
-                
-                
             case "ED_I":
                 c=new NN_ED_I();
                 break;
@@ -245,6 +262,17 @@ public class Experiments implements Runnable{
                 ((TunedRotationForest)c).setSeed(fold);
                 ((TunedRotationForest)c).estimateAccFromTrain(false);
                 break;
+            case "RotFRandomTree":
+                c= new TunedRotationForest();
+                ((RotationForest)c).setNumIterations(200);
+                ((RotationForest)c).setClassifier(new RandomTree());
+                
+                ((TunedRotationForest)c).tuneParameters(false);
+                ((TunedRotationForest)c).setSeed(fold);
+                ((TunedRotationForest)c).estimateAccFromTrain(false);
+                break;
+
+
             case "RotFBootstrap":
                 c= new RotationForestBootstrap();
                 ((RotationForestBootstrap)c).setNumIterations(200);
@@ -784,17 +812,17 @@ Optional
             else{ 
     //Args 1 and 2 are problem and results path
                 String[] newArgs=new String[6];
-                newArgs[0]="//cmptscsvr.cmp.uea.ac.uk/ueatsc/Data/TSCProblems/";//All on the beast now
-                newArgs[1]="//cmptscsvr.cmp.uea.ac.uk/ueatsc/Results/TSCProblems/";
+                newArgs[0]="//cmptscsvr.cmp.uea.ac.uk/ueatsc/Data/UnivariateMTSC/";//All on the beast now
+                newArgs[1]="//cmptscsvr.cmp.uea.ac.uk/ueatsc/Results/UnivariateMTSC/";
     //Arg 3 argument is whether to cross validate or not and produce train files
                 newArgs[2]="false";
     // Arg 4,5,6 Classifier, Problem, Fold             
-                newArgs[3]="ContractRotationForest";
+                newArgs[3]="ShapeletTransformClassifer";
 //These are set in the localX method
 //              newArgs[4]="Adiac";
 //                newArgs[5]="1";
 //                String[] problems=DataSets.fileNames;
-                String[] problems=new String[]{"Phoneme"};
+                String[] problems=new String[]{"EigenWorms"};
                 int folds=2;
                 if(threaded){//Do problems listed threaded 
                     localThreadedRun(newArgs,problems,folds);

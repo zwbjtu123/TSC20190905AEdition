@@ -108,7 +108,8 @@ public class ContractRotationForest extends AbstractClassifier
     double timeUsed;
     Random random;
     int seed =0;
-  
+    double alpha=0.2;//Learning rate for timing update
+
   /**
    * Constructor.
    */
@@ -339,7 +340,7 @@ public class ContractRotationForest extends AbstractClassifier
 
         int n=data.numInstances();
         int m=data.numAttributes()-1;
-
+        double treeTime;
     //Re-estimate even if loading serialised, may be different hardware ....        
         estSingleTree=tm.estimateSingleTreeHours(n,m);
         if(debug){
@@ -347,15 +348,27 @@ public class ContractRotationForest extends AbstractClassifier
             System.out.println("Contract time ="+contractHours+" hours ");
 
         }
-        if(estSingleTree*minNumTrees<contractHours && m<1000){ //Can do at least 50 trees we think, just build them in batches,with added hack! 
+        int maxAtts=m;
+//CASE 1: think we can build the minimum number of trees with full data.
+        if((estSingleTree*minNumTrees)<contractHours){ 
             if(debug)
-                System.out.println("Able to build at least 50 trees");
-            maxNumAttributes=m;
-            int batchSize=setBatchSize(estSingleTree);    //Set larger for smaller data
-            if(debug)
-                System.out.println("Batch size = "+batchSize);
+                System.out.println("Think we are able to build at least 50 trees");
+            boolean buildFullTree=true;
+            int size;
+//Option to build in batches for smaller data, but not used at the moment            
+            int batchSize=1;//setBatchSize(estSingleTree);    //Set larger for smaller data
+//            if(debug)
+//                System.out.println("Batch size = "+batchSize);
             long startBuild=System.currentTimeMillis(); 
             while(timeUsed<contractHours && numTrees<maxNumTrees){
+                long sTime=System.currentTimeMillis();              
+                if(buildFullTree)
+                    size=m;
+                else{
+                    maxAtts=tm.estimateMaxAttributes(m,minNumTrees-numTrees,estSingleTree,contractHours);
+                    size=random.nextInt(maxAtts/2)+maxAtts/2;
+                }
+                    
                 if(batchSize+numTrees>maxNumTrees)
                     batchSize=maxNumTrees-numTrees;
                 for(int i=0;i<batchSize;i++)
@@ -363,6 +376,15 @@ public class ContractRotationForest extends AbstractClassifier
             //Update time used
                 long newTime=System.currentTimeMillis(); 
                 timeUsed=(newTime-startBuild)/(1000.0*60.0*60.0);
+                treeTime=(newTime-sTime)/(1000.0*60.0*60.0);
+                
+            //  Update single tree estimate                
+                estSingleTree=updateTreeTime(estSingleTree,treeTime,alpha,size,m);
+           //Taking much longer than we thought!
+                if(estSingleTree*minNumTrees>contractHours)
+                    buildFullTree=false;
+                else
+                    buildFullTree=true;
             //Checkpoint here   
                     if(debug)
                         System.out.println("Built tree number "+numTrees+" in "+timeUsed+" hours ");
@@ -382,13 +404,14 @@ public class ContractRotationForest extends AbstractClassifier
                 } 
             }
         }
-        else{//Cannot build min number of trees, will subsample ATTRIBUTES ONLY
+//CASE 2 and 3: dont think we can build min number of trees        
+        else{
             if(debug)
                 System.out.println("unable to build 50 trees in the time allowed ");
-//If m > n: Only do this for now
+//If m > n: SAMPLE ATTRIBUTES
             if(m>n){
 //estimate maximum number of attributes allowed, x, to get minNumberOfTrees.                
-                int maxAtts=m;
+                maxAtts=m;
                 long startBuild=System.currentTimeMillis(); 
                 while(timeUsed<contractHours && numTrees<minNumTrees){
                     maxAtts=tm.estimateMaxAttributes(m,minNumTrees-numTrees,estSingleTree,contractHours);
@@ -402,12 +425,11 @@ public class ContractRotationForest extends AbstractClassifier
             //Update time used
                     long newTime=System.currentTimeMillis(); 
                     timeUsed=(newTime-startBuild)/(1000.0*60.0*60.0);
-                    double treeTime=(newTime-sTime)/(1000.0*60.0*60.0);
-                    double alpha=0.2;
-                    if(treeTime>estSingleTree)
-                        estSingleTree=(1-alpha)*estSingleTree+alpha*treeTime;
+                    treeTime=(newTime-sTime)/(1000.0*60.0*60.0);
+                    estSingleTree=updateTreeTime(estSingleTree,treeTime,alpha,size,m);
+//                    (1-alpha)*estSingleTree+alpha*treeTime;
                     if(debug)
-                        System.out.print(" actual time used ="+timeUsed+" est single tree = estSingleTree");
+                        System.out.print(" actual time used ="+timeUsed+" new est single tree = "+estSingleTree);
                     
                 //Checkpoint here   
                 }
@@ -464,6 +486,14 @@ public class ContractRotationForest extends AbstractClassifier
             System.out.println("Finished build");
 
     }
+    double updateTreeTime(double estSingleTree,double obsTreeTime,double alpha,int numAtts,int m){
+        double t=(1-alpha)*estSingleTree;
+        t+=alpha*(m/(double)numAtts)*obsTreeTime;
+        if(t<0)
+            return estSingleTree;
+        return t;
+    }
+
     
 /** Build a rotation forest tree on a random subsample of the attributes
  * 

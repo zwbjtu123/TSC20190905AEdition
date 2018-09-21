@@ -28,7 +28,6 @@ All depreciated by James's changes
 
 package development;
 
-import vector_classifiers.RotationForestLimitedAttributes;
 import fileIO.OutFile;
 import java.io.File;
 import java.io.FileWriter;

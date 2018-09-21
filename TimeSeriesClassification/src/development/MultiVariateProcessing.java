@@ -154,8 +154,8 @@ public class MultiVariateProcessing {
         out.writeLine(split[1].toString());
     }
     public static void summariseData(){
-        String path="Z:\\Data\\Multivariate TSC Problems\\";
-        OutFile out=new OutFile("Z:\\Data\\Multivariate TSC Problems\\SummaryData.csv");
+        String path="Z:\\Data\\MultivariateTSCProblems\\";
+        OutFile out=new OutFile("Z:\\Data\\MultivariateTSCProblems\\SummaryData.csv");
         out.writeLine("problem,numTrainCases,numTestCases,numDimensions,seriesLength,numClasses");
         for(String prob: DataSets.mtscProblems){
             Instances train =ClassifierTools.loadData(path+prob+"\\"+prob+"_TRAIN");
@@ -478,8 +478,9 @@ public class MultiVariateProcessing {
        
     }
     public static void main(String[] args) throws Exception {
-        debugFormat();
+        summariseData();
         System.exit(0);
+        debugFormat();
         makeUnivariateFiles();
         String prob="UWaveGestureLibrary";
         String dest="Z:\\Data\\UnivariateMTSC\\";
