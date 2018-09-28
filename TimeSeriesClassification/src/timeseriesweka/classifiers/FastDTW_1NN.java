@@ -79,7 +79,14 @@ public class FastDTW_1NN extends AbstractClassifier  implements SaveParameterInf
  @Override
     public void writeCVTrainToFile(String train) {
         trainPath=train;
-    }    
+    } 
+    public void setFindTrainAccuracyEstimate(boolean setCV){
+        if(setCV==true)
+            throw new UnsupportedOperationException("Doing a top leve CV is not yet possible for FastDTW_1NN. It cross validates to optimize, so could store those, but will be biased"); //To change body of generated methods, choose Tools | Templates.
+//This method doe
+    }
+     
+    
 //Think this always does para search?
 //    @Override
 //    public boolean findsTrainAccuracyEstimate(){ return findTrainAcc;}
@@ -89,7 +96,7 @@ public class FastDTW_1NN extends AbstractClassifier  implements SaveParameterInf
 //Temporary : copy stuff into res.acc here
         return res;
     }      
-      @Override
+    @Override
     public String getParas() { //This is redundant really.
         return getParameters();
     }
@@ -326,5 +333,6 @@ answer is to store those without the abandon in a hash table indexed by i and j,
     public void setParametersFromIndex(int x) {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
+
 
 }

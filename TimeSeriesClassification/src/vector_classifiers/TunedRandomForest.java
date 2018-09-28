@@ -207,6 +207,12 @@ public class TunedRandomForest extends RandomForest implements SaveParameterInfo
         trainPath=train;
         estimateAcc=true;
     }    
+ @Override
+    public void setFindTrainAccuracyEstimate(boolean setCV){
+        estimateAcc=setCV;
+    }
+    
+    
     @Override
     public boolean findsTrainAccuracyEstimate(){ return estimateAcc;}
     protected final void setStandardParaSearchSpace(int m){

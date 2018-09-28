@@ -97,6 +97,11 @@ public class TSF extends AbstractClassifierWithTrainingData implements SaveParam
         trainCVPath=train;
         trainCV=true;
     }
+ @Override
+    public void setFindTrainAccuracyEstimate(boolean setCV){
+        trainCV=setCV;
+    }
+    
     @Override
     public boolean findsTrainAccuracyEstimate(){ return trainCV;}
     

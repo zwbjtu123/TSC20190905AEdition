@@ -112,8 +112,15 @@ public class TunedSVM extends SMO implements SaveParameterInfo, TrainAccuracyEst
     
  @Override
     public void writeCVTrainToFile(String train) {
+        findTrainAcc=true;
         trainPath=train;
     }    
+ @Override
+    public void setFindTrainAccuracyEstimate(boolean setCV){
+        findTrainAcc=setCV;
+    }
+    
+    
 //Think this always does para search?
 //    @Override
 //    public boolean findsTrainAccuracyEstimate(){ return findTrainAcc;}

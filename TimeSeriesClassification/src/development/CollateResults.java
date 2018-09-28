@@ -193,7 +193,6 @@ Parameter info: Parameter1.csv, Parameter2.csv...AllTuningAccuracies.csv (if tun
                 if(!stats.isDirectory())
                     stats.mkdir();
                 String filePath=basePath+cls+"/SummaryStats/";
-//Write collated results for this classifier to a single file                
                 OutFile clsResults=new OutFile(filePath+cls+"TestAcc.csv");
                 OutFile f1Results=new OutFile(filePath+cls+"TestF1.csv");
                 OutFile BAccResults=new OutFile(filePath+cls+"TestBAcc.csv");
@@ -214,6 +213,8 @@ Parameter info: Parameter1.csv, Parameter2.csv...AllTuningAccuracies.csv (if tun
                 OutFile of = new OutFile(filePath+cls+"Corrupted.csv");
                 int missingCount=0;
                 for(String name:problems){            
+//Write collated results for this classifier to a single file                
+                    OutFile mergedResults=new OutFile(filePath+cls+"AllTestPrediction"+name+".csv");
                     clsResults.writeString(name);
                     trainResults.writeString(name);
                     f1Results.writeString(name);
@@ -281,6 +282,7 @@ Parameter info: Parameter1.csv, Parameter2.csv...AllTuningAccuracies.csv (if tun
                                 inf.closeFile();
                                 ClassifierResults res=new ClassifierResults();
                                 res.loadFromFile(path+"//testFold"+j+".csv");
+                                mergedResults.writeLine(res.writeInstancePredictions());                                
                                 res.findAllStats();
                                 f1Results.writeString(","+res.f1);
                                 BAccResults.writeString(","+res.balancedAcc);
@@ -790,9 +792,9 @@ public static void basicSummaryComparisons(){
 //Next x arguments: number of numParas stored for each classifier    
     public static void main(String[] args) throws Exception {
  //collateRotFSensitivity();
- collateRotFSensitivity2();
- System.exit(0);
-collateBags();
+ //collateRotFSensitivity2();
+ //System.exit(0);
+//collateBags();
  //ucrRotFvsRandFtestOnly();
 //        collateUntuned();
 //       collateTuned();
@@ -804,7 +806,7 @@ collateBags();
 //BMLPtunedVuntuned();
 //untunedVsTuned();
 
- System.exit(0);
+// System.exit(0);
         String classifier="TBMLP1";
         String parameters="1";
         if(args.length>1)

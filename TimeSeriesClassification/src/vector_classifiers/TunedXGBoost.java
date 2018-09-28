@@ -515,7 +515,12 @@ public class TunedXGBoost extends AbstractClassifier implements SaveParameterInf
      */
     public void writeCVTrainToFile(String train) {
         trainPath=train;
+        findTrainAcc=true;
     } 
+ @Override
+    public void setFindTrainAccuracyEstimate(boolean setCV){
+        findTrainAcc=setCV;
+    }
     
     /**
      * TrainAccuracyEstimate interface

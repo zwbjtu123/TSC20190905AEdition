@@ -312,6 +312,10 @@ public class FastRotationForest extends RandomizableIteratedSingleClassifierEnha
         trainPath=train;
         estimateAcc=true;
     }
+ @Override
+    public void setFindTrainAccuracyEstimate(boolean setCV){
+        estimateAcc=setCV;
+    }
 
     @Override
     public ClassifierResults getTrainResults() {

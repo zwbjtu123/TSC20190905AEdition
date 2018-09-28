@@ -112,6 +112,11 @@ public class ShapeletTransformClassifier  extends AbstractClassifier implements 
     public void writeCVTrainToFile(String train) {
         ensemble.writeCVTrainToFile(train);
     }
+    @Override
+    public void setFindTrainAccuracyEstimate(boolean setCV){
+        ensemble.setFindTrainAccuracyEstimate(setCV);
+
+    }
 
     /*//if you want CAWPE to perform CV.
     public void setPerformCV(boolean b) {

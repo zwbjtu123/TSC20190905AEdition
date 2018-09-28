@@ -171,6 +171,11 @@ public class TunedSingleLayerMLP extends MultilayerPerceptron implements SavePar
         trainPath=train;
         findTrainAcc=true;
     }    
+ @Override
+    public void setFindTrainAccuracyEstimate(boolean setCV){
+        findTrainAcc=setCV;
+    }
+    
     @Override
     public boolean findsTrainAccuracyEstimate(){ return findTrainAcc;}
     

@@ -392,6 +392,17 @@ public class Experiments implements Runnable{
                 c=new CAWPE();
                 ((CAWPE)c).setRandSeed(fold);
                 break;
+            case "CAWPEPLUS":
+                c=new CAWPE();
+                
+                ((CAWPE)c).setRandSeed(fold);
+                break;
+            case "XGBoost":
+                c=new TunedXGBoost();
+                ((TunedXGBoost)c).setTuneParameters(false);
+                ((TunedXGBoost)c).setSeed(fold);
+                break;
+
 //ELASTIC CLASSIFIERS     
             case "EE": case "ElasticEnsemble":
                 c=new ElasticEnsemble();
@@ -444,6 +455,7 @@ public class Experiments implements Runnable{
 //Default to 1 day max run: could do this better
                 ((ShapeletTransformClassifier)c).setOneDayLimit();
                 ((ShapeletTransformClassifier)c).setSeed(fold);
+                break;
             case "TSF":
                 c=new TSF();
                 break;
@@ -476,13 +488,6 @@ public class Experiments implements Runnable{
                 c=new HiveCote();
                 ((HiveCote)c).setContract(24);
                 break; 
-            case "XGBoost":
-                 c=new TunedXGBoost();
-                ((TunedXGBoost)c).setSeed(fold);
-                ((TunedXGBoost)c).setDebug(false);
-                ((TunedXGBoost)c).setDebugPrinting(false);
-                ((TunedXGBoost)c).setTuneParameters(false);
-                 break;
             case "TunedXGBoost":
                  c=new TunedXGBoost();
                 ((TunedXGBoost)c).setSeed(fold);

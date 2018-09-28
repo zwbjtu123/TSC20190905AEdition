@@ -175,7 +175,12 @@ public class TunedRotationForest extends RotationForest implements SaveParameter
     public void writeCVTrainToFile(String train) {
         trainPath=train;
         findTrainAcc=true;
-    }    
+    }       
+ @Override
+    public void setFindTrainAccuracyEstimate(boolean setCV){
+        findTrainAcc=setCV;
+    }
+        
     @Override
     public boolean findsTrainAccuracyEstimate(){ return findTrainAcc;}
     

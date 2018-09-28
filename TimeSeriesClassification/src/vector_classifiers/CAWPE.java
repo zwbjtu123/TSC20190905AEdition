@@ -313,6 +313,40 @@ public class CAWPE extends AbstractClassifier implements HiveCoteModule, SavePar
     }
 
         
+    public final void setAdvancedCAWPESettings(){
+        this.weightingScheme = new TrainAcc(4);
+        this.votingScheme = new MajorityConfidence();
+        
+        Classifier[] classifiers = new Classifier[5];
+        String[] classifierNames = new String[5];
+        
+        SMO smo = new SMO();
+        smo.turnChecksOff();
+        smo.setBuildLogisticModels(true);
+        PolyKernel kl = new PolyKernel();
+        kl.setExponent(2);
+        smo.setKernel(kl);
+        if (setSeed)
+            smo.setRandomSeed(seed);
+        classifiers[0] = smo;
+        classifierNames[0] = "SVMQ";
+        RandomForest rf= new RandomForest();
+        rf.setNumTrees(500);
+        classifiers[1] = rf;
+        classifierNames[1] = "NN";
+        
+        classifiers[2] = new J48();
+        classifierNames[2] = "C4.5";
+        
+        classifiers[3] = new Logistic();
+        classifierNames[3] = "Logistic";
+        
+        classifiers[4] = new MultilayerPerceptron();
+        classifierNames[4] = "MLP";
+        
+        setClassifiers(classifiers, classifierNames, null);
+    }
+
 
 
     public void setPerformCV(boolean b) {
@@ -817,6 +851,11 @@ public class CAWPE extends AbstractClassifier implements HiveCoteModule, SavePar
         performEnsembleCV=true;
         writeEnsembleTrainingFile=true;
     }    
+    @Override
+    public void setFindTrainAccuracyEstimate(boolean setCV){
+        performEnsembleCV=setCV;
+    }
+     
     @Override
     public boolean findsTrainAccuracyEstimate(){ return performEnsembleCV;}
     

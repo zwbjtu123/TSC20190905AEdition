@@ -48,7 +48,15 @@ public class SlowDTW_1NN extends AbstractClassifier  implements SaveParameterInf
  @Override
     public void writeCVTrainToFile(String train) {
         trainPath=train;
-    }    
+    }  
+    @Override
+    public void setFindTrainAccuracyEstimate(boolean setCV){
+        if(setCV==true)
+            throw new UnsupportedOperationException("Doing a top leve CV is not yet possible for SlowDTW_1NN. It cross validates to optimize, so could store those, but will be biased"); //To change body of generated methods, choose Tools | Templates.
+//This method doe
+    }
+    
+    
 //Think this always does para search?
 //    @Override
 //    public boolean findsTrainAccuracyEstimate(){ return findTrainAcc;}

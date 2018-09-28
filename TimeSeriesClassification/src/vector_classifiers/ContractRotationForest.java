@@ -418,7 +418,7 @@ public class ContractRotationForest extends AbstractClassifier
                     int size=random.nextInt(maxAtts/2)+maxAtts/2;
                     if(debug){
                         System.out.print("Max estimated attributes ="+maxAtts);
-                        System.out.print("    using "+size+" attributes, building single tree at a time. Total time used ="+timeUsed);
+                        System.out.println("    using "+size+" attributes, building single tree at a time. Total time used ="+timeUsed);
                     }
                     long sTime=System.currentTimeMillis();
                     buildTreeAttSample(data,instancesOfClass,numTrees++,size);
@@ -429,7 +429,7 @@ public class ContractRotationForest extends AbstractClassifier
                     estSingleTree=updateTreeTime(estSingleTree,treeTime,alpha,size,m);
 //                    (1-alpha)*estSingleTree+alpha*treeTime;
                     if(debug)
-                        System.out.print(" actual time used ="+timeUsed+" new est single tree = "+estSingleTree);
+                        System.out.println(" actual time used ="+timeUsed+" new est single tree = "+estSingleTree);
                     
                 //Checkpoint here   
                 }

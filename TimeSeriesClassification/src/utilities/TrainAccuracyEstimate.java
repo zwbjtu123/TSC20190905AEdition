@@ -17,17 +17,20 @@ import weka.core.Instances;
  * @author ajb
  */
 public interface TrainAccuracyEstimate {
-/**
- *  By default, classifiers implementing this interface will perform a CV
- * on the train data and store that data in a ?? object
+
+    
+    void setFindTrainAccuracyEstimate(boolean setCV);
+    
+    /**
+ *  classifiers implementing this interface can perform a CV
+ * on the train data and store that data in a ClassifierResults object
      * @return true if this classifier actually finds the estimate
  */
-    default boolean findsTrainAccuracyEstimate(){ return true;}
+    default boolean findsTrainAccuracyEstimate(){ return false;}
 /**
  * TrainCV results are not by default written to file. If this method is called
  * they will be written in standard format, as defined in the ClassifierResults class
- * The minimum requirements for the
- * train results are
+ * The minimum requirements for the train results are
  * 
  * ProblemName,ClassifierName,train
 *  Parameter info, if available

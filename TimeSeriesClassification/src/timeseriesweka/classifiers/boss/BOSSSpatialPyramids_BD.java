@@ -238,6 +238,11 @@ public class BOSSSpatialPyramids_BD implements Classifier, SaveParameterInfo,Tra
         trainCV=true;
     }
     @Override
+    public void setFindTrainAccuracyEstimate(boolean setCV){
+        trainCV=setCV;
+    }
+    
+    @Override
     public boolean findsTrainAccuracyEstimate(){ return trainCV;}
     
     @Override

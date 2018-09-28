@@ -1004,8 +1004,14 @@ public static void makeTable(String means, String stdDev,String outfile){
 
 public static void main(String[] args) throws Exception{
     
-    problemPath="Z://Data/UnivariateMTSC/";
-    dataDescription(mtscProblems);
+    problemPath="Z://BagsSDM/Data/";
+    
+    String[] files={"BagsTwoClassHisto","BagsFiveClassHisto",
+        "FakeBagsFiveClassHisto","FakeBagsTwoClassHisto","FakeSieveBagsTwoClassHisto",
+        "GTtoSieveTwoClassHisto","leaveOutOneElectricalItemHisto","psudo2BagsTwoClassHisto","SieveBagsTwoClassHisto"};
+    
+    
+    dataDescription(files);
  //  dataDescriptionDataNotSplit(UCIContinuousFileNames);
     System.exit(0);
     System.out.println("Problem path ="+problemPath);
@@ -1016,6 +1022,13 @@ public static void main(String[] args) throws Exception{
         Instances test = ClassifierTools.loadData(problemPath+s+"/"+s+"_TEST");
         System.out.println(s+" load ok ");
     }
+    double[] a =new double[10];
+    double sum=0;
+    for(int i=0;i<10;i++)
+        sum+=a[i];
+    
+    
+    
   
 //    dataDescription(uciFileNames);
 /*    for(String s:uciFileNames){

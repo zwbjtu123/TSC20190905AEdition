@@ -265,6 +265,11 @@ public class ElasticEnsemble extends AbstractClassifierWithTrainingData implemen
         ensembleTrainFilePathAndName = outputPathAndName;
     }
     @Override
+    public void setFindTrainAccuracyEstimate(boolean setCV){
+        this.writeEnsembleTrainingFile =setCV;
+    }
+    
+    @Override
     public boolean findsTrainAccuracyEstimate(){ return writeEnsembleTrainingFile;}
     
     @Override

@@ -182,7 +182,12 @@ public class TunedMultiLayerPerceptron extends MultilayerPerceptron implements S
     public void writeCVTrainToFile(String train) {
         trainPath=train;
         findTrainAcc=true;
-    }    
+    }   
+    @Override
+    public void setFindTrainAccuracyEstimate(boolean setCV){
+        findTrainAcc=setCV;
+    }
+    
     @Override
     public boolean findsTrainAccuracyEstimate(){ return findTrainAcc;}
     
