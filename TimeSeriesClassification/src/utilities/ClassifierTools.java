@@ -115,7 +115,10 @@ public class ClassifierTools {
         {
             ArffSaver saver = new ArffSaver();
             saver.setInstances(dataSet);
-            saver.setFile(new File(fileName + ".arff"));
+            if (fileName.endsWith(".arff"))
+                saver.setFile(new File(fileName));
+            else 
+                saver.setFile(new File(fileName + ".arff"));
             saver.writeBatch();
         }
         catch (IOException ex)
