@@ -28,8 +28,10 @@ public class StatisticalUtilities {
             sum += values[i];
         }
 
-        return sum / (double) values.length - offset;
+        return sum / (double) (values.length - offset);
     }
+    
+    
     
     // jamesl
     // the median of a list of values, just sorts (a copy, original remains unsorted) and takes middle for now
