@@ -200,12 +200,21 @@ public class Experiments implements Runnable{
                 break;
             case "SVMQ": case "SVMQuad":
                 c=new SMO();
-                PolyKernel p2=new PolyKernel();
-                p2.setExponent(2);
-                ((SMO)c).setKernel(p2);
+                PolyKernel poly=new PolyKernel();
+                poly.setExponent(2);
+                ((SMO)c).setKernel(poly);
                 ((SMO)c).setRandomSeed(fold);
                 ((SMO)c).setBuildLogisticModels(true);
-                break;
+
+                
+                /*                svm=new TunedSVM();
+                svm.setKernelType(TunedSVM.KernelType.QUADRATIC);
+                svm.optimiseParas(false);
+                svm.optimiseKernel(false);
+                svm.setBuildLogisticModels(true);
+                svm.setSeed(fold);
+                c= svm;
+ */               break;
             case "SVMRBF": 
                 c=new SMO();
                 RBFKernel rbf=new RBFKernel();
@@ -394,8 +403,27 @@ public class Experiments implements Runnable{
                 break;
             case "CAWPEPLUS":
                 c=new CAWPE();
+                ((CAWPE)c).setRandSeed(fold);                
+                ((CAWPE)c).setAdvancedCAWPESettings();
+                break;
+            case "CAWPEFROMFILE":
+                String[] classifiers={"XGBoost","RandF","RotF"};
+                c=new CAWPE();
+                ((CAWPE)c).setRandSeed(fold);  
+                ((CAWPE)c).setBuildIndividualsFromResultsFiles(true);
+                ((CAWPE)c).setResultsFileLocationParameters(horribleGlobalPath, datasetName, fold);
                 
-                ((CAWPE)c).setRandSeed(fold);
+                ((CAWPE)c).setClassifiersNamesForFileRead(classifiers);
+                
+                
+                break;
+            case "CAWPE_AS_COTE":
+                String[] cls={"CAWPEFROMFILE","SLOWDTWCV","ST","TSF"};
+                c=new CAWPE();
+                ((CAWPE)c).setRandSeed(fold);  
+                ((CAWPE)c).setBuildIndividualsFromResultsFiles(true);
+                ((CAWPE)c).setResultsFileLocationParameters(horribleGlobalPath, datasetName, fold);
+                ((CAWPE)c).setClassifiersNamesForFileRead(cls);
                 break;
             case "XGBoost":
                 c=new TunedXGBoost();
@@ -456,9 +484,6 @@ public class Experiments implements Runnable{
                 ((ShapeletTransformClassifier)c).setOneDayLimit();
                 ((ShapeletTransformClassifier)c).setSeed(fold);
                 break;
-            case "TSF":
-                c=new TSF();
-                break;
             case "RISE":
                 c=new RISE();
                 break;
@@ -474,6 +499,9 @@ public class Experiments implements Runnable{
                 break;
              case "BOSS": case "BOSSEnsemble": 
                 c=new BOSS();
+                break;
+            case "TSF":
+                c=new TSF();
                 break;
              case "SAXVSM": case "SAX": 
                 c=new SAXVSM();
@@ -800,7 +828,8 @@ Optional
 
         
     }
-       
+    public static String horribleGlobalPath="";
+    public static String datasetName="";
     public static void main(String[] args) throws Exception{
 
 //IF args are passed, it is a cluster run. Otherwise it is a local run, either threaded or not
@@ -817,25 +846,33 @@ Optional
             else{ 
     //Args 1 and 2 are problem and results path
                 String[] newArgs=new String[6];
-                newArgs[0]="//cmptscsvr.cmp.uea.ac.uk/ueatsc/Data/UnivariateMTSC/";//All on the beast now
-                newArgs[1]="//cmptscsvr.cmp.uea.ac.uk/ueatsc/Results/UnivariateMTSC/";
+                newArgs[0]="//cmptscsvr.cmp.uea.ac.uk/ueatsc/BagsSDM/Data/";//All on the beast now
+                newArgs[1]="//cmptscsvr.cmp.uea.ac.uk/ueatsc/BagsSDM/Results/";
     //Arg 3 argument is whether to cross validate or not and produce train files
-                newArgs[2]="false";
-    // Arg 4,5,6 Classifier, Problem, Fold             
-                newArgs[3]="ShapeletTransformClassifer";
+                newArgs[2]="true";
+    // Arg 4,5,6 Classifier, Problem, Fold  
+                String[] names={"CAWPE_AS_COTE"};
+                
+                for(String str:names){
+                    newArgs[3]=str;
 //These are set in the localX method
 //              newArgs[4]="Adiac";
 //                newArgs[5]="1";
 //                String[] problems=DataSets.fileNames;
-                String[] problems=new String[]{"EigenWorms"};
-                int folds=2;
-                if(threaded){//Do problems listed threaded 
-                    localThreadedRun(newArgs,problems,folds);
-                    
-                    
+                    String[] problems=new String[]{"SieveBagsTwoClassHisto"};
+                    //"GTtoSieveTwoClassHisto","SieveBagsTwoClassHisto",
+                        //"FakeBagsTwoClassHisto","FakeBagsFiveClassHisto"};
+                //"BagsTwoClassHisto","BagsFiveClassHisto", "leaveOutOneElectricalItemHisto",
+//                "GTtoSieveTwoClassHisto","leaveOutOneElectricalItemHisto","SieveBagsTwoClassHisto"};
+                    int folds=18;
+                    threaded=false;
+                    horribleGlobalPath="\\\\cmptscsvr.cmp.uea.ac.uk\\ueatsc\\BagsSDM\\Results\\";
+                    if(threaded){//Do problems listed threaded 
+                        localThreadedRun(newArgs,problems,folds);
+                    }
+                    else //Do the problems listed sequentially
+                        localSequentialRun(newArgs,problems,folds);
                 }
-                else //Do the problems listed sequentially
-                    localSequentialRun(newArgs,problems,folds);
             }
 
 
@@ -1203,7 +1240,8 @@ Optional
     
     public static void localSequentialRun(String[] standardArgs,String[] problemList, int folds) throws Exception{
         for(String str:problemList){
-                System.out.println("Problem ="+str);
+            System.out.println("Problem ="+str);
+            datasetName=str;
             for(int i=1;i<=folds;i++){
                 standardArgs[4]=str;
                 standardArgs[5]=i+"";
@@ -1222,6 +1260,7 @@ Optional
         ExecutorService executor = Executors.newFixedThreadPool(cores);
         Experiments exp;
         for(String str:problemList){
+            datasetName=str;
             for(int i=1;i<=folds;i++){
                 String[] args=new String[standardArgs.length];//Need to clone them!
                 for(int j=0;j<standardArgs.length;j++)

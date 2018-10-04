@@ -164,6 +164,11 @@ public class CAWPE extends AbstractClassifier implements HiveCoteModule, SavePar
             classifiers[i] = modules[i].getClassifier();
         return classifiers;
     }
+ 
+    public void setClassifiersNamesForFileRead(String[] classifierNames) {
+    setClassifiers(null,classifierNames,null);
+        
+    }
     
     /**
      * If building CAWPE from scratch, the minimum requirement for running is the
@@ -317,8 +322,8 @@ public class CAWPE extends AbstractClassifier implements HiveCoteModule, SavePar
         this.weightingScheme = new TrainAcc(4);
         this.votingScheme = new MajorityConfidence();
         
-        Classifier[] classifiers = new Classifier[5];
-        String[] classifierNames = new String[5];
+        Classifier[] classifiers = new Classifier[3];
+        String[] classifierNames = new String[3];
         
         SMO smo = new SMO();
         smo.turnChecksOff();
@@ -333,16 +338,11 @@ public class CAWPE extends AbstractClassifier implements HiveCoteModule, SavePar
         RandomForest rf= new RandomForest();
         rf.setNumTrees(500);
         classifiers[1] = rf;
-        classifierNames[1] = "NN";
-        
-        classifiers[2] = new J48();
-        classifierNames[2] = "C4.5";
-        
-        classifiers[3] = new Logistic();
-        classifierNames[3] = "Logistic";
-        
-        classifiers[4] = new MultilayerPerceptron();
-        classifierNames[4] = "MLP";
+        classifierNames[1] = "RandF";
+        RotationForest rotf=new RotationForest();
+        rotf.setNumIterations(200);
+        classifiers[2] = rotf;
+        classifierNames[2] = "RotF";
         
         setClassifiers(classifiers, classifierNames, null);
     }

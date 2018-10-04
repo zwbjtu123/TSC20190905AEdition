@@ -1001,9 +1001,96 @@ public static void makeTable(String means, String stdDev,String outfile){
     
 }
 
+public static void summariseBags(){
+    problemPath="//cmptscsvr.cmp.uea.ac.uk/ueatsc/BagsSDM/Data/";
+    
+    String[] files={"BagsTwoClassHisto","BagsFiveClassHisto","GTtoSieveTwoClassHisto","psudo2BagsTwoClassHisto","SieveBagsTwoClassHisto"};
+    String[] fakes={"FakeBagsFiveClassHisto","FakeBagsTwoClassHisto","FakeSieveBagsTwoClassHisto"};
+    int folds =45;
+    OutFile out =new OutFile("DataDescription.csv");
+    for(String str: files){
+        Instances all=null;
+        int nosCases=0;
+        for(int i=0;i<folds;i++){
+            Instances train = ClassifierTools.loadData(problemPath+str+"/"+str+i+"_TRAIN.arff");
+            Instances test = ClassifierTools.loadData(problemPath+str+"/"+str+i+"_TEST.arff");
+            int total=test.numInstances()+train.numInstances();
+            nosCases+=test.numInstances();
+            if(i==0)
+                all=new Instances(test);
+            else
+                all.addAll(test);
+        }
+        System.out.println(str+ "total number of test cases ="+nosCases);
+        out.writeLine(str+","+nosCases);
+        OutFile allFile=new OutFile(problemPath+str+"/"+str+".arff");
+        allFile.writeString(all.toString());
+    }
+    folds =100;
+    for(String str: fakes){
+        int nosCases=0;
+        Instances all=null;
+        for(int i=0;i<folds;i++){
+            Instances train = ClassifierTools.loadData(problemPath+str+"/"+str+i+"_TRAIN.arff");
+            Instances test = ClassifierTools.loadData(problemPath+str+"/"+str+i+"_TEST.arff");
+            int total=test.numInstances()+train.numInstances();
+            nosCases+=test.numInstances();
+            if(i==0)
+                all=new Instances(test);
+            else
+                all.addAll(test);
+        }
+        System.out.println(str+ "total number of test cases ="+nosCases);
+        out.writeLine(str+","+nosCases);
+        OutFile allFile=new OutFile(problemPath+str+"/"+str+".arff");
+        allFile.writeString(all.toString());
+    }
+    folds =18;
+    String str="leaveOutOneElectricalItemHisto";
+    int nosCases=0;
+    Instances all=null;
+    for(int i=0;i<folds;i++){
+        Instances train = ClassifierTools.loadData(problemPath+str+"/"+str+i+"_TRAIN.arff");
+        Instances test = ClassifierTools.loadData(problemPath+str+"/"+str+i+"_TEST.arff");
+        int total=test.numInstances()+train.numInstances();
+        nosCases+=test.numInstances();
+            if(i==0)
+                all=new Instances(test);
+            else
+                all.addAll(test);
+    }
+    System.out.println(str+ "total number of test cases ="+nosCases);
+    out.writeLine(str+","+nosCases);
+    OutFile allFile=new OutFile(problemPath+str+"/"+str+".arff");
+    allFile.writeString(all.toString());
+    
+}
+public static void mergeGTandUnsup(){
+    problemPath="//cmptscsvr.cmp.uea.ac.uk/ueatsc/BagsSDM/Data/";
+    String destPath="//cmptscsvr.cmp.uea.ac.uk/ueatsc/BagsSDM/MergedData/";
+    String source1="SieveBagsTwoClassHisto";
+    String source2="GTtoSieveTwoClassHisto";
+    int folds =45;
+    for(int i=0;i<folds;i++){
+        Instances train1 = ClassifierTools.loadData(problemPath+source1+"/"+source1+i+"_TRAIN.arff");
+        Instances train2 = ClassifierTools.loadData(problemPath+source2+"/"+source2+i+"_TRAIN.arff");
+        Instances test = ClassifierTools.loadData(problemPath+source1+"/"+source1+i+"_TEST.arff");
+        Instances train = new Instances(train1);
+        train.addAll(train2);
+        OutFile out=new OutFile(destPath+"MergedUnsupervised"+i+"_TRAIN.arff");
+        out.writeLine(train.toString());        
+        out=new OutFile(destPath+"MergedUnsupervised"+i+"_TEST.arff");
+        out.writeLine(test.toString());        
+    }
+    
+}
+
+
 
 public static void main(String[] args) throws Exception{
-    
+mergeGTandUnsup();
+//summariseBags();
+    System.exit(0);
     problemPath="Z://BagsSDM/Data/";
     
     String[] files={"BagsTwoClassHisto","BagsFiveClassHisto",

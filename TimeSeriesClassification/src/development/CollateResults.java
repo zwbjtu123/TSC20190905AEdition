@@ -234,6 +234,7 @@ Parameter info: Parameter1.csv, Parameter2.csv...AllTuningAccuracies.csv (if tun
                     missingCount=0;
                     if(countPartials)
                         partials.writeString(name);
+                    int caseCount=0;
                     for(int j=0;j<folds;j++){
     //Check fold exists and is a valid file
                         boolean valid=validateSingleFoldFile(path+"//testFold"+j+".csv");
@@ -280,6 +281,11 @@ Parameter info: Parameter1.csv, Parameter2.csv...AllTuningAccuracies.csv (if tun
                                 }
 //Read in the rest into a ClassifierResults object
                                 inf.closeFile();
+//                                inf.openFile(path+"//testFold"+j+".csv");
+  //                              int temp=(inf.countLines()-3);
+    //                            inf.closeFile();
+  //                              System.out.println("Number of items in bag "+(j+1)+" = "+temp);
+//                                caseCount+=temp;
                                 ClassifierResults res=new ClassifierResults();
                                 res.loadFromFile(path+"//testFold"+j+".csv");
                                 mergedResults.writeLine(res.writeInstancePredictions());                                
@@ -327,6 +333,7 @@ Parameter info: Parameter1.csv, Parameter2.csv...AllTuningAccuracies.csv (if tun
                            }
                         }
                     }
+//                    System.out.println(" Total number of cases ="+caseCount);
                     counts.writeLine(name+","+(folds-missingCount));
                     if(countPartials)
                         partials.writeString("\n");
@@ -807,18 +814,18 @@ public static void basicSummaryComparisons(){
 //untunedVsTuned();
 
 // System.exit(0);
-        String classifier="TBMLP1";
+    String[] classifiers={"ED","XGBoost","RandF","RotF","CAWPEFROMFILE","ST","BOSS","TSF","SLOWDTWCV","RISE"};
+    for(String classifier:classifiers){
         String parameters="1";
         if(args.length>1)
             collate(args);
         else{ 
-            String[] str={"//cmptscsvr.cmp.uea.ac.uk/ueatsc/Results/FinalisedUCIContinuous/","//cmptscsvr.cmp.uea.ac.uk/ueatsc/Data/UCIContinuous/","30","false",classifier,parameters};
-            
-            
+            String[] str={"Z:\\BagsSDM\\Results\\",
+                "Z:\\BagsSDM\\Data\\","45","false",classifier,parameters};
             collate(str);
-        
         }
     }
+}
     public static void reformatUBMLP()//Insert an extra comma
     {
         int folds=30;
