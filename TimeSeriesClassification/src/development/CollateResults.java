@@ -723,7 +723,7 @@ public static void basicSummaryComparisons(){
        m.setBuildMatlabDiagrams(true);
        m.setDebugPrinting(true);
        m.setUseAllStatistics();
-       m.setDatasets(Arrays.copyOfRange(development.DataSets.fileNames, 0, 85)); 
+       m.setDatasets(Arrays.copyOfRange(development.DataSets.tscProblems85, 0, 85)); 
        m.readInClassifiers(new String[] {"RotF","RandF"},"E://Results//UCR//Untuned");
 //       m.readInClassifiers(new String[] {"DTWCV"},"E://Results//UCR//Tuned");
        m.setTestResultsOnly(true);
@@ -735,7 +735,7 @@ public static void basicSummaryComparisons(){
        m.setBuildMatlabDiagrams(true);
        m.setDebugPrinting(true);
        m.setUseAllStatistics();
-       m.setDatasets(Arrays.copyOfRange(development.DataSets.fileNames, 0, 85)); 
+       m.setDatasets(Arrays.copyOfRange(development.DataSets.tscProblems85, 0, 85)); 
        m.readInClassifiers(new String[] {"RotF","RandF","SVMQ"},"E://Results//STUCR");
 //       m.readInClassifiers(new String[] {"DTWCV"},"E://Results//UCR//Tuned");
        m.setTestResultsOnly(true);
@@ -791,7 +791,18 @@ public static void basicSummaryComparisons(){
             }
         }
     }  
- 
+   public static void bagsStats() throws Exception{
+       MultipleClassifierEvaluation m=new MultipleClassifierEvaluation("E://Results//STUCR//Analysis//", "PCA", 45);
+       m.setBuildMatlabDiagrams(true);
+       m.setDebugPrinting(true);
+       m.setUseAllStatistics();
+       m.setDatasets(Arrays.copyOfRange(development.DataSets.tscProblems85, 0, 85)); 
+       m.readInClassifiers(new String[] {"RotF","RandF","SVMQ"},"E://Results//STUCR");
+//       m.readInClassifiers(new String[] {"DTWCV"},"E://Results//UCR//Tuned");
+       m.setTestResultsOnly(true);
+           m.runComparison(); 
+       
+   } 
 //First argument: String path to results directories
 //Second argument: path to directory with problem allStats to look for
 //Third argument: number of folds    
@@ -814,7 +825,12 @@ public static void basicSummaryComparisons(){
 //untunedVsTuned();
 
 // System.exit(0);
-    String[] classifiers={"ED","XGBoost","RandF","RotF","CAWPEFROMFILE","ST","BOSS","TSF","SLOWDTWCV","RISE"};
+
+//NOTE TO SELF
+//Below is using my stats generator not james. To use James put in a static
+//method and exit, as above
+//    String[] classifiers={"BOSS","CAWPE","CAWPE_AS_COTE","ED","RandF","RotF","SLOWDTWCV","ST","TSF","RISE","XGBoost"};
+    String[] classifiers={"TunedSVMQuad"};
     for(String classifier:classifiers){
         String parameters="1";
         if(args.length>1)

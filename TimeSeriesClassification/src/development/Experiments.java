@@ -63,6 +63,7 @@ import utilities.ClassifierResults;
 import vector_classifiers.CAWPE;
 import timeseriesweka.classifiers.ensembles.SaveableEnsemble;
 import timeseriesweka.classifiers.FastWWS.FastDTWWrapper;
+import timeseriesweka.classifiers.cote.HiveCotePostProcessed;
 import timeseriesweka.filters.shapelet_transforms.ShapeletTransformTimingUtilities;
 import utilities.GenericTools;
 import utilities.multivariate_tools.MultivariateInstanceTools;
@@ -411,18 +412,18 @@ public class Experiments implements Runnable{
                 c=new CAWPE();
                 ((CAWPE)c).setRandSeed(fold);  
                 ((CAWPE)c).setBuildIndividualsFromResultsFiles(true);
-                ((CAWPE)c).setResultsFileLocationParameters(horribleGlobalPath, datasetName, fold);
+                ((CAWPE)c).setResultsFileLocationParameters(horribleGlobalPath, nastyGlobalDatasetName, fold);
                 
                 ((CAWPE)c).setClassifiersNamesForFileRead(classifiers);
                 
                 
                 break;
             case "CAWPE_AS_COTE":
-                String[] cls={"CAWPEFROMFILE","SLOWDTWCV","ST","TSF"};
+                String[] cls={"TSF","ST","SLOWDTWCV","BOSS"};
                 c=new CAWPE();
                 ((CAWPE)c).setRandSeed(fold);  
                 ((CAWPE)c).setBuildIndividualsFromResultsFiles(true);
-                ((CAWPE)c).setResultsFileLocationParameters(horribleGlobalPath, datasetName, fold);
+                ((CAWPE)c).setResultsFileLocationParameters(horribleGlobalPath, nastyGlobalDatasetName, fold);
                 ((CAWPE)c).setClassifiersNamesForFileRead(cls);
                 break;
             case "XGBoost":
@@ -829,7 +830,7 @@ Optional
         
     }
     public static String horribleGlobalPath="";
-    public static String datasetName="";
+    public static String nastyGlobalDatasetName="";
     public static void main(String[] args) throws Exception{
 
 //IF args are passed, it is a cluster run. Otherwise it is a local run, either threaded or not
@@ -858,13 +859,15 @@ Optional
 //These are set in the localX method
 //              newArgs[4]="Adiac";
 //                newArgs[5]="1";
-//                String[] problems=DataSets.fileNames;
-                    String[] problems=new String[]{"SieveBagsTwoClassHisto"};
+//                String[] problems=DataSets.tscProblems85;
+                    String[] problems=new String[]{"psudo2BagsTwoClassHisto"};
+                    nastyGlobalDatasetName=problems[0];
+                            
                     //"GTtoSieveTwoClassHisto","SieveBagsTwoClassHisto",
                         //"FakeBagsTwoClassHisto","FakeBagsFiveClassHisto"};
                 //"BagsTwoClassHisto","BagsFiveClassHisto", "leaveOutOneElectricalItemHisto",
 //                "GTtoSieveTwoClassHisto","leaveOutOneElectricalItemHisto","SieveBagsTwoClassHisto"};
-                    int folds=18;
+                    int folds=45;
                     threaded=false;
                     horribleGlobalPath="\\\\cmptscsvr.cmp.uea.ac.uk\\ueatsc\\BagsSDM\\Results\\";
                     if(threaded){//Do problems listed threaded 
@@ -905,7 +908,7 @@ Optional
         Experiments exp;
         DataSets.problemPath="//cmptscsvr.cmp.uea.ac.uk/ueatsc/Data/"+dataSet+"/";//Problem Path
         DataSets.resultsPath="//cmptscsvr.cmp.uea.ac.uk/ueatsc/Results/"+dataSet+"/";         //Results path
-        String[] problems=DataSets.fileNames;
+        String[] problems=DataSets.tscProblems85;
         parameterNum=0;   
         String classifier=threadClassifier;
         switch(dataSet){
@@ -913,7 +916,7 @@ Optional
                 problems=DataSets.UCIContinuousFileNames;
             break;
             case "TSCProblems": case "TSC Problems": //Do all Repo
-                problems=DataSets.fileNames;
+                problems=DataSets.tscProblems85;
             break;
             
             
@@ -1241,7 +1244,7 @@ Optional
     public static void localSequentialRun(String[] standardArgs,String[] problemList, int folds) throws Exception{
         for(String str:problemList){
             System.out.println("Problem ="+str);
-            datasetName=str;
+            nastyGlobalDatasetName=str;
             for(int i=1;i<=folds;i++){
                 standardArgs[4]=str;
                 standardArgs[5]=i+"";
@@ -1260,7 +1263,7 @@ Optional
         ExecutorService executor = Executors.newFixedThreadPool(cores);
         Experiments exp;
         for(String str:problemList){
-            datasetName=str;
+            nastyGlobalDatasetName=str;
             for(int i=1;i<=folds;i++){
                 String[] args=new String[standardArgs.length];//Need to clone them!
                 for(int j=0;j<standardArgs.length;j++)
