@@ -63,6 +63,7 @@ import utilities.ClassifierResults;
 import vector_classifiers.CAWPE;
 import timeseriesweka.classifiers.ensembles.SaveableEnsemble;
 import timeseriesweka.classifiers.FastWWS.FastDTWWrapper;
+import timeseriesweka.classifiers.WEASEL;
 import timeseriesweka.classifiers.cote.HiveCotePostProcessed;
 import timeseriesweka.filters.shapelet_transforms.ShapeletTransformTimingUtilities;
 import utilities.GenericTools;
@@ -498,8 +499,12 @@ public class Experiments implements Runnable{
             case "BOP": case "BoP": case "BagOfPatterns":
                 c=new BagOfPatterns();
                 break;
-             case "BOSS": case "BOSSEnsemble": 
+            case "BOSS": case "BOSSEnsemble": 
                 c=new BOSS();
+                break;
+            case "WEASEL":
+                c = new WEASEL();
+                ((WEASEL)c).setSeed(fold);
                 break;
             case "TSF":
                 c=new TSF();
@@ -763,7 +768,7 @@ public class Experiments implements Runnable{
                 ((TunedRotationForest)c).setSeed(fold);
                 ((TunedRotationForest)c).estimateAccFromTrain(false);
                 break;                
-                
+            
            default:
                 System.out.println("UNKNOWN CLASSIFIER "+classifier);
                 System.exit(0);

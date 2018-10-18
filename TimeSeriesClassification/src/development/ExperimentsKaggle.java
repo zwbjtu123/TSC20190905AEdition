@@ -76,7 +76,10 @@ public class ExperimentsKaggle{
     static boolean foldsInFile=false;
     static boolean useBagsSampling=false;//todo is a hack for bags project experiments 
     static double SPLITPROP=0.5; 
+    
     static boolean predictionOutput = false;
+    static boolean includeLastClass = false;
+    static double threshhold = 0.5;
 
 /** This method is now too bloated
  * 
@@ -824,6 +827,14 @@ public class ExperimentsKaggle{
                     predictionOutput=true;
             }
             
+  //  Arg 10:  outputs predictions in kaggle format       
+            includeLastClass=false;
+            if(args.length>=10){
+                String s=args[9].toLowerCase();
+                if(s.equals("true"))
+                    includeLastClass=true;
+            }
+            
             ExperimentsKaggle.singleClassifierAndFoldTrainTestSplit(newArgs); 
     }
     /** Run a given classifier/problem/fold combination with associated file set up
@@ -1014,23 +1025,32 @@ public class ExperimentsKaggle{
                         //make prediction
                         double[] probs=c.distributionForInstance(test.instance(testInstIndex));
                         
-                        double max = 0;
-                        for(int i = 0; i < probs.length; i++){
-                            if (probs[i] > max){
-                                max = probs[i];
-                            }
-                        }
-                        
-                        double diff = 100 - max;
                         double cls15 = 0;
                         
-                        if (diff > 20){
+                        if (includeLastClass){
+                            double max = 0;
                             for(int i = 0; i < probs.length; i++){
-                                double tax = (probs[i]*(diff/100.0f));
-                                probs[i] -= tax;
-                                cls15 += tax;
+                                if (probs[i] > max){
+                                    max = probs[i];
+                                }
                             }
-                        }     
+                            
+                            //method 1
+                            if (max < threshhold){
+                                probs = new double[14];
+                                cls15 = 1;
+                            }
+                            
+                            //method 2
+//                            double diff = 100 - max;
+//                            if (diff > 20){
+//                                for(int i = 0; i < probs.length; i++){
+//                                    double tax = (probs[i]*(diff/100.0f));
+//                                    probs[i] -= tax;
+//                                    cls15 += tax;
+//                                }
+//                            }
+                        }
                         
                         StringBuilder sb = new StringBuilder(ids.readLine());
                         for(int i = 0; i < probs.length; i++){
