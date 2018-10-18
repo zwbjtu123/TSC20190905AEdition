@@ -315,7 +315,7 @@ public class BiasVarianceEvaluation {
     public static String resultsPath="C:/Data/BVTest/";
     public static String dataPath="C:/Data/BVTest/";
     public static String algorithm="RIF_PS_ACF";
-    public static String[] fileNames=DataSets.fileNames;
+    public static String[] fileNames=DataSets.tscProblems85;
 /**
  * 
  * @param problem 

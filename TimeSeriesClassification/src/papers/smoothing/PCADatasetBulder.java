@@ -22,7 +22,7 @@ public class PCADatasetBulder {
     public static void makePCAUCRDatasets() throws Exception {
         boolean transformBack = false;
         
-        String[] dsets = development.DataSets.fileNames;
+        String[] dsets = development.DataSets.tscProblems85;
         assert(dsets.length == 85);
         
         int folds = 30;

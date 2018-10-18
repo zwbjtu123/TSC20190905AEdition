@@ -524,7 +524,7 @@ public class FilteringEvaluations {
      */
     public static  void selectFilterParametersAndWriteResults() throws Exception {
         String baseReadPath = "Z:/Results/SmoothingExperiments/";
-//        String[] baseDatasets = DataSets.fileNames;
+//        String[] baseDatasets = DataSets.tscProblems85;
         String[] baseDatasets = { "WordSynonyms" };//UCRDsetsNoPigs;
 //        String[] baseDatasets = new String[] { "Worms" };
         int numBaseDatasets = baseDatasets.length;
@@ -601,7 +601,7 @@ public class FilteringEvaluations {
         
         String baseReadPath = "C:/JamesLPHD/TSC_Smoothing/Results/";
         String[] classifiers = { "ED" };
-        String[] baseDatasets = DataSets.fileNames;
+        String[] baseDatasets = DataSets.tscProblems85;
         int numBaseDatasets = baseDatasets.length;
         int numFolds = 30;
         boolean testResultsOnly = false;

@@ -327,7 +327,7 @@ public class TSF extends AbstractClassifierWithTrainingData implements SaveParam
             double[] trueClassVals,predClassVals;
             trueClassVals=trainResults.getTrueClassVals();
             predClassVals=trainResults.getPredClassVals();
-            for(int i=1;i<data.numInstances();i++){
+            for(int i=0;i<data.numInstances();i++){
                 //Basic sanity check
                 if(data.instance(i).classValue()!=trueClassVals[i]){
                     throw new Exception("ERROR in TSF cross validation, class mismatch!");

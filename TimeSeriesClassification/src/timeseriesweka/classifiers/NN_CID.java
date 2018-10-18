@@ -270,7 +270,7 @@ public class NN_CID  extends kNN implements SaveParameterInfo{
     
     public static void recreateDTWDistance(){
         int c=0;
-        for(String s:DataSets.ucrNames){
+        for(String s:DataSets.tscProblems46){
             kNN k= new kNN(1);
             NN_CID k2= new NN_CID();
             k2.useDTW();
@@ -284,12 +284,12 @@ public class NN_CID  extends kNN implements SaveParameterInfo{
             if(a2>a1)
                 c++;
         }
-        System.out.println("CID Better on "+c+" out of "+DataSets.ucrNames.length);
+        System.out.println("CID Better on "+c+" out of "+DataSets.tscProblems46.length);
     }
     
     public static void recreateEuclideanDistance(){
         int c=0;
-        for(String s:DataSets.ucrNames){
+        for(String s:DataSets.tscProblems46){
             kNN k= new kNN(1);
             NN_CID k2= new NN_CID();
             Instances train=ClassifierTools.loadData(DataSets.problemPath+s+"\\"+s+"_TRAIN");
@@ -302,7 +302,7 @@ public class NN_CID  extends kNN implements SaveParameterInfo{
             if(a2>a1)
                 c++;
         }
-        System.out.println("CID Better on "+c+" out of "+DataSets.ucrNames.length);
+        System.out.println("CID Better on "+c+" out of "+DataSets.tscProblems46.length);
     }
     public static void main(String[]args){
         recreateEuclideanDistance();

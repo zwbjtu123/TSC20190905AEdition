@@ -168,7 +168,7 @@ public class MultipleClassifierResultsCollection implements DebugPrinting {
 //            setUseAllStatistics().
 //            setDatasets(Arrays.copyOfRange(development.DataSets.UCIContinuousFileNames, 0, 10)). //using only 10 datasets just to make it faster... 
 //            setDatasets("C:/Temp/dsets.txt").
-            setDatasets(DataSets.fileNames).
+            setDatasets(DataSets.tscProblems85).
             readInClassifiers(new String[] {"ED","ED_Filtered"}, "C:/JamesLPHD/TSC_Smoothing/Results/").
             runComparison(); 
     }
@@ -176,7 +176,7 @@ public class MultipleClassifierResultsCollection implements DebugPrinting {
     public static  void tests2() throws Exception {
         String classifier = "ED";
         String baseReadPath = "C:/JamesLPHD/TSC_Smoothing/Results/";
-        String[] baseDatasets = DataSets.fileNames;
+        String[] baseDatasets = DataSets.tscProblems85;
         int numBaseDatasets = baseDatasets.length;
         int numFolds = 30;
         
@@ -212,7 +212,7 @@ public class MultipleClassifierResultsCollection implements DebugPrinting {
         
         String baseReadPath = "C:/JamesLPHD/TSC_Smoothing/Results/";
         String[] classifiers = { "ED" };
-        String[] baseDatasets = DataSets.fileNames;
+        String[] baseDatasets = DataSets.tscProblems85;
         int numBaseDatasets = baseDatasets.length;
         int numFolds = 30;
         boolean testResultsOnly = false;

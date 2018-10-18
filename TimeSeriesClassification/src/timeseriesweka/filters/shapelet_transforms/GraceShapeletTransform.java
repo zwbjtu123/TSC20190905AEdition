@@ -271,18 +271,18 @@ public class GraceShapeletTransform extends ShapeletTransform {
         final String ucrLocation = "../../time-series-datasets/TSC Problems";
         final String transformLocation = "../../";
 
-        String fileExtension = File.separator + DataSets.ucrSmall[0] + File.separator + DataSets.ucrSmall[0];
+        String fileExtension = File.separator + DataSets.tscProblemsSmall[0] + File.separator + DataSets.tscProblemsSmall[0];
 
         Instances train = utilities.ClassifierTools.loadData(ucrLocation + fileExtension + "_TRAIN");
         Instances test = utilities.ClassifierTools.loadData(ucrLocation + fileExtension + "_TEST");
 
         //first run: build the BSUB.
-        //GraceFullShapeletTransform.buildGraceBSUB("../../"+DataSets.ucrSmall[0], train.numInstances(), "raj09hxu", "SamplingExperiments/dist", "samplingExperiments", "long", 1000);
+        //GraceFullShapeletTransform.buildGraceBSUB("../../"+DataSets.tscProblemsSmall[0], train.numInstances(), "raj09hxu", "SamplingExperiments/dist", "samplingExperiments", "long", 1000);
         
 
         GraceShapeletTransform st = new GraceShapeletTransform();
         st.setNumberOfShapelets(train.numInstances()*10);
-        st.setLogOutputFile(DataSets.ucrSmall[0] + ".csv");
+        st.setLogOutputFile(DataSets.tscProblemsSmall[0] + ".csv");
 
         //set the params for your transform. length, shapelets etc.
         

@@ -439,8 +439,13 @@ public class BOSS extends AbstractClassifierWithTrainingData implements HiveCote
             of.writeLine(getParameters());
             of.writeLine(results[0][0]+"");
             ensembleCvAcc = results[0][0];
-            for(int i=1;i<results[0].length;i++)
-                of.writeLine(results[0][i]+","+results[1][i]);
+            for(int i=1;i<results[0].length;i++){
+                of.writeString((int)results[0][i]+","+(int)results[1][i]+",");
+                for(int j=2;j<results.length;j++)
+                    of.writeString(","+results[j][i]);
+                of.writeString("\n");
+                
+            }
             System.out.println("CV acc ="+results[0][0]);
         }
         
@@ -474,17 +479,24 @@ public class BOSS extends AbstractClassifierWithTrainingData implements HiveCote
     
     private double[][] findEnsembleTrainAcc(Instances data) throws Exception {
         
-        double[][] results = new double[2][data.numInstances() + 1];
+        double[][] results = new double[2+data.numClasses()][data.numInstances() + 1];
+        
         this.ensembleCvPreds = new double[data.numInstances()];
         
         double correct = 0; 
         for (int i = 0; i < data.numInstances(); ++i) {
-            double c = classifyInstance(i, data.numClasses()); //classify series i, while ignoring its corresponding histogram i
+            double[] probs=distributionForInstance(i, data.numClasses());
+            double c = 0;
+            for(int j=1;j<probs.length;j++)
+                if(probs[j]>probs[(int)c])
+                    c=j;
+                    //No need to do it againclassifyInstance(i, data.numClasses()); //classify series i, while ignoring its corresponding histogram i
             if (c == data.get(i).classValue())
                 ++correct;
-            
             results[0][i+1] = data.get(i).classValue();
             results[1][i+1] = c;
+            for(int j=0;j<probs.length;j++)   
+                results[2+j][i+1]=probs[j];
             this.ensembleCvPreds[i] = c;
         }
         

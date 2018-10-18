@@ -166,7 +166,7 @@ public class HiveCotePostProcessed extends AbstractPostProcessedCote{
         classifiersToUse.add("TSF");
         System.out.println("votes");
         for(double alpha:alphas){
-            for(String datasetName: DataSets.fileNames){
+            for(String datasetName: DataSets.tscProblems85){
                 System.out.println(datasetName+" "+alpha);
                 for(int resample = 0; resample < 100; resample++){
                     try{

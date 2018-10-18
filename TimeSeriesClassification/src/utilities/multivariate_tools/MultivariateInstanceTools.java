@@ -152,9 +152,13 @@ public class MultivariateInstanceTools {
         
         return new Instances("", relational_atts, numChannels);
     }
-    
+/**
+ * Input a list of instances, assumed to be properly aligned, where each Instances
+ * contains data relating to a single dimension 
+ * @param instances: array of Instances
+ * @return Instances: single merged file
+ */    
     public static Instances mergeToMultivariateInstances(Instances[] instances){
-        //given a set of seperate channels, can we merge them back into a relation object.
         
         Instance firstInst = instances[0].firstInstance();
         int numAttsInChannel = instances[0].numAttributes()-1;

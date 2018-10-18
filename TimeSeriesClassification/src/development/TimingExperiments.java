@@ -80,12 +80,12 @@ public class TimingExperiments{
         }
         else if(dataSet.equals("UEA")){
             pPath=problemPath+"TSCProblems/";
-            files=DataSets.ucrNames;
+            files=DataSets.tscProblems46;
             System.out.println("Doing UEA problems");
         }
         else if(dataSet.equals("ST")){
             pPath=problemPath+"BalancedClassShapeletTransform/";
-            files=DataSets.ucrNames;
+            files=DataSets.tscProblems46;
         }
         else
             throw new Exception(dataSet+" not known");
@@ -269,7 +269,7 @@ public class TimingExperiments{
     public static void UCRRotFTimingExperiment() throws Exception{
 //Restrict to those with over 40 attributes
         OutFile times=new OutFile("c:/temp/RotFUCITimes.csv");
-        for(String problem:DataSets.fileNames){
+        for(String problem:DataSets.tscProblems85){
 //See whether we want to do this one
             Instances inst=ClassifierTools.loadData("C:/Data/TSC Problems/"+problem+"/"+problem+"_TRAIN");
             if(problem.equals("HandOutlines"))
