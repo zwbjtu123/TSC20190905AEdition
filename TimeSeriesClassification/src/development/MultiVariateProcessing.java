@@ -24,13 +24,13 @@ import weka.core.Instances;
  */
 public class MultiVariateProcessing {
     
-    public static void makeUnivariateFiles(){
+    public static void makeConcatenatedFiles(){
         String path="Z:\\Data\\Multivariate TSC Problems\\";
-        String dest="Z:\\Data\\UnivariateMTSC\\";
+        String dest="Z:\\Data\\ConcatenatedMTSC\\";
         OutFile out=new OutFile(path+"SummaryData.csv");
         out.writeLine("problem,numTrainCases,numTestCases,numDimensions,seriesLength,numClasses");
         String[] probs={"BasicMotions"};
-        for(String prob:DataSets.mtscProblems){
+        for(String prob:DataSets.mtscProblems2018){
             File t1=new File(dest+prob+"\\"+prob+"_TRAIN.arff");
             File t2=new File(dest+prob+"\\"+prob+"_TRAIN.arff");
             if(!(t1.exists()||t2.exists())){
@@ -222,9 +222,9 @@ public class MultiVariateProcessing {
         return train;
     }
 
-    public static void checkUnivariateFiles(){
-        String dest="Z:\\Data\\UnivariateMTSC\\";
-        for(String prob:DataSets.mtscProblems){
+    public static void checkConcatenatedFiles(){
+        String dest="Z:\\Data\\ConcatenatedMTSC\\";
+        for(String prob:DataSets.mtscProblems2018){
                
 //            System.out.println(" Object type ="+x);
             try{
@@ -272,11 +272,95 @@ public class MultiVariateProcessing {
          out=new OutFile(path+prob+"\\"+prob+"_TEST.arff");
         out.writeLine(split[1].toString());
     }
+    
+    public static void formatDuckDuckGeese(){
+        String path="Z:\\Data\\MultivariateTSCProblems\\DuckDuckGeese\\";
+        Instances data=ClassifierTools.loadData(path+"DuckDuckGeese");
+                Instance temp=data.instance(0);
+                Instances x= temp.relationalValue(0);
+                System.out.println("train number of dimensions "+x.numInstances());
+                System.out.println("train number of attributes per dimension "+x.numAttributes());
+
+        
+        Instances[] split= MultivariateInstanceTools.resampleMultivariateInstances(data, 0, 0.6);
+        System.out.println("Train size ="+split[0].numInstances());
+        System.out.println("Test size ="+split[1].numInstances());
+        OutFile out=new OutFile(path+"DuckDuckGeese_TRAIN.arff");
+        out.writeString(split[0]+"");
+        out=new OutFile(path+"DuckDuckGeese_TEST.arff");
+        out.writeString(split[1]+"");
+        
+        
+    }  
+    
+    
+    public static void formatCricket(){
+        String path="Z:\\Data\\Multivariate Working Area\\Cricket\\";
+        Instances[] data=new Instances[6];
+        data[0]=ClassifierTools.loadData(path+"CricketXLeft.arff");
+        data[1]=ClassifierTools.loadData(path+"CricketYLeft.arff");
+        data[2]=ClassifierTools.loadData(path+"CricketZLeft.arff");
+        data[3]=ClassifierTools.loadData(path+"CricketXRight.arff");
+        data[4]=ClassifierTools.loadData(path+"CricketYRight.arff");
+        data[5]=ClassifierTools.loadData(path+"CricketZRight.arff");
+        Instances all=MultivariateInstanceTools.mergeToMultivariateInstances(data);
+        OutFile out=new OutFile(path+"Cricket.arff");
+        System.out.println("Cricket number of instances ="+all.numInstances());
+            Instance temp=all.instance(0);
+            Instances x= temp.relationalValue(0);
+            System.out.println(" number of dimensions "+x.numInstances());
+            System.out.println(" number of attributes per dimension "+x.numAttributes());
+        out.writeString(all+"");
+        Instances[] split= MultivariateInstanceTools.resampleMultivariateInstances(all, 0, 0.6);
+        System.out.println("Train size ="+split[0].numInstances());
+        System.out.println("Test size ="+split[1].numInstances());
+         out=new OutFile(path+"Cricket_TRAIN.arff");
+        out.writeString(split[0]+"");
+         out=new OutFile(path+"Cricket_TEST.arff");
+        out.writeString(split[1]+"");
+
+    
+    }
+    public static void makeSingleDimensionFiles(){
+         String path="Z:\\Data\\MultivariateTSCProblems\\";
+        for(String prob: DataSets.mtscProblems2018){
+            
+            File f= new File(path+prob+"\\"+prob+"Dimension"+(1)+"_TRAIN.arff");
+            if(!f.exists()){
+                Instances train =ClassifierTools.loadData(path+prob+"\\"+prob+"_TRAIN");
+                Instances test =ClassifierTools.loadData(path+prob+"\\"+prob+"_TEST");
+                System.out.println("PROBLEM "+prob);        
+                System.out.println("Num train instances ="+train.numInstances());
+                System.out.println("Num test instances ="+test.numInstances());
+                System.out.println("num attributes (should be 2!)="+train.numAttributes());
+                System.out.println("num classes="+train.numClasses());
+                Instance temp=train.instance(0);
+                Instances x= temp.relationalValue(0);
+                System.out.println(" number of dimensions "+x.numInstances());
+                System.out.println(" number of attributes per dimension "+x.numAttributes());
+                Instances[] splitTest=MultivariateInstanceTools.splitMultivariateInstances(test);
+                Instances[] splitTrain=MultivariateInstanceTools.splitMultivariateInstances(train);
+                System.out.println(" Num split files ="+splitTest.length);
+                for(int i=0;i<splitTrain.length;i++){
+                    System.out.println("Number of test instances = "+splitTest[i].numInstances());
+                    OutFile outTrain=new OutFile(path+prob+"\\"+prob+"Dimension"+(i+1)+"_TRAIN.arff");
+                    outTrain.writeLine(splitTrain[i].toString()+"");
+                    OutFile outTest=new OutFile(path+prob+"\\"+prob+"Dimension"+(i+1)+"_TEST.arff");
+                    outTest.writeLine(splitTest[i].toString()+"");
+
+                }
+            }
+            
+//            System.out.println(" Object type ="+x);
+
+        }   
+    }
+    
     public static void summariseData(){
         String path="Z:\\Data\\MultivariateTSCProblems\\";
         OutFile out=new OutFile("Z:\\Data\\MultivariateTSCProblems\\SummaryData.csv");
         out.writeLine("problem,numTrainCases,numTestCases,numDimensions,seriesLength,numClasses");
-        for(String prob: DataSets.mtscProblems){
+        for(String prob: DataSets.mtscProblems2018){
             Instances train =ClassifierTools.loadData(path+prob+"\\"+prob+"_TRAIN");
             Instances test =ClassifierTools.loadData(path+prob+"\\"+prob+"_TEST");
             System.out.println("PROBLEM "+prob);        
@@ -597,6 +681,23 @@ public class MultiVariateProcessing {
        
     }
     public static void main(String[] args) throws Exception {
+        
+        formatDuckDuckGeese();        
+//        formatCricket();
+         System.exit(0);
+        makeSingleDimensionFiles();
+         summariseData();
+        debugFormat();
+        makeConcatenatedFiles();
+        String prob="UWaveGestureLibrary";
+        String dest="Z:\\Data\\UnivariateMTSC\\";
+        String path="Z:\\Data\\Multivariate TSC Problems\\";
+        Instances test = ClassifierTools.loadData(path+prob+"\\"+prob+"_TEST");
+    Instances train = ClassifierTools.loadData(path+prob+"\\"+prob+"_TRAIN");
+        
+       Instances test2 = ClassifierTools.loadData(dest+prob+"\\"+prob+"_TEST");
+  Instances train2 = ClassifierTools.loadData(dest+prob+"\\"+prob+"_TRAIN");
+        
 //        summariseData();
 //        System.exit(0);
 //        debugFormat();
@@ -623,9 +724,9 @@ public class MultiVariateProcessing {
 //        //gettingStarted();
 //       // mergeEpilepsy();
 
-        Instances[] data = convertToUnivariate("C:/UEAMachineLearning/Datasets/Kaggle/PLAsTiCCAstronomicalClassification/", "C:/UEAMachineLearning/Datasets/Kaggle/PLAsTiCCAstronomicalClassification/", "LSSTTrain");
-        System.out.println(data[0]);
-        System.out.println(data[1]);
+        //Instances[] data = convertToUnivariate("C:/UEAMachineLearning/Datasets/Kaggle/PLAsTiCCAstronomicalClassification/", "C:/UEAMachineLearning/Datasets/Kaggle/PLAsTiCCAstronomicalClassification/", "LSSTTrain");
+        //System.out.println(data[0]);
+        //System.out.println(data[1]);
     }
     public static void debugFormat(){
 //        ECGActivities
