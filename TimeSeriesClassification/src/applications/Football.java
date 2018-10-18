@@ -9,7 +9,7 @@ package applications;
 
 import development.DataSets;
 import development.Experiments;
-import vector_classifiers.RotationForestLimitedAttributes;
+import development.RotationForestLimitedAttributes;
 import fileIO.InFile;
 import fileIO.OutFile;
 import java.io.File;
@@ -32,7 +32,7 @@ import timeseriesweka.classifiers.NN_CID;
 import timeseriesweka.classifiers.ParameterSplittable;
 import timeseriesweka.classifiers.RISE;
 import timeseriesweka.classifiers.SAXVSM;
-import timeseriesweka.classifiers.ST_HESCA;
+import timeseriesweka.classifiers.ShapeletTransformClassifier;
 import timeseriesweka.classifiers.TSBF;
 import timeseriesweka.classifiers.TSF;
 import timeseriesweka.classifiers.ensembles.elastic_ensemble.DTW1NN;
@@ -226,9 +226,9 @@ public class Football{
                 c=new FastShapelets();
                 break;
             case "ShapeletTransform": case "ST": case "ST_Ensemble":
-                c=new ST_HESCA();
+                c=new ShapeletTransformClassifier();
 //Default to 1 day max run: could do this better
-                ((ST_HESCA)c).setOneDayLimit();
+                ((ShapeletTransformClassifier)c).setOneDayLimit();
                 
                 break;
             case "TSF":
