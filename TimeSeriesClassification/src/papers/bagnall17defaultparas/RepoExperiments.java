@@ -36,7 +36,7 @@ public class RepoExperiments {
                 of2=new OutFile(path+s+"Grace.txt");
             else
                 of2=new OutFile(path+s+".txt");
-            for(String a:DataSets.fileNames){
+            for(String a:DataSets.tscProblems85){
                 OutFile of;
                 if(grace)
                     of = new OutFile(path+s+a+"Grace.bsub");
@@ -96,16 +96,16 @@ public class RepoExperiments {
                 OutFile clsResults=new OutFile(basePath+cls+"//"+cls+".csv");
                 OutFile missing=null;
                 int missingCount=0;
-                for(int i=0;i<DataSets.fileNames.length;i++){
+                for(int i=0;i<DataSets.tscProblems85.length;i++){
                     int testSize,trainSize;
                     Instances test,train;
-                    String name=DataSets.fileNames[i];
+                    String name=DataSets.tscProblems85[i];
                     test=ClassifierTools.loadData(DataSets.problemPath+name+"//"+name+"_TEST");
                     train=ClassifierTools.loadData(DataSets.problemPath+name+"//"+name+"_TRAIN");
                     testSize=test.numInstances();
                     trainSize=train.numInstances();
-                    clsResults.writeString(DataSets.fileNames[i]+",");
-                    String path=basePath+cls+"//Predictions//"+DataSets.fileNames[i];
+                    clsResults.writeString(DataSets.tscProblems85[i]+",");
+                    String path=basePath+cls+"//Predictions//"+DataSets.tscProblems85[i];
                     if(missing!=null && missingCount>0)
                         missing.writeString("\n");
                     missingCount=0;
@@ -149,9 +149,9 @@ public class RepoExperiments {
             else
                 all[i]=null;//superfluous
         }
-        for(int i=0;i<DataSets.fileNames.length;i++){
-            acc.writeString(DataSets.fileNames[i]+",");
-            count.writeString(DataSets.fileNames[i]+",");
+        for(int i=0;i<DataSets.tscProblems85.length;i++){
+            acc.writeString(DataSets.tscProblems85[i]+",");
+            count.writeString(DataSets.tscProblems85[i]+",");
             for(int j=0;j<all.length;j++){
                 if(all[j]==null){
                     acc.writeString(",");

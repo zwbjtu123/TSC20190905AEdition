@@ -75,7 +75,7 @@ public static int sumValue(ArrayList<Coin> ar){
                 
     }
     public static void main(String[] args) throws Exception {
-        testMLPSettings();
+                testMLPSettings();
         OutFile out = new OutFile("PermissionsTest.csv");
         out.writeLine("TestyTestytest");
         out.closeFile();

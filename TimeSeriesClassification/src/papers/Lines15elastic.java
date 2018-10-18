@@ -58,12 +58,12 @@ public class Lines15elastic {
     
     public static double[] smallUCRProblems() throws Exception{
         OutFile of = new OutFile(path+"SmallUCRProblems.csv"); 
-        double[] acc = new double[DataSets.ucrSmall.length];
+        double[] acc = new double[DataSets.tscProblemsSmall.length];
         DecimalFormat df = new DecimalFormat("##.###");
-        for(int i=0;i<DataSets.ucrSmall.length;i++){
-//            acc[i]=singleProblem(DataSets.ucrSmall[i],ElasticEnsemble.EnsembleType.Equal);
-            acc[i]=singleProblem(DataSets.ucrSmall[i]);
-            System.out.println(DataSets.ucrSmall[i]+" Error = "+df.format(1-acc[i]));
+        for(int i=0;i<DataSets.tscProblemsSmall.length;i++){
+//            acc[i]=singleProblem(DataSets.tscProblemsSmall[i],ElasticEnsemble.EnsembleType.Equal);
+            acc[i]=singleProblem(DataSets.tscProblemsSmall[i]);
+            System.out.println(DataSets.tscProblemsSmall[i]+" Error = "+df.format(1-acc[i]));
         }
         return acc;
     }
@@ -71,13 +71,13 @@ public class Lines15elastic {
     */
     public static double[] allProblems() throws Exception{
         OutFile of = new OutFile(path+"SmallUCRProblems.csv"); 
-        double[] acc = new double[DataSets.ucrSmall.length];
+        double[] acc = new double[DataSets.tscProblemsSmall.length];
         DecimalFormat df = new DecimalFormat("##.###");
-        for(int i=0;i<DataSets.fileNames.length;i++){
-//            acc[i]=singleProblem(DataSets.fileNames[i],ElasticEnsemble.EnsembleType.Equal);
-            acc[i]=singleProblem(DataSets.fileNames[i]);
-            System.out.println(DataSets.fileNames[i]+" Error = "+df.format(1-acc[i]));
-            of.writeLine(DataSets.fileNames[i]+","+(1-acc[i]));
+        for(int i=0;i<DataSets.tscProblems85.length;i++){
+//            acc[i]=singleProblem(DataSets.tscProblems85[i],ElasticEnsemble.EnsembleType.Equal);
+            acc[i]=singleProblem(DataSets.tscProblems85[i]);
+            System.out.println(DataSets.tscProblems85[i]+" Error = "+df.format(1-acc[i]));
+            of.writeLine(DataSets.tscProblems85[i]+","+(1-acc[i]));
         }
         return acc;
     }

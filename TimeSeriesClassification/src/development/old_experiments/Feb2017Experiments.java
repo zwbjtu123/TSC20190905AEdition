@@ -857,7 +857,7 @@ public static boolean deleteDirectory(File directory) {
     
     public static void main(String[] args) throws Exception{
       boolean ucrData=true;
-       files=DataSets.fileNames;
+       files=DataSets.tscProblems85;
  //      collateResults(30,true,args);
 //UCIRotFTimingExperiment();
   //             System.exit(0);
@@ -867,8 +867,8 @@ public static boolean deleteDirectory(File directory) {
       classifiers=new String[]{"RotF","RandRotF1"};
         String dir="RepoScripts";
         String jarFile="Repo";
-     generateScripts(true,10000,jarFile,DataSets.fileNames,dir);
-    generateScripts(false,10000,jarFile,DataSets.fileNames,dir);
+     generateScripts(true,10000,jarFile,DataSets.tscProblems85,dir);
+    generateScripts(false,10000,jarFile,DataSets.tscProblems85,dir);
     System.exit(0);
 
 //        collateTrainTestResults(30);
@@ -1011,7 +1011,7 @@ public static boolean deleteDirectory(File directory) {
     public static void UCRRotFTimingExperiment() throws Exception{
 //Restrict to those with over 40 attributes
         OutFile times=new OutFile("c:/temp/RotFUCITimes.csv");
-        for(String problem:DataSets.fileNames){
+        for(String problem:DataSets.tscProblems85){
 //See whether we want to do this one
             Instances inst=ClassifierTools.loadData("C:/Data/TSC Problems/"+problem+"/"+problem+"_TRAIN");
             if(problem.equals("HandOutlines"))

@@ -242,9 +242,9 @@ public class Bagnall12ensemble {
 				Instances train=ClassifierTools.loadData(DataSets.dropboxPath+sdm2012fileNames[i]+"\\"+sdm2012fileNames[i]+"_TRAIN");			
 
 /*				//Resampling for DTW
-				if(tooLarge(DataSets.fileNames[i])){
+				if(tooLarge(DataSets.tscProblems85[i])){
 					System.out.println("Sampling  ....");
-					if(DataSets.fileNames[i].equals("Earthquakes"))
+					if(DataSets.tscProblems85[i].equals("Earthquakes"))
 						train=sample(train,0.3);
 					else{
 						train=sample(train,0.1);
@@ -254,8 +254,8 @@ public class Bagnall12ensemble {
 */				
 //Normalise if necessary.
 				
-				if(normalise(DataSets.fileNames[i])){
-					System.out.println("Standardising "+DataSets.fileNames[i]);
+				if(normalise(DataSets.tscProblems85[i])){
+					System.out.println("Standardising "+DataSets.tscProblems85[i]);
 					NormalizeCase nc=new NormalizeCase();
 					train=nc.process(train);
 					test=nc.process(test);
@@ -269,9 +269,9 @@ public class Bagnall12ensemble {
 					
 				//Set folds. If 1 then it does the  test/train split defined by the two files			
 				int folds=setNosFolds(test,train);			
-				of.writeString("\n"+DataSets.fileNames[i]+","+folds+",");
+				of.writeString("\n"+DataSets.tscProblems85[i]+","+folds+",");
 				System.out.println("Train size = "+train.numInstances()+" Test size ="+test.numInstances()+" folds ="+folds);
-				System.out.println(DataSets.fileNames[i]);
+				System.out.println(DataSets.tscProblems85[i]);
 				System.out.println("************************************");
 
 				//Returns an array of stats, only using accuracy at present.
@@ -299,7 +299,7 @@ public class Bagnall12ensemble {
 		of.writeLine("NEAREST NEIGHBOUR CLASSIFIERS, 10 fold cross validation results");
 		of.writeLine(",TimeDomain,PowerSpectrumDomain,ACFDomain,PCADomain");
 		of.writeLine(",1-NN");
-		String[] files=DataSets.fileNames;
+		String[] files=DataSets.tscProblems85;
 		Classifier base=null;
 		if(baseClassifier.equals("1NN"))
 			base=new kNN(1);
@@ -322,14 +322,14 @@ public class Bagnall12ensemble {
 			{
 				Instances test=ClassifierTools.loadData(DataSets.dropboxPath+files[i]+"\\"+files[i]+"_TEST");
 				Instances train=ClassifierTools.loadData(DataSets.dropboxPath+files[i]+"\\"+files[i]+"_TRAIN");			
-				of.writeString("\n"+DataSets.fileNames[i]+",");
-				System.out.println("\n"+DataSets.fileNames[i]+",");
+				of.writeString("\n"+DataSets.tscProblems85[i]+",");
+				System.out.println("\n"+DataSets.tscProblems85[i]+",");
 				//Set folds
 				int folds=setNosFolds(test,train);
 				Classifier[] sc= new Classifier[1];
 				Instances timeTrain, timeTest;
-				if(normalise(DataSets.fileNames[i])){
-					System.out.println("Standardising "+DataSets.fileNames[i]);
+				if(normalise(DataSets.tscProblems85[i])){
+					System.out.println("Standardising "+DataSets.tscProblems85[i]);
 					NormalizeCase nc=new NormalizeCase();
 					timeTrain=new Instances(train);
 					timeTest=new Instances(test);
@@ -417,7 +417,7 @@ public class Bagnall12ensemble {
 		ClassifierTools.ResultsStats[] stats;
 		System.out.println("ENSEMBLECLASSIFIERS");
 		of.writeLine(baseClassifier+",CombinedEqual,CombinedBest,CombinedWeighted,CombinedStep");
-		String[] files=DataSets.fileNames;
+		String[] files=DataSets.tscProblems85;
 		Classifier base=null;
 		if(baseClassifier.equals("1NN"))
 			base=new kNN(1);
@@ -458,14 +458,14 @@ public class Bagnall12ensemble {
 			{
 				Instances test=ClassifierTools.loadData(DataSets.dropboxPath+files[i]+"\\"+files[i]+"_TEST");
 				Instances train=ClassifierTools.loadData(DataSets.dropboxPath+files[i]+"\\"+files[i]+"_TRAIN");			
-				of.writeString("\n"+DataSets.fileNames[i]+",");
-				System.out.println("\n"+DataSets.fileNames[i]+",");
+				of.writeString("\n"+DataSets.tscProblems85[i]+",");
+				System.out.println("\n"+DataSets.tscProblems85[i]+",");
 				//Set folds
 				int folds=setNosFolds(test,train);
 				Classifier[] sc= new Classifier[1];
 				Instances timeTrain, timeTest;
-				if(normalise(DataSets.fileNames[i])){
-					System.out.println("Standardising "+DataSets.fileNames[i]);
+				if(normalise(DataSets.tscProblems85[i])){
+					System.out.println("Standardising "+DataSets.tscProblems85[i]);
 					NormalizeCase nc=new NormalizeCase();
 					timeTrain=new Instances(train);
 					timeTest=new Instances(test);
@@ -519,7 +519,7 @@ public class Bagnall12ensemble {
 				}
 				String w=((TransformEnsembles)sc[0]).getWeights();
 				String w2=((TransformEnsembles)sc[0]).getCV();
-				of2.writeLine(DataSets.fileNames[i]+","+w+","+w2);
+				of2.writeLine(DataSets.tscProblems85[i]+","+w+","+w2);
 			}
 		}catch(Exception e){System.out.println("Exception ="+e);e.printStackTrace();System.exit(0);}
 	}	
@@ -654,12 +654,12 @@ public class Bagnall12ensemble {
 	{
 		OutFile of =new OutFile(path);
 		try{
-			for(int i=0;i<DataSets.fileNames.length;i++)
+			for(int i=0;i<DataSets.tscProblems85.length;i++)
 			{
 //Load default test train split
-				Instances test=ClassifierTools.loadData(DataSets.dropboxPath+DataSets.fileNames[i]+"\\"+DataSets.fileNames[i]+"_TEST");
-				Instances train=ClassifierTools.loadData(DataSets.dropboxPath+DataSets.fileNames[i]+"\\"+DataSets.fileNames[i]+"_TRAIN");			
-				of.writeString(DataSets.fileNames[i]+","+train.numInstances()+","+test.numInstances());
+				Instances test=ClassifierTools.loadData(DataSets.dropboxPath+DataSets.tscProblems85[i]+"\\"+DataSets.tscProblems85[i]+"_TEST");
+				Instances train=ClassifierTools.loadData(DataSets.dropboxPath+DataSets.tscProblems85[i]+"\\"+DataSets.tscProblems85[i]+"_TRAIN");			
+				of.writeString(DataSets.tscProblems85[i]+","+train.numInstances()+","+test.numInstances());
 				of.writeString(","+(train.numAttributes()-1)+","+train.numClasses());
 				double[] classDist=new double[train.numClasses()];
 				for(int j=0;j<train.numInstances();j++)
@@ -727,12 +727,12 @@ public class Bagnall12ensemble {
 		ClassifierTools.ResultsStats stats;
 		System.out.println("Ensemble on several transformations");
 		try{
-			for(int i=0;i<DataSets.fileNames.length;i++)
+			for(int i=0;i<DataSets.tscProblems85.length;i++)
 			{
-				Instances test=ClassifierTools.loadData(DataSets.dropboxPath+DataSets.fileNames[i]+"\\"+DataSets.fileNames[i]+"_TEST");
-				Instances train=ClassifierTools.loadData(DataSets.dropboxPath+DataSets.fileNames[i]+"\\"+DataSets.fileNames[i]+"_TRAIN");			
-				of.writeString("\n"+DataSets.fileNames[i]+",");
-				System.out.println(DataSets.fileNames[i]+",");
+				Instances test=ClassifierTools.loadData(DataSets.dropboxPath+DataSets.tscProblems85[i]+"\\"+DataSets.tscProblems85[i]+"_TEST");
+				Instances train=ClassifierTools.loadData(DataSets.dropboxPath+DataSets.tscProblems85[i]+"\\"+DataSets.tscProblems85[i]+"_TRAIN");			
+				of.writeString("\n"+DataSets.tscProblems85[i]+",");
+				System.out.println(DataSets.tscProblems85[i]+",");
 							//Time domain			
 				//Set folds
 				int folds=setNosFolds(test,train);

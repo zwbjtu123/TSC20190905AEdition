@@ -51,8 +51,9 @@ public class DataSets {
         "BasicMotions",
         "CharacterTrajectories",
         "Cricket",
-//        "DuckDuckGeese",
+        "DuckDuckGeese",
         "ECGActivities",
+        "EEGFaceDetection",
         "EigenWorms",
         "Epilepsy",
         "EthanolConcentration",
@@ -1072,7 +1073,8 @@ public static void dataDescription(String[] fileNames){
         MetaData[] all=new MetaData[fileNames.length];
         TreeSet<String> nm=new TreeSet<>();
         nm.addAll(Arrays.asList(notNormalised));     
-
+        f.writeLine("Problem,TrainSize,TestSize,SeriesLength,NumClasses,Normalised,ClassCounts");
+                
         try{
             for(int i=0;i<fileNames.length;i++){
                 Instances test=ClassifierTools.loadData(problemPath+fileNames[i]+"/"+fileNames[i]+"_TEST");
@@ -1429,15 +1431,28 @@ public static void describeTextFiles(){
        
        
    }
-
+   public static void makeUploadTable(){
+//  Dataset_id,Dataset,Donator1,Donator2,Train_size,Test_size,Length,
+//Number_of_classes,Type,Best_algorithm,Best_acc,Original_source,Paper_first_used,Image,Description
+//First_link,Second_link,First_used_TSC,Timestamp,Multivariate Flag, Dimension   
+       
+   }
+   
 public static void main(String[] args) throws Exception{
     path="Z:\\Data\\TSCProblems2018\\";
+    problemPath="Z:\\Data\\TSCProblems2018\\";
     String zipPath="Z:\\Data\\TSCProblems2018_Zips\\";
+    dataDescription(tscProblems2018);
+    System.exit(0);
+    OutFile of = new OutFile("C:\\temp\\TSCAll.txt");
+        for(String str:tscProblems2018)
+            of.writeLine(str);
+    
+    
     String[] test={"Adiac"};
-    packAll(path,zipPath,tscProblems2018);
+//    packAll(path,zipPath,tscProblems2018);
 //    testArffs(tscProblems2018);
 //    pack("Z:\\Data\\NewTSCProblems\\Car","c:\\temp\\car.zip");
-    System.exit(0);
 //    path="C:\\New TSC Data\\UCR_archive_2018_to_release\\";
     buildArffs(test);
 //    buildArffs(tscProblems2018);

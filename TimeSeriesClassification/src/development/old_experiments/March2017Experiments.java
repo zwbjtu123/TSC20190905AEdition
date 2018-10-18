@@ -51,7 +51,7 @@ public class March2017Experiments{
     static int[] numTrees={10,50,100,200,300,400,500,600,700,800,900,1000,1250,1500,1750,2000};
 
     public static void generateAllRepoFolds(){
-        for(String str:DataSets.fileNames){
+        for(String str:DataSets.tscProblems85){
             
         }
     
@@ -890,7 +890,7 @@ public static boolean deleteDirectory(File directory) {
     
     public static void main(String[] args) throws Exception{
       boolean ucrData=true;
-       files=DataSets.fileNames;
+       files=DataSets.tscProblems85;
  //      collateResults(30,true,args);
 //UCIRotFTimingExperiment();
   //             System.exit(0);
@@ -902,8 +902,8 @@ public static boolean deleteDirectory(File directory) {
          classifiers=new String[]{"SVM"};
         String dir="RepoScripts";
         String jarFile="ClassifierExperiment";
-     generateScripts(true,4000,jarFile,DataSets.fileNames,dir);
-    generateScripts(false,4000,jarFile,DataSets.fileNames,dir);
+     generateScripts(true,4000,jarFile,DataSets.tscProblems85,dir);
+    generateScripts(false,4000,jarFile,DataSets.tscProblems85,dir);
  /*        dir="UCIScripts";
      generateScripts(true,4000,jarFile,UCIContinuousFileNames,dir);
     generateScripts(false,4000,jarFile,UCIContinuousFileNames,dir);
@@ -1049,7 +1049,7 @@ public static boolean deleteDirectory(File directory) {
     public static void UCRRotFTimingExperiment() throws Exception{
 //Restrict to those with over 40 attributes
         OutFile times=new OutFile("c:/temp/RotFUCITimes.csv");
-        for(String problem:DataSets.fileNames){
+        for(String problem:DataSets.tscProblems85){
 //See whether we want to do this one
             Instances inst=ClassifierTools.loadData("C:/Data/TSC Problems/"+problem+"/"+problem+"_TRAIN");
             if(problem.equals("HandOutlines"))
