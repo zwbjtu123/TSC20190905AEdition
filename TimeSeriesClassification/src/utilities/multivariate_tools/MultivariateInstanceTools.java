@@ -10,6 +10,7 @@ import weka.core.DenseInstance;
 import weka.core.FastVector;
 import weka.core.Instance;
 import weka.core.Instances;
+import weka.filters.NormalizeCase;
 
 /**
  *
@@ -468,4 +469,16 @@ public class MultivariateInstanceTools {
   
   }
         
+  public static Instances normaliseChannels(Instances data) throws Exception { 
+      Instances[] channels = splitMultivariateInstances(data);
+            
+      for (Instances channel : channels) {
+          NormalizeCase norm = new NormalizeCase();
+          channel = norm.process(channel);
+      }
+      
+      return mergeToMultivariateInstances(channels);
+  }
+  
+  
 }
