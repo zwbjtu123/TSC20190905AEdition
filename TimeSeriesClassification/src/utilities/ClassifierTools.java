@@ -58,7 +58,7 @@ public class ClassifierTools {
                 }
             
 		Instances d=null;
-		FileReader r;
+		FileReader r = null;
 		try{		
 			r= new FileReader(fullPath+".arff"); 
 			d = new Instances(r); 
@@ -69,6 +69,15 @@ public class ClassifierTools {
 			System.out.println("Unable to load data on path "+fullPath+" Exception thrown ="+e);
 //			System.exit(0);
 		}
+                finally {
+                    try {
+                        if (r != null)
+                            r.close();
+                    } catch (Exception e) {
+                        //f off java
+                    }
+                    
+                }
 		return d;
 	}
 	
@@ -82,12 +91,10 @@ public class ClassifierTools {
                 fullPath = fullPath.substring(0, fullPath.length()-5);
             }
 
-            Instances d=null;
-            FileReader r;
-
-            r= new FileReader(fullPath+".arff"); 
-            d = new Instances(r); 
+            FileReader reader = new FileReader(fullPath+".arff"); 
+            Instances d = new Instances(reader); 
             d.setClassIndex(d.numAttributes()-1);
+            reader.close();
 
             return d;
 	}
@@ -98,8 +105,10 @@ public class ClassifierTools {
         * @return Instances from file.
         */
         public static Instances loadData(File file) throws IOException{
-            Instances inst = new Instances(new FileReader(file));
+            FileReader reader = new FileReader(file);
+            Instances inst = new Instances(reader);
             inst.setClassIndex(inst.numAttributes()-1);
+            reader.close();
             return inst;
         }
         
