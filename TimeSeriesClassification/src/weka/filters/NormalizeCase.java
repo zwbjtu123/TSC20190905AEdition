@@ -19,6 +19,8 @@ import weka.core.Instances;
 public class NormalizeCase extends SimpleBatchFilter{
 	public enum NormType {INTERVAL,STD,STD_NORMAL};
 	
+        public static boolean throwErrorOnZeroVariance = false;
+        
 	NormType norm=NormType.STD_NORMAL;
         public void setNormType( NormType n){norm=n;}
 /* 
@@ -127,7 +129,13 @@ public class NormalizeCase extends SimpleBatchFilter{
                         mean=sum/size;
                         stdev=Math.sqrt(stdev);
                         if(stdev==0)
+                            if (throwErrorOnZeroVariance)
                                 throw new Exception("Cannot normalise a series with zero variance! Instance number ="+i+" mean ="+mean+" sum = "+sum+" sum sq = "+sumSq+" instance ="+r.instance(i));
+                            else {
+                                System.out.println("Warning: instance with zero variance found, leaving it alone. relation="+r.relationName()+" instInd="+i+" inst=\n"+r.get(i));
+                                continue;
+                            } 
+                                
                         for(int j=0;j<r.numAttributes();j++){
                             if(j!=classIndex&& !r.attribute(j).isNominal()){
                                     x=r.instance(i).value(j);

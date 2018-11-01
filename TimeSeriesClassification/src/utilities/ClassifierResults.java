@@ -375,6 +375,8 @@ public class ClassifierResults implements DebugPrinting, Serializable{
             acc/=numInstances;
 
             finalised = true;
+            
+            inf.close();
         }
         else
             throw new FileNotFoundException("File "+path+" NOT FOUND");
