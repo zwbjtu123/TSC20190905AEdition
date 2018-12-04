@@ -103,9 +103,6 @@ public class BagOfPatterns extends AbstractClassifierWithTrainingData{
      * @return { numIntervals, alphabetSize, slidingWindowSize } 
      */
     public static int[] parameterSearch(Instances data) throws Exception {
-        double bestAcc = 0.0;
-        int bestAlpha = 0, bestWord = 0, bestWindowSize = 0;
-        int numTests = 5;
 
         //BoP paper window search range suggestion
         int minWinSize = (int)((data.numAttributes()-1) * (15.0/100.0));
@@ -114,6 +111,15 @@ public class BagOfPatterns extends AbstractClassifierWithTrainingData{
         int winInc = (int)((maxWinSize - minWinSize) / 10.0); //check 10 values within that range
         if (winInc < 1) winInc = 1;
 
+        
+        double bestAcc = 0.0;
+        
+        //default to min of each para range
+        //this (so far) matters only to the TSC2018 data set Fungi, where
+        //the train set consists of one instance from each class, making it
+        //impossible to correctly classify using nearest neighbour
+        int bestAlpha = 2, bestWord = 2, bestWindowSize = minWinSize;
+        
         for (int alphaSize = 2; alphaSize <= 8; alphaSize++) {
             for (int winSize = minWinSize; winSize <= maxWinSize; winSize+=winInc) {
                 for (int wordSize = 2; wordSize <= winSize/2; wordSize*=2) { //lin BoP suggestion
