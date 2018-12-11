@@ -97,11 +97,40 @@ public class ClassifierResultsAnalysis {
     protected static final Function<ClassifierResults, Double> getSensitivities = (ClassifierResults cr) -> {return cr.sensitivity;};
     protected static final Function<ClassifierResults, Double> getSpecificities = (ClassifierResults cr) -> {return cr.specificity;};
     
+    //START TIMING SHIT
 //    //NOTE TODO BUG CHECK: due to double precision, this cast (long to double) may end up causing problems in the future. 
 //    //if we were assume for now buildtime is no longer than a week, this won't cause problems
 //    //some post processed ensembles (e.g HIVE COTE) might break this assumption though
 //    //if the builtimes of it's members are summed
-    protected static final Function<ClassifierResults, Double> getBuildTimes = (ClassifierResults cr) -> {return (double)cr.buildTime;};
+    
+    //the fix for now, needed since i started using nanoseconds for part of hesca timings
+    public static final int TIMING_NO_CONVERSION = 1; //aka, millis to millis
+    public static final int TIMING_MILLIS_TO_SECONDS = 1000;
+    public static final int TIMING_NANO_TO_MILLIS = 1000000;
+    public static final int TIMING_NANO_TO_SECONDS = 1000000000;
+    public static int TIMING_CONVERSION = TIMING_NO_CONVERSION;
+    
+    
+    //todo revisit this at some point, since these are done via static variables, need a way to 
+    //'remake' the func after TIMING_CONVERSION is set to a different value, since it would otherwise 
+    //use the default it had to work with during its own initialisation (TIMING_NO_CONVERSION)
+    public static Function<ClassifierResults, Double> initBuildTimesGetter() {
+        return (ClassifierResults cr) -> {
+            if (TIMING_CONVERSION == TIMING_NO_CONVERSION) {
+                return (double)cr.buildTime;
+            }
+            else {
+                //since doubles have better precision closer to zero, knock off a bunch of the lower sig values,
+                //convert those to double, then add as after the decimal to get the full number expressed as a lower base
+                long rawBuildTime = cr.buildTime;
+                long pre = rawBuildTime / TIMING_CONVERSION;
+                long post = rawBuildTime % TIMING_CONVERSION;
+                double convertedPost = (double)post / TIMING_CONVERSION;
+                return pre + convertedPost;
+            }
+        };
+    }
+    //END TIMING SHIT
 
     private static final String testLabel = "TEST";
     private static final String trainLabel = "TRAIN";
@@ -702,13 +731,17 @@ public class ClassifierResultsAnalysis {
         boolean prevStateOfDoStats = doStats;
         doStats = false; 
         
-        Function<ClassifierResults, Double> stat = getBuildTimes;
+        Function<ClassifierResults, Double> stat = initBuildTimesGetter();
         String statName = "BuildTimes";
         outPath += statName + "/";
         new File(outPath).mkdirs();        
         
-        double[][][] testFolds = getInfo(results, stat, testLabel);
+        if (!testResultsOnly) {
+            double[][][] trainFolds = getInfo(results, stat, trainLabel);
+            writeStatisticOnSplitFiles(outPath, filename, null, trainLabel, statName, trainFolds, cnames, dsets, dsetGroupings);
+        }
         
+        double[][][] testFolds = getInfo(results, stat, testLabel);
         String[] res = writeStatisticOnSplitFiles(outPath, filename, null, testLabel, statName, testFolds, cnames, dsets, dsetGroupings);
 
         doStats = prevStateOfDoStats;
