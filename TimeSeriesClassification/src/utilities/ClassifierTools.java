@@ -45,58 +45,28 @@ import weka.core.converters.ArffSaver;
  */
 public class ClassifierTools {
 	
-/** 
- * simply loads the file on path or exits the program
- * @param fullPath source path for ARFF file WITHOUT THE EXTENSION for some reason
- * @return Instances from path
- */
+        /** 
+         * simply loads the file on path or exits the program
+         * @param fullPath source path for ARFF file WITHOUT THE EXTENSION for some reason
+         * @return Instances from path
+         */
 	public static Instances loadData(String fullPath){
-            
-                // added by JAL, saves having to manually trim .arff from filename if it's read in from somewhere/using old code
-                if(fullPath.substring(fullPath.length()-5, fullPath.length()).equalsIgnoreCase(".ARFF")){
-                    fullPath = fullPath.substring(0, fullPath.length()-5);
-                }
-            
-		Instances d=null;
-		FileReader r = null;
-		try{		
-			r= new FileReader(fullPath+".arff"); 
-			d = new Instances(r); 
-			d.setClassIndex(d.numAttributes()-1);
-		}
-		catch(IOException e)
-		{
-			System.out.println("Unable to load data on path "+fullPath+" Exception thrown ="+e);
-//			System.exit(0);
-		}
-                finally {
-                    try {
-                        if (r != null)
-                            r.close();
-                    } catch (Exception e) {
-                        //f off java
-                    }
-                    
-                }
-		return d;
+            if(!fullPath.toLowerCase().endsWith(".arff"))
+                fullPath += ".arff";
+        
+            try {
+                return loadData(new File(fullPath));
+            } catch(IOException e) {
+                System.out.println("Unable to load data on path "+fullPath+" Exception thrown ="+e);
+                return null;
+            }
 	}
 	
-        // added by JAL - call to System.exit(0) keeps killing my code
-        // e.g. looping though transformed data - if only partial results exist, we can just catch and skip missing datasets rather than nuking the whole VM
-        // (old version left in so it doesn't unexpectedly break legacy code) 
-        public static Instances loadDataThrowable(String fullPath) throws Exception{
-            
-            // added by JAL, saves having to manually trim .arff from filename if it's read in from somewhere/using old code
-            if(fullPath.substring(fullPath.length()-5, fullPath.length()).equalsIgnoreCase(".ARFF")){
-                fullPath = fullPath.substring(0, fullPath.length()-5);
-            }
-
-            FileReader reader = new FileReader(fullPath+".arff"); 
-            Instances d = new Instances(reader); 
-            d.setClassIndex(d.numAttributes()-1);
-            reader.close();
-
-            return d;
+        public static Instances loadDataThrowable(String fullPath) throws IOException{
+            if(!fullPath.toLowerCase().endsWith(".arff"))
+                fullPath += ".arff";
+        
+            return loadData(new File(fullPath));
 	}
         
         /** 
