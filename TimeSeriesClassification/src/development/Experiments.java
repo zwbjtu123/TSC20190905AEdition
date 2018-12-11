@@ -73,6 +73,10 @@ import weka.classifiers.trees.J48;
 import weka.classifiers.trees.RandomForest;
 import weka.classifiers.functions.supportVector.RBFKernel;
 import weka.classifiers.lazy.kNN;
+import weka.classifiers.meta.AdaBoostM1;
+import weka.classifiers.meta.Bagging;
+import weka.classifiers.meta.LogitBoost;
+import weka.classifiers.trees.REPTree;
 import weka.classifiers.trees.RandomTree;
 import weka.core.Attribute;
 import weka.core.EuclideanDistance;
@@ -233,6 +237,46 @@ public class Experiments implements Runnable{
             case "MLP":
                 c=new MultilayerPerceptron();
                 break;
+            case "BaggingREP":
+                Bagging bag = new Bagging();
+                bag.setClassifier(new REPTree());
+                bag.setNumIterations(500);
+                bag.setBagSizePercent(70);
+                c = bag;
+                break;
+            case "LogitBoost":
+                LogitBoost lb = new LogitBoost();
+                lb.setNumFolds(2);
+                lb.setNumIterations(300);
+                c = lb;
+                break;
+            case "LogitBoostEpsilon3":
+                LogitBoost lb3 = new LogitBoost();
+                lb3.setNumFolds(2);
+                lb3.setNumIterations(300);
+                lb3.setLikelihoodThreshold(1e-3);
+                c = lb3;
+                break;
+            case "LogitBoostEpsilon6":
+                LogitBoost lb6 = new LogitBoost();
+                lb6.setNumFolds(2);
+                lb6.setNumIterations(300);
+                lb6.setLikelihoodThreshold(1e-6);
+                c = lb6;
+                break;
+            case "LogitBoostEpsilon9":
+                LogitBoost lb9 = new LogitBoost();
+                lb9.setNumFolds(2);
+                lb9.setNumIterations(300);
+                lb9.setLikelihoodThreshold(1e-9);
+                c = lb9;
+                break;
+            case "AdaBoostM1DS":
+                //decision stump
+                AdaBoostM1 ada = new AdaBoostM1();
+                ada.setNumIterations(500);
+                c = ada;
+                break;
             case "TwoLayerMLP":
                 TunedTwoLayerMLP twolayer=new TunedTwoLayerMLP();
                 twolayer.setParamSearch(false);
@@ -336,6 +380,16 @@ public class Experiments implements Runnable{
                 svm.setLargePolynomialParameterSpace(1089);                
                 c= svm;
                 break;
+            case "TunedSVMQuad17": // C in {-16 -14 -12....12 14 16} 
+                svm=new TunedSVM();
+                svm.setKernelType(TunedSVM.KernelType.QUADRATIC);
+                svm.optimiseParas(true);
+                svm.optimiseKernel(false);
+                svm.setBuildLogisticModels(true);
+                svm.setSeed(fold);
+                svm.setLargePolynomialParameterSpace(17);                
+                c= svm;
+                break;
             case "TunedSVMLinear":
                 svm=new TunedSVM();
                 svm.setKernelType(TunedSVM.KernelType.LINEAR);
@@ -344,6 +398,16 @@ public class Experiments implements Runnable{
                 svm.setBuildLogisticModels(true);
                 svm.setSeed(fold);
                 svm.setLargePolynomialParameterSpace(1089);
+                c= svm;
+                break;
+            case "TunedSVMLinear17": // C in {-16 -14 -12....12 14 16} 
+                svm=new TunedSVM();
+                svm.setKernelType(TunedSVM.KernelType.LINEAR);
+                svm.optimiseParas(true);
+                svm.optimiseKernel(false);
+                svm.setBuildLogisticModels(true);
+                svm.setSeed(fold);
+                svm.setLargePolynomialParameterSpace(17);
                 c= svm;
                 break;
             case "TunedSVMPolynomial":
@@ -403,6 +467,11 @@ public class Experiments implements Runnable{
                 c=new CAWPE();
                 ((CAWPE)c).setRandSeed(fold);
                 break;
+            case "CAWPEnoLogistic":
+                c=new CAWPE();
+                ((CAWPE)c).setRandSeed(fold);
+                ((CAWPE)c).setDefaultCAWPESettings_NoLogistic();
+                break;
             case "CAWPEPLUS":
                 c=new CAWPE();
                 ((CAWPE)c).setRandSeed(fold);                
@@ -416,8 +485,6 @@ public class Experiments implements Runnable{
                 ((CAWPE)c).setResultsFileLocationParameters(horribleGlobalPath, nastyGlobalDatasetName, fold);
                 
                 ((CAWPE)c).setClassifiersNamesForFileRead(classifiers);
-                
-                
                 break;
             case "CAWPE_AS_COTE":
                 String[] cls={"TSF","ST","SLOWDTWCV","BOSS"};
@@ -431,6 +498,12 @@ public class Experiments implements Runnable{
                 c=new TunedXGBoost();
                 ((TunedXGBoost)c).setTuneParameters(false);
                 ((TunedXGBoost)c).setSeed(fold);
+                break;
+            case "XGBoostSingleThread":
+                c=new TunedXGBoost();
+                ((TunedXGBoost)c).setTuneParameters(false);
+                ((TunedXGBoost)c).setSeed(fold);
+                ((TunedXGBoost)c).setRunSingleThreaded(true);
                 break;
 
 //ELASTIC CLASSIFIERS     
@@ -524,6 +597,14 @@ public class Experiments implements Runnable{
                 break; 
             case "TunedXGBoost":
                  c=new TunedXGBoost();
+                ((TunedXGBoost)c).setSeed(fold);
+                ((TunedXGBoost)c).setDebug(false);
+                ((TunedXGBoost)c).setDebugPrinting(false);
+                ((TunedXGBoost)c).setTuneParameters(true);
+                 break;
+            case "TunedXGBoost64Para":
+                 c=new TunedXGBoost();
+                 TunedXGBoost.setSmallParaSearchSpace_64paras();
                 ((TunedXGBoost)c).setSeed(fold);
                 ((TunedXGBoost)c).setDebug(false);
                 ((TunedXGBoost)c).setDebugPrinting(false);
@@ -1171,8 +1252,10 @@ Optional
             }
             
             //Build on the full train data here
+//            long buildTime=System.nanoTime();
             long buildTime=System.currentTimeMillis();
             c.buildClassifier(train);
+//            buildTime=System.nanoTime()-buildTime;
             buildTime=System.currentTimeMillis()-buildTime;
             
             if (generateTrainFiles) { //And actually write the full train results if needed
@@ -1204,7 +1287,8 @@ Optional
                     int pred;
                     testResults = new ClassifierResults(test.numClasses());
                     double[] trueClassValues = test.attributeToDoubleArray(test.classIndex()); //store class values here
-
+                        
+//                    long testTime = System.nanoTime();
                     for(int testInstIndex = 0; testInstIndex < numInsts; testInstIndex++) {
                         test.instance(testInstIndex).setClassMissing();//and remove from each instance given to the classifier (just to be sure)
 
@@ -1212,15 +1296,22 @@ Optional
                         double[] probs=c.distributionForInstance(test.instance(testInstIndex));
                         testResults.storeSingleResult(probs);
                     }
+//                    testTime=System.nanoTime()-testTime;
                     testResults.finaliseResults(trueClassValues); 
 
                     //Write results
                     OutFile testOut=new OutFile(resultsPath+testFoldPath);
                     testOut.writeLine(test.relationName()+","+c.getClass().getName()+",test");
-                    if(c instanceof SaveParameterInfo)
+                    
+                    //START  JAMES L FOR HESCA TEST TIMES
+                    if(c instanceof SaveParameterInfo) {
                       testOut.writeLine(((SaveParameterInfo)c).getParameters());
+                    }
                     else
                         testOut.writeLine("No parameter info");
+//                    testOut.writeLine("BuildTime,"+testTime+",No parameter info");
+                    //END    JAMES L FOR HESCA TEST TIMES
+
                     testOut.writeLine(testResults.acc+"");
                     testOut.writeString(testResults.writeInstancePredictions());
                     testOut.closeFile();

@@ -58,7 +58,7 @@ import weka.classifiers.Classifier;
  */
 public class TunedXGBoost extends AbstractClassifier implements SaveParameterInfo,DebugPrinting, TrainAccuracyEstimate, SaveEachParameter, ParameterSplittable {
     int seed = 0;
-    Random rng = null;
+//    Random rng = null;
     
     //data info
     int numTrainInsts = -1;
@@ -76,23 +76,35 @@ public class TunedXGBoost extends AbstractClassifier implements SaveParameterInf
     //hyperparameters - fixed
     float rowSubsampling = 0.8f; //aka rowSubsampling
     float colSubsampling = 0.8f; //aka colsample_bytree
+    int minChildWeight = 1; //aka min_child_weight. NO LONGER TUNABLE, LEFT AS DEFAULT ( 1 ), on advice from rotf paper reviewer
     
-    //hyperparameter settings informed by a mix of these, but also restricted in certain situations
-    //to bring in line with the amount of tuning provided to other classifiers for fairness.
-    //subject to change
-    //      https://www.analyticsvidhya.com/blog/2016/03/complete-guide-parameter-tuning-xgboost-with-codes-python/
-    //      https://www.slideshare.net/odsc/owen-zhangopen-sourcetoolsanddscompetitions1 (slide 12)
-    //      https://cambridgespark.com/content/tutorials/hyperparameter-tuning-in-xgboost/index.html
-    //hyperparameters - tunable through cv (6*5*5*7 = 1050 possible paras)
+    //old parameters
+//    //hyperparameter settings informed by a mix of these, but also restricted in certain situations
+//    //to bring in line with the amount of tuning provided to other classifiers for fairness.
+//    //subject to change
+//    //      https://www.analyticsvidhya.com/blog/2016/03/complete-guide-parameter-tuning-xgboost-with-codes-python/
+//    //      https://www.slideshare.net/odsc/owen-zhangopen-sourcetoolsanddscompetitions1 (slide 12)
+//    //      https://cambridgespark.com/content/tutorials/hyperparameter-tuning-in-xgboost/index.html
+//    //hyperparameters - tunable through cv (6*5*5*7 = 1050 possible paras)
+//    float learningRate = 0.1f; //aka eta
+//    static float[] learningRateParaRange = { 0.001f, 0.01f, 0.05f, 0.1f, 0.2f, 0.3f };
+//    int maxTreeDepth = 4; //aka max_depth
+//    static int[] maxTreeDepthParaRange = { 2,4,6,8,10 };
+//    int minChildWeight = 1; //aka min_child_weight
+//    static int[] minChildWeightParaRange = { 1,3,5,7,9 };
+//    int numIterations = 500; //aka rounds
+//    static int[] numIterationsParaRange = { 50, 100, 250, 500, 1000, 1500, 2000 };
+    
+    //new parameters, on advice from rotf paper reviewer
     float learningRate = 0.1f; //aka eta
-    static float[] learningRateParaRange = { 0.001f, 0.01f, 0.05f, 0.1f, 0.2f, 0.3f };
+//    static float[] learningRateParaRange = { 0.01f, 0.1f, 0.2f };
+    static float[] learningRateParaRange = { 0.00001f, 0.0001f, 0.001f, 0.01f, 0.05f, 0.1f, 0.15f, 0.2f, 0.25f, 0.3f };
     int maxTreeDepth = 4; //aka max_depth
-    static int[] maxTreeDepthParaRange = { 2,4,6,8,10 };
-    int minChildWeight = 1; //aka min_child_weight
-    static int[] minChildWeightParaRange = { 1,3,5,7,9 };
+//    static int[] maxTreeDepthParaRange = { 1,3,5 };
+    static int[] maxTreeDepthParaRange = { 1,2,3,4,5,6,7,8,9,10 };
     int numIterations = 500; //aka rounds
-    static int[] numIterationsParaRange = { 50, 100, 250, 500, 1000, 1500, 2000 };
-    int maxOptionsPerPara = 5;
+//    static int[] numIterationsParaRange = { 10, 25, 50};
+    static int[] numIterationsParaRange = { 10, 25, 50, 100, 250, 500, 750, 1000, 1250, 1500 };
     
     //tuning/cv/jobsplitting
     int cvFolds = 10;
@@ -104,9 +116,22 @@ public class TunedXGBoost extends AbstractClassifier implements SaveParameterInf
     private long combinedBuildTime;
     String trainPath="";
     protected boolean findTrainAcc=true;
+    boolean runSingleThreaded = false;
     
     public TunedXGBoost() {
         
+    }
+    
+    public static void setDefaultParaSearchSpace_1000paras() { 
+        learningRateParaRange = new float[] { 0.00001f, 0.0001f, 0.001f, 0.01f, 0.05f, 0.1f, 0.15f, 0.2f, 0.25f, 0.3f };
+        maxTreeDepthParaRange = new int[] { 1,2,3,4,5,6,7,8,9,10 };
+        numIterationsParaRange = new int[]  { 10, 25, 50, 100, 250, 500, 750, 1000, 1250, 1500 };
+    }
+    
+    public static void setSmallParaSearchSpace_64paras() { 
+        learningRateParaRange = new float[] { 0.001f, 0.01f, 0.1f, 0.2f };
+        maxTreeDepthParaRange = new int[]  { 1,3,5,7 };
+        numIterationsParaRange = new int[]  { 250, 500, 1000, 1500};
     }
     
     public int getSeed() { 
@@ -150,21 +175,27 @@ public class TunedXGBoost extends AbstractClassifier implements SaveParameterInf
     public void setNumIterations(int numIterations) {
         this.numIterations = numIterations;
     }
+    
+    public boolean getRunSingleThreaded() {
+        return runSingleThreaded;
+    }
+    
+    public void setRunSingleThreaded(boolean runSingleThreaded) { 
+        this.runSingleThreaded = runSingleThreaded;
+    }
 
     
     //copied over/refactored from tunedsvm/randf/rotf
     public static class XGBoostParamResultsHolder implements Comparable<XGBoostParamResultsHolder> {
         float learningRate;
         int maxTreeDepth;
-        int minChildWeight;
         int numIterations;
         int conservedness;
         ClassifierResults results;
         
-        XGBoostParamResultsHolder(float learningRate, int maxTreeDepth, int minChildWeight, int numIterations,ClassifierResults r){
+        XGBoostParamResultsHolder(float learningRate, int maxTreeDepth, int numIterations,ClassifierResults r){
             this.learningRate=learningRate;
             this.maxTreeDepth=maxTreeDepth;
-            this.minChildWeight=minChildWeight;
             this.numIterations=numIterations;
             
             conservedness = computeConservedness();
@@ -173,7 +204,7 @@ public class TunedXGBoost extends AbstractClassifier implements SaveParameterInf
         
         @Override
         public String toString() {
-            return "learningRate="+learningRate+",maxTreeDepth="+maxTreeDepth+",minChildWeight"+minChildWeight+",numIterations="+numIterations+",conservedness="+conservedness+",acc="+results.acc;
+            return "learningRate="+learningRate+",maxTreeDepth="+maxTreeDepth+",numIterations="+numIterations+",conservedness="+conservedness+",acc="+results.acc;
         }
         
         /**
@@ -182,7 +213,6 @@ public class TunedXGBoost extends AbstractClassifier implements SaveParameterInf
         public int computeConservedness() {
             return (1 + Arrays.binarySearch(TunedXGBoost.learningRateParaRange, learningRate))
                 * (1 + Arrays.binarySearch(TunedXGBoost.maxTreeDepthParaRange, maxTreeDepth))
-                * (1 + (TunedXGBoost.minChildWeightParaRange.length - Arrays.binarySearch(TunedXGBoost.minChildWeightParaRange, minChildWeight)))
                 * (1 + Arrays.binarySearch(TunedXGBoost.numIterationsParaRange, numIterations));
         }
         
@@ -219,59 +249,56 @@ public class TunedXGBoost extends AbstractClassifier implements SaveParameterInf
         OutFile temp=null;
         for(float p1:learningRateParaRange){
             for(int p2:maxTreeDepthParaRange){
-                for(int p3:minChildWeightParaRange){
-                    
-                    TuningXGBoostCrossValidationWrapper cvmodels = new TuningXGBoostCrossValidationWrapper(p1, p2, p3);
-                    cvmodels.setSeed(count);
-                    
-                    for(int p4:numIterationsParaRange){
-                        count++;
-                        if(saveEachParaAcc){// check if para value already done
-                            File f=new File(resultsPath+count+".csv");
-                            if(f.exists()){
-                                if(CollateResults.validateSingleFoldFile(resultsPath+count+".csv")==false){
-                                    System.out.println("Deleting file "+resultsPath+count+".csv because size ="+f.length());
-                                }
-                                else
-                                    continue;//If done, ignore skip this iteration                        
-                            }
-                        }
-//                        TunedXGBoost model = new TunedXGBoost();
-//                        model.setLearningRate(p1);
-//                        model.setMaxTreeDepth(p2);
-//                        model.setMinChildWeight(p3);
-//                        model.setNumIterations(p4);
-//                        model.tuneParameters=false;
-//                        model.estimateAcc=false;
-//                        model.setSeed(count);
-//                        tempResults=cv.crossValidateWithStats(model,trainCopy);
-                        
-                        cvmodels.setNextNumIterations(p4);
-                        tempResults=cv.crossValidateWithStats(cvmodels,trainCopy);
-                        
-                        tempResults.setName("XGBoostPara"+count);
-                        tempResults.setParas("learningRate,"+p1+",maxTreeDepth,"+p2+",minChildWeight,"+p3+",numIterations="+p4);
+//                TuningXGBoostCrossValidationWrapper cvmodels = new TuningXGBoostCrossValidationWrapper(p1, p2);
+//                cvmodels.setSeed(seed);
 
-                        double e=1-tempResults.acc;
-                        printlnDebug("learningRate="+p1+",maxTreeDepth"+p2+",minChildWeight="+p3+",numIterations="+p4+" Acc = "+(1-e));
-                        paramAccuracies.add(tempResults.acc);
-                        if(saveEachParaAcc){// Save to file and close
-                            temp=new OutFile(resultsPath+count+".csv");
-                            temp.writeLine(tempResults.writeResultsFileToString());
-                            temp.closeFile();
-                            File f=new File(resultsPath+count+".csv");
-                            if(f.exists())
-                                f.setWritable(true, false);
-                        }                
-                        else{
-                            if(e<minErr){
-                                minErr=e;
-                                ties=new ArrayList<>();//Remove previous ties
-                                ties.add(new XGBoostParamResultsHolder(p1,p2,p3,p4,tempResults));
+                for(int p4:numIterationsParaRange){
+                    count++;
+                    if(saveEachParaAcc){// check if para value already done
+                        File f=new File(resultsPath+count+".csv");
+                        if(f.exists()){
+                            if(CollateResults.validateSingleFoldFile(resultsPath+count+".csv")==false){
+                                System.out.println("Deleting file "+resultsPath+count+".csv because size ="+f.length());
                             }
-                            else if(e==minErr)//Sort out ties
-                                ties.add(new XGBoostParamResultsHolder(p1,p2,p3,p4,tempResults));
+                            else
+                                continue;//If done, ignore skip this iteration                        
                         }
+                    }
+                    TunedXGBoost model = new TunedXGBoost();
+                    model.setLearningRate(p1);
+                    model.setMaxTreeDepth(p2);
+                    model.setMinChildWeight(minChildWeight);
+                    model.setNumIterations(p4);
+                    model.tuneParameters=false;
+                    model.estimateAcc=false;
+                    model.setSeed(seed);
+                    tempResults=cv.crossValidateWithStats(model,trainCopy);
+
+//                    cvmodels.setNextNumIterations(p4);
+//                    tempResults=cv.crossValidateWithStats(cvmodels,trainCopy);
+
+                    tempResults.setName("XGBoostPara"+count);
+                    tempResults.setParas("learningRate,"+p1+",maxTreeDepth,"+p2+",numIterations="+p4);
+
+                    double e=1-tempResults.acc;
+                    printlnDebug("learningRate="+p1+",maxTreeDepth"+p2+",numIterations="+p4+" Acc = "+(1-e));
+                    paramAccuracies.add(tempResults.acc);
+                    if(saveEachParaAcc){// Save to file and close
+                        temp=new OutFile(resultsPath+count+".csv");
+                        temp.writeLine(tempResults.writeResultsFileToString());
+                        temp.closeFile();
+                        File f=new File(resultsPath+count+".csv");
+                        if(f.exists())
+                            f.setWritable(true, false);
+                    }                
+                    else{
+                        if(e<minErr){
+                            minErr=e;
+                            ties=new ArrayList<>();//Remove previous ties
+                            ties.add(new XGBoostParamResultsHolder(p1,p2,p4,tempResults));
+                        }
+                        else if(e==minErr)//Sort out ties
+                            ties.add(new XGBoostParamResultsHolder(p1,p2,p4,tempResults));
                     }
                 }
             }
@@ -281,56 +308,65 @@ public class TunedXGBoost extends AbstractClassifier implements SaveParameterInf
         if(saveEachParaAcc){
 // Check they are all there first. 
             int missing=0;
+            count=1;
             for(float p1:learningRateParaRange){
                 for(int p2:maxTreeDepthParaRange){
-                    for(int p3:minChildWeightParaRange){
-                        for(int p4:numIterationsParaRange){
-                            File f=new File(resultsPath+count+".csv");
-                            if(!(f.exists() && f.length()>0))
-                                missing++;
-                        }
+                    for(int p4:numIterationsParaRange){
+                        File f=new File(resultsPath+count+".csv");
+                        if(!(f.exists() && f.length()>0))
+                            missing++;
+                        count++;
                     }
                 }
             }
             
             if(missing==0)//All present
             {
+                //rebuild the accuracies list
+                //if we had checkpointing on, but managed to perform the tuning in a single execution,
+                //this will be a waste of time (but functinoally makes no difference), however if we had 
+                //to rerun multiple times or got here via para splitting, the list will be empty/incomplete,
+                //so start from scratch and repopulate it
+                paramAccuracies=new ArrayList<>();
+                
                 combinedBuildTime=0;
     //            If so, read them all from file, pick the best
                 count=0;
                 for(float p1:learningRateParaRange){
                     for(int p2:maxTreeDepthParaRange){
-                        for(int p3:minChildWeightParaRange){
-                            for(int p4:numIterationsParaRange){
-                                count++;
-                                tempResults = new ClassifierResults();
-                                tempResults.loadFromFile(resultsPath+count+".csv");
-                                combinedBuildTime+=tempResults.buildTime;
-                                double e=1-tempResults.acc;
-                                if(e<minErr){
-                                    minErr=e;
-                                    ties=new ArrayList<>();//Remove previous ties
-                                    ties.add(new XGBoostParamResultsHolder(p1,p2,p3,p4,tempResults));
-                                }
-                                else if(e==minErr){//Sort out ties
-                                    ties.add(new XGBoostParamResultsHolder(p1,p2,p3,p4,tempResults));
-                                }
-            //Delete the files here to clean up.
-
-                                File f= new File(resultsPath+count+".csv");
-                                if(!f.delete())
-                                    System.out.println("DELETE FAILED "+resultsPath+count+".csv");
+                        for(int p4:numIterationsParaRange){
+                            count++;
+                            
+                            tempResults = new ClassifierResults();
+                            tempResults.loadFromFile(resultsPath+count+".csv");
+                            
+                            combinedBuildTime+=tempResults.buildTime;
+                            paramAccuracies.add(tempResults.acc);
+                            
+                            double e=1-tempResults.acc;
+                            if(e<minErr){
+                                minErr=e;
+                                ties=new ArrayList<>();//Remove previous ties
+                                ties.add(new XGBoostParamResultsHolder(p1,p2,p4,tempResults));
                             }
+                            else if(e==minErr){//Sort out ties
+                                ties.add(new XGBoostParamResultsHolder(p1,p2,p4,tempResults));
+                            }
+        //Delete the files here to clean up.
+
+                            File f= new File(resultsPath+count+".csv");
+                            if(!f.delete())
+                                System.out.println("DELETE FAILED "+resultsPath+count+".csv");
                         }
                     }            
                 }
 //                XGBoostParamResultsHolder best=ties.get(rng.nextInt(ties.size()));
                 XGBoostParamResultsHolder best=Collections.max(ties); //get the most conservative (see XGBoostParamResultsHolder.computeconservedness())
-                printlnDebug("Best learning rate ="+best.learningRate+" best max depth = "+best.maxTreeDepth+" best min child weight ="+best.minChildWeight+" best num iterations ="+best.numIterations+ " acc = " + trainResults.acc + " (num ties = " + ties.size() + ")");
+                printlnDebug("Best learning rate ="+best.learningRate+" best max depth = "+best.maxTreeDepth+" best num iterations ="+best.numIterations+ " acc = " + trainResults.acc + " (num ties = " + ties.size() + ")");
                 
                 this.setLearningRate(best.learningRate);
                 this.setMaxTreeDepth(best.maxTreeDepth);
-                this.setMinChildWeight(best.minChildWeight);
+                this.setNumIterations(best.numIterations);
                 trainResults=best.results;
             }else//Not all present, just ditch
                 System.out.println(resultsPath+" error: missing  ="+missing+" parameter values");
@@ -344,11 +380,11 @@ public class TunedXGBoost extends AbstractClassifier implements SaveParameterInf
             
 //            XGBoostParamResultsHolder best=ties.get(rng.nextInt(ties.size()));
             XGBoostParamResultsHolder best=Collections.max(ties); //get the most conservative (see XGBoostParamResultsHolder.computeconservedness())
-            printlnDebug("Best learning rate ="+best.learningRate+" best max depth = "+best.maxTreeDepth+" best min child weight ="+best.minChildWeight+" best num iterations ="+best.numIterations+" acc = " + trainResults.acc + " (num ties = " + ties.size() + ")");
+            printlnDebug("Best learning rate ="+best.learningRate+" best max depth = "+best.maxTreeDepth+" best num iterations ="+best.numIterations+" acc = " + trainResults.acc + " (num ties = " + ties.size() + ")");
             
             this.setLearningRate(best.learningRate);
             this.setMaxTreeDepth(best.maxTreeDepth);
-            this.setMinChildWeight(best.minChildWeight);
+            this.setNumIterations(best.numIterations);
             trainResults=best.results;
          }     
     }
@@ -358,11 +394,6 @@ public class TunedXGBoost extends AbstractClassifier implements SaveParameterInf
      * setup etc
      * @throws Exception 
      */    
-    /**
-     * Does the 'actual' initialising and building of the model, as opposed to experimental code
-     * setup etc
-     * @throws Exception 
-     */
     public void buildActualClassifer() throws Exception {
         if(tuneParameters)
             tuneHyperparameters();
@@ -374,7 +405,7 @@ public class TunedXGBoost extends AbstractClassifier implements SaveParameterInf
         params = new HashMap<String, Object>();
         //todo: this is a mega hack to enforce 1 thread only on cluster (else bad juju).
         //fix some how at some point. 
-        if (System.getProperty("os.name").toLowerCase().contains("linux"))
+        if (runSingleThreaded || System.getProperty("os.name").toLowerCase().contains("linux"))
             params.put("nthread", 1);
         // else == num processors by default
         
@@ -427,6 +458,7 @@ public class TunedXGBoost extends AbstractClassifier implements SaveParameterInf
     
     @Override
     public void buildClassifier(Instances insts) throws Exception {
+//        long startTime=System.nanoTime(); 
         long startTime=System.currentTimeMillis(); 
         
         booster = null;
@@ -439,7 +471,7 @@ public class TunedXGBoost extends AbstractClassifier implements SaveParameterInf
         
         if(cvFolds>numTrainInsts)
             cvFolds=numTrainInsts;
-        rng = new Random(seed); //for tie resolution etc if needed
+//        rng = new Random(seed); //for tie resolution etc if needed
         
         buildActualClassifer();
         
@@ -450,6 +482,7 @@ public class TunedXGBoost extends AbstractClassifier implements SaveParameterInf
             trainResults.buildTime=combinedBuildTime;
         else
             trainResults.buildTime=System.currentTimeMillis()-startTime;
+//            trainResults.buildTime=System.nanoTime()-startTime;
         if(trainPath!=""){  //Save basic train results
             OutFile f= new OutFile(trainPath);
             f.writeLine(trainInsts.relationName()+"," + (tuneParameters ? "TunedXGBoost" : "XGBoost") + ",Train");
@@ -549,26 +582,27 @@ public class TunedXGBoost extends AbstractClassifier implements SaveParameterInf
 
     @Override
     public void setParametersFromIndex(int x) {
-        throw new UnsupportedOperationException("UnsupportedOperationException: TunedXGBoost checkpointing works fine, but para splitting still needs to be implemented.");
+        tuneParameters=false;
         
-        //todo: no longer an even grid search with same number of options per para, code this up at some point if really needed,e.g for the very big datasets
+        if(x<1 || x>numIterationsParaRange.length*learningRateParaRange.length*maxTreeDepthParaRange.length)//Error, invalid range
+            throw new UnsupportedOperationException("ERROR parameter index "+x+" out of range for TunedXGBoost"); //To change body of generated methods, choose Tools | Templates.
         
-//        tuneParameters=false;
-//        
-//        if(x<1 || x>maxOptionsPerPara*maxOptionsPerPara*maxOptionsPerPara*maxOptionsPerPara)//Error, invalid range
-//            throw new UnsupportedOperationException("ERROR parameter index "+x+" out of range for TunedXGBoost"); //To change body of generated methods, choose Tools | Templates.
-//        
-//        int learningRateIndex=(x-1)/(maxOptionsPerPara*maxOptionsPerPara*maxOptionsPerPara);
-//        int maxTreeDepthIndex=((x-1)/(maxOptionsPerPara*maxOptionsPerPara))%maxOptionsPerPara;
-//        int minChildWeightIndex=((x-1)/(maxOptionsPerPara))%maxOptionsPerPara;
-//        int numIterationsIndex=x%maxOptionsPerPara;
-//        
-//        setLearningRate(learningRateParaRange[learningRateIndex]);
-//        setMaxTreeDepth(maxTreeDepthParaRange[maxTreeDepthIndex]);
-//        setMinChildWeight(minChildWeightParaRange[minChildWeightIndex]);
-//        setNumIterations(numIterationsParaRange[numIterationsIndex]);
-//        
-//        printlnDebug("Index ="+x+" LearningRate="+learningRate+" MaxTreeDepth="+maxTreeDepth+" MinChildWeight ="+minChildWeight+" NumIterations ="+numIterations);
+        //x starts counting from 1 in parameter splittable for some reason, get it back to 0 in here
+        x -= 1;
+        
+        int numIterationsIndex  = x % numIterationsParaRange.length;
+        setNumIterations(numIterationsParaRange[numIterationsIndex]);
+        x /= numIterationsParaRange.length;
+        
+        int maxTreeDepthIndex = x % maxTreeDepthParaRange.length;
+        setMaxTreeDepth(maxTreeDepthParaRange[maxTreeDepthIndex]);
+        x /= maxTreeDepthParaRange.length;
+        
+        int learningRateIndex = x;
+        setLearningRate(learningRateParaRange[learningRateIndex]);
+        
+        
+        printlnDebug("Index ="+x+" LearningRate="+learningRate+" MaxTreeDepth="+maxTreeDepth+" NumIterations ="+numIterations);
     }
 
     /**
@@ -579,11 +613,14 @@ public class TunedXGBoost extends AbstractClassifier implements SaveParameterInf
         String result="BuildTime,"+trainResults.buildTime+",CVAcc,"+trainResults.acc;
         result+=",learningRate,"+learningRate;
         result+=",maxTreeDepth,"+maxTreeDepth;
-        result+=",minChildWeight,"+minChildWeight;
         result+=",numIterations,"+numIterations;
-        if (tuneParameters)
+        if (tuneParameters) {
+            result+=",learningRateSpace,"+Arrays.toString(learningRateParaRange).replace(",", "/").replace(" ", "");
+            result+=",maxTreeDepthSpace,"+Arrays.toString(maxTreeDepthParaRange).replace(",", "/").replace(" ", "");
+            result+=",numIterationsSpace,"+Arrays.toString(numIterationsParaRange).replace(",", "/").replace(" ", "");
             for(double d:paramAccuracies)
                 result+=","+d;
+        }
         
         return result;
     }
@@ -620,14 +657,12 @@ public class TunedXGBoost extends AbstractClassifier implements SaveParameterInf
         
         float learningRate;
         int maxTreeDepth;
-        int minChildWeight;
         int newNumIterations;
         int numIterations;
         
-        public TuningXGBoostCrossValidationWrapper(float learningRate, int maxTreeDepth, int minChildWeight) {
+        public TuningXGBoostCrossValidationWrapper(float learningRate, int maxTreeDepth) {
             this.learningRate = learningRate;
             this.maxTreeDepth = maxTreeDepth;
-            this.minChildWeight = minChildWeight;
             this.newNumIterations = 0;
             this.numIterations = 0;
             
@@ -636,9 +671,9 @@ public class TunedXGBoost extends AbstractClassifier implements SaveParameterInf
             for (int i = 0; i < numModels; i++) {
                 models[i] = new TunedXGBoost();
                 models[i].setTuneParameters(false);
+                models[i].estimateAcc = false;
                 models[i].setLearningRate(learningRate);
                 models[i].setMaxTreeDepth(maxTreeDepth);
-                models[i].setMinChildWeight(minChildWeight);
                 models[i].setNumIterations(newNumIterations);
             }
             
@@ -688,195 +723,33 @@ public class TunedXGBoost extends AbstractClassifier implements SaveParameterInf
         }
     }
     
-    
+
     
     public static void main(String[] args) throws Exception {
-//        StringBuilder sb = new StringBuilder();
-//        listInvalidFiles("Z:\\Results\\TunedXGBoost\\Predictions\\",sb);
-//        System.out.println(sb.toString());
-//        System.exit(0);
         
-//        TunedXGBoost xg = new TunedXGBoost();
-//        xg.setDebugPrinting(true);
-//        for (int i = 1; i <= 625; i++) {
-//            xg.setParametersFromIndex(i);
-//        }
-
-        
-//        String[] dsets = { 
-//            "acute-nephritis", 
-//            "acute-inflammation", 
-//            "echocardiogram",
-//            "iris",
-//            "pittsburg-bridges-T-OR-D",
-//        };
-//        for (String dset : dsets) {
-////            System.out.println(dset);
-//            for (int i = 0; i < 5; i++) {
-////                System.out.println(i);
-//                Experiments.main(new String[] { "Z:/Data/UCIContinuous/", "C:/JamesLPHD/XGBoostTest/Old/", "true", "TunedXGBoost", dset, ""+(i+1), "false"});            
+//        for (int fold = 0; fold < 15; fold++) { 
+//            for (String dataset : DataSets.UCIContinuousFileNames) {
+//                Experiments.main(new String[] { "Z:/Data/UCIContinuous/", "Z:/CawpeResubmissionDump/XGBoostTimingsForHESCA/", "true", "XGBoostSingleThread", dataset, ""+(fold+1) });
 //            }
 //        }
-
-//        int ind = 0;
-        int ind = Integer.parseInt(args[0]) % numPCs;
-        int numFolds = 30;
-        if (args.length > 1)
-            numFolds = Integer.parseInt(args[1]);
-        uciexpsIncomps(ind, numFolds);
-//        uciexps(ind, numFolds);
-        
-//        int[] maxFoldsThresholds = new int[] { 5, 10, 15, 20, 25, 30 };
-//        
-//        for (int maxFoldsInd=0; maxFoldsInd<maxFoldsThresholds.length;maxFoldsInd++) {
-//            int ind = initialInd;
-//            
-//            int maxFolds = maxFoldsThresholds[maxFoldsInd];
-//            int completedFolds = maxFoldsInd == 0 ? 0 : maxFoldsThresholds[maxFoldsInd-1];
-//            for (int fold = completedFolds; fold < maxFolds; fold++) 
-//                fillerExps(ind, fold, true);
-//
-////            ind = (++ind) % numPCs;
-////            for (int fold = completedFolds; fold < maxFolds; fold++) 
-////                fillerExps(ind, fold, false);
+//        for (int fold = 15; fold < 30; fold++) { 
+//            for (String dataset : DataSets.UCIContinuousFileNames) {
+//                Experiments.main(new String[] { "Z:/Data/UCIContinuous/", "Z:/CawpeResubmissionDump/XGBoostTimingsForHESCA/", "true", "XGBoostSingleThread", dataset, ""+(fold+1) });
+//            }
 //        }
-    }
-    
-    static int numPCs = 10;
-    
-    public static void uciexps(int ind, int nFolds) throws Exception {
-//        String[] dsets = DataSets.UCIContinuousFileNames;
-
-        String[] dsets = {
-            "abalone",
-            "acute-inflammation",
-            "acute-nephritis",
-            "annealing",
-            "arrhythmia",
-            "audiology-std",
-            "balance-scale",
-            "balloons",
-            "bank",
-            "blood",
-            "breast-cancer",
-            "breast-cancer-wisc",
-            "breast-cancer-wisc-diag",
-            "breast-cancer-wisc-prog",
-            "breast-tissue",
-            "car",
-            "cardiotocography-3clases",
-            "cardiotocography-10clases",
-            "chess-krvkp",
-            "congressional-voting",
-            "conn-bench-sonar-mines-rocks",
-            "conn-bench-vowel-deterding",
-            "contrac",
-            "credit-approval",
-            "cylinder-bands",
-            "dermatology",
-            "echocardiogram",
-            "ecoli",
-            "energy-y1",
-            "energy-y2",
-            "fertility",
-            "flags",
-            "glass",
-            "haberman-survival",
-            "hayes-roth",
-            "heart-cleveland",
-            "heart-hungarian",
-            "heart-switzerland",
-            "heart-va",
-            "hepatitis",
-            "hill-valley",
-            "horse-colic",
-            "ilpd-indian-liver",
-            "image-segmentation",
-            "ionosphere",
-            "iris",
-            "led-display",
-            "lenses",
-            "letter",
-            "libras",
-            "low-res-spect",
-            "lung-cancer",
-            "lymphography",
-            "magic",
-            "mammographic",
-            "molec-biol-promoter",
-            "molec-biol-splice",
-            "monks-1",
-            "monks-2",
-            "monks-3",
-            "mushroom",
-            "musk-1",
-            "musk-2",
-            "nursery",
-            "oocytes_merluccius_nucleus_4d",
-            "oocytes_merluccius_states_2f",
-            "oocytes_trisopterus_nucleus_2f",
-            "oocytes_trisopterus_states_5b",
-            "optical",
-            "ozone",
-            "page-blocks",
-            "parkinsons",
-            "pendigits",
-            "pima",
-            "pittsburg-bridges-MATERIAL",
-            "pittsburg-bridges-REL-L",
-            "pittsburg-bridges-SPAN",
-            "pittsburg-bridges-T-OR-D",
-            "pittsburg-bridges-TYPE",
-            "planning",
-            "plant-margin",
-            "plant-shape",
-            "plant-texture",
-            "post-operative",
-            "primary-tumor",
-            "ringnorm",
-            "seeds",
-            "semeion",
-            "soybean",
-            "spambase",
-            "spect",
-            "spectf",
-            "statlog-australian-credit",
-            "statlog-german-credit",
-            "statlog-heart",
-            "statlog-image",
-            "statlog-landsat",
-            "statlog-shuttle",
-            "statlog-vehicle",
-            "steel-plates",
-            "synthetic-control",
-            "teaching",
-            "thyroid",
-            "tic-tac-toe",
-            "titanic",
-            "trains",
-            "twonorm",
-            "vertebral-column-2clases",
-            "vertebral-column-3clases",
-            "wall-following",
-            "waveform",
-            "waveform-noise",
-            "wine",
-            "wine-quality-red",
-            "wine-quality-white",
-            "yeast",
-            "zoo",
-        };
+            
+        //para split 
+//        for (int para = 1; para <= 27; para++)
+//            Experiments.main(new String[] { "Z:/Data/UCIDelgado/", "C:/Temp/XGBoostParaSplitTest/", "true", "TunedXGBoost", "hayes-roth", "1", "false", ""+para});
+//        Experiments.main(new String[] { "Z:/Data/UCIDelgado/", "C:/Temp/XGBoostParaSplitTest/", "true", "TunedXGBoost", "hayes-roth", "1", "true"});
+        //end para split 
         
-//        List<String> dsetsToSkip = Arrays.asList("adult", "chess-kvrk", "miniboone","magic");
+        //checkpoint
+//        Experiments.main(new String[] { "Z:/Data/UCIDelgado/", "C:/Temp/XGBoostCheckpointTest/", "true", "TunedXGBoost", "hayes-roth", "1", "true"});
         
-        int dsetInc = (int)Math.ceil(dsets.length / numPCs);
+        //standard
+        Experiments.main(new String[] { "Z:/Data/UCIDelgado/", "C:/Temp/XGBoostStraightUpTest/", "true", "TunedXGBoost", "hayes-roth", "1", });
 
-        //java -jar -Xmx${max_memory}m ${jarFile}.jar ${dataDir} ${resultsDir} ${generateTrainFiles} ${classifier} ${dataset} \$LSB_JOBINDEX ${checkpoint}" > tempexp2.bsub
-        for (int fold = 0; fold < nFolds; fold++) { 
-            for (int dset = ind*dsetInc; dset < (ind+1)*dsetInc && dset < dsets.length; dset++) {
-                Experiments.main(new String[] { "Z:/Data/UCIContinuous/", "Z:/Results/", "true", "TunedXGBoost", dsets[dset], ""+(fold+1), "true"});
-            }
-        }
     }
     
     public static void listInvalidFiles(String base, StringBuilder sb){     
@@ -898,283 +771,35 @@ public class TunedXGBoost extends AbstractClassifier implements SaveParameterInf
         } 
     }
     
-    public static void uciexpsIncomps(int ind, int nFolds) throws Exception {
-//        String[] dsets = DataSets.UCIContinuousFileNames;
-
-        String[] dsets = {
-            "abalone",
-            "acute-inflammation",
-            "acute-nephritis",
-            "annealing",
-            "arrhythmia",
-            "audiology-std",
-            "balance-scale",
-            "balloons",
-            "bank",
-            "blood",
-            "breast-cancer",
-            "haberman-survival",
-            "ionosphere",
-            "iris",
-            "led-display",
-            "lenses",
-            "letter",
-            "libras",
-            "low-res-spect",
-            "lung-cancer",
-            "lymphography",
-            "mammographic",
-            "pendigits",
-            "statlog-shuttle",
-            "waveform",
-            "waveform-noise",
-            "wine",
-            "wine-quality-red",
-            "wine-quality-white",
-            "yeast",
-            "zoo",
-        };
+    public static void editTestFilesWithoutCorrespondingTrain() throws Exception {
+        String path = "Z:\\Results\\TunedXGBoost\\Predictions\\";
+        String safetyWritePath = "C:/Temp/XGBoostTestBackups/";
         
-        List<String> individualDsets = Arrays.asList(
-            "connect-4"
-        );
         
-        if (ind > 2) {
-            ind-=3;
-            int dsetInc = (int)Math.ceil(dsets.length / (numPCs-3));
-
-            //java -jar -Xmx${max_memory}m ${jarFile}.jar ${dataDir} ${resultsDir} ${generateTrainFiles} ${classifier} ${dataset} \$LSB_JOBINDEX ${checkpoint}" > tempexp2.bsub
-            for (int fold = 0; fold < nFolds; fold++) { 
-                for (int dset = ind*dsetInc; dset < (ind+1)*dsetInc && dset < dsets.length; dset++) {
-                    Experiments.main(new String[] { "Z:/Data/UCIContinuous/", "Z:/Results/", "true", "TunedXGBoost", dsets[dset], ""+(fold+1), "true"});
+        for (String dataset : DataSets.UCIContinuousWithoutBigFour) {
+            for (int fold = 0; fold < 30; fold++) {
+                File trainFile = new File(path + dataset + "/trainFold" + fold + ".csv");
+                try {
+                    new ClassifierResults(trainFile.getAbsolutePath());
+                } catch (Exception e) {
+                    //couldnt load the train file, so edit the test file as missing so that experiments 
+                    //can redo it
+                    File testFile = new File(path + dataset + "/testFold" + fold + ".csv");
+                    if (testFile.exists()) {
+                        ClassifierResults tempRes = new ClassifierResults(testFile.getAbsolutePath());
+                        (new File(safetyWritePath + dataset)).mkdirs();
+                        OutFile out = new OutFile(safetyWritePath + dataset + "/testFold" + fold + ".csv");
+                        out.writeString(tempRes.writeResultsFileToString());
+                        out.closeFile();
+                        
+                        if (!testFile.renameTo(new File(testFile.getAbsolutePath().replace(".csv", "EDITNOTRAIN.csv"))))
+                            throw new Exception("couldn't rename: " + testFile.getAbsolutePath());
+                        else {
+                            System.out.println("Edited: " + testFile.getAbsolutePath());
+                        }
+                    }
                 }
             }
         }
-        else {
-            int start = 9 + (7 * ind);
-            for (int fold = start; fold < start+7; fold++) { 
-                Experiments.main(new String[] { "Z:/Data/UCIContinuous/", "Z:/Results/", "true", "TunedXGBoost", individualDsets.get(0), ""+(fold+1), "true"});
-            }
-        }
     }
-    
-    public static void ucrexps(int ind) {
-        String resPath = "Z:/Results/TSCProblems/";
-        int numfolds = 30;
-        
-        String[] dsetsAll = {
-            "Adiac",
-            "ArrowHead",
-            "Beef",
-            "BeetleFly",
-            "BirdChicken",
-            "Car",
-            "CBF",
-            "ChlorineConcentration",
-            "CinCECGtorso",
-            "Coffee",
-            "Computers",
-            "CricketX",
-            "CricketY",
-            "CricketZ",
-            "DiatomSizeReduction",
-            "DistalPhalanxOutlineAgeGroup",
-            "DistalPhalanxOutlineCorrect",
-            "DistalPhalanxTW",
-            "Earthquakes",
-            "ECG200",
-            "ECG5000",
-            "ECGFiveDays",
-            "ElectricDevices",
-            "FaceAll",
-            "FaceFour",
-            "FacesUCR",
-            "fiftywords",
-            "fish",
-            "FordA",
-            "FordB",
-            "GunPoint",
-            "Ham",
-            "HandOutlines",
-            "Haptics",
-            "Herring",
-            "InlineSkate",
-            "InsectWingbeatSound",
-            "ItalyPowerDemand",
-            "LargeKitchenAppliances",
-            "Lightning2",
-            "Lightning7",
-            "MALLAT",
-            "Meat",
-            "MedicalImages",
-            "MiddlePhalanxOutlineAgeGroup",
-            "MiddlePhalanxOutlineCorrect",
-            "MiddlePhalanxTW",
-            "MoteStrain",
-            "NonInvasiveFatalECGThorax1",
-            "NonInvasiveFatalECGThorax2",
-            "OliveOil",
-            "OSULeaf",
-            "PhalangesOutlinesCorrect",
-            "Phoneme",
-            "Plane",
-            "ProximalPhalanxOutlineAgeGroup",
-            "ProximalPhalanxOutlineCorrect",
-            "ProximalPhalanxTW",
-            "RefrigerationDevices",
-            "ScreenType",
-            "ShapeletSim",
-            "ShapesAll",
-            "SmallKitchenAppliances",
-            "SonyAIBORobotSurface1",
-            "SonyAIBORobotSurface2",
-            "StarLightCurves",
-            "Strawberry",
-            "SwedishLeaf",
-            "Symbols",
-            "SyntheticControl",
-            "ToeSegmentation1",
-            "ToeSegmentation2",
-            "Trace",
-            "TwoLeadECG",
-            "TwoPatterns",
-            "UWaveGestureLibraryAll",
-            "UWaveGestureLibraryX",
-            "UWaveGestureLibraryY",
-            "UWaveGestureLibraryZ",
-            "wafer",
-            "Wine",
-            "WordSynonyms",
-            "Worms",
-            "WormsTwoClass",
-            "yoga",            
-        };
-        
-        String[][] dsets = {
-            { 
-                "Adiac",
-                "ArrowHead",
-                "Beef",
-                "BeetleFly",
-                "BirdChicken",
-                "Car",
-                "CBF",
-                "ChlorineConcentration",
-                "CinCECGtorso",
-                "Coffee",
-                "Computers",
-                "CricketX",
-                "CricketY",
-                "CricketZ",
-                "DiatomSizeReduction",
-                "DistalPhalanxOutlineAgeGroup",
-                "DistalPhalanxOutlineCorrect",
-                "DistalPhalanxTW",
-                "Earthquakes",
-                "ECG200",
-                "ECG5000",
-                "ECGFiveDays",
-                "ElectricDevices",
-                "FaceAll",
-                "FaceFour",
-                "FacesUCR",
-                "fiftywords",
-                "fish",
-                "FordA",
-            },
-            { 
-                "FordB",
-                "GunPoint",
-                "Ham",
-                "HandOutlines",
-                "Haptics",
-                "Herring",
-                "InlineSkate",
-                "InsectWingbeatSound",
-                "ItalyPowerDemand",
-                "LargeKitchenAppliances",
-                "Lightning2",
-                "Lightning7",
-                "MALLAT",
-                "Meat",
-                "MedicalImages",
-                "MiddlePhalanxOutlineAgeGroup",
-                "MiddlePhalanxOutlineCorrect",
-                "MiddlePhalanxTW",
-                "MoteStrain",
-            },
-            { 
-                "NonInvasiveFatalECGThorax1",
-                "NonInvasiveFatalECGThorax2",
-                "OliveOil",
-                "OSULeaf",
-                "PhalangesOutlinesCorrect",
-                "Phoneme",
-                "Plane",
-                "ProximalPhalanxOutlineAgeGroup",
-                "ProximalPhalanxOutlineCorrect",
-                "ProximalPhalanxTW",
-                "RefrigerationDevices",
-                "ScreenType",
-                "ShapeletSim",
-                "ShapesAll",
-                "SmallKitchenAppliances",
-                "SonyAIBORobotSurface1",
-                "SonyAIBORobotSurface2",
-            },
-            { 
-                "StarLightCurves",
-                "Strawberry",
-                "SwedishLeaf",
-                "Symbols",
-                "SyntheticControl",
-                "ToeSegmentation1",
-                "ToeSegmentation2",
-                "Trace",
-                "TwoLeadECG",
-                "TwoPatterns",
-                "UWaveGestureLibraryAll",
-                "UWaveGestureLibraryX",
-                "UWaveGestureLibraryY",
-                "UWaveGestureLibraryZ",
-                "wafer",
-                "Wine",
-                "WordSynonyms",
-                "Worms",
-                "WormsTwoClass",
-                "yoga",  
-            }
-        };
-        String classifier = "XGBoost";
-
-        System.out.println("\t" + classifier);
-
-        for (String dset : dsets[ind]) {
-
-            System.out.println(dset);
-
-            Instances train = ClassifierTools.loadData("Z:/Data/TSCProblems/" + dset + "/" + dset + "_TRAIN.arff");
-            Instances test = ClassifierTools.loadData("Z:/Data/TSCProblems/" + dset + "/" + dset + "_TEST.arff");
-
-            for (int fold = 0; fold < numfolds; fold++) {
-                System.out.print(fold + ",");
-                String predictions = resPath+classifier+"/Predictions/"+dset;
-                File f=new File(predictions);
-                if(!f.exists())
-                    f.mkdirs();
-
-                //Check whether fold already exists, if so, dont do it, just quit
-                if(!CollateResults.validateSingleFoldFile(predictions+"/testFold"+fold+".csv")){
-                    Instances[] data = InstanceTools.resampleTrainAndTestInstances(train, test, fold);
-
-                    Classifier c = Experiments.setClassifier(classifier, fold);
-
-                    Experiments.singleClassifierAndFoldTrainTestSplit(data[0],data[1],c,fold,predictions);
-                }
-            }
-            
-            System.out.println("");
-        }        
-    }
-    
 }
