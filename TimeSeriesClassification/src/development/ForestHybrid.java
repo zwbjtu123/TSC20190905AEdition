@@ -2,7 +2,9 @@ package development;
         
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Enumeration;
+import java.util.List;
 import java.util.Random;
 import utilities.ClassifierResults;
 import utilities.SaveParameterInfo;
@@ -27,6 +29,7 @@ public class ForestHybrid extends AbstractClassifier implements SaveParameterInf
 
     private Classifier[] classifiers = null;
     private int[] startIndex = null;
+    private int[][] attIndexs = null;
     private String classifier = "";
     private int featureSpace = 0;
     private int transformation = 0;
@@ -55,6 +58,7 @@ public class ForestHybrid extends AbstractClassifier implements SaveParameterInf
         Instances [] instancesOfClass = null;
         classifiers = new Classifier[numTrees];
         startIndex = new int[numTrees];
+        attIndexs = new int[numTrees][(int)Math.sqrt(instances.numAttributes()-1)];
         relationName = instances.relationName();
         
         
@@ -341,11 +345,28 @@ public class ForestHybrid extends AbstractClassifier implements SaveParameterInf
     }
     
     public Instances featureReduction(Instances trainInstances, int i){
+        Instances temp = new Instances(trainInstances);
         Random rand = new Random(seed);
-        Instances trainingData;
-        startIndex[i] = rand.nextInt((trainInstances.numAttributes()) - (int)Math.sqrt(trainInstances.firstInstance().numAttributes() - 1));
-        trainingData = produceIntervalInstances(trainInstances, i);
-        return trainingData;
+        List<Integer> indx = new ArrayList<>();
+        for (int j = 0; j < temp.numAttributes()-1; j++) {
+            indx.add(j);
+        }
+        Collections.shuffle(indx, rand);
+        for (int j = 0; j < attIndexs[i].length; j++) {
+            //attIndexs[i][j] = indx.get(j);
+            int x = rand.nextInt(indx.size()-0);
+            try{
+                attIndexs[i][j] = indx.get(x);
+            }catch(Exception e){
+                attIndexs[i][j] = indx.get(x);
+            }
+        }
+        
+        //Instances temp;
+        //startIndex[i] = rand.nextInt((trainInstances.numAttributes()) - (int)Math.sqrt(trainInstances.firstInstance().numAttributes() - 1));
+        
+        temp = produceIntervalInstances(temp, i);
+        return temp;
     }
     
     private Instances produceIntervalInstances(Instances trainInstances, int i){
@@ -353,24 +374,30 @@ public class ForestHybrid extends AbstractClassifier implements SaveParameterInf
         //POPULATE INTERVAL INSTANCES. 
         //Create and populate attribute information based on interval, class attribute is an addition.
         ArrayList<Attribute>attributes = new ArrayList<>();
-        for (int j = startIndex[i]; j < startIndex[i] + (int)Math.sqrt(trainInstances.firstInstance().numAttributes()-1); j++) {
-            attributes.add(trainInstances.attribute(j));
+        Random r = new Random(seed);
+        for (int j = 0; j < attIndexs[i].length ; j++) {
+            attributes.add(trainInstances.attribute(attIndexs[i][j]).copy(trainInstances.attribute(attIndexs[i][j]).name()+r.nextInt()));
         }
         attributes.add(trainInstances.attribute(trainInstances.numAttributes()-1));
 
         //Create new Instances to hold intervals.
         String relationName = trainInstances.relationName();
         Instances intervalInstances;
-            intervalInstances = new Instances(relationName, attributes, trainInstances.size());
-        for (int k = 0; k < trainInstances.size(); k++) {
+        intervalInstances = new Instances(relationName, attributes, trainInstances.size());
+        double[] temp = null;
+            for (int k = 0; k < trainInstances.size(); k++) {
             //Produce intervals from input instances, additional attribute needed to accomidate class value.
-            double[] temp = Arrays.copyOfRange(trainInstances.get(k).toDoubleArray(), startIndex[i], startIndex[i] + (int)Math.sqrt(trainInstances.firstInstance().numAttributes()-1) + 1);
+            //double[] temp = Arrays.copyOfRange(trainInstances.get(k).toDoubleArray(), startIndex[i], startIndex[i] + (int)Math.sqrt(trainInstances.firstInstance().numAttributes()-1) + 1);
+            temp = new double[attIndexs[i].length+1];
+            for (int j = 0; j < temp.length-1; j++) {
+                temp[j] = trainInstances.get(k).value(attIndexs[i][j]);
+            }
             DenseInstance instance = new DenseInstance(temp.length);
             instance.replaceMissingValues(temp);
             instance.setValue(temp.length-1, trainInstances.get(k).classValue());
-            intervalInstances.add(instance);     
+            intervalInstances.add(instance);
         }
-        intervalInstances.setClassIndex(intervalInstances.numAttributes()-1);
+        intervalInstances.setClassIndex(temp.length-1);
 
         return intervalInstances;
     }
